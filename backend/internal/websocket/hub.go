@@ -2,12 +2,15 @@ package websocket
 
 type Hub struct {
 	clients map[*Client]bool
+	rooms   map[string]*Room
+
 	register chan *Client
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		clients: make(map[*Client]bool),
+		clients:  make(map[*Client]bool),
+		rooms:    make(map[string]*Room),
 		register: make(chan *Client),
 	}
 }
