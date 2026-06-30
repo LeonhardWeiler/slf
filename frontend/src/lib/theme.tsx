@@ -6,57 +6,36 @@ import {
   type ReactNode,
 } from "react";
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "theme";
 
 interface ThemeContextValue {
   theme: Theme;
-  resolvedTheme: "light" | "dark";
   setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function getStoredTheme(): Theme {
+// Resolve the initial theme: a stored light/dark preference wins; otherwise the
+// OS preference is used *once* to pick a starting value. After that the system
+// preference plays no further role.
+function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark" || stored === "system") {
-    return stored;
-  }
-  return "system";
-}
-
-function systemPrefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
-function resolve(theme: Theme): "light" | "dark" {
-  if (theme === "system") return systemPrefersDark() ? "dark" : "light";
-  return theme;
+  if (stored === "light" || stored === "dark") return stored;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   // Theme is a per-browser display preference, so localStorage (shared across
   // tabs, persistent) is the right home for it — unlike the session identity.
-  const [theme, setThemeState] = useState<Theme>(() => getStoredTheme());
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">(() =>
-    resolve(getStoredTheme())
-  );
+  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
 
   useEffect(() => {
-    const apply = () => {
-      const r = resolve(theme);
-      setResolvedTheme(r);
-      document.documentElement.classList.toggle("dark", r === "dark");
-    };
-    apply();
-
-    // When following the system, react to OS theme changes live.
-    if (theme === "system") {
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      mq.addEventListener("change", apply);
-      return () => mq.removeEventListener("change", apply);
-    }
+    document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
   const setTheme = (next: Theme) => {
@@ -64,8 +43,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setThemeState(next);
   };
 
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
