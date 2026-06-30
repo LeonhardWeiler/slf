@@ -106,3 +106,19 @@ func TestComputeRanking(t *testing.T) {
 		t.Errorf("alphabetical tiebreak: expected Anna first, got %s", r[0].PlayerID)
 	}
 }
+
+func TestAlphabetExcluding(t *testing.T) {
+	got := AlphabetExcluding([]string{"A", "z", " q ", "A"})
+	if len(got) != 23 {
+		t.Fatalf("expected 23 letters, got %d (%v)", len(got), got)
+	}
+	for _, l := range got {
+		if l == "A" || l == "Z" || l == "Q" {
+			t.Errorf("excluded letter %q still present", l)
+		}
+	}
+	// No exclusions yields the full alphabet.
+	if len(AlphabetExcluding(nil)) != 26 {
+		t.Errorf("AlphabetExcluding(nil) should be the full 26-letter alphabet")
+	}
+}
