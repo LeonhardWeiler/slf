@@ -163,15 +163,6 @@ export function Home() {
               <LogIn className="h-4 w-4" />
               Lobby beitreten
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              size="lg"
-              onClick={() => goTo("scan")}
-            >
-              <ScanLine className="h-4 w-4" />
-              QR scannen
-            </Button>
           </div>
         )}
 
@@ -190,7 +181,7 @@ export function Home() {
                   setCode(scanned);
                   goTo("joinName");
                 }}
-                onClose={() => goTo("start")}
+                onClose={() => goTo("joinCode")}
               />
             </CardContent>
           </Card>
@@ -266,6 +257,22 @@ export function Home() {
                     autoComplete="off"
                   />
                 </div>
+
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  oder
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => goTo("scan")}
+                >
+                  <ScanLine className="h-4 w-4" />
+                  QR-Code scannen
+                </Button>
+
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <div className="flex gap-2">
                   <Button
