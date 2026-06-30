@@ -31,8 +31,8 @@ export function RoundResultScreen() {
   const excludedLetters = new Set(lobby.settings.excludedLetters ?? []);
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-lg mx-auto space-y-4">
+    <div className="min-h-screen bg-background p-4 sm:px-6 lg:px-10">
+      <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader title="Rundenergebnis" subtitle={`Buchstabe ${result.letter}`} />
 
         <Card>
