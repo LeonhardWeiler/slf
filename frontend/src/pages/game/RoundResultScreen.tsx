@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -60,12 +61,19 @@ export function RoundResultScreen() {
             {result.ranking.map((r) => (
               <div
                 key={r.playerId}
-                className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50"
+                className={`flex items-center justify-between py-2 px-3 rounded-md ${
+                  r.rank === 1
+                    ? "bg-amber-500/15 border border-amber-500/40"
+                    : "bg-muted/50"
+                }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-bold text-muted-foreground w-5">
                     {r.rank}.
                   </span>
+                  {r.rank === 1 && (
+                    <Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+                  )}
                   <span className="text-sm font-medium">
                     {playerName(r.playerId)}
                     {r.playerId === myPlayerId && (

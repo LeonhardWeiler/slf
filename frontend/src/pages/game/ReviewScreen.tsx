@@ -264,31 +264,36 @@ export function ReviewScreen() {
         </Card>
 
         {isHost ? (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => ws.send({ type: "previousCategory", payload: {} })}
-              disabled={isFirst}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Zurück
-            </Button>
-            {isLast ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
               <Button
-                className="flex-1"
-                onClick={() => ws.send({ type: "finishReview", payload: {} })}
+                variant="outline"
+                onClick={() => ws.send({ type: "previousCategory", payload: {} })}
+                disabled={isFirst}
               >
-                Bewertung abschließen (Enter)
+                <ChevronLeft className="h-4 w-4" />
+                Zurück
               </Button>
-            ) : (
-              <Button
-                className="flex-1"
-                onClick={() => ws.send({ type: "nextCategory", payload: {} })}
-              >
-                Weiter
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            )}
+              {isLast ? (
+                <Button
+                  className="flex-1"
+                  onClick={() => ws.send({ type: "finishReview", payload: {} })}
+                >
+                  Bewertung abschließen (Enter)
+                </Button>
+              ) : (
+                <Button
+                  className="flex-1"
+                  onClick={() => ws.send({ type: "nextCategory", payload: {} })}
+                >
+                  Weiter
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-center text-xs text-muted-foreground">
+              ← → Kategorie wechseln · Enter = abschließen
+            </p>
           </div>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
