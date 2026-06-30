@@ -39,6 +39,7 @@
             jq
             curl
             wget
+            tree
           ];
 
           shellHook = ''

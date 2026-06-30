@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/coder/websocket"
+	"slf/internal/game"
 )
 
 func handleCreateLobby(hub *Hub, c *Client, data json.RawMessage) {
@@ -16,49 +17,26 @@ func handleCreateLobby(hub *Hub, c *Client, data json.RawMessage) {
 
 	code := generateID()
 
-	room := &Room{
-		Code: code,
-		Players: map[string]*Player{
+	room := &game.Room{
+		Code:   code,
+		HostID: c.id,
+		State:  game.StateLobby,
+		Players: map[string]*game.Player{
 			c.id: {
 				ID:   c.id,
 				Name: req.Name,
-				Host: true,
 			},
 		},
 	}
 
-	hub.rooms[code] = room
+	c.roomCode = room.Code
 
-	sendLobbyState(c, room)
+	hub.rooms.Create(room)
+
+	hub.BroadcastLobbyState(room)
 }
 
 func mustJSON(v any) []byte {
 	b, _ := json.Marshal(v)
 	return b
-}
-
-func sendLobbyState(c *Client, room *Room) {
-	type Response struct {
-		Event string `json:"event"`
-		Data  any    `json:"data"`
-	}
-
-	players := []*Player{}
-	for _, p := range room.Players {
-		players = append(players, p)
-	}
-
-	resp := Response{
-		Event: "lobby_state",
-		Data: map[string]any{
-			"code":    room.Code,
-			"players": players,
-		},
-	}
-
-	c.conn.Write(
-		context.Background(),
-		websocket.MessageText,
-		mustJSON(resp),
-	)
 }

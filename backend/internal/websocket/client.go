@@ -10,7 +10,8 @@ import (
 type Client struct {
 	conn *websocket.Conn
 	hub  *Hub
-	id   string
+	id string
+	roomCode string
 }
 
 type Message struct {
@@ -56,4 +57,27 @@ func (c *Client) Read(hub *Hub) {
 			handleCreateLobby(hub, c, m.Data)
 		}
 	}
+}
+
+type OutgoingMessage struct {
+	Event string `json:"event"`
+	Data  any    `json:"data"`
+}
+
+func (c *Client) Send(event string, data any) error {
+	msg := OutgoingMessage{
+		Event: event,
+		Data:  data,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return c.conn.Write(
+		context.Background(),
+		websocket.MessageText,
+		b,
+	)
 }
