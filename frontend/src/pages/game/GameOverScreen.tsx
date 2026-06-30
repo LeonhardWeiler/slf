@@ -20,7 +20,7 @@ export function GameOverScreen() {
   const ranking = result?.ranking ?? [];
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader title="Spiel beendet" />
 

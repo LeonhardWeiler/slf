@@ -99,6 +99,15 @@
     transform: scale(1);
   }
 }
+/* Screen padding that also respects device safe areas (notch / home indicator)
+   while keeping a sensible 1rem minimum. */
+.screen-pad {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
 .animate-fade-in {
   animation: slf-fade-in 0.25s ease-out;
 }

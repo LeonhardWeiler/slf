@@ -138,7 +138,7 @@ export function GameScreen() {
     const display =
       countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6 animate-fade-in">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
         <p className="text-muted-foreground uppercase tracking-widest text-sm">
           Runde startet
         </p>
@@ -169,7 +169,7 @@ export function GameScreen() {
   const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5;
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-background screen-pad">
       {/* Red, pulsing screen border for the final 5 seconds (only when timed). */}
       {dangerZone && (
         <div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />

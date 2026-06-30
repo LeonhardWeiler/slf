@@ -120,7 +120,7 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
+    <div className="min-h-screen flex items-center justify-center screen-pad bg-background">
       <div className="absolute top-3 right-3">
         <ThemeToggle />
       </div>

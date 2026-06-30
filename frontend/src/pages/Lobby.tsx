@@ -143,7 +143,7 @@ export function Lobby() {
     isHost && activePlayers.length >= 1 && lobby.categories.length >= 1;
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between">
