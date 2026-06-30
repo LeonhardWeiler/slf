@@ -3,6 +3,8 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/coder/websocket"
@@ -115,6 +117,15 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		cp := *p
 		players = append(players, &cp)
 	}
+	// Stable, alphabetical order so the list never reshuffles on unrelated
+	// updates (e.g. a settings change). Tie-break on ID for determinism.
+	sort.Slice(players, func(i, j int) bool {
+		ni, nj := strings.ToLower(players[i].Name), strings.ToLower(players[j].Name)
+		if ni != nj {
+			return ni < nj
+		}
+		return players[i].ID < players[j].ID
+	})
 	payload := game.LobbyStatePayload{
 		LobbyCode:  lobby.Code,
 		HostID:     lobby.HostID,
