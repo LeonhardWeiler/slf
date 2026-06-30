@@ -75,6 +75,43 @@
   border-color: hsl(var(--border));
 }
 
+/* Subtle motion: a fade-in for phase screens and a pop for the countdown tick. */
+@keyframes slf-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slf-countdown-pop {
+  0% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-fade-in {
+  animation: slf-fade-in 0.25s ease-out;
+}
+.animate-countdown-pop {
+  animation: slf-countdown-pop 0.4s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-countdown-pop {
+    animation: none;
+  }
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));

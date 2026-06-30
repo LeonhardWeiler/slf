@@ -138,11 +138,16 @@ export function GameScreen() {
     const display =
       countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6 animate-fade-in">
         <p className="text-muted-foreground uppercase tracking-widest text-sm">
           Runde startet
         </p>
-        <div className="text-8xl font-bold tabular-nums min-h-[1em]">{display}</div>
+        <div
+          key={display}
+          className="text-8xl font-bold tabular-nums min-h-[1em] animate-countdown-pop"
+        >
+          {display}
+        </div>
         {game?.letter && (
           <div className="text-center">
             <p className="text-sm text-muted-foreground">Buchstabe</p>
@@ -169,7 +174,7 @@ export function GameScreen() {
       {dangerZone && (
         <div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
       )}
-      <div className="mx-auto w-full max-w-5xl space-y-4">
+      <div className="mx-auto w-full max-w-5xl space-y-4 animate-fade-in">
         <RoomHeader title="Runde läuft" />
 
         <Card>
@@ -201,8 +206,13 @@ export function GameScreen() {
           </CardContent>
         </Card>
 
+        {/* Screen-reader announcement for the final seconds. */}
+        <span className="sr-only" aria-live="assertive">
+          {dangerZone && timeLeft !== null ? `Noch ${timeLeft} Sekunden` : ""}
+        </span>
+
         <div className="space-y-3">
-          {categories.map((cat) => (
+          {categories.map((cat, idx) => (
             <div key={cat.id} className="space-y-1">
               <label className="text-sm font-medium">{cat.name}</label>
               <Input
@@ -211,6 +221,7 @@ export function GameScreen() {
                 placeholder={`${game.letter}…`}
                 maxLength={30}
                 autoComplete="off"
+                autoFocus={idx === 0}
               />
             </div>
           ))}
@@ -229,7 +240,7 @@ export function GameScreen() {
             onClick={handleBuzz}
             disabled={!validation.valid}
           >
-            STOPP — Fertig! (Enter)
+            STOPP — Fertig!{validation.valid ? " (Enter)" : ""}
           </Button>
           {!validation.valid && (
             <p className="text-center text-xs text-muted-foreground">
