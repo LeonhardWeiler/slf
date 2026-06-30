@@ -1,21 +1,19 @@
 package websocket
 
 import (
+	"fmt"
 	"math/rand"
-	"time"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
+func generateID() string {
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 12)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(b)
 }
 
-func generateID() string {
-	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
-
-	b := make([]byte, 10)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-
-	return string(b)
+func generateLobbyCode() string {
+	return fmt.Sprintf("%06d", rand.Intn(1000000))
 }

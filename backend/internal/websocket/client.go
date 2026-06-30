@@ -3,20 +3,15 @@ package websocket
 import (
 	"context"
 	"encoding/json"
-	"github.com/coder/websocket"
 	"net/http"
+
+	"github.com/coder/websocket"
 )
 
 type Client struct {
-	conn *websocket.Conn
-	hub  *Hub
-	id string
-	roomCode string
-}
-
-type Message struct {
-	Event string          `json:"event"`
-	Data  json.RawMessage `json:"data"`
+	conn      *websocket.Conn
+	hub       *Hub
+	sessionID string
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -24,60 +19,40 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		OriginPatterns: []string{"*"},
 	})
 	if err != nil {
-		println("accept error:", err.Error())
 		return
 	}
 
-	println("WS CONNECTED")
+	c := &Client{conn: conn, hub: hub}
+	hub.addPending(c)
+	defer hub.onDisconnect(c)
 
-	client := &Client{
-		conn: conn,
-		hub:  hub,
-		id:   generateID(),
-	}
-
-	hub.register <- client
-
-	go client.Read(hub)
+	c.read()
 }
 
-func (c *Client) Read(hub *Hub) {
+func (c *Client) read() {
 	for {
-		_, msg, err := c.conn.Read(context.Background())
+		_, raw, err := c.conn.Read(context.Background())
 		if err != nil {
 			return
 		}
 
-		var m Message
-		json.Unmarshal(msg, &m)
-
-		switch m.Event {
-
-		case "create_lobby":
-			handleCreateLobby(hub, c, m.Data)
+		var msg InboundMessage
+		if err := json.Unmarshal(raw, &msg); err != nil {
+			continue
 		}
+
+		handleMessage(c.hub, c, msg)
 	}
 }
 
-type OutgoingMessage struct {
-	Event string `json:"event"`
-	Data  any    `json:"data"`
-}
-
-func (c *Client) Send(event string, data any) error {
-	msg := OutgoingMessage{
-		Event: event,
-		Data:  data,
-	}
-
-	b, err := json.Marshal(msg)
+func (c *Client) send(msgType string, payload any) error {
+	b, err := json.Marshal(OutboundMessage{Type: msgType, Payload: payload})
 	if err != nil {
 		return err
 	}
+	return c.conn.Write(context.Background(), websocket.MessageText, b)
+}
 
-	return c.conn.Write(
-		context.Background(),
-		websocket.MessageText,
-		b,
-	)
+func (c *Client) writeRaw(b []byte) error {
+	return c.conn.Write(context.Background(), websocket.MessageText, b)
 }

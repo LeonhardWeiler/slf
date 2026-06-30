@@ -4,11 +4,12 @@ import { LobbyStateSchema } from "../schemas/lobby";
 import { GameStateSchema } from "../schemas/game";
 import { RoundResultSchema } from "../schemas/round";
 import { ReviewStateSchema } from "../schemas/review";
-import { PlayerKickedEvent } from "./lobby";
+import { PlayerKickedEvent, LobbyClosedEvent } from "./lobby";
 import { AppErrorEvent } from "./system";
 import { HostDisconnectedEvent, GameEndedEvent, SyncRequiredEvent } from "./system";
 
 import {
+  SessionCreatedEvent,
   PlayerDisconnectedEvent,
   PlayerReconnectedEvent,
 } from "./session";
@@ -21,6 +22,8 @@ export const ServerEvents = z.discriminatedUnion("type", [
   ReviewStateSchema.extend({ type: z.literal("reviewState") }),
   RoundResultSchema.extend({ type: z.literal("roundResult") }),
 
+  SessionCreatedEvent,
+
   AppErrorEvent,
 
   HostDisconnectedEvent,
@@ -30,6 +33,7 @@ export const ServerEvents = z.discriminatedUnion("type", [
   PlayerDisconnectedEvent,
   PlayerReconnectedEvent,
   PlayerKickedEvent,
+  LobbyClosedEvent,
 
   BuzzRejectedEvent,
 ]);

@@ -5,6 +5,7 @@ import {
   EditCategoryEvent,
   DeleteCategoryEvent,
   UpdateSettingsEvent,
+  LeaveLobbyEvent,
 } from "./lobby";
 
 import {
@@ -62,6 +63,7 @@ export const ClientEvents = z.discriminatedUnion("type", [
   CreateLobbyEvent,
   JoinLobbyEvent,
   ReconnectEvent,
+  LeaveLobbyEvent,
 
   AnswerUpdateEvent,
   BuzzEvent,

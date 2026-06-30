@@ -1,0 +1,95 @@
+import { ws } from "@/lib/ws";
+import { useLobbyStore } from "@/store/lobby";
+import { useGameStore } from "@/store/game";
+import { RoomHeader } from "@/components/RoomHeader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+export function RoundResultScreen() {
+  const { lobby, myPlayerId } = useLobbyStore();
+  const { result, game } = useGameStore();
+
+  if (!lobby || !result) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted-foreground">Ergebnis wird geladen…</p>
+      </div>
+    );
+  }
+
+  const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
+  const playerName = (id: string) =>
+    lobby.players.find((p) => p.id === id)?.name ?? "?";
+  const roundPointsOf = (id: string) =>
+    result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
+
+  const lettersLeft = game?.remainingLetters.length ?? 0;
+
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-lg mx-auto space-y-4">
+        <RoomHeader title="Rundenergebnis" subtitle={`Buchstabe ${result.letter}`} />
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Zwischenstand</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {result.ranking.map((r) => (
+              <div
+                key={r.playerId}
+                className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-muted-foreground w-5">
+                    {r.rank}.
+                  </span>
+                  <span className="text-sm font-medium">
+                    {playerName(r.playerId)}
+                    {r.playerId === myPlayerId && (
+                      <span className="text-xs text-muted-foreground"> (du)</span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-green-600 font-medium">
+                    +{roundPointsOf(r.playerId)}
+                  </span>
+                  <span className="text-sm font-bold tabular-nums w-10 text-right">
+                    {r.score}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {isHost ? (
+          <div className="space-y-2">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => ws.send({ type: "startNextRound", payload: {} })}
+            >
+              {lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => ws.send({ type: "endGame", payload: {} })}
+            >
+              Spiel beenden
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              {lettersLeft} Buchstaben übrig
+            </p>
+          </div>
+        ) : (
+          <p className="text-center text-sm text-muted-foreground">
+            Warte auf den Host…
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}

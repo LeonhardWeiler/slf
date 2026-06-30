@@ -1,7 +1,2 @@
-import { wsClient } from "./websocket/client";
-
-wsClient.connect();
-
-wsClient.send("create_lobby", {
-  name: "Leo"
-});
+// deprecated: entry point moved to main.tsx
+export {};

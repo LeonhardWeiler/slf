@@ -36,3 +36,15 @@ export const PlayerKickedEvent = z.object({
     playerId: z.string(),
   }),
 });
+
+export const LeaveLobbyEvent = z.object({
+  type: z.literal("leaveLobby"),
+  payload: z.object({}),
+});
+
+export const LobbyClosedEvent = z.object({
+  type: z.literal("lobbyClosed"),
+  payload: z.object({
+    reason: z.enum(["hostLeft"]),
+  }),
+});
