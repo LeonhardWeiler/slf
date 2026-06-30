@@ -5,5 +5,6 @@ export const PlayerSchema = z.object({
   name: z.string().min(1).max(20),
   isHost: z.boolean(),
   connected: z.boolean(),
+  left: z.boolean(),
   score: z.number(),
 });

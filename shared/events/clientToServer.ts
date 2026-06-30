@@ -12,6 +12,7 @@ import {
   StartGameEvent,
   EndGameEvent,
   StartNextRoundEvent,
+  ReturnToLobbyEvent,
   KickPlayerEvent,
 } from "./host";
 
@@ -76,6 +77,7 @@ export const ClientEvents = z.discriminatedUnion("type", [
   StartGameEvent,
   EndGameEvent,
   StartNextRoundEvent,
+  ReturnToLobbyEvent,
   KickPlayerEvent,
 
   SetAnswerValidityEvent,

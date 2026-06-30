@@ -15,6 +15,11 @@ export const StartNextRoundEvent = z.object({
   payload: z.object({}),
 });
 
+export const ReturnToLobbyEvent = z.object({
+  type: z.literal("returnToLobby"),
+  payload: z.object({}),
+});
+
 export const KickPlayerEvent = z.object({
   type: z.literal("kickPlayer"),
   payload: z.object({

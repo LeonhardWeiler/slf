@@ -32,6 +32,8 @@ export function Lobby() {
 
   const me = lobby.players.find((p) => p.id === myPlayerId);
   const isHost = me?.isHost ?? false;
+  // Players who left an in-progress game linger only for the final standings.
+  const activePlayers = lobby.players.filter((p) => !p.left);
 
   function handleLeave() {
     ws.send({ type: "leaveLobby", payload: {} });
@@ -89,7 +91,8 @@ export function Lobby() {
     });
   }
 
-  const canStart = isHost && lobby.players.length >= 1 && lobby.categories.length >= 1;
+  const canStart =
+    isHost && activePlayers.length >= 1 && lobby.categories.length >= 1;
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -129,11 +132,11 @@ export function Lobby() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">
-              Spieler ({lobby.players.length})
+              Spieler ({activePlayers.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {lobby.players.map((player) => (
+            {activePlayers.map((player) => (
               <div
                 key={player.id}
                 className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50"

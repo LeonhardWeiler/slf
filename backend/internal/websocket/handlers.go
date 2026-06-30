@@ -53,6 +53,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleStartNextRound(hub, c)
 	case "endGame":
 		handleEndGame(hub, c)
+	case "returnToLobby":
+		handleReturnToLobby(hub, c)
 	}
 }
 
@@ -252,13 +254,30 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 	}
 
 	sessionID := c.sessionID
-	delete(lobby.Players, player.ID)
-	delete(hub.sessions, sessionID)
-	delete(hub.clients, sessionID)
+	if lobby.State == game.StateLobby {
+		// Pre-game: remove the player entirely.
+		delete(lobby.Players, player.ID)
+		delete(hub.sessions, sessionID)
+		delete(hub.clients, sessionID)
+	} else {
+		// Mid-game: keep the player in the standings but mark them as left and
+		// drop their current-round answers (0 points this round, total kept).
+		player.Left = true
+		player.Connected = false
+		if lobby.Game != nil && lobby.Game.Round != nil {
+			delete(lobby.Game.Round.Answers, player.ID)
+		}
+		delete(hub.clients, sessionID)
+	}
+	reviewing := lobby.State == game.StateReviewing
 	hub.mu.Unlock()
 
 	c.sessionID = ""
 	hub.broadcastLobbyState(lobby)
+	// While reviewing, the left player's answers must disappear there too.
+	if reviewing {
+		hub.broadcastReviewState(lobby)
+	}
 }
 
 // requireHostInLobby validates that the caller is the host of an existing lobby

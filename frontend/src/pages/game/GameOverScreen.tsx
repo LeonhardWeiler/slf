@@ -15,6 +15,8 @@ export function GameOverScreen() {
   const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
+  const hasLeft = (id: string) =>
+    lobby.players.find((p) => p.id === id)?.left ?? false;
   const ranking = result?.ranking ?? [];
 
   return (
@@ -48,6 +50,9 @@ export function GameOverScreen() {
                     {r.playerId === myPlayerId && (
                       <span className="text-xs text-muted-foreground"> (du)</span>
                     )}
+                    {hasLeft(r.playerId) && (
+                      <span className="text-xs text-muted-foreground"> (verlassen)</span>
+                    )}
                   </span>
                 </div>
                 <span className="text-sm font-bold tabular-nums">{r.score}</span>
@@ -60,13 +65,13 @@ export function GameOverScreen() {
           <Button
             className="w-full"
             size="lg"
-            onClick={() => ws.send({ type: "startGame", payload: {} })}
+            onClick={() => ws.send({ type: "returnToLobby", payload: {} })}
           >
-            Neues Spiel
+            Zurück zur Lobby
           </Button>
         ) : (
           <p className="text-center text-sm text-muted-foreground">
-            Warte auf den Host für ein neues Spiel…
+            Warte auf den Host…
           </p>
         )}
       </div>

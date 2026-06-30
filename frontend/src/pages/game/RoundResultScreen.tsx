@@ -20,6 +20,8 @@ export function RoundResultScreen() {
   const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
+  const hasLeft = (id: string) =>
+    lobby.players.find((p) => p.id === id)?.left ?? false;
   const roundPointsOf = (id: string) =>
     result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
@@ -48,6 +50,9 @@ export function RoundResultScreen() {
                     {playerName(r.playerId)}
                     {r.playerId === myPlayerId && (
                       <span className="text-xs text-muted-foreground"> (du)</span>
+                    )}
+                    {hasLeft(r.playerId) && (
+                      <span className="text-xs text-muted-foreground"> (verlassen)</span>
                     )}
                   </span>
                 </div>

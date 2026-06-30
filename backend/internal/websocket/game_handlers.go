@@ -384,6 +384,39 @@ func handleEndGame(hub *Hub, c *Client) {
 	hub.endGame(lobby)
 }
 
+// handleReturnToLobby brings a finished game back to the Lobby state so the
+// host can reconfigure and start fresh. Only valid from RoundResult / GameOver.
+func handleReturnToLobby(hub *Hub, c *Client) {
+	hub.mu.Lock()
+	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
+	if !ok || !player.IsHost {
+		hub.mu.Unlock()
+		hub.sendError(c, "Nur der Host darf zur Lobby zurückkehren")
+		return
+	}
+	if lobby.State != game.StateRoundResult && lobby.State != game.StateGameOver {
+		hub.mu.Unlock()
+		hub.sendError(c, "Aktion nicht erlaubt")
+		return
+	}
+	lobby.State = game.StateLobby
+	lobby.Game = nil
+	// Drop players who left mid-game (they only stayed for the final table) and
+	// reset every remaining score for the next game.
+	for id, p := range lobby.Players {
+		if p.Left {
+			delete(lobby.Players, id)
+			delete(hub.sessions, p.SessionID)
+			delete(hub.clients, p.SessionID)
+			continue
+		}
+		p.Score = 0
+	}
+	hub.mu.Unlock()
+
+	hub.broadcastLobbyState(lobby)
+}
+
 func (hub *Hub) endGame(lobby *game.Lobby) {
 	hub.mu.Lock()
 	lobby.State = game.StateGameOver

@@ -8,8 +8,11 @@ type Player struct {
 	Name      string    `json:"name"`
 	IsHost    bool      `json:"isHost"`
 	Connected bool      `json:"connected"`
-	Score     int       `json:"score"`
-	JoinedAt  time.Time `json:"joinedAt"`
+	// Left is true when the player left an in-progress game. They are kept in
+	// the standings but excluded from review and the lobby player list.
+	Left     bool      `json:"left"`
+	Score    int       `json:"score"`
+	JoinedAt time.Time `json:"joinedAt"`
 }
 
 type Category struct {

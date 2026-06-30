@@ -11,6 +11,7 @@ export interface Player {
   name: string;
   isHost: boolean;
   connected: boolean;
+  left: boolean;
   score: number;
 }
 
@@ -138,4 +139,5 @@ export type ClientEvent =
   | { type: "previousCategory"; payload: Record<string, never> }
   | { type: "finishReview"; payload: Record<string, never> }
   | { type: "startNextRound"; payload: Record<string, never> }
-  | { type: "endGame"; payload: Record<string, never> };
+  | { type: "endGame"; payload: Record<string, never> }
+  | { type: "returnToLobby"; payload: Record<string, never> };
