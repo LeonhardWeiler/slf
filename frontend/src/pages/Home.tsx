@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Navigate } from "react-router";
+import { ArrowLeft, Plus, LogIn } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+type Step = "start" | "createName" | "joinCode" | "joinName";
+
 export function Home() {
   const params = useParams<{ code?: string }>();
   const { setError, error, lobby, notice, setNotice } = useLobbyStore();
@@ -22,8 +25,10 @@ export function Home() {
 
   const [name, setName] = useState("");
   const [code, setCode] = useState(deepLinkCode);
-  const [mode, setMode] = useState<"create" | "join">(
-    deepLinkCode ? "join" : "create"
+  // A deep link (/join/:code) drops the user straight into the join flow with
+  // the code prefilled — only the name is missing.
+  const [step, setStep] = useState<Step>(
+    deepLinkCode.length === 6 ? "joinName" : "start"
   );
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(ws.isOpen);
@@ -59,19 +64,12 @@ export function Home() {
     return <Navigate to="/lobby" replace />;
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    if (!trimmedName) return;
-    if (mode === "join" && code.trim().length !== 6) {
-      setError("Lobbycode muss 6 Ziffern lang sein");
-      return;
-    }
-
+  function goTo(next: Step) {
     setError(null);
-    setNotice(null);
-    setLoading(true);
+    setStep(next);
+  }
 
+  function armTimeout() {
     // Safety net: if the server never answers (e.g. backend down), don't hang
     // on "Verbinde…" forever — surface an error so the user can retry.
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -79,15 +77,45 @@ export function Home() {
       setError("Keine Verbindung zum Server. Bitte erneut versuchen.");
       setLoading(false);
     }, 8000);
+  }
 
-    if (mode === "create") {
-      ws.send({ type: "createLobby", payload: { playerName: trimmedName } });
-    } else {
-      ws.send({
-        type: "joinLobby",
-        payload: { playerName: trimmedName, lobbyCode: code.trim() },
-      });
+  function submitCreate(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+    armTimeout();
+    ws.send({ type: "createLobby", payload: { playerName: trimmedName } });
+  }
+
+  function submitJoinCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (code.trim().length !== 6) {
+      setError("Lobbycode muss 6 Ziffern lang sein");
+      return;
     }
+    goTo("joinName");
+  }
+
+  function submitJoinName(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    if (code.trim().length !== 6) {
+      setError("Lobbycode muss 6 Ziffern lang sein");
+      setStep("joinCode");
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    setLoading(true);
+    armTimeout();
+    ws.send({
+      type: "joinLobby",
+      payload: { playerName: trimmedName, lobbyCode: code.trim() },
+    });
   }
 
   return (
@@ -114,58 +142,84 @@ export function Home() {
           </div>
         )}
 
-        <div className="flex rounded-lg border overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setMode("create")}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === "create"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted text-foreground"
-            }`}
-          >
-            Erstellen
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("join")}
-            className={`flex-1 py-2 text-sm font-medium transition-colors ${
-              mode === "join"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted text-foreground"
-            }`}
-          >
-            Beitreten
-          </button>
-        </div>
+        {/* ---- Step: start ---- */}
+        {step === "start" && (
+          <div className="space-y-3">
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => goTo("createName")}
+            >
+              <Plus className="h-4 w-4" />
+              Lobby erstellen
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => goTo("joinCode")}
+            >
+              <LogIn className="h-4 w-4" />
+              Lobby beitreten
+            </Button>
+          </div>
+        )}
 
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base">
-              {mode === "create" ? "Neue Lobby erstellen" : "Lobby beitreten"}
-            </CardTitle>
-            <CardDescription>
-              {mode === "create"
-                ? "Du wirst automatisch zum Host."
-                : "Gib den Code ein, den du erhalten hast."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Dein Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Name eingeben…"
-                  maxLength={20}
-                  autoFocus
-                  autoComplete="off"
-                />
-              </div>
+        {/* ---- Step: create → name ---- */}
+        {step === "createName" && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Neue Lobby erstellen</CardTitle>
+              <CardDescription>Du wirst automatisch zum Host.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submitCreate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Dein Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Name eingeben…"
+                    maxLength={20}
+                    autoFocus
+                    autoComplete="off"
+                  />
+                </div>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => goTo("start")}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Zurück
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={loading || !name.trim()}
+                  >
+                    {loading ? "Verbinde…" : "Weiter"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
-              {mode === "join" && (
+        {/* ---- Step: join → code ---- */}
+        {step === "joinCode" && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Lobby beitreten</CardTitle>
+              <CardDescription>
+                Gib den Code ein, den du erhalten hast.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submitJoinCode} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="code">Lobbycode</Label>
                   <Input
@@ -177,29 +231,78 @@ export function Home() {
                     placeholder="123456"
                     inputMode="numeric"
                     maxLength={6}
+                    autoFocus
                     autoComplete="off"
                   />
                 </div>
-              )}
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => goTo("start")}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Zurück
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={code.trim().length !== 6}
+                  >
+                    Weiter
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || !name.trim()}
-              >
-                {loading
-                  ? "Verbinde…"
-                  : mode === "create"
-                  ? "Lobby erstellen"
-                  : "Beitreten"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        {/* ---- Step: join → name ---- */}
+        {step === "joinName" && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Lobby beitreten</CardTitle>
+              <CardDescription>
+                Lobby {code} — gib deinen Namen ein.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={submitJoinName} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="join-name">Dein Name</Label>
+                  <Input
+                    id="join-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Name eingeben…"
+                    maxLength={20}
+                    autoFocus
+                    autoComplete="off"
+                  />
+                </div>
+                {error && <p className="text-sm text-destructive">{error}</p>}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => goTo("joinCode")}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Zurück
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={loading || !name.trim()}
+                  >
+                    {loading ? "Verbinde…" : "Beitreten"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
