@@ -148,7 +148,11 @@ export function Lobby() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Lobby</h1>
-            <p className="text-muted-foreground text-sm">Wartet auf Spieler…</p>
+            <p className="text-muted-foreground text-sm">
+              {activePlayers.length <= 1
+                ? "Warte auf Mitspieler…"
+                : `${activePlayers.length} Spieler bereit`}
+            </p>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -170,20 +174,34 @@ export function Lobby() {
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Lobbycode
               </p>
-              <p className="text-5xl font-mono font-bold tracking-[0.3em] group-hover:opacity-80 transition-opacity">
-                {lobby.lobbyCode}
+              <p className="text-5xl font-mono font-bold tracking-[0.2em] group-hover:opacity-80 transition-opacity">
+                {lobby.lobbyCode.replace(/(\d{3})(\d{3})/, "$1 $2")}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {copied === "code"
-                  ? "Code kopiert!"
-                  : "Klicken oder Strg+C zum Kopieren"}
+              <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                {copied === "code" ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                    Code kopiert!
+                  </>
+                ) : (
+                  "Klicken oder Strg+C zum Kopieren"
+                )}
               </p>
             </button>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               <Button variant="outline" size="sm" onClick={() => copyText(joinLink, "link")}>
-                <LinkIcon className="h-4 w-4" />
-                {copied === "link" ? "Link kopiert!" : "Link kopieren"}
+                {copied === "link" ? (
+                  <>
+                    <Check className="h-4 w-4 text-green-600" />
+                    Link kopiert!
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="h-4 w-4" />
+                    Link kopieren
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -411,7 +429,24 @@ export function Lobby() {
 
             {/* Letter selection */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">Buchstaben</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Buchstaben</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {26 - (lobby.settings.excludedLetters ?? []).length} von 26 aktiv
+                  </span>
+                  {isHost && (lobby.settings.excludedLetters ?? []).length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => updateSettings({ excludedLetters: [] })}
+                    >
+                      Alle aktivieren
+                    </Button>
+                  )}
+                </div>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {isHost
                   ? "Tippe einen Buchstaben an, um ihn aus dem Spiel zu nehmen."
