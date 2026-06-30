@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
+import { validateAnswers } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 // Local ticking timer that counts down from `seconds`, restarting whenever
 // `resetKey` changes. The server stays authoritative for phase transitions.
-function useTicker(seconds: number | null, resetKey: string): number | null {
+function useCountdown(seconds: number | null, resetKey: string): number | null {
   const [value, setValue] = useState(seconds);
   useEffect(() => {
     setValue(seconds);
@@ -23,7 +24,25 @@ function useTicker(seconds: number | null, resetKey: string): number | null {
   return value;
 }
 
+// Count-up stopwatch starting from `start` seconds, restarting on resetKey.
+function useStopwatch(start: number, resetKey: string): number {
+  const [value, setValue] = useState(start);
+  useEffect(() => {
+    setValue(start);
+    const id = setInterval(() => setValue((v) => v + 1), 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey]);
+  return value;
+}
+
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
+
+function formatClock(total: number): string {
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 
 export function GameScreen() {
   const { lobby } = useLobbyStore();
@@ -58,12 +77,23 @@ export function GameScreen() {
     }
   }, [roundId]);
 
-  const countdown = useTicker(game?.countdownRemaining ?? null, roundId + ":cd");
-  const timeLeft = useTicker(game?.timeRemaining ?? null, roundId + ":play");
+  const countdown = useCountdown(
+    game?.countdownRemaining ?? null,
+    `${roundId}:cd:${game?.countdownRemaining ?? ""}`
+  );
+  const timeLeft = useCountdown(
+    game?.timeRemaining ?? null,
+    `${roundId}:${game?.state ?? ""}:${game?.timeRemaining ?? ""}`
+  );
+  const elapsed = useStopwatch(
+    game?.elapsed ?? 0,
+    `${roundId}:${game?.state ?? ""}:${game?.elapsed ?? ""}`
+  );
 
   if (!lobby || !game) return null;
 
   const categories = lobby.categories;
+  const hasTimeLimit = lobby.settings.timeLimit !== null;
 
   function updateAnswer(categoryId: string, value: string) {
     setAnswers((prev) => {
@@ -78,7 +108,9 @@ export function GameScreen() {
     ws.send({ type: "answerUpdate", payload: { categoryId, value } });
   }
 
-  const allFilled = categories.every((c) => (answers[c.id] ?? "").trim() !== "");
+  // Client-side validation: only an all-valid set may buzz (SRS 5.7).
+  // The server stays the source of truth and re-checks on buzz.
+  const validation = validateAnswers(categories, answers, game.letter);
 
   function handleBuzz() {
     setBuzzRejected(null);
@@ -86,7 +118,10 @@ export function GameScreen() {
   }
 
   // ---- Countdown phase ----
-  if (game.state === "Countdown") {
+  // Phase is derived from the lobby state (single source of truth) so the
+  // countdown shows immediately, without a flash of the Playing UI from a
+  // stale gameState of the previous round.
+  if (lobby.state === "Countdown") {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 gap-6">
         <p className="text-muted-foreground uppercase tracking-widest text-sm">
@@ -106,9 +141,15 @@ export function GameScreen() {
   }
 
   // ---- Playing phase ----
+  const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5 && timeLeft > 0;
+
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-lg mx-auto space-y-4">
+      {/* Red, pulsing screen border for the final 5 seconds (only when timed). */}
+      {dangerZone && (
+        <div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
+      )}
+      <div className="max-w-lg lg:max-w-4xl mx-auto space-y-4">
         <RoomHeader title="Runde läuft" />
 
         <Card>
@@ -123,14 +164,24 @@ export function GameScreen() {
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Zeit
               </p>
-              <p className="text-3xl font-mono font-bold tabular-nums">
-                {timeLeft === null ? "∞" : `${timeLeft}s`}
-              </p>
+              {hasTimeLimit ? (
+                <p
+                  className={`text-3xl font-mono font-bold tabular-nums ${
+                    dangerZone ? "text-destructive" : ""
+                  }`}
+                >
+                  {timeLeft === null ? "–" : `${timeLeft}s`}
+                </p>
+              ) : (
+                <p className="text-3xl font-mono font-bold tabular-nums">
+                  {formatClock(elapsed)}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {categories.map((cat) => (
             <div key={cat.id} className="space-y-1">
               <label className="text-sm font-medium">{cat.name}</label>
@@ -147,23 +198,25 @@ export function GameScreen() {
 
         {buzzRejected === "incompleteAnswers" && (
           <p className="text-sm text-destructive text-center">
-            Du musst alle Kategorien ausfüllen, bevor du buzzern kannst.
+            Du musst alle Kategorien gültig ausfüllen, bevor du buzzern kannst.
           </p>
         )}
 
-        <Button
-          className="w-full"
-          size="lg"
-          onClick={handleBuzz}
-          disabled={!allFilled}
-        >
-          STOPP — Fertig!
-        </Button>
-        {!allFilled && (
-          <p className="text-center text-xs text-muted-foreground">
-            Fülle alle Kategorien aus, um zu buzzern.
-          </p>
-        )}
+        <div className="max-w-lg mx-auto space-y-2">
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={handleBuzz}
+            disabled={!validation.valid}
+          >
+            STOPP — Fertig!
+          </Button>
+          {!validation.valid && (
+            <p className="text-center text-xs text-muted-foreground">
+              {validation.reason}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

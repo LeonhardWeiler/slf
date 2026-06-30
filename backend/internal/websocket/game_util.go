@@ -18,6 +18,15 @@ func categoryExists(lobby *game.Lobby, catID string) bool {
 }
 
 func storeAnswer(round *game.Round, playerID, catID, value string) {
+	// An empty / whitespace-only value is not a real submission: drop any
+	// existing entry so it never shows up as a "submitted" answer in review
+	// (and so buzzing still requires every category to be filled).
+	if game.Normalize(value) == "" {
+		if byCat, ok := round.Answers[playerID]; ok {
+			delete(byCat, catID)
+		}
+		return
+	}
 	if round.Answers[playerID] == nil {
 		round.Answers[playerID] = map[string]*game.Answer{}
 	}
@@ -64,6 +73,13 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 			}
 			p.TimeRemaining = &rem
 		}
+		// Elapsed lets a (re)connecting client resume the stopwatch / countdown
+		// from the correct position instead of restarting at 0.
+		elapsed := int(time.Since(r.StartedAt).Seconds())
+		if elapsed < 0 {
+			elapsed = 0
+		}
+		p.Elapsed = &elapsed
 	}
 	return p
 }

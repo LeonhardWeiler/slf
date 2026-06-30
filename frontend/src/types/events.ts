@@ -50,6 +50,7 @@ export interface GameStatePayload {
   remainingLetters: string[];
   timeRemaining: number | null;
   countdownRemaining: number | null;
+  elapsed: number | null;
   categoryCount: number;
 }
 

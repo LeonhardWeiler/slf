@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
 import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off } from "lucide-react";
 import { useLobbyStore } from "@/store/lobby";
@@ -10,6 +11,45 @@ export function ReviewScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { review } = useGameStore();
 
+  // The answer picked as the merge target ("group anchor"). The next answer the
+  // host clicks is merged into it.
+  const [mergeAnchor, setMergeAnchor] = useState<string | null>(null);
+
+  const isHost =
+    lobby?.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
+  const isFirst = (review?.categoryIndex ?? 0) <= 0;
+  const isLast = review
+    ? review.categoryIndex >= review.categoryCount - 1
+    : false;
+
+  // Reset the pending merge selection whenever the reviewed category changes.
+  useEffect(() => {
+    setMergeAnchor(null);
+  }, [review?.categoryIndex]);
+
+  // Host can page through categories with the arrow keys (when not typing).
+  useEffect(() => {
+    if (!isHost) return;
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          el.tagName === "SELECT")
+      ) {
+        return;
+      }
+      if (e.key === "ArrowLeft" && !isFirst) {
+        ws.send({ type: "previousCategory", payload: {} });
+      } else if (e.key === "ArrowRight" && !isLast) {
+        ws.send({ type: "nextCategory", payload: {} });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isHost, isFirst, isLast]);
+
   if (!lobby || !review) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -18,25 +58,34 @@ export function ReviewScreen() {
     );
   }
 
-  const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
   const categoryName =
     lobby.categories[review.categoryIndex]?.name ?? "Kategorie";
 
-  const isLast = review.categoryIndex >= review.categoryCount - 1;
-  const isFirst = review.categoryIndex <= 0;
-
   function setValid(answerId: string, valid: boolean) {
     ws.send({ type: "setAnswerValidity", payload: { answerId, valid } });
-  }
-  function merge(sourceAnswerId: string, targetAnswerId: string) {
-    if (targetAnswerId)
-      ws.send({ type: "mergeAnswers", payload: { sourceAnswerId, targetAnswerId } });
   }
   function unmerge(answerId: string) {
     ws.send({ type: "unmergeAnswers", payload: { answerId } });
   }
+
+  // Click handling for the merge button on a single answer.
+  function onMergeClick(answerId: string) {
+    if (mergeAnchor === null) {
+      setMergeAnchor(answerId); // first click picks the target group
+    } else if (mergeAnchor === answerId) {
+      setMergeAnchor(null); // clicking the anchor again cancels
+    } else {
+      ws.send({
+        type: "mergeAnswers",
+        payload: { targetAnswerId: mergeAnchor, sourceAnswerId: answerId },
+      });
+      setMergeAnchor(null);
+    }
+  }
+
+  const mergeableCount = review.answers.filter((a) => a.mergedInto === "").length;
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -72,10 +121,17 @@ export function ReviewScreen() {
             )}
             {review.answers.map((a) => {
               const merged = a.mergedInto !== "";
+              const isAnchor = mergeAnchor === a.answerId;
               return (
                 <div
                   key={a.answerId}
-                  className="rounded-md bg-muted/50 px-3 py-2 space-y-1"
+                  className={`rounded-md px-3 py-2 space-y-1 transition-colors ${
+                    isAnchor
+                      ? "bg-primary/10 ring-1 ring-primary"
+                      : a.valid
+                      ? "bg-green-500/10"
+                      : "bg-muted/50"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
@@ -100,17 +156,28 @@ export function ReviewScreen() {
                         {a.pointsPreview}
                       </span>
                       {isHost ? (
+                        // Action semantics: a valid answer shows an X (click to
+                        // mark it invalid); an invalid one shows a check (click
+                        // to accept it).
                         <Button
-                          variant={a.valid ? "default" : "outline"}
+                          variant="outline"
                           size="icon"
-                          className="h-7 w-7"
-                          title={a.valid ? "Als ungültig markieren" : "Als gültig markieren"}
+                          className={`h-7 w-7 ${
+                            a.valid
+                              ? "text-destructive hover:text-destructive"
+                              : "text-green-600 hover:text-green-600"
+                          }`}
+                          title={
+                            a.valid
+                              ? "Als ungültig markieren"
+                              : "Als gültig akzeptieren"
+                          }
                           onClick={() => setValid(a.answerId, !a.valid)}
                         >
                           {a.valid ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
                             <X className="h-4 w-4" />
+                          ) : (
+                            <Check className="h-4 w-4" />
                           )}
                         </Button>
                       ) : (
@@ -137,32 +204,34 @@ export function ReviewScreen() {
                           <Link2Off className="h-3.5 w-3.5 mr-1" />
                           Trennen
                         </Button>
-                      ) : (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Link2 className="h-3.5 w-3.5" />
-                          <select
-                            className="bg-background border border-border rounded px-1 py-0.5 text-xs"
-                            value=""
-                            onChange={(e) => merge(a.answerId, e.target.value)}
-                          >
-                            <option value="">zusammenführen mit…</option>
-                            {review.answers
-                              .filter(
-                                (o) => o.answerId !== a.answerId && o.mergedInto === ""
-                              )
-                              .map((o) => (
-                                <option key={o.answerId} value={o.answerId}>
-                                  {playerName(o.playerId)}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
-                      )}
+                      ) : mergeableCount > 1 ? (
+                        <Button
+                          variant={isAnchor ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => onMergeClick(a.answerId)}
+                        >
+                          <Link2 className="h-3.5 w-3.5 mr-1" />
+                          {mergeAnchor === null
+                            ? "Zusammenführen"
+                            : isAnchor
+                            ? "Abbrechen"
+                            : "Hierher zusammenführen"}
+                        </Button>
+                      ) : null}
                     </div>
                   )}
                 </div>
               );
             })}
+            {isHost && mergeAnchor !== null && (
+              <p className="text-xs text-muted-foreground px-1">
+                Wähle eine weitere Antwort, um sie mit „{playerName(
+                  review.answers.find((a) => a.answerId === mergeAnchor)
+                    ?.playerId ?? ""
+                )}" zusammenzuführen.
+              </p>
+            )}
           </CardContent>
         </Card>
 

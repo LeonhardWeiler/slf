@@ -99,6 +99,7 @@ type GameStatePayload struct {
 	RemainingLetters   []string `json:"remainingLetters"`
 	TimeRemaining      *int     `json:"timeRemaining"`      // seconds, null = unlimited
 	CountdownRemaining *int     `json:"countdownRemaining"` // seconds, null when Playing
+	Elapsed            *int     `json:"elapsed"`            // seconds since playing start, null outside Playing
 	CategoryCount      int      `json:"categoryCount"`
 }
 

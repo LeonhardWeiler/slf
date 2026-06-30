@@ -6,6 +6,7 @@ import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const TIME_OPTIONS: { label: string; value: number | null }[] = [
@@ -307,25 +308,11 @@ export function Lobby() {
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Buchstabe während Countdown zeigen</p>
               {isHost ? (
-                <button
-                  type="button"
-                  onClick={toggleShowLetter}
-                  role="switch"
-                  aria-checked={lobby.settings.showLetterDuringCountdown}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    lobby.settings.showLetterDuringCountdown
-                      ? "bg-primary"
-                      : "bg-muted-foreground/30"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      lobby.settings.showLetterDuringCountdown
-                        ? "translate-x-6"
-                        : "translate-x-1"
-                    }`}
-                  />
-                </button>
+                <Switch
+                  checked={lobby.settings.showLetterDuringCountdown}
+                  onCheckedChange={toggleShowLetter}
+                  aria-label="Buchstabe während Countdown zeigen"
+                />
               ) : (
                 <span className="text-sm text-muted-foreground">
                   {lobby.settings.showLetterDuringCountdown ? "Ja" : "Nein"}
