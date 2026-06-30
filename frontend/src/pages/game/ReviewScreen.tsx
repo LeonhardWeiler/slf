@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
 import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -11,8 +12,8 @@ export function ReviewScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { review } = useGameStore();
 
-  // The answer picked as the merge target ("group anchor"). The next answer the
-  // host clicks is merged into it.
+  // The answer picked as the merge target ("group anchor"). While set, the
+  // host merges by clicking another answer's row directly (no second button).
   const [mergeAnchor, setMergeAnchor] = useState<string | null>(null);
 
   const isHost =
@@ -27,7 +28,9 @@ export function ReviewScreen() {
     setMergeAnchor(null);
   }, [review?.categoryIndex]);
 
-  // Host can page through categories with the arrow keys (when not typing).
+  // Host keyboard controls: arrows page through categories; Enter finishes the
+  // review on the last category (otherwise advances), and cancels a pending
+  // merge. Ending the game stays button-only.
   useEffect(() => {
     if (!isHost) return;
     function onKey(e: KeyboardEvent) {
@@ -44,11 +47,19 @@ export function ReviewScreen() {
         ws.send({ type: "previousCategory", payload: {} });
       } else if (e.key === "ArrowRight" && !isLast) {
         ws.send({ type: "nextCategory", payload: {} });
+      } else if (e.key === "Enter") {
+        if (mergeAnchor !== null) {
+          setMergeAnchor(null);
+        } else if (isLast) {
+          ws.send({ type: "finishReview", payload: {} });
+        } else {
+          ws.send({ type: "nextCategory", payload: {} });
+        }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isHost, isFirst, isLast]);
+  }, [isHost, isFirst, isLast, mergeAnchor]);
 
   if (!lobby || !review) {
     return (
@@ -69,23 +80,17 @@ export function ReviewScreen() {
   function unmerge(answerId: string) {
     ws.send({ type: "unmergeAnswers", payload: { answerId } });
   }
-
-  // Click handling for the merge button on a single answer.
-  function onMergeClick(answerId: string) {
-    if (mergeAnchor === null) {
-      setMergeAnchor(answerId); // first click picks the target group
-    } else if (mergeAnchor === answerId) {
-      setMergeAnchor(null); // clicking the anchor again cancels
-    } else {
-      ws.send({
-        type: "mergeAnswers",
-        payload: { targetAnswerId: mergeAnchor, sourceAnswerId: answerId },
-      });
-      setMergeAnchor(null);
-    }
+  function mergeInto(sourceAnswerId: string) {
+    if (mergeAnchor === null || mergeAnchor === sourceAnswerId) return;
+    ws.send({
+      type: "mergeAnswers",
+      payload: { targetAnswerId: mergeAnchor, sourceAnswerId },
+    });
+    setMergeAnchor(null);
   }
 
   const mergeableCount = review.answers.filter((a) => a.mergedInto === "").length;
+  const mergeMode = mergeAnchor !== null;
 
   return (
     <div className="min-h-screen bg-background p-4 sm:px-6 lg:px-10">
@@ -122,26 +127,34 @@ export function ReviewScreen() {
             {review.answers.map((a) => {
               const merged = a.mergedInto !== "";
               const isAnchor = mergeAnchor === a.answerId;
+              const clickable = mergeMode && !isAnchor && !merged;
               return (
                 <div
                   key={a.answerId}
-                  className={`rounded-md px-3 py-2 space-y-1 transition-colors ${
+                  onClick={clickable ? () => mergeInto(a.answerId) : undefined}
+                  className={cn(
+                    "rounded-md px-3 py-2.5 transition-colors",
                     isAnchor
-                      ? "bg-primary/10 ring-1 ring-primary"
+                      ? "bg-primary/10 ring-2 ring-primary"
                       : a.valid
                       ? "bg-green-500/10"
-                      : "bg-muted/50"
-                  }`}
+                      : "bg-muted/50",
+                    clickable &&
+                      "cursor-pointer ring-1 ring-primary/40 hover:ring-2 hover:ring-primary"
+                  )}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <span className="text-xs text-muted-foreground">
                         {playerName(a.playerId)}
                       </span>
                       <p
-                        className={`font-medium truncate ${
-                          a.valid ? "" : "line-through text-muted-foreground"
-                        }`}
+                        className={cn(
+                          "text-lg font-medium truncate",
+                          a.valid
+                            ? "text-foreground"
+                            : "line-through text-muted-foreground"
+                        )}
                       >
                         {a.value || "—"}
                       </p>
@@ -151,28 +164,36 @@ export function ReviewScreen() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-bold tabular-nums w-8 text-right">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={cn(
+                          "text-lg font-bold tabular-nums w-8 text-right",
+                          a.valid ? "" : "text-muted-foreground"
+                        )}
+                      >
                         {a.pointsPreview}
                       </span>
-                      {isHost ? (
-                        // Action semantics: a valid answer shows an X (click to
-                        // mark it invalid); an invalid one shows a check (click
-                        // to accept it).
+                      {isHost && (
+                        // Action semantics: valid -> X (click to reject),
+                        // invalid -> check (click to accept).
                         <Button
                           variant="outline"
                           size="icon"
-                          className={`h-7 w-7 ${
+                          className={cn(
+                            "h-8 w-8",
                             a.valid
                               ? "text-destructive hover:text-destructive"
-                              : "text-green-600 hover:text-green-600"
-                          }`}
+                              : "text-green-600 dark:text-green-500 hover:text-green-600"
+                          )}
                           title={
                             a.valid
                               ? "Als ungültig markieren"
                               : "Als gültig akzeptieren"
                           }
-                          onClick={() => setValid(a.answerId, !a.valid)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setValid(a.answerId, !a.valid);
+                          }}
                         >
                           {a.valid ? (
                             <X className="h-4 w-4" />
@@ -180,53 +201,60 @@ export function ReviewScreen() {
                             <Check className="h-4 w-4" />
                           )}
                         </Button>
-                      ) : (
-                        <span
-                          className={`text-xs ${
-                            a.valid ? "text-green-600" : "text-muted-foreground"
-                          }`}
-                        >
-                          {a.valid ? "gültig" : "ungültig"}
-                        </span>
                       )}
                     </div>
                   </div>
 
-                  {isHost && (
-                    <div className="flex items-center gap-2 pt-1">
+                  {isHost && (merged || (!mergeMode && mergeableCount > 1) || isAnchor) && (
+                    <div className="mt-1.5">
                       {merged ? (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs"
-                          onClick={() => unmerge(a.answerId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unmerge(a.answerId);
+                          }}
                         >
                           <Link2Off className="h-3.5 w-3.5 mr-1" />
                           Trennen
                         </Button>
-                      ) : mergeableCount > 1 ? (
+                      ) : isAnchor ? (
                         <Button
-                          variant={isAnchor ? "secondary" : "ghost"}
+                          variant="secondary"
                           size="sm"
                           className="h-7 text-xs"
-                          onClick={() => onMergeClick(a.answerId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMergeAnchor(null);
+                          }}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          Abbrechen
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMergeAnchor(a.answerId);
+                          }}
                         >
                           <Link2 className="h-3.5 w-3.5 mr-1" />
-                          {mergeAnchor === null
-                            ? "Zusammenführen"
-                            : isAnchor
-                            ? "Abbrechen"
-                            : "Hierher zusammenführen"}
+                          Zusammenführen
                         </Button>
-                      ) : null}
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
-            {isHost && mergeAnchor !== null && (
+            {isHost && mergeMode && (
               <p className="text-xs text-muted-foreground px-1">
-                Wähle eine weitere Antwort, um sie mit „{playerName(
+                Klicke eine Antwort, um sie mit „{playerName(
                   review.answers.find((a) => a.answerId === mergeAnchor)
                     ?.playerId ?? ""
                 )}" zusammenzuführen.
@@ -250,7 +278,7 @@ export function ReviewScreen() {
                 className="flex-1"
                 onClick={() => ws.send({ type: "finishReview", payload: {} })}
               >
-                Bewertung abschließen
+                Bewertung abschließen (Enter)
               </Button>
             ) : (
               <Button

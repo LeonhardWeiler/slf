@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -9,6 +10,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function RoundResultScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { result, game } = useGameStore();
+
+  const amHost = lobby?.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
+
+  // Host can start the next round with Enter. Ending the game stays button-only.
+  useEffect(() => {
+    if (!amHost) return;
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      if (e.key === "Enter") {
+        ws.send({ type: "startNextRound", payload: {} });
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [amHost]);
 
   if (!lobby || !result) {
     return (
@@ -88,7 +105,7 @@ export function RoundResultScreen() {
               size="lg"
               onClick={() => ws.send({ type: "startNextRound", payload: {} })}
             >
-              {lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
+              {lettersLeft > 0 ? "Nächste Runde (Enter)" : "Spiel abschließen (Enter)"}
             </Button>
             <Button
               variant="outline"
