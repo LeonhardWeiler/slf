@@ -1,8 +1,12 @@
 # Agent-TODO — Vorgeschlagene kleine Verbesserungen
 
-> Diese Liste ist **noch nicht umgesetzt** — sie ist als Vorschlag zur Durchsicht
-> gedacht. Es sind bewusst kleine Politur-Verbesserungen, keine großen Umbauten.
-> Sag mir, welche ich angehen soll (oder streiche, was dir nicht gefällt).
+> **STATUS: alle 12 Punkte umgesetzt & per Playwright verifiziert** (Lobby-Politur,
+> Game-Politur inkl. Autofokus/Animationen/aria-live, Verbindungs-Anzeige,
+> Review-Legende, Endstand-Hervorhebung, Safe-Area-Padding). Dabei behoben:
+> fehlende `@radix-ui/react-switch`-Dependency in package.json.
+>
+> Diese Liste war als Vorschlag zur Durchsicht gedacht — kleine Politur-
+> Verbesserungen, keine großen Umbauten.
 
 Aufwand: **XS** = wenige Zeilen · **S** = ein kleiner, abgegrenzter Block.
 
