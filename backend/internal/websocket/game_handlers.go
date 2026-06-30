@@ -29,11 +29,17 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, "Mindestens 1 Spieler und 1 Kategorie nötig")
 		return
 	}
+	letters := game.AlphabetExcluding(lobby.Settings.ExcludedLetters)
+	if len(letters) < 1 {
+		hub.mu.Unlock()
+		hub.sendError(c, "Mindestens ein Buchstabe muss aktiv sein")
+		return
+	}
 	for _, p := range lobby.Players {
 		p.Score = 0
 	}
 	lobby.Game = &game.Game{
-		RemainingLetters: game.NewAlphabet(),
+		RemainingLetters: letters,
 		UsedLetters:      []string{},
 	}
 	hub.mu.Unlock()

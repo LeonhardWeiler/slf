@@ -2,6 +2,7 @@ import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
+import { LetterOverview } from "@/components/LetterOverview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -26,6 +27,8 @@ export function RoundResultScreen() {
     result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
   const lettersLeft = game?.remainingLetters.length ?? 0;
+  const usedLetters = new Set(game?.usedLetters ?? []);
+  const excludedLetters = new Set(lobby.settings.excludedLetters ?? []);
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -69,6 +72,15 @@ export function RoundResultScreen() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Buchstaben</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LetterOverview used={usedLetters} excluded={excludedLetters} />
+          </CardContent>
+        </Card>
+
         {isHost ? (
           <div className="space-y-2">
             <Button
@@ -85,9 +97,6 @@ export function RoundResultScreen() {
             >
               Spiel beenden
             </Button>
-            <p className="text-center text-xs text-muted-foreground">
-              {lettersLeft} Buchstaben übrig
-            </p>
           </div>
         ) : (
           <p className="text-center text-sm text-muted-foreground">

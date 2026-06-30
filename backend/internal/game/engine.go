@@ -17,6 +17,23 @@ func NewAlphabet() []string {
 	return letters
 }
 
+// AlphabetExcluding returns the alphabet without the given (host-disabled)
+// letters, so those letters are never drawn in a game (SRS-extension).
+func AlphabetExcluding(excluded []string) []string {
+	skip := map[string]bool{}
+	for _, e := range excluded {
+		skip[strings.ToUpper(strings.TrimSpace(e))] = true
+	}
+	letters := make([]string, 0, len(alphabet))
+	for _, r := range alphabet {
+		s := string(r)
+		if !skip[s] {
+			letters = append(letters, s)
+		}
+	}
+	return letters
+}
+
 // PickRandomLetter draws a random letter from remaining and returns it together
 // with the reduced remaining slice.
 func PickRandomLetter(remaining []string) (string, []string) {

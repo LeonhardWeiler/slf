@@ -106,6 +106,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		Settings: game.Settings{
 			TimeLimit:                 nil,
 			ShowLetterDuringCountdown: true,
+			ExcludedLetters:           []string{},
 		},
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
@@ -404,8 +405,9 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 
 func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
-		TimeLimit                 *int `json:"timeLimit"`
-		ShowLetterDuringCountdown bool `json:"showLetterDuringCountdown"`
+		TimeLimit                 *int     `json:"timeLimit"`
+		ShowLetterDuringCountdown bool     `json:"showLetterDuringCountdown"`
+		ExcludedLetters           []string `json:"excludedLetters"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, "Ungültige Anfrage")
@@ -416,6 +418,23 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
+	// Sanitize excluded letters: only A–Z, uppercased and de-duplicated. At
+	// least one letter must remain playable.
+	seen := map[string]bool{}
+	excluded := make([]string, 0, len(p.ExcludedLetters))
+	for _, l := range p.ExcludedLetters {
+		u := strings.ToUpper(strings.TrimSpace(l))
+		if len(u) != 1 || u < "A" || u > "Z" || seen[u] {
+			continue
+		}
+		seen[u] = true
+		excluded = append(excluded, u)
+	}
+	if len(excluded) >= 26 {
+		hub.sendError(c, "Mindestens ein Buchstabe muss aktiv bleiben")
+		return
+	}
+
 	hub.mu.Lock()
 	lobby := hub.requireHostInLobby(c)
 	if lobby == nil {
@@ -423,6 +442,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	lobby.Settings.TimeLimit = p.TimeLimit
 	lobby.Settings.ShowLetterDuringCountdown = p.ShowLetterDuringCountdown
+	lobby.Settings.ExcludedLetters = excluded
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)

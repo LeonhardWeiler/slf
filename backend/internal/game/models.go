@@ -21,8 +21,10 @@ type Category struct {
 }
 
 type Settings struct {
-	TimeLimit                 *int `json:"timeLimit"`
-	ShowLetterDuringCountdown bool `json:"showLetterDuringCountdown"`
+	TimeLimit                 *int     `json:"timeLimit"`
+	ShowLetterDuringCountdown bool     `json:"showLetterDuringCountdown"`
+	// ExcludedLetters are letters the host disabled; they are never drawn.
+	ExcludedLetters []string `json:"excludedLetters"`
 }
 
 type Lobby struct {

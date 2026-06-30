@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 const TIME_OPTIONS: { label: string; value: number | null }[] = [
   { label: "Unbegrenzt", value: null },
   { label: "30 Sek.", value: 30 },
@@ -112,24 +114,28 @@ export function Lobby() {
     ws.send({ type: "kickPlayer", payload: { playerId: id } });
   }
 
-  function setTimeLimit(value: number | null) {
+  function updateSettings(patch: {
+    timeLimit?: number | null;
+    showLetterDuringCountdown?: boolean;
+    excludedLetters?: string[];
+  }) {
+    const s = lobby!.settings;
     ws.send({
       type: "updateSettings",
       payload: {
-        timeLimit: value,
-        showLetterDuringCountdown: lobby!.settings.showLetterDuringCountdown,
+        timeLimit: patch.timeLimit !== undefined ? patch.timeLimit : s.timeLimit,
+        showLetterDuringCountdown:
+          patch.showLetterDuringCountdown ?? s.showLetterDuringCountdown,
+        excludedLetters: patch.excludedLetters ?? s.excludedLetters ?? [],
       },
     });
   }
 
-  function toggleShowLetter() {
-    ws.send({
-      type: "updateSettings",
-      payload: {
-        timeLimit: lobby!.settings.timeLimit,
-        showLetterDuringCountdown: !lobby!.settings.showLetterDuringCountdown,
-      },
-    });
+  function toggleLetter(letter: string) {
+    const excluded = new Set(lobby!.settings.excludedLetters ?? []);
+    if (excluded.has(letter)) excluded.delete(letter);
+    else excluded.add(letter);
+    updateSettings({ excludedLetters: [...excluded] });
   }
 
   const canStart =
@@ -364,7 +370,7 @@ export function Lobby() {
                       <button
                         key={opt.label}
                         type="button"
-                        onClick={() => setTimeLimit(opt.value)}
+                        onClick={() => updateSettings({ timeLimit: opt.value })}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                           active
                             ? "bg-primary text-primary-foreground border-primary"
@@ -391,7 +397,9 @@ export function Lobby() {
               {isHost ? (
                 <Switch
                   checked={lobby.settings.showLetterDuringCountdown}
-                  onCheckedChange={toggleShowLetter}
+                  onCheckedChange={(v: boolean) =>
+                    updateSettings({ showLetterDuringCountdown: v })
+                  }
                   aria-label="Buchstabe während Countdown zeigen"
                 />
               ) : (
@@ -399,6 +407,44 @@ export function Lobby() {
                   {lobby.settings.showLetterDuringCountdown ? "Ja" : "Nein"}
                 </span>
               )}
+            </div>
+
+            {/* Letter selection */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Buchstaben</p>
+              <p className="text-xs text-muted-foreground">
+                {isHost
+                  ? "Tippe einen Buchstaben an, um ihn aus dem Spiel zu nehmen."
+                  : "Aktive Buchstaben für dieses Spiel."}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {ALPHABET.map((letter) => {
+                  const excluded = (lobby.settings.excludedLetters ?? []).includes(
+                    letter
+                  );
+                  return (
+                    <button
+                      key={letter}
+                      type="button"
+                      disabled={!isHost}
+                      onClick={() => toggleLetter(letter)}
+                      aria-pressed={!excluded}
+                      title={
+                        excluded ? `${letter} aktivieren` : `${letter} deaktivieren`
+                      }
+                      className={`h-8 w-8 rounded-md text-sm font-semibold border transition-colors ${
+                        isHost ? "cursor-pointer" : "cursor-default"
+                      } ${
+                        excluded
+                          ? "bg-muted text-muted-foreground/40 border-border line-through"
+                          : "bg-primary text-primary-foreground border-primary"
+                      }`}
+                    >
+                      {letter}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

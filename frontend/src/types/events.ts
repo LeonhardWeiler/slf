@@ -23,6 +23,7 @@ export interface Category {
 export interface Settings {
   timeLimit: number | null;
   showLetterDuringCountdown: boolean;
+  excludedLetters: string[];
 }
 
 export interface LobbyStatePayload {
@@ -119,7 +120,11 @@ export type ClientEvent =
   | { type: "deleteCategory"; payload: { categoryId: string } }
   | {
       type: "updateSettings";
-      payload: { timeLimit: number | null; showLetterDuringCountdown: boolean };
+      payload: {
+        timeLimit: number | null;
+        showLetterDuringCountdown: boolean;
+        excludedLetters: string[];
+      };
     }
   | { type: "kickPlayer"; payload: { playerId: string } }
   | { type: "startGame"; payload: Record<string, never> }

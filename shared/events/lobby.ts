@@ -27,6 +27,7 @@ export const UpdateSettingsEvent = z.object({
   payload: z.object({
     timeLimit: z.number().nullable(),
     showLetterDuringCountdown: z.boolean(),
+    excludedLetters: z.array(z.string().length(1)),
   }),
 });
 
