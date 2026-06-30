@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Navigate } from "react-router";
-import { Plus, Pencil, Check, X, Trash2 } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { QrCode } from "@/components/QrCode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -25,9 +26,25 @@ export function Lobby() {
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!lobby) {
     return <Navigate to="/" replace />;
+  }
+
+  const joinLink = `${window.location.origin}/join/${lobby.lobbyCode}`;
+
+  function copyLink() {
+    navigator.clipboard
+      ?.writeText(joinLink)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {
+        /* clipboard unavailable (e.g. insecure context) — ignore */
+      });
   }
 
   const me = lobby.players.find((p) => p.id === myPlayerId);
@@ -124,6 +141,32 @@ export function Lobby() {
               <p className="text-xs text-muted-foreground">
                 Teile diesen Code mit deinen Mitspielern
               </p>
+            </div>
+
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowQr((v) => !v)}
+              >
+                <QrCodeIcon className="h-4 w-4" />
+                {showQr ? "QR verbergen" : "QR anzeigen"}
+              </Button>
+
+              {showQr && (
+                <>
+                  <QrCode value={joinLink} size={200} />
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    title="Link kopieren"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors break-all"
+                  >
+                    <Copy className="h-3.5 w-3.5 shrink-0" />
+                    {copied ? "Link kopiert!" : joinLink}
+                  </button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>

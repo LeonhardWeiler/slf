@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Navigate } from "react-router";
-import { ArrowLeft, Plus, LogIn } from "lucide-react";
+import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { QrScannerView } from "@/components/QrScanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type Step = "start" | "createName" | "joinCode" | "joinName";
+type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
 export function Home() {
   const params = useParams<{ code?: string }>();
@@ -162,7 +163,37 @@ export function Home() {
               <LogIn className="h-4 w-4" />
               Lobby beitreten
             </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => goTo("scan")}
+            >
+              <ScanLine className="h-4 w-4" />
+              QR scannen
+            </Button>
           </div>
+        )}
+
+        {/* ---- Step: scan QR ---- */}
+        {step === "scan" && (
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">QR-Code scannen</CardTitle>
+              <CardDescription>
+                Scanne den Lobby-Code, danach gibst du nur noch deinen Namen ein.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <QrScannerView
+                onScan={(scanned) => {
+                  setCode(scanned);
+                  goTo("joinName");
+                }}
+                onClose={() => goTo("start")}
+              />
+            </CardContent>
+          </Card>
         )}
 
         {/* ---- Step: create → name ---- */}
