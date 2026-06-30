@@ -1,5 +1,15 @@
 # AGENT-TODO — Umsetzungsplan (nächste Session)
 
+> **STATUS (erledigt):** Alle 13 Punkte aus `TODO.md` sind umgesetzt und per
+> Browser-E2E (Playwright/chromium, 29 Checks grün) verifiziert. Aufgeteilt in
+> 4 Commits (Gruppe A+#10, Login-Flow #1, Spielfluss #12/#13, QR #2).
+> Verifiziert: Home-Flow, QR-Anzeige, Countdown sofort, Timer ohne Refresh,
+> Stoppuhr, Buzz-Zod-Validierung, leere Inputs raus aus Review, Review-Icons,
+> Pfeiltasten-Navigation, Merge-per-Button (10→5→10 Punkte), Zurück-zur-Lobby,
+> verlassende Spieler bleiben in der Tabelle. QR-Kamera-Scan nur per Build
+> geprüft (kein Kamerazugriff im Testlauf). Offen bleibt weiterhin nur:
+> Host-Disconnect-30s-Timeout (SRS 4.6/8.5) und SRS 9.4.
+
 Mein konkreter Plan zu den Punkten aus `TODO.md`. Reihenfolge = empfohlene
 Abarbeitung (Bugs/Quick-Wins zuerst, größere Features danach, QR zuletzt wegen
 neuer Dependency).
