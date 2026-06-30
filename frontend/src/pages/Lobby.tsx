@@ -4,6 +4,7 @@ import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as Lin
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { QrCode } from "@/components/QrCode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,7 +155,8 @@ export function Lobby() {
                 : `${activePlayers.length} Spieler bereit`}
             </p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
+            <ConnectionBadge />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleLeave}>
               Verlassen
