@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router";
-import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy } from "lucide-react";
+import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,24 +27,48 @@ export function Lobby() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [showQr, setShowQr] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<null | "code" | "link">(null);
 
-  if (!lobby) {
-    return <Navigate to="/" replace />;
-  }
+  const lobbyCode = lobby?.lobbyCode ?? "";
+  const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
 
-  const joinLink = `${window.location.origin}/join/${lobby.lobbyCode}`;
-
-  function copyLink() {
+  function copyText(text: string, kind: "code" | "link") {
+    if (!text) return;
     navigator.clipboard
-      ?.writeText(joinLink)
+      ?.writeText(text)
       .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setCopied(kind);
+        setTimeout(() => setCopied(null), 2000);
       })
       .catch(() => {
         /* clipboard unavailable (e.g. insecure context) — ignore */
       });
+  }
+
+  // Ctrl/Cmd+C copies the lobby code — but only when the user isn't selecting
+  // text or typing in a field, so normal copy still works there.
+  useEffect(() => {
+    function onCopy(e: KeyboardEvent) {
+      if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
+      const el = document.activeElement;
+      if (
+        el &&
+        (el.tagName === "INPUT" ||
+          el.tagName === "TEXTAREA" ||
+          (el as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+      if ((window.getSelection()?.toString() ?? "") !== "") return;
+      copyText(lobbyCode, "code");
+    }
+    window.addEventListener("keydown", onCopy);
+    return () => window.removeEventListener("keydown", onCopy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lobbyCode]);
+
+  if (!lobby) {
+    return <Navigate to="/" replace />;
   }
 
   const me = lobby.players.find((p) => p.id === myPlayerId);
@@ -131,19 +155,30 @@ export function Lobby() {
         {/* Lobby Code */}
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center space-y-1">
+            <button
+              type="button"
+              onClick={() => copyText(lobbyCode, "code")}
+              title="Lobbycode kopieren (Strg+C)"
+              className="block w-full text-center space-y-1 group"
+            >
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Lobbycode
               </p>
-              <p className="text-5xl font-mono font-bold tracking-[0.3em]">
+              <p className="text-5xl font-mono font-bold tracking-[0.3em] group-hover:opacity-80 transition-opacity">
                 {lobby.lobbyCode}
               </p>
               <p className="text-xs text-muted-foreground">
-                Teile diesen Code mit deinen Mitspielern
+                {copied === "code"
+                  ? "Code kopiert!"
+                  : "Klicken oder Strg+C zum Kopieren"}
               </p>
-            </div>
+            </button>
 
-            <div className="mt-4 flex flex-col items-center gap-3">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => copyText(joinLink, "link")}>
+                <LinkIcon className="h-4 w-4" />
+                {copied === "link" ? "Link kopiert!" : "Link kopieren"}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -152,22 +187,22 @@ export function Lobby() {
                 <QrCodeIcon className="h-4 w-4" />
                 {showQr ? "QR verbergen" : "QR anzeigen"}
               </Button>
-
-              {showQr && (
-                <>
-                  <QrCode value={joinLink} size={200} />
-                  <button
-                    type="button"
-                    onClick={copyLink}
-                    title="Link kopieren"
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors break-all"
-                  >
-                    <Copy className="h-3.5 w-3.5 shrink-0" />
-                    {copied ? "Link kopiert!" : joinLink}
-                  </button>
-                </>
-              )}
             </div>
+
+            {showQr && (
+              <div className="mt-4 flex flex-col items-center gap-3">
+                <QrCode value={joinLink} size={200} />
+                <button
+                  type="button"
+                  onClick={() => copyText(joinLink, "link")}
+                  title="Link kopieren"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors break-all"
+                >
+                  <Copy className="h-3.5 w-3.5 shrink-0" />
+                  {joinLink}
+                </button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
