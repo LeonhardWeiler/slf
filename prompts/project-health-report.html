@@ -60,15 +60,15 @@
     solide. Ein gezielter <b>UX-Durchlauf beider Flows</b> (Host: Lobby anlegen →
     konfigurieren → spielen → bewerten → nächste Runde; Spieler: beitreten →
     ausfüllen → buzzern) hat <b>keine Bugs</b>, aber mehrere konkrete
-    <b>UX-Verbesserungen</b> ergeben — <b>keine kritischen/hohen</b>, ein mittlerer
-    Steuerungs-Lückenpunkt und einige Feinschliffe. Mehrere ältere Themen sind
-    <b>bewusste Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
+    <b>UX-Verbesserungen</b> ergeben — <b>keine kritischen/hohen/mittleren</b>, nur
+    Feinschliffe (niedrig/info). Mehrere ältere Themen sind <b>bewusste
+    Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
-    <div class="stat"><div class="n" style="color:var(--med)">1</div><div class="l">Mittel</div></div>
+    <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
     <div class="stat"><div class="n" style="color:var(--low)">3</div><div class="l">Niedrig</div></div>
     <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
@@ -93,25 +93,6 @@
   <h2 id="open">1. Offene Findings</h2>
   <p class="note">Ergebnis eines UX-Durchlaufs beider Flows. Alles funktioniert;
     die Punkte sind Verbesserungen, keine Fehler.</p>
-
-  <div class="card">
-    <h3><span class="id">UX-1</span> Laufende Runde ohne Zeitlimit lässt sich nicht beenden (nur Lobby schließen) <span class="badge b-med">mittel</span></h3>
-    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code> · <code>ReviewScreen.tsx</code> — kein Host-Steuer-Button; Server unterstützt es bereits (<code>handleEndGame</code> in <code>game_handlers.go</code> erlaubt <code>endGame</code> in jedem State außer Lobby/GameOver)</div>
-    <p>Ist <b>kein Zeitlimit</b> gesetzt, endet die Runde nur, wenn jemand buzzert —
-      und buzzern kann nur, wer <em>alle</em> Kategorien regelkonform gefüllt hat.
-      Bei einem schweren Buchstaben (z.&nbsp;B. „Q"/„Y") oder einer stockenden
-      Runde <b>hängt die Gruppe fest</b>: Im <code>GameScreen</code> (Countdown/
-      Playing) und im <code>ReviewScreen</code> gibt es keinen Host-Knopf, um die
-      Runde/das Spiel abzubrechen. Der einzige Ausweg ist „Verlassen", was die
-      <b>komplette Lobby schließt</b> (SRS 4.8) und alle rauswirft. Besonders hart
-      im <b>Kommentator-Modus</b> (<code>hostPlays=false</code>): Der Host spielt
-      nicht mit, <em>kann</em> also gar nicht buzzern und hat keinerlei Mittel, eine
-      hängende Runde aufzulösen.</p>
-    <div class="rec"><b>Empfehlung:</b> Im <code>GameScreen</code> (und optional
-      <code>ReviewScreen</code>) für den Host einen dezenten „Runde beenden" /
-      „Spiel beenden"-Button ergänzen, der das bereits vorhandene
-      <code>endGame</code>-Event sendet. Kein Backend-Change nötig.</div>
-  </div>
 
   <div class="card">
     <h3><span class="id">UX-2</span> Buzz/Rundenende ohne „Wer hat gestoppt?"-Moment <span class="badge b-low">niedrig</span></h3>

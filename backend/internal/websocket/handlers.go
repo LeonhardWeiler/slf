@@ -41,6 +41,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleInputSync(hub, c, msg.Payload)
 	case "buzz":
 		handleBuzz(hub, c)
+	case "endRound":
+		handleEndRound(hub, c)
 	case "setFlame":
 		handleSetFlame(hub, c, msg.Payload)
 	case "setAnswerValidity":

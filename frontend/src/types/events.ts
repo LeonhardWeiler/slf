@@ -203,6 +203,7 @@ export type ClientEvent =
       payload: { roundId: string; answers: { categoryId: string; value: string }[] };
     }
   | { type: "buzz"; payload: Record<string, never> }
+  | { type: "endRound"; payload: Record<string, never> }
   | { type: "setFlame"; payload: { categoryId: string } }
   | { type: "setAnswerValidity"; payload: { answerId: string; valid: boolean } }
   | {

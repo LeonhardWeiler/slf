@@ -430,6 +430,21 @@ export function GameScreen() {
             </div>
           </>
         )}
+
+        {/* Host can end a stuck round early (hard letter, or a commentator host
+            who never buzzes) → everyone moves to review. */}
+        {isHost && (
+          <div className="pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={() => ws.send({ type: "endRound", payload: {} })}
+            >
+              Runde beenden
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

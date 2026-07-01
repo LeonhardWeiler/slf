@@ -268,6 +268,24 @@ func handleBuzz(hub *Hub, c *Client) {
 	hub.endRound(lobby, roundID)
 }
 
+// handleEndRound lets the host stop the running round early and move everyone to
+// review — the counterpart to a player's buzz for when nobody can (or wants to)
+// buzz, e.g. a hard letter or a commentator host who never plays. Only the host,
+// only while playing.
+func handleEndRound(hub *Hub, c *Client) {
+	hub.mu.Lock()
+	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
+	if !ok || !player.IsHost || lobby.State != game.StatePlaying ||
+		lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		return
+	}
+	roundID := lobby.Game.Round.ID
+	hub.mu.Unlock()
+
+	hub.endRound(lobby, roundID)
+}
+
 // ---- Phase 3: review ----
 
 // endRound finalizes the playing phase and moves into review. Idempotent via
