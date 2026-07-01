@@ -149,6 +149,14 @@ const serverEventSchema = z.discriminatedUnion("type", [
     type: z.literal("buzzRejected"),
     payload: z.object({ reason: z.string() }),
   }),
+  z.object({
+    type: z.literal("hostDisconnected"),
+    payload: z.object({ graceSeconds: z.number() }),
+  }),
+  z.object({
+    type: z.literal("hostReconnected"),
+    payload: z.object({}),
+  }),
   z.object({ type: z.literal("error"), payload: errorPayload }),
 ]);
 

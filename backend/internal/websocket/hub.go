@@ -26,20 +26,28 @@ const (
 	janitorInterval = 2 * time.Minute
 )
 
+// hostGraceSeconds is how long the lobby waits for a disconnected host to come
+// back before it is closed (SRS 4.6/8.5). All players see a live countdown.
+const hostGraceSeconds = 15
+
 type Hub struct {
 	mu       sync.Mutex
 	pending  map[*Client]struct{}
 	clients  map[string]*Client       // sessionId → client
 	sessions map[string]*game.Session // sessionId → session
 	rooms    *RoomManager
+	// hostGrace holds the running grace timer per lobby code while its host is
+	// disconnected; cancelled on host reconnect, fired → lobby closed.
+	hostGrace map[string]*time.Timer
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		pending:  make(map[*Client]struct{}),
-		clients:  make(map[string]*Client),
-		sessions: make(map[string]*game.Session),
-		rooms:    NewRoomManager(),
+		pending:   make(map[*Client]struct{}),
+		clients:   make(map[string]*Client),
+		sessions:  make(map[string]*game.Session),
+		rooms:     NewRoomManager(),
+		hostGrace: make(map[string]*time.Timer),
 	}
 }
 
@@ -129,6 +137,7 @@ func (h *Hub) onDisconnect(c *Client) {
 	delete(h.pending, c)
 
 	var lobby *game.Lobby
+	hostDropped := false
 	// Only tear down if the map still points at *this* connection. If the player
 	// already reconnected on a newer socket, h.clients[sessionID] is that newer
 	// client — a stale old socket closing must not evict it or mark the player
@@ -141,6 +150,7 @@ func (h *Hub) onDisconnect(c *Client) {
 					lobby = r
 					if p, ok := r.Players[s.PlayerID]; ok {
 						p.Connected = false
+						hostDropped = p.IsHost
 						slog.Info("player disconnected",
 							"lobby", r.Code, "player", p.Name, "host", p.IsHost)
 					}
@@ -152,7 +162,66 @@ func (h *Hub) onDisconnect(c *Client) {
 
 	if lobby != nil {
 		h.broadcastLobbyState(lobby)
+		if hostDropped {
+			h.startHostGrace(lobby)
+		}
 	}
+}
+
+// startHostGrace begins the countdown after the host's connection dropped. All
+// clients are told so they can show a shared countdown; if the host does not
+// reconnect within hostGraceSeconds, the lobby is closed.
+func (h *Hub) startHostGrace(lobby *game.Lobby) {
+	h.mu.Lock()
+	if _, running := h.hostGrace[lobby.Code]; running {
+		h.mu.Unlock()
+		return
+	}
+	// If the host is already back (reconnect raced ahead), do nothing.
+	if host, ok := lobby.Players[lobby.HostID]; ok && host.Connected {
+		h.mu.Unlock()
+		return
+	}
+	code := lobby.Code
+	h.hostGrace[code] = time.AfterFunc(hostGraceSeconds*time.Second, func() {
+		h.onHostGraceExpired(code)
+	})
+	slog.Info("host disconnected, grace started", "lobby", code, "seconds", hostGraceSeconds)
+	h.mu.Unlock()
+
+	h.broadcastTo(lobby, "hostDisconnected", map[string]int{"graceSeconds": hostGraceSeconds})
+}
+
+// cancelHostGrace stops a running grace timer (host came back). Returns true if
+// a timer was actually cancelled.
+func (h *Hub) cancelHostGrace(code string) bool {
+	h.mu.Lock()
+	t, ok := h.hostGrace[code]
+	if ok {
+		t.Stop()
+		delete(h.hostGrace, code)
+	}
+	h.mu.Unlock()
+	return ok
+}
+
+// onHostGraceExpired fires when the host never reconnected in time → close.
+func (h *Hub) onHostGraceExpired(code string) {
+	h.mu.Lock()
+	delete(h.hostGrace, code)
+	lobby, ok := h.rooms.Get(code)
+	if !ok {
+		h.mu.Unlock()
+		return
+	}
+	// Guard against a race where the host reconnected just as the timer fired.
+	if host, ok := lobby.Players[lobby.HostID]; ok && host.Connected {
+		h.mu.Unlock()
+		return
+	}
+	h.mu.Unlock()
+
+	h.closeLobby(lobby, "hostDisconnected")
 }
 
 // lookupLocked resolves a session to its lobby and player.
@@ -179,6 +248,11 @@ func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.
 func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	slog.Info("lobby closed", "lobby", lobby.Code, "reason", reason)
 	h.mu.Lock()
+	// Stop a pending host-grace timer so it cannot fire against a closed lobby.
+	if t, ok := h.hostGrace[lobby.Code]; ok {
+		t.Stop()
+		delete(h.hostGrace, lobby.Code)
+	}
 	var targets []*Client
 	for _, p := range lobby.Players {
 		if c, ok := h.clients[p.SessionID]; ok {

@@ -280,6 +280,12 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		SessionID: sessionID,
 		PlayerID:  session.PlayerID,
 	})
+	// If the host is the one coming back, stop the pending close countdown and
+	// let everyone know the lobby is safe again.
+	if player.IsHost && hub.cancelHostGrace(lobby.Code) {
+		slog.Info("host reconnected in time", "lobby", lobby.Code)
+		hub.broadcastTo(lobby, "hostReconnected", map[string]string{})
+	}
 	hub.broadcastLobbyState(lobby)
 	hub.sendCurrentGameStateTo(c, lobby)
 }

@@ -6,9 +6,10 @@ import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { Home } from "@/pages/Home";
 import { Room } from "@/pages/Room";
+import { HostGraceBanner } from "@/components/HostGraceBanner";
 
 function AppRoutes() {
-  const { setLobby, setSession, setError, closeWithNotice, lobby } =
+  const { setLobby, setSession, setError, setHostGrace, closeWithNotice, lobby } =
     useLobbyStore();
   const pendingReconnect = useRef(false);
 
@@ -60,9 +61,21 @@ function AppRoutes() {
       }
     });
 
-    ws.on("lobbyClosed", () => {
+    ws.on("lobbyClosed", (payload) => {
       useGameStore.getState().resetGame();
-      closeWithNotice("Die Lobby wurde vom Host geschlossen.");
+      closeWithNotice(
+        payload.reason === "hostDisconnected"
+          ? "Der Host hat die Verbindung verloren – die Lobby wurde geschlossen."
+          : "Die Lobby wurde vom Host geschlossen."
+      );
+    });
+
+    // Shared host-grace countdown (host dropped → 15s to reconnect, else close).
+    ws.on("hostDisconnected", (payload) => {
+      setHostGrace(payload.graceSeconds);
+    });
+    ws.on("hostReconnected", () => {
+      setHostGrace(null);
     });
 
     ws.on("gameState", (payload) => {
@@ -80,18 +93,21 @@ function AppRoutes() {
     ws.on("buzzRejected", (payload) => {
       useGameStore.getState().setBuzzRejected(payload.reason);
     });
-  }, [setLobby, setSession, setError, closeWithNotice]);
+  }, [setLobby, setSession, setError, setHostGrace, closeWithNotice]);
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/join/:code" element={<Home />} />
-      <Route
-        path="/lobby"
-        element={lobby ? <Room /> : <Navigate to="/" replace />}
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <HostGraceBanner />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/join/:code" element={<Home />} />
+        <Route
+          path="/lobby"
+          element={lobby ? <Room /> : <Navigate to="/" replace />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
 

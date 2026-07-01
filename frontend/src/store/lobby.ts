@@ -8,11 +8,15 @@ interface LobbyStore {
   mySessionId: string | null;
   error: string | null;
   notice: string | null;
+  // Seconds left until the lobby closes because the host is disconnected; null
+  // when the host is present (SRS 4.6/8.5). Shown as a shared countdown banner.
+  hostGrace: number | null;
 
   setLobby: (lobby: LobbyStatePayload) => void;
   setSession: (sessionId: string, playerId: string) => void;
   setError: (error: string | null) => void;
   setNotice: (notice: string | null) => void;
+  setHostGrace: (seconds: number | null) => void;
   reset: () => void;
   // Tear down the local session and return to the start screen with a message
   // (e.g. after being kicked or when the host closes the lobby).
@@ -33,6 +37,7 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   mySessionId: null,
   error: null,
   notice: null,
+  hostGrace: null,
 
   setLobby: (lobby) => set({ lobby, error: null }),
   setSession: (sessionId, playerId) => {
@@ -41,9 +46,10 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   },
   setError: (error) => set({ error }),
   setNotice: (notice) => set({ notice }),
+  setHostGrace: (seconds) => set({ hostGrace: seconds }),
   reset: () => {
     clearSessionId();
-    set({ lobby: null, myPlayerId: null, mySessionId: null, error: null });
+    set({ lobby: null, myPlayerId: null, mySessionId: null, error: null, hostGrace: null });
   },
   closeWithNotice: (notice) => {
     clearSessionId();
@@ -52,6 +58,7 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
       myPlayerId: null,
       mySessionId: null,
       error: null,
+      hostGrace: null,
       notice,
     });
   },

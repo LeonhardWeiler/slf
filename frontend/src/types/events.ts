@@ -146,12 +146,14 @@ export type ServerEvent =
   | { type: "lobbyState"; payload: LobbyStatePayload }
   | { type: "sessionCreated"; payload: SessionCreatedPayload }
   | { type: "playerKicked"; payload: { playerId: string } }
-  | { type: "lobbyClosed"; payload: { reason: "hostLeft" } }
+  | { type: "lobbyClosed"; payload: { reason: string } }
   | { type: "gameState"; payload: GameStatePayload }
   | { type: "reviewState"; payload: ReviewStatePayload }
   | { type: "commentatorState"; payload: CommentatorStatePayload }
   | { type: "roundResult"; payload: RoundResultPayload }
   | { type: "buzzRejected"; payload: { reason: BuzzRejectReason } }
+  | { type: "hostDisconnected"; payload: { graceSeconds: number } }
+  | { type: "hostReconnected"; payload: Record<string, never> }
   | { type: "error"; payload: ErrorPayload };
 
 // Client → Server

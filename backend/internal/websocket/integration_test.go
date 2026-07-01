@@ -238,6 +238,35 @@ func TestReconnectRestoresLobby(t *testing.T) {
 	}
 }
 
+// sr-1: when the host drops, everyone is told (hostDisconnected); a host
+// reconnect within the grace window cancels it (hostReconnected).
+func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("lobbyState")
+
+	// Host connection drops.
+	host.conn.Close(websocket.StatusNormalClosure, "simulated drop")
+
+	var hd struct {
+		GraceSeconds int `json:"graceSeconds"`
+	}
+	json.Unmarshal(guest.waitFor("hostDisconnected"), &hd)
+	if hd.GraceSeconds <= 0 {
+		t.Fatalf("expected a positive grace window, got %d", hd.GraceSeconds)
+	}
+
+	// Host reconnects in time on a new socket → grace cancelled for everyone.
+	back := dial(t, srv)
+	back.sessionID = host.sessionID
+	back.send("reconnect", map[string]any{})
+	guest.waitFor("hostReconnected")
+}
+
 // Full round over the wire: start -> Countdown -> Playing -> answer -> buzz -> review.
 func TestFullRoundCycle(t *testing.T) {
 	srv := newServer(t)

@@ -40,6 +40,8 @@
             curl
             wget
             tree
+            less
+            cloc
           ];
 
           shellHook = ''
