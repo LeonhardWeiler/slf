@@ -239,7 +239,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
 	severity := severityOf(code)
 	if severity == "critical" {
-		slog.Error("critical error", "code", string(code), "session", c.sessionID, "message", message)
+		slog.Error("critical error", "code", string(code), "session", hashSession(c.sessionID), "message", message)
 	}
 	c.send("error", errorPayload{Code: code, Message: message, Severity: severity})
 }

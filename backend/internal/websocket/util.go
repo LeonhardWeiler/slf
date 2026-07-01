@@ -2,6 +2,8 @@ package websocket
 
 import (
 	crand "crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 )
@@ -35,4 +37,15 @@ func generateID() string {
 // hub.uniqueLobbyCode.
 func generateLobbyCode() string {
 	return fmt.Sprintf("%06d", rand.Intn(1000000))
+}
+
+// hashSession returns a short, non-reversible fingerprint of a sessionId for
+// logging. The sessionId is the auth credential, so it must never be written to
+// logs in the clear.
+func hashSession(id string) string {
+	if id == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(id))
+	return hex.EncodeToString(sum[:4]) // 8 hex chars, enough to correlate logs
 }
