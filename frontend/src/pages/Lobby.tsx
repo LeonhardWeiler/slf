@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
+import { isTypingTarget } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -54,15 +55,7 @@ export function Lobby() {
   useEffect(() => {
     function onCopy(e: KeyboardEvent) {
       if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
-      const el = document.activeElement;
-      if (
-        el &&
-        (el.tagName === "INPUT" ||
-          el.tagName === "TEXTAREA" ||
-          (el as HTMLElement).isContentEditable)
-      ) {
-        return;
-      }
+      if (isTypingTarget(document.activeElement)) return;
       if ((window.getSelection()?.toString() ?? "") !== "") return;
       copyText(lobbyCode, "code");
     }

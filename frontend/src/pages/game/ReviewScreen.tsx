@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
 import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isTypingTarget } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -33,15 +33,7 @@ export function ReviewScreen() {
   useEffect(() => {
     if (!isHost) return;
     function onKey(e: KeyboardEvent) {
-      const el = document.activeElement;
-      if (
-        el &&
-        (el.tagName === "INPUT" ||
-          el.tagName === "TEXTAREA" ||
-          el.tagName === "SELECT")
-      ) {
-        return;
-      }
+      if (isTypingTarget(document.activeElement)) return;
       if (e.key === "ArrowLeft" && !isFirst) {
         ws.send({ type: "previousCategory", payload: {} });
       } else if (e.key === "ArrowRight" && !isLast) {

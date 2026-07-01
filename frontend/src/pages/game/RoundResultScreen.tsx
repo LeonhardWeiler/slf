@@ -3,6 +3,7 @@ import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
+import { isTypingTarget } from "@/lib/utils";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,7 @@ export function RoundResultScreen() {
   useEffect(() => {
     if (!isHost) return;
     function onKey(e: KeyboardEvent) {
-      const el = document.activeElement;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
+      if (isTypingTarget(document.activeElement)) return;
       if (e.key === "Enter") {
         ws.send({ type: "startNextRound", payload: {} });
       }
