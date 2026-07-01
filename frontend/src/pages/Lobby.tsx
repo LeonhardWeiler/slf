@@ -423,7 +423,10 @@ export function Lobby() {
 
             {/* Letter selection */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
+              {/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
+                  the same height whether or not the button is shown — no layout
+                  shift when a letter is toggled. */}
+              <div className="flex min-h-7 items-center justify-between gap-2">
                 <p className="text-sm font-medium">Buchstaben</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground tabular-nums">
