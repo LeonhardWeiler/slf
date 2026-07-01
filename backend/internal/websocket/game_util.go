@@ -82,7 +82,11 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 		}
 		filled := make([]string, 0, len(lobby.Categories))
 		for _, cat := range lobby.Categories {
-			if a := r.Answers[p.ID][cat.ID]; a != nil && game.Normalize(a.Value) != "" {
+			// A category counts as "done" only when the answer passes the same
+			// server-side rule check the player needs to buzz (e.g. "arst" for
+			// letter O is not done) — not merely when it is non-empty.
+			if a := r.Answers[p.ID][cat.ID]; a != nil &&
+				game.IsRuleValid(r.Letter, a.Value, lobby.Settings.LastLetterMode) {
 				filled = append(filled, cat.ID)
 			}
 		}
