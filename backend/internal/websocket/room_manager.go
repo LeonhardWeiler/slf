@@ -28,3 +28,13 @@ func (rm *RoomManager) Delete(code string) {
 func (rm *RoomManager) Count() int {
 	return len(rm.rooms)
 }
+
+// All returns a snapshot slice of the current lobbies. Caller must hold the hub
+// mutex (the RoomManager itself is not independently synchronised).
+func (rm *RoomManager) All() []*game.Lobby {
+	out := make([]*game.Lobby, 0, len(rm.rooms))
+	for _, r := range rm.rooms {
+		out = append(out, r)
+	}
+	return out
+}

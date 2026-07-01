@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"slf/internal/game"
 )
@@ -16,6 +17,13 @@ const (
 	maxLobbies            = 10000
 	maxPlayersPerLobby    = 200
 	maxCategoriesPerLobby = 100
+)
+
+// Abandoned-lobby reaper timing: a lobby with zero connected players for longer
+// than lobbyTTL is closed. Checked every janitorInterval.
+const (
+	lobbyTTL        = 10 * time.Minute
+	janitorInterval = 2 * time.Minute
 )
 
 type Hub struct {
@@ -32,6 +40,48 @@ func NewHub() *Hub {
 		clients:  make(map[string]*Client),
 		sessions: make(map[string]*game.Session),
 		rooms:    NewRoomManager(),
+	}
+}
+
+// StartJanitor launches the background reaper that closes abandoned lobbies.
+func (h *Hub) StartJanitor() {
+	go func() {
+		t := time.NewTicker(janitorInterval)
+		defer t.Stop()
+		for range t.C {
+			h.reapAbandoned()
+		}
+	}()
+}
+
+// reapAbandoned closes lobbies that have had no connected player for longer than
+// lobbyTTL. EmptySince is owned entirely here, so it always tracks the real
+// connection state and needs no updates elsewhere.
+func (h *Hub) reapAbandoned() {
+	now := time.Now()
+	var toReap []*game.Lobby
+	h.mu.Lock()
+	for _, lobby := range h.rooms.All() {
+		connected := 0
+		for _, p := range lobby.Players {
+			if _, ok := h.clients[p.SessionID]; ok {
+				connected++
+			}
+		}
+		if connected > 0 {
+			lobby.EmptySince = time.Time{}
+			continue
+		}
+		if lobby.EmptySince.IsZero() {
+			lobby.EmptySince = now
+		} else if now.Sub(lobby.EmptySince) >= lobbyTTL {
+			toReap = append(toReap, lobby)
+		}
+	}
+	h.mu.Unlock()
+
+	for _, lobby := range toReap {
+		h.closeLobby(lobby, "abandoned")
 	}
 }
 

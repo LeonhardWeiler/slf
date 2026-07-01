@@ -20,6 +20,7 @@ func main() {
 	setupLogging()
 
 	hub := websocket.NewHub()
+	hub.StartJanitor() // reap abandoned lobbies
 
 	mux := http.NewServeMux()
 

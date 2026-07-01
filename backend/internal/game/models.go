@@ -50,6 +50,10 @@ type Lobby struct {
 	// with each server→client state message (SRS 9.15.2 stateVersion) for
 	// consistency/debugging.
 	Version int `json:"-"`
+	// EmptySince is set (by the janitor) to when the lobby last had zero connected
+	// players, and cleared while anyone is connected. Abandoned lobbies past a TTL
+	// are reaped so memory is not held forever.
+	EmptySince time.Time `json:"-"`
 }
 
 // Answer is a single player's entry for one category in a round.
