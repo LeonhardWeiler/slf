@@ -27,8 +27,11 @@ type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
 export function Home() {
   const params = useParams<{ code?: string }>();
-  const { setError, error, lobby, notice, setNotice } = useLobbyStore();
+  const { lobby, notice, setNotice } = useLobbyStore();
   const addToast = useToastStore((s) => s.addToast);
+  // Monotonic toast counter: a new toast (validation or server error) means the
+  // pending submit failed → stop the spinner. Robust against auto-dismissals.
+  const toastSeq = useToastStore((s) => s.seq);
 
   const deepLinkCode = (params.code ?? "")
     .toLowerCase()
@@ -49,18 +52,12 @@ export function Home() {
   // Track live connection status so the user sees when the server is down.
   useEffect(() => ws.onStatusChange(setConnected), []);
 
-  // Clear any stale error when arriving on the home screen.
+  // Stop the loading spinner once any toast appears (validation or server error).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new toast
   useEffect(() => {
-    setError(null);
-  }, [setError]);
-
-  // Stop the loading spinner once the server reports an error.
-  useEffect(() => {
-    if (error) {
-      setLoading(false);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    }
-  }, [error]);
+    setLoading(false);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  }, [toastSeq]);
 
   // Clean up the pending timeout if the component unmounts.
   useEffect(() => {
@@ -77,7 +74,6 @@ export function Home() {
   }
 
   function goTo(next: Step) {
-    setError(null);
     setStep(next);
   }
 
@@ -95,7 +91,6 @@ export function Home() {
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    setError(null);
     setNotice(null);
     setLoading(true);
     armTimeout();
@@ -120,7 +115,6 @@ export function Home() {
       setStep("joinCode");
       return;
     }
-    setError(null);
     setNotice(null);
     setLoading(true);
     armTimeout();

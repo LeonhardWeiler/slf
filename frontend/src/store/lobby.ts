@@ -6,9 +6,6 @@ interface LobbyStore {
   lobby: LobbyStatePayload | null;
   myPlayerId: string | null;
   mySessionId: string | null;
-  // Last async error, used only as a control signal for Home's submit spinner.
-  // User-facing error display goes through the toast store (see store/toast.ts).
-  error: string | null;
   notice: string | null;
   // Seconds left until the lobby closes because the host is disconnected; null
   // when the host is present (SRS 4.6/8.5). Shown as a shared countdown banner.
@@ -16,7 +13,6 @@ interface LobbyStore {
 
   setLobby: (lobby: LobbyStatePayload) => void;
   setSession: (sessionId: string, playerId: string) => void;
-  setError: (error: string | null) => void;
   setNotice: (notice: string | null) => void;
   setHostGrace: (seconds: number | null) => void;
   reset: () => void;
@@ -37,21 +33,19 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   lobby: null,
   myPlayerId: null,
   mySessionId: null,
-  error: null,
   notice: null,
   hostGrace: null,
 
-  setLobby: (lobby) => set({ lobby, error: null }),
+  setLobby: (lobby) => set({ lobby }),
   setSession: (sessionId, playerId) => {
     setSessionId(sessionId);
     set({ mySessionId: sessionId, myPlayerId: playerId });
   },
-  setError: (error) => set({ error }),
   setNotice: (notice) => set({ notice }),
   setHostGrace: (seconds) => set({ hostGrace: seconds }),
   reset: () => {
     clearSessionId();
-    set({ lobby: null, myPlayerId: null, mySessionId: null, error: null, hostGrace: null });
+    set({ lobby: null, myPlayerId: null, mySessionId: null, hostGrace: null });
   },
   closeWithNotice: (notice) => {
     clearSessionId();
@@ -59,7 +53,6 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
       lobby: null,
       myPlayerId: null,
       mySessionId: null,
-      error: null,
       hostGrace: null,
       notice,
     });

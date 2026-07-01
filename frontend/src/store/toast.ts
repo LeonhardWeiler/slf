@@ -7,6 +7,9 @@ export interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
+  // Monotonic count of toasts ever added (never decreases on dismiss). Lets
+  // consumers react to "a new toast appeared" without being fooled by removals.
+  seq: number;
   addToast: (message: string) => void;
   dismissToast: (id: number) => void;
   clearToasts: () => void;
@@ -20,9 +23,11 @@ const MAX_TOASTS = 5;
 // its own id), so even identical consecutive messages stack and re-show.
 export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
+  seq: 0,
   addToast: (message) =>
     set((s) => ({
       toasts: [...s.toasts, { id: nextId++, message }].slice(-MAX_TOASTS),
+      seq: s.seq + 1,
     })),
   dismissToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

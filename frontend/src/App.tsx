@@ -12,7 +12,7 @@ import { Toaster } from "@/components/Toaster";
 import { useToastStore } from "@/store/toast";
 
 function AppRoutes() {
-  const { setLobby, setSession, setError, setHostGrace, closeWithNotice, lobby } =
+  const { setLobby, setSession, setHostGrace, closeWithNotice, lobby } =
     useLobbyStore();
   const pendingReconnect = useRef(false);
 
@@ -55,8 +55,6 @@ function AppRoutes() {
         );
         return;
       }
-      // setError drives Home's submit spinner; the toast shows the message.
-      setError(payload.message);
       useToastStore.getState().addToast(payload.message);
     });
 
@@ -101,7 +99,7 @@ function AppRoutes() {
     ws.on("buzzRejected", (payload) => {
       useGameStore.getState().setBuzzRejected(payload.reason);
     });
-  }, [setLobby, setSession, setError, setHostGrace, closeWithNotice]);
+  }, [setLobby, setSession, setHostGrace, closeWithNotice]);
 
   return (
     <>
