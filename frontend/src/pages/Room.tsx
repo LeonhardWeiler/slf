@@ -35,7 +35,6 @@ function renderScreen(state: string) {
       return <RoundResultScreen />;
     case "GameOver":
       return <GameOverScreen />;
-    case "Lobby":
     default:
       return <Lobby />;
   }

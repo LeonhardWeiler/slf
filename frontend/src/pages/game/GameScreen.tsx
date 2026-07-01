@@ -15,6 +15,8 @@ import { Card, CardContent } from "@/components/ui/card";
 // `resetKey` changes. The server stays authoritative for phase transitions.
 function useCountdown(seconds: number | null, resetKey: string): number | null {
   const [value, setValue] = useState(seconds);
+  // resetKey is the intended restart trigger; `seconds` is re-read each run.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restart only on resetKey
   useEffect(() => {
     setValue(seconds);
     if (seconds === null) return;
@@ -22,7 +24,6 @@ function useCountdown(seconds: number | null, resetKey: string): number | null {
       setValue((v) => (v === null ? null : Math.max(0, v - 1)));
     }, 1000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
   return value;
 }
@@ -30,11 +31,12 @@ function useCountdown(seconds: number | null, resetKey: string): number | null {
 // Count-up stopwatch starting from `start` seconds, restarting on resetKey.
 function useStopwatch(start: number, resetKey: string): number {
   const [value, setValue] = useState(start);
+  // resetKey is the intended restart trigger; `start` is re-read each run.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: restart only on resetKey
   useEffect(() => {
     setValue(start);
     const id = setInterval(() => setValue((v) => v + 1), 1000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey]);
   return value;
 }
@@ -110,6 +112,7 @@ export function GameScreen() {
 
   // Load saved draft answers (and flame) for this round and push them to the
   // server so a reconnect mid-round restores progress (SRS 5.6 / 9.10).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only when roundId changes
   useEffect(() => {
     if (!roundId || loadedRound.current === roundId) return;
     loadedRound.current = roundId;
@@ -148,7 +151,6 @@ export function GameScreen() {
     if (savedFlame) {
       ws.send({ type: "setFlame", payload: { categoryId: savedFlame } });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundId]);
 
   const countdown = useCountdown(
@@ -179,13 +181,14 @@ export function GameScreen() {
 
   // Flush any buffered answers when leaving the screen (e.g. round ended on
   // timeout) so the last keystrokes still reach the server.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on unmount
   useEffect(() => {
     return () => flushAnswers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Buzz with Enter (there's no form to submit). Only when an all-valid set
   // is ready and we are actually in the playing phase.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on canBuzz
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Enter") return;
@@ -195,7 +198,6 @@ export function GameScreen() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canBuzz]);
 
   if (!lobby) return null;

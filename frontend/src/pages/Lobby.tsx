@@ -54,6 +54,7 @@ export function Lobby() {
 
   // Ctrl/Cmd+C copies the lobby code — but only when the user isn't selecting
   // text or typing in a field, so normal copy still works there.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on lobbyCode
   useEffect(() => {
     function onCopy(e: KeyboardEvent) {
       if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
@@ -63,7 +64,6 @@ export function Lobby() {
     }
     window.addEventListener("keydown", onCopy);
     return () => window.removeEventListener("keydown", onCopy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lobbyCode]);
 
   if (!lobby) {

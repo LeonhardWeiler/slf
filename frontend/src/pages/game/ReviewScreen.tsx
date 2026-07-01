@@ -23,6 +23,7 @@ export function ReviewScreen() {
     : false;
 
   // Reset the pending merge selection whenever the reviewed category changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: categoryIndex is the intended trigger
   useEffect(() => {
     setMergeAnchor(null);
   }, [review?.categoryIndex]);
@@ -120,9 +121,22 @@ export function ReviewScreen() {
               const isAnchor = mergeAnchor === a.answerId;
               const clickable = mergeMode && !isAnchor && !merged;
               return (
+                // biome-ignore lint/a11y/noStaticElementInteractions: interactive only in merge mode, where it gets role=button + keyboard handling
                 <div
                   key={a.answerId}
+                  role={clickable ? "button" : undefined}
+                  tabIndex={clickable ? 0 : undefined}
                   onClick={clickable ? () => mergeInto(a.answerId) : undefined}
+                  onKeyDown={
+                    clickable
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            mergeInto(a.answerId);
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     "rounded-md px-3 py-2.5 transition-colors",
                     isAnchor
