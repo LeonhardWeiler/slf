@@ -94,6 +94,9 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastGameState(lobby)
 
+	// If the lobby is closed/reset before this fires, beginPlaying is a guarded
+	// no-op (nil Game, mismatched roundID or wrong state), so a lingering timer on
+	// an abandoned lobby does no harm and needs no explicit cancellation.
 	time.AfterFunc(countdownSeconds*time.Second, func() {
 		hub.beginPlaying(lobby, roundID)
 	})
