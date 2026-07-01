@@ -7,6 +7,7 @@ import { useGameStore } from "@/store/game";
 import { validateAnswers, isFieldInvalid } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,6 +77,7 @@ export function GameScreen() {
   const { lobby } = useLobbyStore();
   const { game, buzzRejected, setBuzzRejected, commentator } = useGameStore();
   const isHost = useIsHost();
+  const { confirm, dialog } = useConfirm();
 
   // A commentator host does not play: it fills nothing and instead watches the
   // per-player fill overview.
@@ -177,6 +179,20 @@ export function GameScreen() {
     flushAnswers(); // server must have the latest answers before the buzz check
     setBuzzRejected(null);
     ws.send({ type: "buzz", payload: {} });
+  }
+
+  async function handleEndRound() {
+    if (
+      await confirm({
+        title: "Runde beenden?",
+        description:
+          "Die laufende Runde wird für alle sofort beendet und zur Bewertung gebracht.",
+        confirmLabel: "Runde beenden",
+        destructive: true,
+      })
+    ) {
+      ws.send({ type: "endRound", payload: {} });
+    }
   }
 
   // Flush any buffered answers when leaving the screen (e.g. round ended on
@@ -439,13 +455,14 @@ export function GameScreen() {
               variant="ghost"
               size="sm"
               className="w-full text-muted-foreground"
-              onClick={() => ws.send({ type: "endRound", payload: {} })}
+              onClick={handleEndRound}
             >
               Runde beenden
             </Button>
           </div>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

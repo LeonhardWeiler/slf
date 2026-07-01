@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/game";
 import { isTypingTarget } from "@/lib/utils";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -13,6 +14,21 @@ export function RoundResultScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { result } = useGameStore();
   const isHost = useIsHost();
+  const { confirm, dialog } = useConfirm();
+
+  async function handleEndGame() {
+    if (
+      await confirm({
+        title: "Spiel beenden?",
+        description:
+          "Das Spiel wird für alle beendet und der Endstand angezeigt.",
+        confirmLabel: "Spiel beenden",
+        destructive: true,
+      })
+    ) {
+      ws.send({ type: "endGame", payload: {} });
+    }
+  }
 
   // Host can start the next round with Enter. Ending the game stays button-only.
   useEffect(() => {
@@ -116,7 +132,7 @@ export function RoundResultScreen() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => ws.send({ type: "endGame", payload: {} })}
+              onClick={handleEndGame}
             >
               Spiel beenden
             </Button>
@@ -127,6 +143,7 @@ export function RoundResultScreen() {
           </p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }
