@@ -7,6 +7,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/coder/websocket"
 	"slf/internal/game"
 )
 
@@ -234,10 +235,17 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	}
 	player.Connected = true
 
-	// replace old client with new connection
+	// Replace any existing connection for this session with the new one. The old
+	// socket (if still lingering) is closed after unlocking; its onDisconnect is
+	// then a no-op thanks to the identity guard.
+	old := hub.clients[sessionID]
 	hub.clients[sessionID] = c
 	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
+
+	if old != nil && old != c {
+		_ = old.conn.Close(websocket.StatusNormalClosure, "replaced by reconnect")
+	}
 
 	c.sessionID = sessionID
 

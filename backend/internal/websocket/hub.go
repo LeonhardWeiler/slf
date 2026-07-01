@@ -49,15 +49,21 @@ func (h *Hub) onDisconnect(c *Client) {
 	delete(h.pending, c)
 
 	var lobby *game.Lobby
+	// Only tear down if the map still points at *this* connection. If the player
+	// already reconnected on a newer socket, h.clients[sessionID] is that newer
+	// client — a stale old socket closing must not evict it or mark the player
+	// offline (reconnect race).
 	if c.sessionID != "" {
-		delete(h.clients, c.sessionID)
-		if s, ok := h.sessions[c.sessionID]; ok {
-			if r, ok := h.rooms.Get(s.LobbyCode); ok {
-				lobby = r
-				if p, ok := r.Players[s.PlayerID]; ok {
-					p.Connected = false
-					slog.Info("player disconnected",
-						"lobby", r.Code, "player", p.Name, "host", p.IsHost)
+		if cur, ok := h.clients[c.sessionID]; ok && cur == c {
+			delete(h.clients, c.sessionID)
+			if s, ok := h.sessions[c.sessionID]; ok {
+				if r, ok := h.rooms.Get(s.LobbyCode); ok {
+					lobby = r
+					if p, ok := r.Players[s.PlayerID]; ok {
+						p.Connected = false
+						slog.Info("player disconnected",
+							"lobby", r.Code, "player", p.Name, "host", p.IsHost)
+					}
 				}
 			}
 		}
