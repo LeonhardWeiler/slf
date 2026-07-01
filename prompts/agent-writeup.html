@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SLF — Code-Review & Findings</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1d212a; --text:#e6e8ee; --muted:#9aa3b2;
+    --border:#2a2f3a; --accent:#7aa2ff;
+    --crit:#ff5c6c; --high:#ff8a3d; --med:#ffcc4d; --low:#5cc8ff; --info:#8b93a7; --ok:#4fd08a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:28px;margin:0 0 4px}
+  h2{font-size:21px;margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:8px 0}
+  code{background:#0b0d11;border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  a{color:var(--accent)}
+  .lead{color:var(--muted);font-size:15px}
+  .meta{color:var(--muted);font-size:13px;margin-top:2px}
+  .toc{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:20px 0}
+  .toc ul{margin:6px 0 0;padding-left:18px;columns:2}
+  .toc a{text-decoration:none}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:12px 0}
+  .card h3{margin-top:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .id{color:var(--muted);font-family:ui-monospace,monospace;font-size:12px}
+  .loc{color:var(--muted);font-size:12.5px;margin:2px 0 8px}
+  .rec{background:var(--panel2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:8px 12px;margin-top:8px}
+  .rec b{color:var(--accent)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    padding:2px 8px;border-radius:999px;color:#0b0d11}
+  .b-crit{background:var(--crit)} .b-high{background:var(--high)} .b-med{background:var(--med)}
+  .b-low{background:var(--low)} .b-info{background:var(--info)} .b-ok{background:var(--ok)}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:16px 0}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+  .stat .n{font-size:24px;font-weight:700}
+  .stat .l{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  ul.tight{margin:6px 0;padding-left:20px}
+  ul.tight li{margin:4px 0}
+  .note{color:var(--muted);font-size:13px}
+  hr{border:none;border-top:1px solid var(--border);margin:26px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Stadt&nbsp;Land&nbsp;Fluss — Code-Review &amp; Findings</h1>
+  <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
+
+  <p class="lead">
+    Vierte Review-Runde, <b>nachdem die vorige Liste umgesetzt wurde</b>: der
+    Host-Grace-Countdown flutet den Screenreader nicht mehr (<code>aria-hidden</code>
+    + einmalige Live-Region), er ist jetzt Teil des <code>lobbyState</code>-Snapshots
+    (auch spät verbindende Clients sehen ihn), <code>store.error</code> ist entfernt
+    (Fehler laufen nur noch über Toasts) und der Grace-Ablauf ist testbar/getestet.
+    Die behobenen Karten sind gelöscht, nicht abgehakt. Der Stand ist <b>rund und
+    auslieferbar</b> — es bleiben nur noch <b>kleine Politur-Punkte</b>. Mehrere
+    zuvor genannte Themen sind inzwischen <b>bewusste Entscheidungen</b> (kein
+    Host-Handoff, globaler Mutex, <code>execCommand</code>-Fallback) und im README
+    dokumentiert; siehe Abschnitt&nbsp;5. <b>Keine kritischen/hohen</b> Lücken.
+  </p>
+
+  <div class="summary">
+    <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
+    <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
+    <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">2</div><div class="l">Info</div></div>
+  </div>
+
+  <div class="toc">
+    <b>Inhalt</b>
+    <ul>
+      <li><a href="#ux">1. UI/UX &amp; Konsistenz</a></li>
+      <li><a href="#cq">2. Code-Qualität</a></li>
+      <li><a href="#clean">3. Sauberkeit</a></li>
+      <li><a href="#good">4. Was schon stark ist</a></li>
+      <li><a href="#decided">5. Bewusst entschieden (kein Handlungsbedarf)</a></li>
+      <li><a href="#prio">6. Priorisierte Empfehlung</a></li>
+    </ul>
+  </div>
+  <p class="note">Legende:
+    <span class="badge b-crit">kritisch</span>
+    <span class="badge b-high">hoch</span>
+    <span class="badge b-med">mittel</span>
+    <span class="badge b-low">niedrig</span>
+    <span class="badge b-info">info</span>
+  </p>
+
+  <!-- ============ UX ============ -->
+  <h2 id="ux">1. UI/UX &amp; Konsistenz</h2>
+
+  <div class="card">
+    <h3><span class="id">UX-1</span> Grace-Banner und Toast-Stack konkurrieren am oberen Rand <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>components/HostGraceBanner.tsx</code> (oben zentriert, <code>z-50</code>) vs. <code>components/Toaster.tsx</code> (oben rechts, <code>z-[60]</code>)</div>
+    <p>Beide sind <code>fixed</code> am oberen Rand. Auf schmalen Screens (der Toaster
+      ist <code>w-full max-w-sm</code> rechtsbündig) überlappen ein aktiver
+      Host-Grace-Banner und gleichzeitige Fehler-Toasts sichtbar. Seltene
+      Kombination (Host-Drop + gleichzeitiger Fehler), aber unschön — und noch
+      offen aus der letzten Runde.</p>
+    <div class="rec"><b>Empfehlung:</b> Vertikal stapeln (Toaster nach unten schieben,
+      solange der Banner sichtbar ist) oder den Toaster an <code>bottom</code>
+      verlegen.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">UX-2</span> Grace-Countdown springt bei zwischenzeitlichem State-Broadcast <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>components/HostGraceBanner.tsx</code> ↔ <code>App.tsx</code> (<code>lobbyState</code> setzt <code>hostGrace</code> neu)</div>
+    <p>Der Banner zählt lokal herunter. Da <code>hostGrace</code> jetzt auch aus
+      jedem <code>lobbyState</code> gesetzt wird (korrekt, damit späte Clients ihn
+      sehen — voriges <code>BUG-1</code>), setzt ein Broadcast <em>während</em> des
+      Grace-Fensters (z.&nbsp;B. ein anderer Spieler verlässt die Lobby) den lokal
+      getickten Wert auf die (aufgerundete) Server-Restzeit zurück — der Countdown
+      kann sichtbar um eine Sekunde „zurückspringen". Rein kosmetisch.</p>
+    <div class="rec"><b>Empfehlung:</b> Im Banner nur re-synchronisieren, wenn sich
+      der Wert deutlich (&gt;1&nbsp;s) unterscheidet, oder die verbleibende Zeit als
+      absolute Deadline (Timestamp) statt als Sekundenzahl übertragen.</div>
+  </div>
+
+  <!-- ============ CODE QUALITY ============ -->
+  <h2 id="cq">2. Code-Qualität</h2>
+
+  <div class="card">
+    <h3><span class="id">CQ-1</span> Home-Submit-Spinner stoppt bei <em>jedem</em> Toast, nicht nur beim eigenen Fehler <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — <code>useEffect(…, [toastSeq])</code></div>
+    <p>Nach dem Entfernen von <code>store.error</code> stoppt der Ladezustand jetzt,
+      sobald der globale Toast-Zähler steigt. Das ist robust gegen Auto-Dismiss,
+      koppelt den Spinner aber an <em>irgendeinen</em> Toast: Erscheint während eines
+      laufenden Create/Join zufällig ein unabhängiger Toast, endet der Spinner zu
+      früh. Auf dem Home-Screen sind Toasts praktisch immer der Fehler zur aktuellen
+      Aktion, daher geringe Praxisrelevanz.</p>
+    <div class="rec"><b>Empfehlung:</b> Den Spinner an ein aktions­spezifisches
+      Signal koppeln (z.&nbsp;B. eine <code>pending</code>-Kennung, die der
+      <code>error</code>-Handler mit derselben ID quittiert), statt an den globalen
+      Toast-Zähler.</div>
+  </div>
+
+  <!-- ============ CLEAN ============ -->
+  <h2 id="clean">3. Sauberkeit</h2>
+
+  <div class="card">
+    <h3><span class="id">CLEAN-1</span> Arbeitsdateien im Repo-Wurzelverzeichnis <span class="badge b-info">info</span></h3>
+    <div class="loc">Repo-Root: <code>agent-writeup.html</code> (getrackt), <code>TODO.md</code> &amp; <code>prompts/</code> (untracked)</div>
+    <p>Im Wurzelverzeichnis liegen weiterhin Arbeitsartefakte: der eingecheckte
+      Review-Report sowie untrackte Notizen (<code>TODO.md</code>,
+      <code>prompts/</code>). Kein Fehler, nur Ordnung.</p>
+    <div class="rec"><b>Empfehlung:</b> Report/Notizen nach <code>docs/</code>
+      verschieben oder ignorieren.</div>
+  </div>
+
+  <!-- ============ GOOD ============ -->
+  <h2 id="good">4. Was schon stark ist</h2>
+  <ul class="tight">
+    <li><span class="badge b-ok">plus</span> <b>Verbindungs-Lifecycle</b>: Host-Grace mit sichtbarem, jetzt snapshot-getragenem Countdown, sauberer 1001-Shutdown, Reconnect mit Backoff+Jitter — inkl. Ablauf-Test (<code>-race</code> grün).</li>
+    <li><span class="badge b-ok">plus</span> <b>Accessibility</b>: Live-Region entkoppelt vom Sekundenticker, Labels, <code>aria-live</code>, <code>aria-invalid</code>, Tastaturbedienung, pausierbare Toasts.</li>
+    <li><span class="badge b-ok">plus</span> <b>Frontend-Robustheit</b>: ErrorBoundary (auch um Lazy-Chunks), einheitliches stapelbares Toast-System, kein toter Zustand mehr (<code>store.error</code> entfernt).</li>
+    <li><span class="badge b-ok">plus</span> <b>Server-autoritativ</b> &amp; durchgängige Zod-Validierung aller eingehenden Events (inkl. der Host-Events).</li>
+    <li><span class="badge b-ok">plus</span> <b>Härtung</b>: Origin-Prüfung, Rate-Limit + Caps, Lobby-Reaper, CSP/HSTS, gehashte Session-IDs, kein sessionId-Leak.</li>
+    <li><span class="badge b-ok">plus</span> <b>Konsistenz &amp; CI</b>: einheitliche Sortier-Idiome, TypeScript <code>strict</code>, Biome sauber, gofmt-Gate + WS-Integrationstests.</li>
+  </ul>
+
+  <!-- ============ DECIDED ============ -->
+  <h2 id="decided">5. Bewusst entschieden (kein Handlungsbedarf)</h2>
+  <p class="note">Die folgenden, in früheren Runden genannten Punkte sind bewusst
+    so gewählt und im README unter „Bewusste Entscheidungen &amp; bekannte
+    Einschränkungen" dokumentiert. Sie sind <b>kein Problem</b> für den Einsatzzweck
+    (LAN-/Party-Spiel) und werden hier nur der Vollständigkeit halber genannt.</p>
+  <ul class="tight">
+    <li><b>Kein Host-Handoff</b> (ehem. UX-2): Kehrt der Host nicht in 15&nbsp;s zurück, wird die Lobby geschlossen — bewusst <em>kein</em> Übertragen der Host-Rolle.</li>
+    <li><b>Ein globaler <code>hub.mu</code></b> (ehem. CQ-3): serialisiert alle Lobbys; bei 500 Spielern Ø&nbsp;&lt;&nbsp;5&nbsp;ms. Sharding erst bei sehr vielen parallelen Spielen nötig.</li>
+    <li><b><code>execCommand</code>-Clipboard-Fallback</b> (ehem. CQ-2): für plain-HTTP-LAN, wo <code>navigator.clipboard</code> fehlt — deprecated, aber breit unterstützt.</li>
+    <li><b>Spielerlisten-Cache</b> (ehem. PERF): geprüft und verworfen — fast jeder Broadcast folgt auf eine <code>connected</code>/<code>score</code>-Änderung, die einen Cache ohnehin invalidieren würde.</li>
+    <li><b>Kein Persistenz-Layer</b>: Zustand liegt im RAM; nach Server-Neustart werden Clients sauber getrennt und kehren zur Startseite zurück.</li>
+  </ul>
+
+  <!-- ============ PRIORITY ============ -->
+  <h2 id="prio">6. Priorisierte Empfehlung</h2>
+  <ol class="tight">
+    <li><b>UX-1</b> (Banner/Toast-Überlappung) — schnelle Positionskorrektur, einziger sichtbarer Punkt.</li>
+    <li><b>CQ-1</b> (Spinner an aktionsspezifisches Signal koppeln) — kleine Robustheit.</li>
+    <li>Rest (UX-2 Countdown-Sprung, CLEAN-1) rein kosmetisch / nach Geschmack.</li>
+  </ol>
+
+  <hr/>
+  <p class="note">Dieser Report dokumentiert nur — es wurden keine Code-Änderungen
+    vorgenommen. Nichts davon ist blockierend; die App ist in gutem, auslieferbarem
+    Zustand.</p>
+
+</div>
+</body>
+</html>
