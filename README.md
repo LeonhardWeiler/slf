@@ -9,7 +9,7 @@ gesamte Spielzustand liegt im RAM.
 
 - **Lobbys** mit 6-stelligem alphanumerischem Code, QR-Code und Teilen-Link
 - **Host-Steuerung**: Kategorien anlegen/bearbeiten/löschen, Zeitlimit,
-  Buchstaben ab-/auswählen, Spieler entfernen
+  Buchstaben ab-/auswählen, Spieler entfernen, laufende Runde beenden
 - **Rundenablauf**: Countdown → Antworten → Buzzern → Bewertung → Ergebnis
 - **Live-Bewertung** durch den Host inkl. Zusammenführen gleicher Antworten
 - **Optionale Spielmodi** (pro Lobby schaltbar):
@@ -19,7 +19,8 @@ gesamte Spielzustand liegt im RAM.
     *enden* statt mit ihm zu beginnen
   - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
 - **Punktevergabe** nach klassischen Regeln (siehe unten)
-- **Reconnect**: Reload oder kurzer Verbindungsabbruch führt zurück ins Spiel
+- **Reconnect**: Reload oder kurzer Verbindungsabbruch führt zurück ins Spiel;
+  sobald Netzwerk oder Tab wieder da sind, verbindet der Client sofort neu
 - **Host-Disconnect-Schutz**: Verliert der Host die Verbindung, sehen alle
   Spieler einen 15-Sekunden-Countdown; kehrt er zurück, geht es weiter, sonst
   wird die Lobby geschlossen (SRS 4.6/8.5)
