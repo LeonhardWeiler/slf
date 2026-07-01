@@ -90,11 +90,12 @@ export function GameScreen() {
     `${roundId}:${game?.state ?? ""}:${game?.elapsed ?? ""}`
   );
 
-  const canBuzz =
-    !!lobby &&
-    !!game &&
-    lobby.state === "Playing" &&
-    validateAnswers(lobby.categories, answers, game.letter).valid;
+  // Validate once and reuse for both the buzz gate and the disabled-reason text.
+  const validation =
+    lobby && game
+      ? validateAnswers(lobby.categories, answers, game.letter)
+      : { valid: false as const };
+  const canBuzz = lobby?.state === "Playing" && validation.valid;
 
   function handleBuzz() {
     setBuzzRejected(null);
@@ -162,7 +163,6 @@ export function GameScreen() {
 
   const categories = lobby.categories;
   const hasTimeLimit = lobby.settings.timeLimit !== null;
-  const validation = validateAnswers(categories, answers, game.letter);
 
   // ---- Playing phase ----
   // Red border stays on through 0 and until the round actually ends.
