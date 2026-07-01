@@ -137,12 +137,12 @@ auf `‹host›/join/‹code›`).
 # Backend: Format-Check, Vet, Tests (inkl. WS-Integrationstests)
 cd backend && gofmt -l . && go vet ./... && go test ./...
 
-# Frontend: Biome-Lint, Typecheck + Production-Build
-cd frontend && bun run lint && bun run build
+# Frontend: Biome-Lint, Unit-Tests (Vitest), Typecheck + Production-Build
+cd frontend && bun run lint && bun run test && bun run build
 ```
 
 Dieselben Schritte laufen in der CI (`.gitlab-ci.yml`): `gofmt`-Gate + `go vet`
-+ `go test` fürs Backend, Biome-Lint + Build fürs Frontend.
++ `go test` fürs Backend, Biome-Lint + Vitest + Build fürs Frontend.
 
 ## Deployment mit Docker
 
