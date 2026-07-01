@@ -336,6 +336,11 @@ func handleFinishReview(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
+	if lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeInvalidState, "Keine aktive Runde")
+		return
+	}
 	round := lobby.Game.Round
 	roundPoints := map[string]int{}
 	for _, cat := range lobby.Categories {
