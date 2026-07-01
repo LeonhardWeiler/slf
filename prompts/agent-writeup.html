@@ -68,7 +68,7 @@
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
     <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">2</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -76,10 +76,9 @@
     <ul>
       <li><a href="#ux">1. UI/UX &amp; Konsistenz</a></li>
       <li><a href="#cq">2. Code-Qualität</a></li>
-      <li><a href="#clean">3. Sauberkeit</a></li>
-      <li><a href="#good">4. Was schon stark ist</a></li>
-      <li><a href="#decided">5. Bewusst entschieden (kein Handlungsbedarf)</a></li>
-      <li><a href="#prio">6. Priorisierte Empfehlung</a></li>
+      <li><a href="#good">3. Was schon stark ist</a></li>
+      <li><a href="#decided">4. Bewusst entschieden (kein Handlungsbedarf)</a></li>
+      <li><a href="#prio">5. Priorisierte Empfehlung</a></li>
     </ul>
   </div>
   <p class="note">Legende:
@@ -138,21 +137,8 @@
       Toast-Zähler.</div>
   </div>
 
-  <!-- ============ CLEAN ============ -->
-  <h2 id="clean">3. Sauberkeit</h2>
-
-  <div class="card">
-    <h3><span class="id">CLEAN-1</span> Arbeitsdateien im Repo-Wurzelverzeichnis <span class="badge b-info">info</span></h3>
-    <div class="loc">Repo-Root: <code>agent-writeup.html</code> (getrackt), <code>TODO.md</code> &amp; <code>prompts/</code> (untracked)</div>
-    <p>Im Wurzelverzeichnis liegen weiterhin Arbeitsartefakte: der eingecheckte
-      Review-Report sowie untrackte Notizen (<code>TODO.md</code>,
-      <code>prompts/</code>). Kein Fehler, nur Ordnung.</p>
-    <div class="rec"><b>Empfehlung:</b> Report/Notizen nach <code>docs/</code>
-      verschieben oder ignorieren.</div>
-  </div>
-
   <!-- ============ GOOD ============ -->
-  <h2 id="good">4. Was schon stark ist</h2>
+  <h2 id="good">3. Was schon stark ist</h2>
   <ul class="tight">
     <li><span class="badge b-ok">plus</span> <b>Verbindungs-Lifecycle</b>: Host-Grace mit sichtbarem, jetzt snapshot-getragenem Countdown, sauberer 1001-Shutdown, Reconnect mit Backoff+Jitter — inkl. Ablauf-Test (<code>-race</code> grün).</li>
     <li><span class="badge b-ok">plus</span> <b>Accessibility</b>: Live-Region entkoppelt vom Sekundenticker, Labels, <code>aria-live</code>, <code>aria-invalid</code>, Tastaturbedienung, pausierbare Toasts.</li>
@@ -163,7 +149,7 @@
   </ul>
 
   <!-- ============ DECIDED ============ -->
-  <h2 id="decided">5. Bewusst entschieden (kein Handlungsbedarf)</h2>
+  <h2 id="decided">4. Bewusst entschieden (kein Handlungsbedarf)</h2>
   <p class="note">Die folgenden, in früheren Runden genannten Punkte sind bewusst
     so gewählt und im README unter „Bewusste Entscheidungen &amp; bekannte
     Einschränkungen" dokumentiert. Sie sind <b>kein Problem</b> für den Einsatzzweck
@@ -177,11 +163,11 @@
   </ul>
 
   <!-- ============ PRIORITY ============ -->
-  <h2 id="prio">6. Priorisierte Empfehlung</h2>
+  <h2 id="prio">5. Priorisierte Empfehlung</h2>
   <ol class="tight">
     <li><b>UX-1</b> (Banner/Toast-Überlappung) — schnelle Positionskorrektur, einziger sichtbarer Punkt.</li>
     <li><b>CQ-1</b> (Spinner an aktionsspezifisches Signal koppeln) — kleine Robustheit.</li>
-    <li>Rest (UX-2 Countdown-Sprung, CLEAN-1) rein kosmetisch / nach Geschmack.</li>
+    <li>Rest (UX-2 Countdown-Sprung) rein kosmetisch / nach Geschmack.</li>
   </ol>
 
   <hr/>
