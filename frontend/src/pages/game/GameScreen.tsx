@@ -4,7 +4,7 @@ import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
-import { validateAnswers } from "@/lib/answerValidation";
+import { validateAnswers, isFieldInvalid } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { Button } from "@/components/ui/button";
@@ -82,6 +82,9 @@ export function GameScreen() {
   const flamesEnabled = lobby?.settings.flamesEnabled ?? false;
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Categories the player has blurred at least once — a field only shows a red
+  // "invalid" border after it was left, not while still being typed in.
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   // The single category this player has "flamed" this round ("" = none).
   const [flamed, setFlamed] = useState<string>("");
   const loadedRound = useRef<string>("");
@@ -125,6 +128,7 @@ export function GameScreen() {
       saved = {};
     }
     setAnswers(saved);
+    setTouched({});
 
     const savedFlame = localStorage.getItem(flameKey(roundId)) ?? "";
     setFlamed(savedFlame);
@@ -332,6 +336,9 @@ export function GameScreen() {
             <div className="space-y-3">
               {categories.map((cat, idx) => {
                 const isFlamed = flamed === cat.id;
+                const showInvalid =
+                  touched[cat.id] &&
+                  isFieldInvalid(answers[cat.id] ?? "", game.letter, lastLetterMode);
                 return (
                   <div key={cat.id} className="space-y-1">
                     <label htmlFor={`cat-${cat.id}`} className="text-sm font-medium">
@@ -342,10 +349,18 @@ export function GameScreen() {
                         id={`cat-${cat.id}`}
                         value={answers[cat.id] ?? ""}
                         onChange={(e) => updateAnswer(cat.id, e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, [cat.id]: true }))
+                        }
                         placeholder={placeholder}
                         maxLength={30}
                         autoComplete="off"
                         autoFocus={idx === 0}
+                        aria-invalid={showInvalid || undefined}
+                        className={cn(
+                          showInvalid &&
+                            "border-destructive focus-visible:ring-destructive"
+                        )}
                         // With flames on, Tab walks all inputs first (1..n), then
                         // all flame buttons (n+1..2n), instead of input→flame.
                         tabIndex={flamesEnabled ? idx + 1 : undefined}

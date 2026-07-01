@@ -33,6 +33,18 @@ function answerSchema(letter: string, lastLetter: boolean) {
     );
 }
 
+// True when a field has content that breaks the rules (wrong letter / length).
+// An empty field is "not yet filled", not wrong, so it returns false and gets no
+// red border. Drives the per-field validity indicator once a field is blurred.
+export function isFieldInvalid(
+  value: string,
+  letter: string,
+  lastLetter = false
+): boolean {
+  if (value.trim() === "") return false;
+  return !answerSchema(letter, lastLetter).safeParse(value).success;
+}
+
 export interface AnswerValidation {
   valid: boolean;
   reason?: string;
