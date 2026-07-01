@@ -145,9 +145,24 @@ export type BuzzRejectReason =
   | "alreadyBuzzed"
   | "invalidState";
 
+// Why a lobby can't be joined right now, as reported by a pre-join checkLobby.
+export type LobbyUnavailableReason =
+  | "invalidCode"
+  | "notFound"
+  | "inProgress"
+  | "full"
+  | "throttled";
+
+export interface LobbyCheckPayload {
+  lobbyCode: string;
+  available: boolean;
+  reason?: LobbyUnavailableReason;
+}
+
 export type ServerEvent =
   | { type: "lobbyState"; payload: LobbyStatePayload }
   | { type: "sessionCreated"; payload: SessionCreatedPayload }
+  | { type: "lobbyCheck"; payload: LobbyCheckPayload }
   | { type: "playerKicked"; payload: { playerId: string } }
   | { type: "lobbyClosed"; payload: { reason: string } }
   | { type: "gameState"; payload: GameStatePayload }
@@ -163,6 +178,7 @@ export type ServerEvent =
 export type ClientEvent =
   | { type: "createLobby"; payload: { playerName: string } }
   | { type: "joinLobby"; payload: { playerName: string; lobbyCode: string } }
+  | { type: "checkLobby"; payload: { lobbyCode: string } }
   | { type: "reconnect"; payload: Record<string, never> }
   | { type: "leaveLobby"; payload: Record<string, never> }
   | { type: "addCategory"; payload: { name: string } }

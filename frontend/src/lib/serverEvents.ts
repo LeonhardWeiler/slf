@@ -134,6 +134,15 @@ const serverEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("lobbyState"), payload: lobbyStatePayload }),
   z.object({ type: z.literal("sessionCreated"), payload: sessionCreatedPayload }),
   z.object({
+    type: z.literal("lobbyCheck"),
+    payload: z.object({
+      lobbyCode: z.string(),
+      available: z.boolean(),
+      // Lenient: an unknown/forward-compatible reason must not drop the message.
+      reason: z.string().optional(),
+    }),
+  }),
+  z.object({
     type: z.literal("playerKicked"),
     payload: z.object({ playerId: z.string() }),
   }),

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useParams, Navigate } from "react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
+import type { LobbyCheckPayload } from "@/types/events";
 import { useLobbyStore } from "@/store/lobby";
 import { useToastStore } from "@/store/toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -25,6 +26,16 @@ import {
 
 type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
+// Human-readable reason why a lobby can't be joined, keyed by the server's
+// checkLobby reason code. Shown inline at the code step before a name is asked.
+const UNAVAILABLE_MESSAGES: Record<string, string> = {
+  inProgress: "Diese Lobby ist gerade in einer Runde.",
+  full: "Diese Lobby ist voll.",
+  notFound: "Diese Lobby gibt es nicht.",
+  invalidCode: "Ungültiger Lobbycode.",
+  throttled: "Zu viele Versuche – bitte kurz warten.",
+};
+
 export function Home() {
   const params = useParams<{ code?: string }>();
   const { lobby } = useLobbyStore();
@@ -40,17 +51,36 @@ export function Home() {
 
   const [name, setName] = useState("");
   const [code, setCode] = useState(deepLinkCode);
-  // A deep link (/join/:code) drops the user straight into the join flow with
-  // the code prefilled — only the name is missing.
+  // A deep link (/join/:code) prefills the code and lands on the code step so a
+  // pre-join check can run first — an unavailable lobby (mid-game/full/unknown)
+  // is surfaced there instead of only after the player typed a name.
   const [step, setStep] = useState<Step>(
-    deepLinkCode.length === 6 ? "joinName" : "start"
+    deepLinkCode.length === 6 ? "joinCode" : "start"
   );
   const [loading, setLoading] = useState(false);
+  // Pre-join availability check (code/QR/deep-link) and its inline error.
+  const [checking, setChecking] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
   const [connected, setConnected] = useState(ws.isOpen);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The code whose checkLobby reply we're currently awaiting (to ignore stale
+  // replies when the user changed the code meanwhile).
+  const pendingCode = useRef<string | null>(null);
 
   // Track live connection status so the user sees when the server is down.
   useEffect(() => ws.onStatusChange(setConnected), []);
+
+  // Handle checkLobby replies and kick off the initial check for a deep link.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: register once on mount
+  useEffect(() => {
+    ws.on("lobbyCheck", onLobbyCheck);
+    if (deepLinkCode.length === 6) checkCode(deepLinkCode);
+    return () => {
+      ws.off("lobbyCheck");
+      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    };
+  }, []);
 
   // Stop the loading spinner once any toast appears (validation or server error).
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new toast
@@ -96,13 +126,49 @@ export function Home() {
     ws.send({ type: "createLobby", payload: { playerName: trimmedName } });
   }
 
-  function submitJoinCode(e: React.FormEvent) {
-    e.preventDefault();
-    if (code.trim().length !== 6) {
-      addToast("Lobbycode muss 6 Ziffern lang sein");
+  function onLobbyCheck(payload: LobbyCheckPayload) {
+    // Ignore a reply for a code the user has since changed.
+    if (payload.lobbyCode !== pendingCode.current) return;
+    pendingCode.current = null;
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    setChecking(false);
+    if (payload.available) {
+      setJoinError(null);
+      setStep("joinName");
+    } else {
+      setJoinError(
+        UNAVAILABLE_MESSAGES[payload.reason ?? ""] ?? "Beitritt nicht möglich."
+      );
+      // Land back on the code step so the error sits next to the code field
+      // (covers the QR and deep-link paths too).
+      setStep("joinCode");
+    }
+  }
+
+  // Ask the server whether `candidate` can be joined right now, before moving on
+  // to the name step. Only advances on success; otherwise shows an inline error.
+  function checkCode(candidate: string) {
+    const c = candidate.trim();
+    if (c.length !== 6) {
+      setJoinError("Der Lobbycode muss 6 Zeichen lang sein.");
+      setStep("joinCode");
       return;
     }
-    goTo("joinName");
+    setJoinError(null);
+    setChecking(true);
+    pendingCode.current = c;
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    checkTimeoutRef.current = setTimeout(() => {
+      pendingCode.current = null;
+      setChecking(false);
+      setJoinError("Keine Verbindung zum Server. Bitte erneut versuchen.");
+    }, 8000);
+    ws.send({ type: "checkLobby", payload: { lobbyCode: c } });
+  }
+
+  function submitJoinCode(e: React.FormEvent) {
+    e.preventDefault();
+    checkCode(code);
   }
 
   function submitJoinName(e: React.FormEvent) {
@@ -191,7 +257,8 @@ export function Home() {
                   <QrScannerView
                     onScan={(scanned) => {
                       setCode(scanned);
-                      goTo("joinName");
+                      // Verify the scanned lobby is joinable before asking a name.
+                      checkCode(scanned);
                     }}
                     onClose={() => goTo("joinCode")}
                   />
@@ -260,14 +327,16 @@ export function Home() {
                   <Input
                     id="code"
                     value={code}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setJoinError(null);
                       setCode(
                         e.target.value
                           .toLowerCase()
                           .replace(/[^a-z0-9]/g, "")
                           .slice(0, 6)
-                      )
-                    }
+                      );
+                    }}
+                    aria-invalid={joinError != null}
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
@@ -276,6 +345,9 @@ export function Home() {
                     autoComplete="off"
                     className="font-mono lowercase tracking-widest"
                   />
+                  {joinError && (
+                    <p className="text-sm text-destructive">{joinError}</p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -304,9 +376,9 @@ export function Home() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={code.trim().length !== 6}
+                    disabled={code.trim().length !== 6 || checking}
                   >
-                    Weiter
+                    {checking ? "Prüfe…" : "Weiter"}
                   </Button>
                 </div>
               </form>

@@ -17,6 +17,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleCreateLobby(hub, c, msg.Payload)
 	case "joinLobby":
 		handleJoinLobby(hub, c, msg.Payload)
+	case "checkLobby":
+		handleCheckLobby(hub, c, msg.Payload)
 	case "reconnect":
 		handleReconnect(hub, c, msg.SessionID)
 	case "leaveLobby":
@@ -233,6 +235,68 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		PlayerID:  playerID,
 	})
 	hub.broadcastLobbyState(lobby)
+}
+
+// handleCheckLobby answers whether a lobby can currently be joined, without
+// mutating any state. It lets the join UI surface "lobby is mid-game / full /
+// unknown" already at the code (or QR/deep-link) step instead of only after the
+// player typed a name. Name-uniqueness is inherently name-dependent and stays a
+// join-time check. Reuses the same anti-guessing throttle as handleJoinLobby so
+// the pre-check cannot become an unthrottled oracle for enumerating codes.
+func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
+	var p struct {
+		LobbyCode string `json:"lobbyCode"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		return
+	}
+
+	// Echoes the queried code back so the client can correlate the async reply.
+	respond := func(available bool, reason string) {
+		_ = c.send("lobbyCheck", struct {
+			LobbyCode string `json:"lobbyCode"`
+			Available bool   `json:"available"`
+			Reason    string `json:"reason,omitempty"`
+		}{LobbyCode: p.LobbyCode, Available: available, Reason: reason})
+	}
+
+	if wait := c.joinBackoff(); wait > 0 && time.Since(c.lastJoinAt) < wait {
+		c.lastJoinAt = time.Now()
+		respond(false, "throttled")
+		return
+	}
+	c.lastJoinAt = time.Now()
+
+	code, ok := normalizeLobbyCode(p.LobbyCode)
+	if !ok {
+		c.joinFails++
+		respond(false, "invalidCode")
+		return
+	}
+
+	hub.mu.Lock()
+	lobby, found := hub.rooms.Get(code)
+	if !found {
+		hub.mu.Unlock()
+		c.joinFails++
+		respond(false, "notFound")
+		return
+	}
+	// A valid, existing code means this client is not blindly guessing → reset.
+	c.joinFails = 0
+	state := lobby.State
+	playerCount := len(lobby.Players)
+	hub.mu.Unlock()
+
+	switch {
+	case state != game.StateLobby:
+		respond(false, "inProgress")
+	case playerCount >= maxPlayersPerLobby:
+		respond(false, "full")
+	default:
+		respond(true, "")
+	}
 }
 
 func handleReconnect(hub *Hub, c *Client, sessionID string) {

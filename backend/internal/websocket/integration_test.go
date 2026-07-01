@@ -169,6 +169,45 @@ func TestJoinUnknownLobbyErrors(t *testing.T) {
 	}
 }
 
+// todo: checkLobby lets the join UI show "mid-game / full / unknown" already at
+// the code step, before a name is asked.
+func TestCheckLobbyReportsAvailability(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	guest := dial(t, srv)
+	var chk struct {
+		Available bool   `json:"available"`
+		Reason    string `json:"reason"`
+	}
+
+	// A fresh lobby is joinable.
+	guest.send("checkLobby", map[string]any{"lobbyCode": code})
+	json.Unmarshal(guest.waitFor("lobbyCheck"), &chk)
+	if !chk.Available {
+		t.Fatalf("expected fresh lobby available, got reason %q", chk.Reason)
+	}
+
+	// An unknown code reports notFound.
+	guest.send("checkLobby", map[string]any{"lobbyCode": "ZZZZZZ"})
+	json.Unmarshal(guest.waitFor("lobbyCheck"), &chk)
+	if chk.Available || chk.Reason != "notFound" {
+		t.Fatalf("expected notFound, got available=%v reason=%q", chk.Available, chk.Reason)
+	}
+
+	// Once the game is running, the same lobby reports inProgress (the key case:
+	// "belegt" = mid-round). Wait for the host's gameState so the server-side
+	// state transition has definitely happened before we re-check.
+	host.send("startGame", map[string]any{})
+	host.waitFor("gameState")
+	guest.send("checkLobby", map[string]any{"lobbyCode": code})
+	json.Unmarshal(guest.waitFor("lobbyCheck"), &chk)
+	if chk.Available || chk.Reason != "inProgress" {
+		t.Fatalf("expected inProgress, got available=%v reason=%q", chk.Available, chk.Reason)
+	}
+}
+
 // bug-3: all categories may be deleted; a round just needs >=1 to start.
 func TestDeleteAllCategoriesThenStartFails(t *testing.T) {
 	srv := newServer(t)
