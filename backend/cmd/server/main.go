@@ -130,6 +130,9 @@ func securityHeaders(h http.Header) {
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
+	// Only honoured by browsers over HTTPS (ignored on plain-HTTP localhost/LAN),
+	// so it is safe to always send and hardens a future TLS/domain deployment.
+	h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 }
 
 // spaHandler serves static files from dir and falls back to index.html for
