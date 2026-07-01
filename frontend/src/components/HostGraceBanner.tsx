@@ -31,9 +31,9 @@ export function HostGraceBanner() {
       </span>
       <div
         aria-hidden="true"
-        className="flex items-center gap-2 rounded-lg border border-amber-500/50 bg-amber-500/15 px-4 py-2 text-sm font-medium text-amber-700 shadow-lg backdrop-blur dark:text-amber-300"
+        className="flex items-center gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-5 py-2.5 text-base font-medium text-amber-700 shadow-lg backdrop-blur dark:text-amber-300"
       >
-        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <AlertTriangle className="h-5 w-5 shrink-0" />
         <span>
           Host getrennt – Lobby schließt in{" "}
           <span className="tabular-nums font-bold">{remaining}s</span>
