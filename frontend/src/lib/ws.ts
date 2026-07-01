@@ -136,9 +136,13 @@ class WSClient {
   }
 }
 
-const wsUrl =
-  window.location.hostname === "localhost"
-    ? "ws://localhost:8080/ws"
-    : `ws://${window.location.hostname}:8080/ws`;
+// In dev the frontend runs on Vite while the backend listens on :8080, so the
+// WS target is explicit. In production the Go server serves both the static
+// frontend and /ws on the same origin, so we reuse the page's host and derive
+// wss:// automatically when served over https.
+const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+const wsUrl = import.meta.env.DEV
+  ? `${wsProto}//${window.location.hostname}:8080/ws`
+  : `${wsProto}//${window.location.host}/ws`;
 
 export const ws = new WSClient(wsUrl);

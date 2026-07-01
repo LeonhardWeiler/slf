@@ -1,0 +1,31 @@
+# Stadt-Land-Fluss — Backend + Frontend in einem Container.
+#
+#   docker compose up -d      # zieht das Image und startet den Server
+#   →  http://localhost:8080
+#
+# Das Image wird von der GitLab-CI nach jedem Commit auf master gebaut und nach
+# weilerleonhard/slf gepusht. Lokal selbst bauen statt ziehen:
+#   docker compose up --build   (dazu die 'build'-Zeile unten einkommentieren)
+
+services:
+  slf:
+    image: weilerleonhard/slf:latest
+    # build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Logging in eine Datei aktivieren (leer lassen = nur stdout).
+      LOG_FILE: /data/slf.log
+    volumes:
+      # Logdatei persistent halten (SRS 12.9 / TODO G2).
+      - slf-logs:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  slf-logs:

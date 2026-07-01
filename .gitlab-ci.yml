@@ -1,0 +1,43 @@
+# CI/CD: prüft Backend + Frontend und baut nach jedem master-Commit ein
+# Docker-Image, das nach weilerleonhard/slf gepusht wird.
+#
+# Erwartete CI/CD-Variablen (Settings → CI/CD → Variables):
+#   DOCKERHUB_USERNAME  – Docker-Hub-Benutzer (weilerleonhard)
+#   DOCKERHUB_TOKEN     – Docker-Hub Access Token (als "Masked" markieren)
+
+stages:
+  - test
+  - build
+
+test:backend:
+  stage: test
+  image: golang:1.26-alpine
+  script:
+    - cd backend
+    - go vet ./...
+    - go test ./...
+
+test:frontend:
+  stage: test
+  image: oven/bun:1
+  script:
+    - cd frontend
+    - bun install --frozen-lockfile
+    - bun run build # tsc -b && vite build → typecheckt und baut
+
+build:image:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  rules:
+    # Nur auf master pushen (Merge-Request-Pipelines bauen nichts).
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  script:
+    - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+    - IMAGE="$DOCKERHUB_USERNAME/slf"
+    - docker build -t "$IMAGE:latest" -t "$IMAGE:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$IMAGE:latest"
+    - docker push "$IMAGE:$CI_COMMIT_SHORT_SHA"

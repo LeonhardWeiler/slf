@@ -1,0 +1,16 @@
+# Build artifacts and deps — rebuilt inside the image
+**/node_modules
+frontend/dist
+backend/tmp
+tmp
+**/*.tsbuildinfo
+
+# VCS / editor / local
+.git
+.gitignore
+*.md
+srs
+non-srs.html
+flake.nix
+flake.lock
+.direnv
