@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Check, Copy } from "lucide-react";
+import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -18,20 +19,20 @@ export function RoomHeader({
   const navigate = useNavigate();
   const { reset, lobby } = useLobbyStore();
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const code = lobby?.lobbyCode ?? "";
 
-  function copyCode() {
+  async function copyCode() {
     if (!code) return;
-    navigator.clipboard
-      ?.writeText(code)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      })
-      .catch(() => {
-        /* clipboard unavailable (e.g. insecure context) — ignore */
-      });
+    const ok = await copyToClipboard(code);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 3000);
+    }
   }
 
   function handleLeave() {
@@ -62,6 +63,9 @@ export function RoomHeader({
               <Check className="h-3 w-3 text-green-600" />
             ) : (
               <Copy className="h-3 w-3" />
+            )}
+            {copyFailed && (
+              <span className="text-[10px]">(manuell markieren)</span>
             )}
           </button>
         )}

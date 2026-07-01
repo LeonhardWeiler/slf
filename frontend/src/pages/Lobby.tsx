@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from "react-router";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/clipboard";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -33,21 +34,22 @@ export function Lobby() {
   const [editingValue, setEditingValue] = useState("");
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState<null | "code" | "link">(null);
+  const [copyFailed, setCopyFailed] = useState(false);
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
 
-  function copyText(text: string, kind: "code" | "link") {
+  async function copyText(text: string, kind: "code" | "link") {
     if (!text) return;
-    navigator.clipboard
-      ?.writeText(text)
-      .then(() => {
-        setCopied(kind);
-        setTimeout(() => setCopied(null), 2000);
-      })
-      .catch(() => {
-        /* clipboard unavailable (e.g. insecure context) — ignore */
-      });
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setCopyFailed(false);
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 2000);
+    } else {
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 4000);
+    }
   }
 
   // Ctrl/Cmd+C copies the lobby code — but only when the user isn't selecting
@@ -188,6 +190,8 @@ export function Lobby() {
                     <Check className="h-3.5 w-3.5 text-green-600" />
                     Code kopiert!
                   </>
+                ) : copyFailed ? (
+                  "Kopieren nicht möglich – Code manuell markieren (nur über HTTPS)"
                 ) : (
                   "Klicken oder Strg+C zum Kopieren"
                 )}
