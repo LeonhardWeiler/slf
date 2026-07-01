@@ -51,24 +51,26 @@
   <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
 
   <p class="lead">
-    Vierte Review-Runde, <b>nachdem die vorige Liste umgesetzt wurde</b>: der
-    Host-Grace-Countdown flutet den Screenreader nicht mehr (<code>aria-hidden</code>
-    + einmalige Live-Region), er ist jetzt Teil des <code>lobbyState</code>-Snapshots
-    (auch spät verbindende Clients sehen ihn), <code>store.error</code> ist entfernt
-    (Fehler laufen nur noch über Toasts) und der Grace-Ablauf ist testbar/getestet.
-    Die behobenen Karten sind gelöscht, nicht abgehakt. Der Stand ist <b>rund und
-    auslieferbar</b> — es bleiben nur noch <b>kleine Politur-Punkte</b>. Mehrere
-    zuvor genannte Themen sind inzwischen <b>bewusste Entscheidungen</b> (kein
-    Host-Handoff, globaler Mutex, <code>execCommand</code>-Fallback) und im README
-    dokumentiert; siehe Abschnitt&nbsp;5. <b>Keine kritischen/hohen</b> Lücken.
+    Aktueller Health-Check nach Umsetzung der jüngsten UI-Runde: die <b>Toasts</b>
+    liegen jetzt als 3D-Stapel <b>unten links</b> (die frühere Banner/Toast-Überlappung
+    ist damit erledigt), mehr Ereignisse (Kick, Lobby-Schließen, Verbindungsverlust)
+    laufen über Toasts, der Host bekommt seinen eigenen Schließen-Hinweis nicht mehr,
+    und das Host-getrennt-Banner ist etwas größer. Neu evaluiert: ein externer
+    <b>Lighthouse-Lauf</b> (Abschnitt&nbsp;3 — reine Perf-Zahlen wegen Render-Hosting
+    bewusst ausgeklammert) und die Frage nach <b>shadcn</b> (Abschnitt&nbsp;4 — ist
+    faktisch schon im Einsatz). Der Stand ist <b>rund und auslieferbar</b>; es bleiben
+    nur <b>kleine Politur-Punkte</b> plus zwei server­seitige Ein-Zeiler (COOP-Header,
+    Asset-Caching). Mehrere ältere Themen sind <b>bewusste Entscheidungen</b> (kein
+    Host-Handoff, globaler Mutex, <code>execCommand</code>-Fallback), im README
+    dokumentiert; siehe Abschnitt&nbsp;6. <b>Keine kritischen/hohen</b> Lücken.
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">4</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">4</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -76,9 +78,11 @@
     <ul>
       <li><a href="#ux">1. UI/UX &amp; Konsistenz</a></li>
       <li><a href="#cq">2. Code-Qualität</a></li>
-      <li><a href="#good">3. Was schon stark ist</a></li>
-      <li><a href="#decided">4. Bewusst entschieden (kein Handlungsbedarf)</a></li>
-      <li><a href="#prio">5. Priorisierte Empfehlung</a></li>
+      <li><a href="#lh">3. Lighthouse / A11y / SEO / Header</a></li>
+      <li><a href="#shadcn">4. shadcn-Evaluierung</a></li>
+      <li><a href="#good">5. Was schon stark ist</a></li>
+      <li><a href="#decided">6. Bewusst entschieden (kein Handlungsbedarf)</a></li>
+      <li><a href="#prio">7. Priorisierte Empfehlung</a></li>
     </ul>
   </div>
   <p class="note">Legende:
@@ -91,19 +95,6 @@
 
   <!-- ============ UX ============ -->
   <h2 id="ux">1. UI/UX &amp; Konsistenz</h2>
-
-  <div class="card">
-    <h3><span class="id">UX-1</span> Grace-Banner und Toast-Stack konkurrieren am oberen Rand <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>components/HostGraceBanner.tsx</code> (oben zentriert, <code>z-50</code>) vs. <code>components/Toaster.tsx</code> (oben rechts, <code>z-[60]</code>)</div>
-    <p>Beide sind <code>fixed</code> am oberen Rand. Auf schmalen Screens (der Toaster
-      ist <code>w-full max-w-sm</code> rechtsbündig) überlappen ein aktiver
-      Host-Grace-Banner und gleichzeitige Fehler-Toasts sichtbar. Seltene
-      Kombination (Host-Drop + gleichzeitiger Fehler), aber unschön — und noch
-      offen aus der letzten Runde.</p>
-    <div class="rec"><b>Empfehlung:</b> Vertikal stapeln (Toaster nach unten schieben,
-      solange der Banner sichtbar ist) oder den Toaster an <code>bottom</code>
-      verlegen.</div>
-  </div>
 
   <div class="card">
     <h3><span class="id">UX-2</span> Grace-Countdown springt bei zwischenzeitlichem State-Broadcast <span class="badge b-info">info</span></h3>
@@ -137,8 +128,115 @@
       Toast-Zähler.</div>
   </div>
 
+  <!-- ============ LIGHTHOUSE ============ -->
+  <h2 id="lh">3. Lighthouse / A11y / SEO / Header</h2>
+  <p class="note">Aus einem externen PageSpeed-/Lighthouse-Lauf (13.4.0, Desktop&nbsp;+&nbsp;Mobile).
+    <b>Wichtige Einordnung:</b> die Instanz lief auf einem langsamen Render-Free-Tier,
+    daher sind die reinen <em>Performance</em>-Hinweise (Render-Blocking&nbsp;80–300&nbsp;ms,
+    „unused JS/CSS") <b>nicht aussagekräftig</b> und hier bewusst weggelassen — der
+    Perf-Score ist ohnehin 100 und die Bundles sind klein/lazy-split. Übrig bleiben
+    die <em>strukturellen</em> Findings, die unabhängig vom Hosting gelten.</p>
+
+  <div class="card">
+    <h3><span class="id">LH-A11Y</span> Kein <code>&lt;main&gt;</code>-Landmark, grenzwertiger Kontrast <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/index.html</code> (nur <code>&lt;div id="root"&gt;</code>) · Screens sind reine <code>&lt;div&gt;</code></div>
+    <p>Es gibt keine <code>&lt;main&gt;</code>-Landmark, sodass Screenreader-Nutzer nicht
+      per „Sprung zum Hauptinhalt" navigieren können (A11y&nbsp;92 Desktop / 98 Mobile).
+      Zusätzlich meldet Lighthouse am Desktop <b>grenzwertigen Kontrast</b> — mit hoher
+      Wahrscheinlichkeit der <code>muted-foreground</code>-Token (46,9&nbsp;% Helligkeit auf
+      Weiß ≈ knapp unter 4,5:1) bzw. das amber Host-getrennt-Banner.</p>
+    <div class="rec"><b>Empfehlung:</b> Den äußersten Screen-Container als <code>&lt;main&gt;</code>
+      auszeichnen (z.&nbsp;B. in <code>Room</code>/<code>Home</code>) und den
+      <code>--muted-foreground</code>-Token einen Tick dunkler setzen.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">LH-HDR</span> Security-Header-Feinschliff: COOP fehlt, HSTS ohne <code>preload</code> <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>backend/cmd/server/main.go</code> — <code>securityHeaders()</code></div>
+    <p>Die Header sind bereits stark (strikte CSP mit <code>sha256</code> für das einzige
+      Inline-Script — Hash <b>verifiziert korrekt</b> —, <code>nosniff</code>,
+      <code>X-Frame-Options</code>, <code>Referrer-Policy</code>, HSTS). Lighthouse bemängelt
+      dennoch: <b>Cross-Origin-Opener-Policy fehlt</b> ganz, HSTS ohne <code>preload</code>,
+      und optional <b>Trusted Types</b> gegen DOM-XSS. Das CSP-Flag betrifft nur das für
+      React-Inline-Styles nötige <code>style-src 'unsafe-inline'</code> — bewusster Kompromiss.</p>
+    <div class="rec"><b>Empfehlung:</b> <code>Cross-Origin-Opener-Policy: same-origin</code>
+      ergänzen (Ein-Zeiler), <code>preload</code> an HSTS anhängen. Trusted Types optional.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">LH-CACHE</span> Gehashte Assets ohne langlebige <code>Cache-Control</code> <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>backend/cmd/server/main.go</code> — <code>spaHandler</code> nutzt blankes <code>http.FileServer</code></div>
+    <p>Der einzige real relevante Performance-Punkt (~127&nbsp;KiB, hosting-unabhängig):
+      der Static-Handler setzt kein <code>Cache-Control</code>. Vite emittiert
+      content-gehashte Dateinamen (<code>index-_BMkKeN7.js</code> etc.), die sich
+      <code>immutable</code> für ein Jahr cachen ließen; aktuell verlässt sich der Server
+      nur auf ETag/Last-Modified (Revalidierung bei jedem Load).</p>
+    <div class="rec"><b>Empfehlung:</b> Für <code>/assets/*</code>
+      <code>Cache-Control: public, max-age=31536000, immutable</code> setzen, für
+      <code>index.html</code> bewusst <code>no-cache</code>.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">LH-SEO</span> Keine Meta-Description, <code>robots.txt</code> liefert HTML <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/index.html</code> · SPA-Fallback in <code>spaHandler</code></div>
+    <p>Es fehlt eine <code>&lt;meta name="description"&gt;</code>, und <code>/robots.txt</code>
+      fällt über den SPA-Catch-all auf <code>index.html</code> zurück — Lighthouse parst das
+      HTML als robots.txt und meldet „28 Fehler". Für ein LAN-/Party-Spiel, das nicht
+      indexiert werden soll, ist SEO <b>zweitrangig</b>, daher nur Info.</p>
+    <div class="rec"><b>Empfehlung:</b> Kurze Meta-Description ergänzen und eine echte
+      statische <code>robots.txt</code> (z.&nbsp;B. <code>Disallow:</code> nichts / alles)
+      ausliefern, damit der Fallback nicht HTML zurückgibt.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">LH-CONSOLE</span> „Browser-Konsole enthält Fehler" <span class="badge b-info">info</span></h3>
+    <div class="loc">Nur auf der Render-Deployment beobachtet</div>
+    <p>Ursache ließ sich nicht auf einen Code-Fehler zurückführen (CSP-Script-Hash passt,
+      Zod-Warnungen sind DEV-only). Plausibelste Quelle: die vom Browser selbst geloggten
+      <code>WebSocket connection failed</code>-Meldungen, wenn der Reconnect-Loop gegen die
+      schlafende/langsame Render-Free-Instanz läuft — also <b>deployment-spezifisch</b>,
+      kein App-Bug.</p>
+    <div class="rec"><b>Empfehlung:</b> Auf einer wachen Instanz gegenprüfen; falls es
+      WS-Retries sind, ist nichts zu tun (erwartetes Browserverhalten).</div>
+  </div>
+
+  <!-- ============ SHADCN ============ -->
+  <h2 id="shadcn">4. shadcn-Evaluierung</h2>
+  <p class="note">Frage aus der Aufgabenliste: „Lohnt sich shadcn für dieses Projekt, was
+    würde sich ändern?" — Kurzantwort: <b>Das Projekt nutzt shadcn bereits</b>, nur ohne die
+    CLI-Formalisierung.</p>
+
+  <div class="card">
+    <h3><span class="id">SHADCN-1</span> shadcn-Architektur ist schon vorhanden <span class="badge b-ok">plus</span></h3>
+    <div class="loc"><code>frontend/src/components/ui/</code>: <code>button</code>, <code>card</code>, <code>input</code>, <code>label</code>, <code>switch</code></div>
+    <p>Die vorhandenen UI-Primitive sind <b>1:1 der shadcn/ui-Stil</b>: CVA für Varianten
+      (<code>buttonVariants</code>), Radix-Primitives (<code>@radix-ui/react-slot</code>,
+      <code>react-label</code>, <code>react-switch</code>), der <code>cn()</code>-Helper
+      (<code>clsx</code>&nbsp;+&nbsp;<code>tailwind-merge</code>), der <code>@/</code>-Alias und
+      das CSS-Variablen-Theme mit <code>hsl(var(--...))</code> inkl. Dark-Mode. Es fehlt
+      lediglich die <code>components.json</code>, über die die <code>shadcn</code>-CLI neue
+      Komponenten scaffolden würde.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">SHADCN-2</span> Was eine Formalisierung ändern würde <span class="badge b-info">info</span></h3>
+    <div class="loc">Entscheidung: <code>components.json</code> ergänzen — oder bewusst weglassen</div>
+    <p><b>Dafür:</b> künftige Primitive (Dialog, Tooltip, Select, Dropdown…) ließen sich per
+      <code>bunx shadcn@latest add …</code> hinzufügen statt von Hand, konsistent mit
+      Upstream. <b>Dagegen:</b> die fünf bestehenden Komponenten sind winzig und stabil;
+      der CLI-Nutzen greift erst bei <em>vielen</em> weiteren. Unter Tailwind&nbsp;v4 (hier im
+      Einsatz) funktioniert die CLI zwar, kann aber gegenüber dem bereits manuell gepflegten
+      Theme etwas Reibung erzeugen. <b>Kein Rewrite nötig</b> — bestehende UI bliebe
+      unangetastet.</p>
+    <div class="rec"><b>Empfehlung:</b> Keine Migration — die Konventionen sind schon erfüllt.
+      Optional eine <code>components.json</code> passend zum Ist-Zustand ergänzen, damit
+      neue Primitive per CLI kommen. Der <b>bespoke <code>Toaster</code></b> (3D-Stack) ist
+      <em>nicht</em> shadcn/sonner und sollte es auch nicht werden — er ist gezielt auf die
+      Stapel-Anforderung zugeschnitten.</p>
+  </div>
+
   <!-- ============ GOOD ============ -->
-  <h2 id="good">3. Was schon stark ist</h2>
+  <h2 id="good">5. Was schon stark ist</h2>
   <ul class="tight">
     <li><span class="badge b-ok">plus</span> <b>Verbindungs-Lifecycle</b>: Host-Grace mit sichtbarem, jetzt snapshot-getragenem Countdown, sauberer 1001-Shutdown, Reconnect mit Backoff+Jitter — inkl. Ablauf-Test (<code>-race</code> grün).</li>
     <li><span class="badge b-ok">plus</span> <b>Accessibility</b>: Live-Region entkoppelt vom Sekundenticker, Labels, <code>aria-live</code>, <code>aria-invalid</code>, Tastaturbedienung, pausierbare Toasts.</li>
@@ -149,7 +247,7 @@
   </ul>
 
   <!-- ============ DECIDED ============ -->
-  <h2 id="decided">4. Bewusst entschieden (kein Handlungsbedarf)</h2>
+  <h2 id="decided">6. Bewusst entschieden (kein Handlungsbedarf)</h2>
   <p class="note">Die folgenden, in früheren Runden genannten Punkte sind bewusst
     so gewählt und im README unter „Bewusste Entscheidungen &amp; bekannte
     Einschränkungen" dokumentiert. Sie sind <b>kein Problem</b> für den Einsatzzweck
@@ -163,11 +261,15 @@
   </ul>
 
   <!-- ============ PRIORITY ============ -->
-  <h2 id="prio">5. Priorisierte Empfehlung</h2>
+  <h2 id="prio">7. Priorisierte Empfehlung</h2>
   <ol class="tight">
-    <li><b>UX-1</b> (Banner/Toast-Überlappung) — schnelle Positionskorrektur, einziger sichtbarer Punkt.</li>
+    <li><b>LH-HDR</b> + <b>LH-CACHE</b> — zwei Ein-Zeiler im Server (COOP-Header,
+      <code>Cache-Control</code> für gehashte Assets): beste Wirkung pro Aufwand.</li>
+    <li><b>LH-A11Y</b> (<code>&lt;main&gt;</code>-Landmark, Kontrast-Token) — kleine,
+      substanzielle A11y-Verbesserung.</li>
     <li><b>CQ-1</b> (Spinner an aktionsspezifisches Signal koppeln) — kleine Robustheit.</li>
-    <li>Rest (UX-2 Countdown-Sprung) rein kosmetisch / nach Geschmack.</li>
+    <li>Rest (UX-2 Countdown-Sprung, LH-SEO, LH-CONSOLE) kosmetisch, deployment-abhängig
+      oder für den Einsatzzweck zweitrangig.</li>
   </ol>
 
   <hr/>
