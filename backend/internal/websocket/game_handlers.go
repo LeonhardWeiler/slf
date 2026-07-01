@@ -36,9 +36,7 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv sein")
 		return
 	}
-	for _, p := range lobby.Players {
-		p.Score = 0
-	}
+	hub.resetForNewGame(lobby)
 	lobby.Game = &game.Game{
 		RemainingLetters: letters,
 		UsedLetters:      []string{},
@@ -400,6 +398,21 @@ func handleEndGame(hub *Hub, c *Client) {
 	hub.endGame(lobby, "HostEnded")
 }
 
+// resetForNewGame drops players who left a previous game (they lingered only
+// for the final standings) and zeroes every remaining player's score.
+// Caller must hold hub.mu.
+func (hub *Hub) resetForNewGame(lobby *game.Lobby) {
+	for id, p := range lobby.Players {
+		if p.Left {
+			delete(lobby.Players, id)
+			delete(hub.sessions, p.SessionID)
+			delete(hub.clients, p.SessionID)
+			continue
+		}
+		p.Score = 0
+	}
+}
+
 // handleReturnToLobby brings a finished game back to the Lobby state so the
 // host can reconfigure and start fresh. Only valid from RoundResult / GameOver.
 func handleReturnToLobby(hub *Hub, c *Client) {
@@ -417,17 +430,7 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 	}
 	setLobbyState(lobby, game.StateLobby)
 	lobby.Game = nil
-	// Drop players who left mid-game (they only stayed for the final table) and
-	// reset every remaining score for the next game.
-	for id, p := range lobby.Players {
-		if p.Left {
-			delete(lobby.Players, id)
-			delete(hub.sessions, p.SessionID)
-			delete(hub.clients, p.SessionID)
-			continue
-		}
-		p.Score = 0
-	}
+	hub.resetForNewGame(lobby)
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
