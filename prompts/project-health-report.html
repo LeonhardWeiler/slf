@@ -48,23 +48,22 @@
 <div class="wrap">
 
   <h1>Stadt&nbsp;Land&nbsp;Fluss — Code-Review &amp; Findings</h1>
-  <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
+  <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-02 · Branch <code>master</code></div>
 
   <p class="lead">
     Aktueller Health-Check des Codestands. Der Stand ist <b>rund und
-    auslieferbar</b>: Backend (<code>go vet</code>, <code>go test</code> inkl.
-    <code>-race</code>) und Frontend (Biome, Vitest, <code>vite build</code>)
-    laufen sauber durch. Der server-autoritative Kern, die durchgängige
-    Zod-Validierung, der Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff),
-    die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die A11y sind
-    solide. Ein gezielter <b>UX-Durchlauf beider Flows</b> (Host: Lobby anlegen →
-    konfigurieren → spielen → bewerten → nächste Runde; Spieler: beitreten →
-    ausfüllen → buzzern) ist <b>umgesetzt</b>: Host kann eine Runde beenden, die
-    Bewertung zeigt den Buzzernden, destruktive Aktionen laufen über einen
-    Bestätigungsdialog, Beitritts-Fehler erscheinen inline, und die Startseite
-    sperrt ihre Aktionen bei fehlender Verbindung. Auch die eingreifenden
-    Host-Aktionen (kicken, löschen, verlassen, Runde/Spiel beenden) laufen
-    durchgängig über eine Bestätigung. <b>Aktuell keine offenen Findings.</b>
+    auslieferbar</b>: Backend (<code>gofmt</code>, <code>go vet</code>,
+    <code>go test</code> inkl. <code>-race</code>) und Frontend (Biome, Vitest,
+    <code>vite build</code>) laufen sauber durch. Der server-autoritative Kern, die
+    durchgängige Zod-Validierung, der Verbindungs-Lifecycle (Host-Grace, Reconnect
+    mit Backoff), die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die
+    A11y sind solide. Beide Flows (Host: Lobby anlegen → konfigurieren → spielen →
+    bewerten → nächste Runde; Spieler: beitreten → ausfüllen → buzzern) funktionieren
+    durchgehend, inkl. Bestätigungsdialogen für destruktive Aktionen, inline-
+    Beitritts-Fehlern und Verbindungs-Sperre der Startseite. Der frische Durchlauf
+    fand jedoch <b>drei kleinere offene Punkte</b>: eine <b>Tastatur-Doppelauslösung</b>
+    bei offenem Bestätigungsdialog (Enter), ein <b>eingechecktes Build-Artefakt</b>
+    und eine <b>fehlende Fokus-Falle</b> im Dialog. Nichts davon ist blockierend.
     Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im README
     dokumentiert (Abschnitt&nbsp;3).
   </p>
@@ -72,8 +71,8 @@
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
-    <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">0</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--med)">1</div><div class="l">Mittel</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
     <div class="stat"><div class="n" style="color:var(--info)">0</div><div class="l">Info</div></div>
   </div>
 
@@ -95,12 +94,57 @@
 
   <!-- ============ OPEN ============ -->
   <h2 id="open">1. Offene Findings</h2>
-  <p class="note">Aktuell <b>keine offenen Findings</b>. Die UX-Punkte aus dem
-    letzten Flow-Durchlauf (Host: Runde beenden; Buzz-Anzeige; Bestätigungsdialoge
-    für alle destruktiven Aktionen; inline-Beitrittsfehler; Verbindungs-Sperre der
-    Startseite) sind umgesetzt. Alle Gates (<code>gofmt</code>, <code>go vet</code>,
+  <p class="note">Alle Gates (<code>gofmt</code>, <code>go vet</code>,
     <code>go test</code> inkl. <code>-race</code>, Biome, Vitest,
-    <code>vite build</code>) sind grün.</p>
+    <code>vite build</code>) sind grün. Die folgenden Punkte stammen aus dem frischen
+    Flow-Durchlauf und sind nicht blockierend.</p>
+
+  <div class="card">
+    <h3><span class="badge b-med">mittel</span> Enter bei offenem Bestätigungsdialog löst zusätzlich die Screen-Aktion aus <span class="id">UX-1</span></h3>
+    <div class="loc"><code>frontend/src/components/ConfirmDialog.tsx</code> · <code>frontend/src/pages/game/RoundResultScreen.tsx</code> (auch <code>GameScreen.tsx</code>)</div>
+    <p>Mehrere Screens registrieren einen globalen <code>window</code>-<code>keydown</code>-Handler
+      für Enter — im Rundenergebnis sendet er <code>startNextRound</code>, im Spiel
+      <code>buzz</code>. Der <code>ConfirmDialog</code> fängt nur <em>Escape</em> ab,
+      fokussiert zwar den Bestätigen-Button, stoppt Enter aber nicht (kein
+      <code>stopPropagation</code>, keine Fokus-Falle). Bestätigt der Host den Dialog
+      <b>„Spiel beenden?"</b> per Enter, feuert der bubbelnde Enter <em>zusätzlich</em>
+      <code>startNextRound</code>: neben <code>endGame</code> läuft für alle kurz ein
+      Runden-Countdown an, bevor der Zustand nach GameOver springt — ein sichtbarer
+      Fehl-Übergang im Multiplayer. Im <code>GameScreen</code> (Dialog „Runde beenden?")
+      ist der Effekt geringer, weil <code>buzz</code> und <code>endRound</code> beide in
+      dasselbe idempotente <code>endRound</code> münden, verfälscht aber die
+      „hat gestoppt"-Anzeige.</p>
+    <div class="rec"><b>Empfehlung:</b> Im geöffneten <code>ConfirmDialog</code> Enter/Space
+      abfangen und nicht weiterreichen (bzw. einen globalen „Dialog offen"-Zustand
+      führen, den die Screen-Handler prüfen). Alternativ die Screen-Enter-Handler
+      pausieren, solange ein Dialog sichtbar ist.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-low">niedrig</span> Kompiliertes Loadtest-Binary im Repo eingecheckt <span class="id">CLEAN-1</span></h3>
+    <div class="loc"><code>backend/loadtest</code> (9,5&nbsp;MB ELF-Executable) — Quelle: <code>backend/cmd/loadtest/main.go</code></div>
+    <p>Die gebaute Loadtest-Binärdatei ist versioniert (<code>git ls-files</code>) und
+      steht in keiner <code>.gitignore</code>. Ein Build-Artefakt im Repo bläht die
+      Historie auf, veraltet gegenüber dem Quellcode und kann plattformfremd sein.</p>
+    <div class="rec"><b>Empfehlung:</b> <code>backend/loadtest</code> aus der Versionierung
+      entfernen (<code>git rm --cached</code>) und ein passendes Ignore-Muster
+      (z.&nbsp;B. <code>loadtest</code> bzw. <code>/loadtest</code>) in
+      <code>backend/.gitignore</code> ergänzen; der Loadtest läuft ohnehin über
+      <code>go run ./cmd/loadtest</code>.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="badge b-low">niedrig</span> Bestätigungsdialog ohne Fokus-Falle / inerten Hintergrund <span class="id">A11Y-1</span></h3>
+    <div class="loc"><code>frontend/src/components/ConfirmDialog.tsx</code></div>
+    <p>Der Dialog ist korrekt als <code>role="alertdialog"</code> mit <code>aria-modal</code>
+      ausgezeichnet, sperrt den Body-Scroll und fokussiert den Bestätigen-Button. Tab
+      wird jedoch nicht im Modal gehalten und der dahinterliegende Inhalt ist nicht
+      <code>inert</code> — Tastaturnutzer können in die verdeckten Steuerelemente
+      hinter dem Dialog tabben.</p>
+    <div class="rec"><b>Empfehlung:</b> Fokus im Dialog zyklisch fangen (erstes/letztes
+      fokussierbares Element) oder den gerouteten Inhalt via <code>inert</code>
+      deaktivieren, solange der Dialog offen ist.</p>
+  </div>
 
   <!-- ============ GOOD ============ -->
   <h2 id="good">2. Was schon stark ist</h2>
