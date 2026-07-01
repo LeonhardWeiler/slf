@@ -48,38 +48,40 @@
 <div class="wrap">
 
   <h1>Stadt&nbsp;Land&nbsp;Fluss — Code-Review &amp; Findings</h1>
-  <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · Code-Qualität · Performance · Tests · Doku) · Stand 2026-07-01 · Branch <code>master</code></div>
+  <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
 
   <p class="lead">
-    Gesamteindruck: <b>sehr solide Codebasis</b>. Server-autoritative Architektur, konsequente
-    Zod-Validierung eingehender Events, crypto-sichere Session-IDs, sauberes Reconnect-/Race-Handling,
-    <code>gofmt</code>/<code>go vet</code> clean, TypeScript <code>strict</code>. Die zuvor gemeldeten
-    kritischen Punkte (Kommentator-Host-Integrität, Rate-Limiting, Lobby-Reaper, CSP, Origin-Härtung …)
-    sind bereits behoben. Es bleiben <b>keine kritischen</b> Lücken — die folgenden Findings sind
-    mittlere/kleine Bugs, UX-/A11y-Verbesserungen, Doku-Aktualisierungen und Härtungs-Ideen zur
-    „Perfektionierung".
+    Zweite Review-Runde, <b>nachdem die vorigen Findings umgesetzt wurden</b>
+    (CSP/HSTS-Härtung, alphanumerische Codes, <code>updateSettings</code>-Robustheit,
+    alle Kategorien löschbar, in-game-Fehleranzeige, Label-/Countdown-A11y,
+    Clipboard-Fallback, Biome-Linter, Code-Splitting, schnellere Lobby-Sortierung,
+    WS-Integrationstests, README). Die damaligen Karten sind entfernt, nicht
+    abgehakt. Der Stand ist weiterhin <b>gut und auslieferbar</b>; es bleiben
+    <b>keine kritischen/hohen</b> Lücken. Was folgt, sind mittlere/kleine Punkte —
+    teils bereits bekannte offene Themen (Host-Disconnect-Handoff, globaler Mutex),
+    teils neue Beobachtungen, u.&nbsp;a. eine unvollständige Kante des
+    <code>updateSettings</code>-Fixes und fehlende Fehler-Isolierung im Frontend.
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
-    <div class="stat"><div class="n" style="color:var(--med)">5</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">9</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">3</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--med)">2</div><div class="l">Mittel</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">4</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">7</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
     <b>Inhalt</b>
     <ul>
-      <li><a href="#sec">1. Sicherheit</a></li>
+      <li><a href="#sec">1. Sicherheit &amp; Robustheit</a></li>
       <li><a href="#bug">2. Korrektheit &amp; Bugs</a></li>
-      <li><a href="#ux">3. UI/UX &amp; Accessibility</a></li>
-      <li><a href="#cq">4. Code-Qualität</a></li>
-      <li><a href="#perf">5. Performance &amp; Skalierung</a></li>
-      <li><a href="#test">6. Tests &amp; CI</a></li>
-      <li><a href="#doc">7. Dokumentation</a></li>
-      <li><a href="#good">8. Was schon stark ist</a></li>
-      <li><a href="#prio">9. Priorisierte Empfehlung</a></li>
+      <li><a href="#ux">3. UI/UX &amp; Konsistenz</a></li>
+      <li><a href="#a11y">4. Accessibility</a></li>
+      <li><a href="#cq">5. Code-Qualität &amp; Sauberkeit</a></li>
+      <li><a href="#perf">6. Performance &amp; Skalierung</a></li>
+      <li><a href="#good">7. Was schon stark ist</a></li>
+      <li><a href="#prio">8. Priorisierte Empfehlung</a></li>
     </ul>
   </div>
   <p class="note">Legende:
@@ -90,248 +92,229 @@
     <span class="badge b-info">info</span>
   </p>
 
-  <!-- ============ SECURITY ============ -->
-  <h2 id="sec">1. Sicherheit</h2>
-  <p class="note">Keine kritischen Lücken. Die relevanten Angriffsflächen (CSWSH, DoS, Auth-Leak, XSS)
-    sind bereits adressiert. Was bleibt, ist Feinschliff.</p>
+  <!-- ============ SECURITY & ROBUSTNESS ============ -->
+  <h2 id="sec">1. Sicherheit &amp; Robustheit</h2>
+  <p class="note">Keine kritischen Lücken. CSWSH-Schutz (Origin-Prüfung), Rate-Limit,
+    Caps, Lobby-Reaper, CSP/HSTS und gehashte Session-IDs sind vorhanden. Was
+    bleibt, betrifft Verbindungs-Lifecycle und Deploy-Verhalten.</p>
 
   <div class="card">
-    <h3><span class="id">SEC-1</span> CSP <code>connect-src</code> erlaubt beliebige WS-Ziele <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>backend/cmd/server/main.go</code> — <code>securityHeaders()</code></div>
-    <p>Die CSP nutzt <code>connect-src 'self' ws: wss:</code>. <code>ws:</code>/<code>wss:</code> erlauben
-      Verbindungen zu <em>jedem</em> Host, nicht nur same-origin. Da die App ausschließlich same-origin
-      verbindet, wäre <code>connect-src 'self'</code> strenger (verhindert Exfiltration über WS, falls je
-      ein Skript kompromittiert würde).</p>
-    <div class="rec"><b>Empfehlung:</b> Auf <code>connect-src 'self'</code> verengen und im Browser testen
-      (moderne Browser matchen same-origin ws/wss über <code>'self'</code>; kurz verifizieren, da es
-      historisch Browser-Unterschiede gab).</div>
+    <h3><span class="id">SR-1</span> Host-Disconnect (Tab schließen) übergibt/schließt die Lobby nicht <span class="badge b-med">mittel</span></h3>
+    <div class="loc"><code>backend/internal/websocket/hub.go</code> — <code>onDisconnect</code>; vgl. explizites <code>leaveLobby</code> → <code>closeLobby</code></div>
+    <p>Verlässt der Host <em>bewusst</em> („Verlassen"), wird die Lobby sofort
+      geschlossen. Bricht die Verbindung aber nur <em>weg</em> (Tab/Browser zu,
+      Netzabbruch), markiert <code>onDisconnect</code> den Host nur als
+      <code>Connected=false</code>. Es gibt keinen 30-Sekunden-Timeout (SRS&nbsp;4.6/8.5),
+      der die Lobby dann schließt oder den Host überträgt — die verbleibenden
+      Spieler hängen fest, bis der Janitor die Lobby nach <b>10&nbsp;Minuten</b> ohne
+      verbundene Clients abräumt (und selbst das nur, wenn <em>niemand</em> mehr
+      verbunden ist).</p>
+    <div class="rec"><b>Empfehlung:</b> Beim Host-Disconnect einen kurzen
+      Grace-Timer (z.&nbsp;B. 30&nbsp;s) starten; läuft er ohne Reconnect ab, Lobby
+      schließen (<code>lobbyClosed</code>) oder Host-Rolle an den am längsten
+      anwesenden verbundenen Spieler übergeben. Timer bei Reconnect abbrechen.</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">SEC-2</span> Kein HSTS-Header <span class="badge b-info">info</span></h3>
-    <div class="loc"><code>backend/cmd/server/main.go</code> — <code>securityHeaders()</code></div>
-    <p>Hinter TLS (Reverse-Proxy/Domain) fehlt <code>Strict-Transport-Security</code>. Nur relevant, sobald
-      die App öffentlich über HTTPS läuft; im LAN/localhost irrelevant.</p>
-    <div class="rec"><b>Empfehlung:</b> Optional <code>Strict-Transport-Security: max-age=63072000; includeSubDomains</code>
-      setzen, wenn öffentlich über HTTPS ausgeliefert wird (idealerweise am TLS-Proxy).</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">SEC-3</span> 6-stellige Lobbycodes bleiben aufzählbar <span class="badge b-info">info</span></h3>
-    <div class="loc"><code>backend/internal/websocket/util.go</code> — <code>generateLobbyCode</code>; <code>handleJoinLobby</code></div>
-    <p>Nur 1.000.000 Codes; <code>joinLobby</code> unterscheidet „nicht gefunden" von Erfolg → Enumeration/
-      Griefing theoretisch möglich. Durch das eingeführte Rate-Limiting und die Caps bereits stark
-      entschärft; für ein Party-Spiel akzeptabel.</p>
-    <div class="rec"><b>Empfehlung (optional):</b> Längere/alphanumerische Codes oder ein kurzes
-      Join-Backoff. Nicht dringend.</div>
+    <h3><span class="id">SR-2</span> Kein aktives WS-Close beim Shutdown → Reconnect-Sturm <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>backend/cmd/server/main.go</code> — <code>srv.Shutdown</code>; <code>frontend/src/lib/ws.ts</code> — <code>scheduleReconnect</code></div>
+    <p><code>srv.Shutdown</code> schließt langlebige WebSockets nicht aktiv mit
+      einem Close-Frame; nach dem 5-s-Fenster fallen sie einfach weg. Der Client
+      reconnectet dann mit <b>fixen 2&nbsp;s</b> ohne Backoff/Jitter (siehe UX-2) —
+      bei einem Rolling-Restart schlagen alle Clients quasi gleichzeitig wieder
+      auf (Thundering Herd).</p>
+    <div class="rec"><b>Empfehlung:</b> Beim Shutdown allen Clients ein
+      <code>lobbyClosed</code>/Close-Frame senden; clientseitig Backoff mit Jitter
+      (UX-2) mildert die Spitze zusätzlich.</p>
   </div>
 
   <!-- ============ BUGS ============ -->
   <h2 id="bug">2. Korrektheit &amp; Bugs</h2>
 
   <div class="card">
-    <h3><span class="id">BUG-1</span> <code>updateSettings</code> setzt fehlende Bool-Optionen still auf <code>false</code> <span class="badge b-low">niedrig</span></h3>
+    <h3><span class="id">BUG-1</span> <code>updateSettings</code>: <code>timeLimit</code> &amp; <code>excludedLetters</code> weiterhin „reset-on-absent" <span class="badge b-low">niedrig</span></h3>
     <div class="loc"><code>backend/internal/websocket/handlers.go</code> — <code>handleUpdateSettings</code></div>
-    <p>Die neuen Optionen <code>hostPlays</code>, <code>lastLetterMode</code>, <code>flamesEnabled</code> sind
-      plain <code>bool</code> im Payload. Fehlt ein Feld (alter/partieller Client), setzt <code>json.Unmarshal</code>
-      es auf <code>false</code> — u.&nbsp;a. würde <code>hostPlays=false</code> gesetzt. Das aktuelle Frontend sendet
-      immer das vollständige Objekt, daher <b>kein Live-Bug</b>, aber fragil.</p>
-    <div class="rec"><b>Empfehlung:</b> Entweder <code>*bool</code> verwenden und nur bei Anwesenheit übernehmen,
-      oder serverseitig die bisherigen Settings als Default zusammenführen (preserve-on-absent).</div>
+    <p>Die jüngste Härtung hat nur die <em>Bool</em>-Optionen auf „bei Abwesenheit
+      erhalten" (<code>*bool</code>) umgestellt. <code>TimeLimit</code> und
+      <code>ExcludedLetters</code> werden weiterhin <b>bedingungslos</b> aus dem
+      Payload übernommen: fehlt <code>timeLimit</code>, wird die Runde auf
+      <em>unbegrenzt</em> gesetzt; fehlt <code>excludedLetters</code>, werden
+      <em>alle</em> Buchstaben wieder aktiviert. Das aktuelle Frontend sendet stets
+      das vollständige Objekt → <b>kein Live-Bug</b>, aber dieselbe Fragilität, die
+      für die Bools bereits behoben wurde — inkonsistent.</p>
+    <div class="rec"><b>Empfehlung:</b> <code>timeLimit</code> als „nicht gesetzt =
+      unverändert" behandeln (eigenes Sentinel/Flag, da <code>null</code> hier
+      legitim „unbegrenzt" bedeutet) und <code>excludedLetters</code> nur bei
+      Anwesenheit ersetzen — analog zum Bool-Fix.</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">BUG-2</span> Loadtest sendet die neuen Settings nicht mit <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>backend/cmd/loadtest/main.go</code> — Messrunden-<code>updateSettings</code></div>
-    <p>Das Loadtest-Tool schickt <code>updateSettings</code> ohne die drei neuen Bool-Felder und setzt sie damit
-      (siehe BUG-1) implizit auf <code>false</code>. Harmlos, weil die Loadtest-Lobbies nie ein Spiel starten,
-      aber inkorrekt und irreführend, falls das Tool erweitert wird.</p>
-    <div class="rec"><b>Empfehlung:</b> Payload um <code>hostPlays:true, lastLetterMode:false, flamesEnabled:false</code>
-      ergänzen (bzw. nach BUG-2-Fix automatisch).</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">BUG-3</span> Löschen der letzten Kategorie: Klick ohne Reaktion <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/pages/Lobby.tsx</code> (Delete-Button) ↔ <code>handleDeleteCategory</code> (<code>CATEGORY_MINIMUM</code>)</div>
-    <p>Der Server lehnt das Löschen der letzten verbleibenden Kategorie korrekt ab, aber der Lösch-Button ist
-      immer sichtbar und der Fehler wird nicht angezeigt (siehe UX-1) → der Host klickt und es passiert
-      „nichts", ohne Erklärung.</p>
-    <div class="rec"><b>Empfehlung:</b> Lösch-Button deaktivieren, wenn nur noch eine Kategorie existiert
-      (und/oder die Server-Fehlermeldung anzeigen, UX-1).</div>
+    <h3><span class="id">BUG-2</span> Fehler-Toast frischt bei identischer Folgemeldung nicht auf <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/src/components/ErrorToast.tsx</code></div>
+    <p>Der Auto-Dismiss-Timer hängt an <code>[error]</code>. Kommt exakt dieselbe
+      Fehlermeldung erneut, während sie noch sichtbar ist (gleicher String →
+      keine Wert-Änderung), wird weder der 6-s-Timer neu gestartet noch der Toast
+      sichtbar „neu ausgelöst". In der Praxis selten (Meldungen unterscheiden sich
+      meist), daher nur Info.</p>
+    <div class="rec"><b>Empfehlung:</b> Fehler mit einem monotonen Zähler/Nonce
+      im Store führen, sodass auch identische Folgefehler eine neue Anzeige/Frist
+      auslösen.</p>
   </div>
 
   <!-- ============ UX ============ -->
-  <h2 id="ux">3. UI/UX &amp; Accessibility</h2>
+  <h2 id="ux">3. UI/UX &amp; Konsistenz</h2>
 
   <div class="card">
-    <h3><span class="id">UX-1</span> Server-Fehler werden außerhalb des Home-Screens verschluckt <span class="badge b-med">mittel</span></h3>
-    <div class="loc"><code>frontend/src/App.tsx</code> (setzt <code>store.error</code>) ↔ nur <code>Home.tsx</code> rendert <code>error</code></div>
-    <p>Eingehende <code>error</code>-Events landen in <code>store.error</code>, aber nur <b>Home</b> zeigt sie an.
-      In <b>Lobby</b> und allen In-Game-Screens wird <code>error</code> nicht gerendert → abgelehnte Host-Aktionen
-      (falscher State, <code>CATEGORY_MINIMUM</code>, Settings-Validierung …) schlagen still fehl.
-      <code>buzzRejected</code> ist die einzige in-game sichtbare Rückmeldung.</p>
-    <div class="rec"><b>Empfehlung:</b> Eine kleine, dismissbare Fehler-/Toast-Anzeige, die <code>store.error</code>
-      auch in Lobby-/Spielscreens zeigt (z.&nbsp;B. im <code>RoomHeader</code> oder als globales Toast).</div>
+    <h3><span class="id">UX-1</span> Keine Fehlergrenze (ErrorBoundary) — Lazy-Chunk-Fehler = weiße Seite <span class="badge b-med">mittel</span></h3>
+    <div class="loc"><code>frontend/src/main.tsx</code> / <code>App.tsx</code>; betrifft <code>React.lazy</code> in <code>Home.tsx</code> &amp; <code>Lobby.tsx</code></div>
+    <p>Es gibt nirgends eine <code>ErrorBoundary</code>. Seit dem Code-Splitting
+      werden <code>QrScannerView</code> und <code>QrCode</code> per
+      <code>React.lazy</code> nachgeladen. Schlägt der Chunk-Download fehl (Netz
+      weg, neues Deploy mit alten Hashes, Kiosk-Gerät), wirft <code>lazy</code> —
+      ohne Boundary crasht die App zur <em>leeren</em> Seite statt einer
+      Fehlermeldung. Gleiches gilt für jeden unerwarteten Render-Fehler.</p>
+    <div class="rec"><b>Empfehlung:</b> Eine App-weite <code>ErrorBoundary</code>
+      (mit „Neu laden"-Aktion) und je eine schlanke um die <code>Suspense</code>-
+      Blöcke der QR-Komponenten.</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">A11Y-1</span> Eingabefelder sind nicht mit ihrem Label verknüpft <span class="badge b-med">mittel</span></h3>
-    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code> (≈ Z. 337: <code>&lt;label&gt;{cat.name}&lt;/label&gt;</code> + separates <code>&lt;Input&gt;</code>)</div>
-    <p>Das <code>&lt;label&gt;</code> umschließt das Input nicht und hat kein <code>htmlFor</code> → keine
-      programmatische Verknüpfung. Screenreader lesen den Kategorienamen beim Fokussieren des Feldes nicht vor;
-      auch Klick-auf-Label fokussiert das Feld nicht.</p>
-    <div class="rec"><b>Empfehlung:</b> <code>id={`cat-${cat.id}`}</code> am Input + <code>htmlFor</code> am Label
-      (oder <code>aria-label</code> am Input). Betrifft nur den Spiel-Screen; die Lobby nutzt bereits <code>htmlFor</code>.</div>
+    <h3><span class="id">UX-2</span> Reconnect ohne Backoff/Jitter <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/lib/ws.ts</code> — <code>scheduleReconnect</code></div>
+    <p>Der Client versucht bei jedem Abbruch nach <b>festen 2&nbsp;s</b> erneut zu
+      verbinden, unbegrenzt und ohne Zufalls-Jitter. Ist der Server länger weg,
+      hämmert der Client dauerhaft im 2-s-Takt; viele Clients synchronisieren sich
+      auf denselben Takt (verstärkt SR-2).</p>
+    <div class="rec"><b>Empfehlung:</b> Exponentieller Backoff mit Obergrenze
+      (z.&nbsp;B. 1&nbsp;s → 30&nbsp;s) und etwas Jitter. Beim erfolgreichen
+      <code>lobbyState</code> zurücksetzen.</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">UX-2</span> Kein Hinweis, wenn die Serversitzung wegfällt (z.&nbsp;B. Server-Neustart) <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/App.tsx</code> — Error-Handler (Stale-Session-Reset)</div>
-    <p>Da der Zustand nur im RAM liegt, sind nach einem Server-Neustart alle Sessions weg. Der Client
-      reconnectet mit veralteter <code>sessionId</code> → <code>SESSION_NOT_FOUND</code> → stiller Reset zur
-      Startseite mitten im Spiel, ohne Erklärung.</p>
-    <div class="rec"><b>Empfehlung:</b> In diesem Fall eine <code>notice</code> setzen („Verbindung zum Spiel verloren —
-      bitte neu beitreten") wie beim Kick/Lobby-geschlossen.</div>
+    <h3><span class="id">UX-3</span> Zwei uneinheitliche Fehler-Darstellungen <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> (3× inline <code>text-destructive</code>) vs. <code>components/ErrorToast.tsx</code> (Top-Toast in <code>Room</code>)</div>
+    <p><code>store.error</code> wird auf <b>Home</b> weiterhin inline unter den
+      Formularen gerendert, in Lobby/Spiel dagegen als schwebender Top-Toast. Zwei
+      Muster für dieselbe Sache — visuell und im Verhalten (auto-dismiss vs.
+      bleibend) uneinheitlich.</p>
+    <div class="rec"><b>Empfehlung:</b> Ein Fehler-Muster festlegen. Entweder den
+      Toast auch auf Home nutzen (dann inline entfernen) oder bewusst begründen,
+      warum Home kontextnah inline bleibt (Formular-Validierung) und der Toast nur
+      für „transiente" Serverfehler ist.</p>
   </div>
 
-  <div class="card">
-    <h3><span class="id">UX-3</span> Keine Pro-Feld-Gültigkeitsanzeige beim Ausfüllen <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code></div>
-    <p>Der Buzz-Button zeigt nur den <em>ersten</em> Grund, warum noch nicht gebuzzert werden kann. Gerade im
-      neuen <b>Letzter-Buchstabe</b>-Modus ist pro Feld nicht sichtbar, welche Antwort schon regelkonform ist.</p>
-    <div class="rec"><b>Empfehlung (Enhancement):</b> Pro Feld ein dezenter Gültig-Haken/roter Rahmen anhand
-      der bereits vorhandenen <code>validateAnswers</code>-Logik.</div>
-  </div>
+  <!-- ============ A11Y ============ -->
+  <h2 id="a11y">4. Accessibility</h2>
 
   <div class="card">
-    <h3><span class="id">UX-4</span> Kopieren scheitert im unsicheren Kontext stillschweigend <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/components/RoomHeader.tsx</code>, <code>frontend/src/pages/Lobby.tsx</code></div>
-    <p><code>navigator.clipboard</code> ist über plain-HTTP-LAN-IP nicht verfügbar; der <code>.catch()</code> ignoriert
-      das kommentarlos → kein „kopiert"-Feedback, Nutzer weiß nicht warum. Der Code/Link ist zwar sichtbar,
-      aber die fehlende Reaktion wirkt wie ein Bug.</p>
-    <div class="rec"><b>Empfehlung:</b> Fallback (Text markieren / kurzer Hinweis „Kopieren nur über HTTPS").
-      Passt thematisch zur QR-Kamera-Einschränkung (ebenfalls HTTPS-gebunden).</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">A11Y-2</span> Countdown-Zahl wird nicht announced <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code> — Countdown-Branch</div>
-    <p>Die große Countdown-Zahl (3…2…1…Los!) hat kein <code>aria-live</code>; die letzten 5 Sekunden im
-      Playing-State sind hingegen bereits korrekt announced.</p>
-    <div class="rec"><b>Empfehlung:</b> Kleines <code>aria-live="assertive"</code>-Element für den Countdown-Wert.</div>
+    <h3><span class="id">A11Y-1</span> Feinschliff: Suspense-Fallback &amp; Auto-Dismiss <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> (Suspense-Fallback), <code>components/ErrorToast.tsx</code></div>
+    <p>Zwei Kleinigkeiten: (1) Der Lade-Fallback der QR-Komponente
+      („Kamera wird geladen…") hat kein <code>aria-live</code>, wird also nicht
+      angesagt. (2) Der Fehler-Toast (<code>role="alert"</code>, gut) verschwindet
+      hart nach 6&nbsp;s — für lange Meldungen evtl. zu kurz zum Erfassen; ein
+      Hover/Focus-Pause oder rein manuelles Schließen wäre robuster. Kernpfade
+      (Labels, Countdown-<code>aria-live</code>, <code>aria-invalid</code> an
+      Feldern, Tastatur-Merge) sind bereits sauber.</p>
+    <div class="rec"><b>Empfehlung:</b> <code>aria-live="polite"</code> am Fallback;
+      Toast bei Hover/Focus nicht wegtimern (oder längere Frist bei langem Text).</p>
   </div>
 
   <!-- ============ CODE QUALITY ============ -->
-  <h2 id="cq">4. Code-Qualität &amp; Wartbarkeit</h2>
+  <h2 id="cq">5. Code-Qualität &amp; Sauberkeit</h2>
 
   <div class="card">
-    <h3><span class="id">CQ-1</span> Kein ESLint konfiguriert, aber <code>eslint-disable</code>-Kommentare vorhanden <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/package.json</code> (keine eslint-Deps/Config); z.&nbsp;B. <code>GameScreen.tsx</code> nutzt <code>// eslint-disable-next-line</code></div>
-    <p>Der Code enthält <code>eslint-disable</code>-Anweisungen, es gibt aber weder eine ESLint-Konfiguration noch
-      einen Lint-Schritt in der CI. Inkonsistent — Lint läuft de facto nie.</p>
-    <div class="rec"><b>Empfehlung:</b> Entweder ESLint (typescript-eslint + react-hooks) einrichten und in CI
-      aufnehmen, oder die verwaisten Disable-Kommentare entfernen. Ersteres empfohlen (fängt z.&nbsp;B. Hook-Deps).</div>
+    <h3><span class="id">CQ-1</span> Gemischte Sortier-Idiome (<code>sort.Slice</code> vs. <code>slices.SortFunc</code>) <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>internal/websocket/hub.go</code> (jetzt <code>slices.SortFunc</code>) vs. <code>game_util.go</code> (3×) &amp; <code>internal/game/engine.go</code> (weiter <code>sort.Slice</code>)</div>
+    <p>Die Lobby-Sortierung wurde auf das reflexionsfreie <code>slices.SortFunc</code>
+      umgestellt, die übrigen Sortierungen nutzen weiter <code>sort.Slice</code>.
+      Funktional egal, aber uneinheitlich.</p>
+    <div class="rec"><b>Empfehlung:</b> Auf ein Idiom vereinheitlichen
+      (bei Go&nbsp;1.26 bevorzugt <code>slices.SortFunc</code>).</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">CQ-2</span> Ein globaler <code>hub.mu</code> serialisiert alle Lobbies <span class="badge b-info">info</span></h3>
+    <h3><span class="id">CQ-2</span> Clipboard-Fallback nutzt veraltetes <code>execCommand</code> <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/src/lib/clipboard.ts</code></div>
+    <p>Der Fallback für unsichere Kontexte (plain-HTTP-LAN, wo
+      <code>navigator.clipboard</code> fehlt) verwendet
+      <code>document.execCommand("copy")</code>. Das ist offiziell deprecated,
+      funktioniert aber breit — ein bewusster, pragmatischer Kompromiss. Nur zur
+      Kenntnis, falls Browser es künftig entfernen.</p>
+    <div class="rec"><b>Empfehlung:</b> So belassen; beobachten. Alternativ das
+      Feld für manuelles Markieren selektierbar/hervorgehoben anbieten.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">CQ-3</span> Ein globaler <code>hub.mu</code> serialisiert alle Lobbies <span class="badge b-info">info</span></h3>
     <div class="loc"><code>backend/internal/websocket/hub.go</code></div>
-    <p>Sämtliche Zustandsänderungen und Broadcasts laufen über einen einzigen Mutex. Für die aktuelle Skala
-      unkritisch (Loadtest: 500 Spieler, Ø&nbsp;&lt;&nbsp;5&nbsp;ms), aber die natürliche Grenze bei vielen parallelen
-      Lobbies. <code>notifyCommentator</code> nimmt zusätzlich bei jedem <code>answerUpdate</code> den Lock.</p>
-    <div class="rec"><b>Empfehlung (langfristig):</b> Sharding pro Lobby (eigener Mutex je Lobby) oder ein
-      Lock-Striping. Erst relevant, wenn viele gleichzeitige Spiele erwartet werden.</div>
+    <p>Weiterhin gültig (bewusst nicht umgesetzt): sämtliche Zustandsänderungen und
+      Broadcasts laufen über einen einzigen Mutex. Für die aktuelle Skala
+      unkritisch (Loadtest: 500 Spieler, Ø&nbsp;&lt;&nbsp;5&nbsp;ms), aber die
+      natürliche Grenze bei vielen parallelen Lobbies.</p>
+    <div class="rec"><b>Empfehlung (langfristig):</b> Lock-Striping bzw. ein
+      eigener Mutex je Lobby. Erst relevant bei vielen gleichzeitigen Spielen.</p>
   </div>
 
   <div class="card">
-    <h3><span class="id">CQ-3</span> Frontend-Bundle als eine große Chunk-Datei <span class="badge b-info">info</span></h3>
-    <div class="loc"><code>frontend</code> Build (~433&nbsp;KB JS, gzip ~134&nbsp;KB)</div>
-    <p>Alles landet in einem Chunk (inkl. <code>qrcode</code>/<code>qr-scanner</code>, die nur im Join-Flow gebraucht
-      werden). Für ein LAN-Spiel unkritisch, aber Code-Splitting würde den Erststart schlanker machen.</p>
-    <div class="rec"><b>Empfehlung (optional):</b> QR-Scanner/-Generator per <code>React.lazy</code>/dynamischem Import
-      nur im Join-/Lobby-Pfad laden.</div>
+    <h3><span class="id">CLEAN-1</span> Lose Arbeitsdateien im Repo-Wurzelverzeichnis <span class="badge b-info">info</span></h3>
+    <div class="loc">Repo-Root: <code>todo.md</code> (untracked), leeres <code>tmp/</code>, dieser Report <code>agent-writeup.html</code> (getrackt)</div>
+    <p>Der Working-Tree enthält Arbeitsdateien: eine untrackte <code>todo.md</code>,
+      ein leeres <code>tmp/</code> und den eingecheckten Review-Report. (Positiv:
+      ein versehentlich committetes <code>backend/server</code>-Binary wurde bereits
+      entfernt und in <code>.gitignore</code> aufgenommen.) Nichts Schlimmes, nur
+      Ordnung.</p>
+    <div class="rec"><b>Empfehlung:</b> Entscheiden, ob Report/Arbeitsnotizen ins
+      Repo gehören (dann in einen <code>docs/</code>-Ordner) oder in
+      <code>.gitignore</code>; leeres <code>tmp/</code> entfernen.</p>
   </div>
 
   <!-- ============ PERFORMANCE ============ -->
-  <h2 id="perf">5. Performance &amp; Skalierung</h2>
-  <ul class="tight">
-    <li><b>Aktuell gut:</b> Broadcasts bauen Payload unter Lock und schreiben nach dem Unlock; Loadtest belegt
-      die SRS-Ziele (Ø&nbsp;&lt;&nbsp;80&nbsp;ms, max&nbsp;&lt;&nbsp;150&nbsp;ms) deutlich.</li>
-    <li>Skalierungsgrenze ist der globale Mutex (CQ-2) — kein akutes Problem.</li>
-    <li><b>Kleiner Hinweis:</b> <code>broadcastLobbyState</code> baut bei jeder Änderung (Join/Disconnect/Settings)
-      die komplette Spielerliste neu und marshalt sie. Bei bis zu 200 Spielern pro Lobby ok; nur erwähnt.</li>
-  </ul>
-
-  <!-- ============ TESTS ============ -->
-  <h2 id="test">6. Tests &amp; CI</h2>
+  <h2 id="perf">6. Performance &amp; Skalierung</h2>
 
   <div class="card">
-    <h3><span class="id">TEST-1</span> Keine committeten Frontend-/End-to-End-Tests <span class="badge b-med">mittel</span></h3>
-    <div class="loc"><code>frontend/</code> (nur <code>tsc -b</code> + Build in CI); WS-/Playwright-Skripte lagen nur im Scratchpad</div>
-    <p>Die Kern-Backend-Logik ist gut getestet (<code>engine_test</code>, <code>hub_test</code>/Reaper,
-      <code>client_test</code>/Origin). Es fehlen jedoch committete Integrationstests (Spielzyklus über echte WS)
-      und Frontend-Tests. Die während der Reviews genutzten Skripte sind nicht Teil des Repos → Regressionen
-      werden nicht automatisch gefangen.</p>
-    <div class="rec"><b>Empfehlung:</b> Die bewährten WS-Zyklustests als Go-Integrationstests
-      (<code>internal/websocket</code>) einchecken und optional Playwright-Smoke-Tests + in die CI aufnehmen.</div>
+    <h3><span class="id">PERF-1</span> <code>broadcastLobbyState</code> baut die Spielerliste bei jeder Änderung neu <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>backend/internal/websocket/hub.go</code> — <code>broadcastLobbyState</code></div>
+    <p>Die Sortierung selbst wurde bereits optimiert (Lowercase-Key einmal
+      vorberechnet, <code>slices.SortFunc</code>). Es bleibt, dass bei
+      <em>jeder</em> Lobby-Änderung (auch reinem Settings-Toggle) das komplette
+      Spieler-DTO neu aufgebaut und gemarshalt wird. Bei bis zu 200 Spielern ist
+      das unkritisch — nur erwähnt.</p>
+    <div class="rec"><b>Empfehlung (optional):</b> Sortierte Spielerliste je Lobby
+      cachen und nur bei tatsächlicher Änderung der Spielermenge neu bauen. Nur bei
+      Bedarf; Invalidation sorgfältig halten.</p>
   </div>
 
-  <div class="card">
-    <h3><span class="id">TEST-2</span> CI ohne Lint-Schritt <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>.gitlab-ci.yml</code></div>
-    <p>CI führt <code>go vet</code>, <code>go test</code> und den Frontend-Build aus — aber keinen Linter
-      (Frontend) und kein <code>gofmt -l</code>-Gate (Backend).</p>
-    <div class="rec"><b>Empfehlung:</b> <code>gofmt -l</code> (fail bei Diff) und, sofern ESLint eingeführt wird
-      (CQ-1), einen Frontend-Lint-Job ergänzen.</div>
-  </div>
-
-  <!-- ============ DOCS ============ -->
-  <h2 id="doc">7. Dokumentation</h2>
-
-  <div class="card">
-    <h3><span class="id">DOC-1</span> README <code>WS_ALLOWED_ORIGINS</code> ist veraltet <span class="badge b-med">mittel</span></h3>
-    <div class="loc"><code>README.md</code> — Env-Tabelle (Zeile ≈ 141)</div>
-    <p>Die Tabelle nennt den Default noch <code>* (offen)</code>. Seit der Origin-Härtung ist der Default
-      <b>Same-Origin + localhost/private LAN-IP</b>, und <code>WS_ALLOWED_ORIGINS</code> ist nur noch ein
-      optionaler Override für fremde Frontend-Domains. Die aktuelle Angabe ist irreführend/falsch.</p>
-    <div class="rec"><b>Empfehlung:</b> Zeile aktualisieren: „Default: same-origin + localhost/LAN; setzen, um
-      zusätzliche Origins (andere Domain) zu erlauben."</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">DOC-2</span> README beschreibt die neuen Spieloptionen nicht <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>README.md</code> — „Features" &amp; „Punktevergabe"</div>
-    <p>Kommentator-Host, „Letzter statt erster Buchstabe" und „Flammen" (inkl. +5 → 15/25, geteilt/ungültig → 0)
-      fehlen in Feature-Liste und Scoring-Tabelle.</p>
-    <div class="rec"><b>Empfehlung:</b> Features-Liste + eine kurze Zeile zu den drei Config-Optionen und dem
-      Flammen-Scoring ergänzen.</div>
-  </div>
+  <p class="note">Sonst unverändert gut: Payloads werden einmal pro Broadcast (nicht
+    pro Client) gemarshalt und nach dem Unlock geschrieben; die SRS-Latenzziele
+    (Ø&nbsp;&lt;&nbsp;80&nbsp;ms, max&nbsp;&lt;&nbsp;150&nbsp;ms) werden deutlich
+    eingehalten.</p>
 
   <!-- ============ GOOD ============ -->
-  <h2 id="good">8. Was schon stark ist</h2>
+  <h2 id="good">7. Was schon stark ist</h2>
   <ul class="tight">
     <li><span class="badge b-ok">plus</span> <b>Server-autoritativ</b>: Regeln/Scoring/State ausschließlich serverseitig; kein Client-Vertrauen.</li>
     <li><span class="badge b-ok">plus</span> <b>Eingangsvalidierung überall</b>: alle Server→Client-Events per Zod (<code>serverEvents.ts</code>), Antwortregeln + Längen serverseitig erzwungen.</li>
-    <li><span class="badge b-ok">plus</span> <b>Sichere Identität</b>: <code>crypto/rand</code>-Session-IDs mit Rejection-Sampling; sessionId nicht mehr an andere Clients geleakt; in Logs gehasht.</li>
-    <li><span class="badge b-ok">plus</span> <b>Robustheit</b>: idempotenter Reconnect mit Race-Guard, Outbox-Puffer im WS-Client, Timer-Guards, Lobby-Reaper, Rate-Limit + Caps.</li>
-    <li><span class="badge b-ok">plus</span> <b>Deploy</b>: Multi-Stage-Docker, Non-root-User, gestripptes statisches Binary, Healthcheck, CSP + Security-Header.</li>
-    <li><span class="badge b-ok">plus</span> <b>Codehygiene</b>: TypeScript <code>strict</code>, <code>gofmt</code>/<code>vet</code> clean, aussagekräftige Kommentare, klare Modul-Trennung, keine Debug-Reste.</li>
+    <li><span class="badge b-ok">plus</span> <b>Härtung</b>: Origin-Prüfung, Rate-Limit + Caps, Lobby-Reaper, CSP/HSTS/Security-Header, gehashte Session-IDs, kein sessionId-Leak.</li>
+    <li><span class="badge b-ok">plus</span> <b>Robustheit</b>: idempotenter Reconnect mit Race-Guard, Outbox-Puffer, Timer-Guards, sauberes Disconnect-Handling (bis auf SR-1).</li>
+    <li><span class="badge b-ok">plus</span> <b>Tests &amp; CI</b>: Engine-Unit-Tests <em>und</em> neue WS-Integrationstests (echter Spielzyklus); CI mit gofmt-Gate, <code>go vet</code>/<code>test</code> und Biome-Lint.</li>
+    <li><span class="badge b-ok">plus</span> <b>Frontend-Hygiene</b>: TypeScript <code>strict</code>, Biome sauber, Code-Splitting der QR-Pfade, A11y auf den Kernpfaden (Labels, <code>aria-live</code>, <code>aria-invalid</code>, Tastaturbedienung).</li>
   </ul>
 
   <!-- ============ PRIORITY ============ -->
-  <h2 id="prio">9. Priorisierte Empfehlung</h2>
+  <h2 id="prio">8. Priorisierte Empfehlung</h2>
   <ol class="tight">
-    <li><b>UX-1</b> (Fehler auch in-game anzeigen) + <b>BUG-3</b> (letzter-Kategorie-Button) — höchster spürbarer Nutzen, klein.</li>
-    <li><b>A11Y-1</b> (Label-Verknüpfung) — schnell, echter Accessibility-Gewinn.</li>
-    <li><b>DOC-1</b> (README-Origins korrigieren) — Fehlinformation, 1-Zeilen-Fix; danach DOC-2.</li>
-    <li><b>BUG-1/BUG-2</b> (Settings preserve-on-absent) — kleiner Robustheits-Fix.</li>
-    <li><b>TEST-1</b> (WS-Zyklustests einchecken) — sichert die viele Neu-Features gegen Regressionen ab.</li>
-    <li>Rest (SEC-1/2, UX-2/3/4, A11Y-2, CQ-1/2/3, TEST-2) nach Geschmack / bei Bedarf.</li>
+    <li><b>SR-1</b> (Host-Disconnect-Handoff/Timeout) — spürbarster Robustheits-Gewinn; behebt „Lobby hängt fest".</li>
+    <li><b>UX-1</b> (ErrorBoundary) — verhindert weiße Seite bei Lazy-Chunk-/Render-Fehlern; klein.</li>
+    <li><b>BUG-1</b> (<code>timeLimit</code>/<code>excludedLetters</code> preserve-on-absent) — schließt die verbliebene Kante des Settings-Fixes.</li>
+    <li><b>UX-2 + SR-2</b> (Reconnect-Backoff + Shutdown-Close) — gemeinsam gegen Reconnect-Stürme.</li>
+    <li>Rest (UX-3, A11Y-1, BUG-2, CQ-1/2/3, CLEAN-1, PERF-1) nach Geschmack / bei Bedarf.</li>
   </ol>
 
   <hr/>
-  <p class="note">Dieser Report dokumentiert nur — es wurden keine Code-Änderungen vorgenommen.
-    Nichts davon ist blockierend; die App ist in gutem, auslieferbarem Zustand.</p>
+  <p class="note">Dieser Report dokumentiert nur — es wurden keine Code-Änderungen
+    vorgenommen. Nichts davon ist blockierend; die App ist in gutem, auslieferbarem
+    Zustand.</p>
 
 </div>
 </body>
