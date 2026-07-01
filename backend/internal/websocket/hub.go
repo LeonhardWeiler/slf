@@ -158,8 +158,8 @@ func (h *Hub) sendTo(sessionID string, msgType string, payload any) {
 	}
 }
 
-func (h *Hub) sendError(c *Client, message string) {
-	c.send("error", map[string]string{"message": message})
+func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
+	c.send("error", errorPayload{Code: code, Message: message, Severity: severityOf(code)})
 }
 
 func (h *Hub) writeRawTo(c *Client, msg []byte) {

@@ -40,8 +40,31 @@ export interface SessionCreatedPayload {
   playerId: string;
 }
 
+// Machine-readable error codes (SRS 12.3.1). Mirrors backend errors.go.
+export type ErrorCode =
+  | "INVALID_SESSION"
+  | "SESSION_NOT_FOUND"
+  | "LOBBY_NOT_FOUND"
+  | "INVALID_LOBBY_CODE"
+  | "NAME_TOO_SHORT"
+  | "NAME_TOO_LONG"
+  | "NAME_NOT_UNIQUE"
+  | "PLAYER_NOT_FOUND"
+  | "INVALID_STATE"
+  | "GAME_ALREADY_RUNNING"
+  | "NOT_HOST"
+  | "CATEGORY_NOT_FOUND"
+  | "CATEGORY_MINIMUM"
+  | "INVALID_ANSWER_LENGTH"
+  | "INVALID_FIRST_LETTER"
+  | "VALIDATION_ERROR";
+
+export type ErrorSeverity = "info" | "warning" | "critical";
+
 export interface ErrorPayload {
+  code: ErrorCode;
   message: string;
+  severity: ErrorSeverity;
 }
 
 export interface GameStatePayload {
@@ -95,6 +118,7 @@ export interface RoundResultPayload {
 
 export type BuzzRejectReason =
   | "incompleteAnswers"
+  | "invalidAnswers"
   | "alreadyBuzzed"
   | "invalidState";
 

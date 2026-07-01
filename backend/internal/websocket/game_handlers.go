@@ -16,23 +16,23 @@ func handleStartGame(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, "Nur der Host darf das Spiel starten")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel starten")
 		return
 	}
 	if lobby.State != game.StateLobby && lobby.State != game.StateGameOver {
 		hub.mu.Unlock()
-		hub.sendError(c, "Spiel läuft bereits")
+		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
 		return
 	}
 	if len(lobby.Players) < 1 || len(lobby.Categories) < 1 {
 		hub.mu.Unlock()
-		hub.sendError(c, "Mindestens 1 Spieler und 1 Kategorie nötig")
+		hub.sendError(c, CodeValidationError, "Mindestens 1 Spieler und 1 Kategorie nötig")
 		return
 	}
 	letters := game.AlphabetExcluding(lobby.Settings.ExcludedLetters)
 	if len(letters) < 1 {
 		hub.mu.Unlock()
-		hub.sendError(c, "Mindestens ein Buchstabe muss aktiv sein")
+		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv sein")
 		return
 	}
 	for _, p := range lobby.Players {
@@ -167,12 +167,20 @@ func handleBuzz(hub *Hub, c *Client) {
 		return
 	}
 	round := lobby.Game.Round
-	// All categories must have a non-empty answer (SRS 5.7).
+	// Every category must have an answer (SRS 5.7) and — server-authoritative,
+	// not just the client's Zod gate — each answer must satisfy the formal rules
+	// for the round letter: 1–30 chars, starting with the letter (SRS 9.13.15).
 	answers := round.Answers[session.PlayerID]
 	for _, cat := range lobby.Categories {
-		if answers == nil || answers[cat.ID] == nil || game.Normalize(answers[cat.ID].Value) == "" {
+		ans := answers[cat.ID]
+		if answers == nil || ans == nil || game.Normalize(ans.Value) == "" {
 			hub.mu.Unlock()
 			hub.sendBuzzRejected(c, "incompleteAnswers")
+			return
+		}
+		if !game.IsRuleValid(round.Letter, ans.Value) {
+			hub.mu.Unlock()
+			hub.sendBuzzRejected(c, "invalidAnswers")
 			return
 		}
 	}
@@ -325,7 +333,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost || lobby.State != game.StateReviewing {
 		hub.mu.Unlock()
-		hub.sendError(c, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
 	round := lobby.Game.Round
@@ -361,7 +369,7 @@ func handleStartNextRound(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost || lobby.State != game.StateRoundResult {
 		hub.mu.Unlock()
-		hub.sendError(c, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
 	noLetters := lobby.Game == nil || len(lobby.Game.RemainingLetters) == 0
@@ -379,7 +387,7 @@ func handleEndGame(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, "Nur der Host darf das Spiel beenden")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel beenden")
 		return
 	}
 	if lobby.State == game.StateLobby || lobby.State == game.StateGameOver {
@@ -397,12 +405,12 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, "Nur der Host darf zur Lobby zurückkehren")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf zur Lobby zurückkehren")
 		return
 	}
 	if lobby.State != game.StateRoundResult && lobby.State != game.StateGameOver {
 		hub.mu.Unlock()
-		hub.sendError(c, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
 	lobby.State = game.StateLobby

@@ -30,9 +30,15 @@ function AppRoutes() {
     });
 
     ws.on("error", (payload) => {
-      // A failed reconnect means the stored session is stale → clear it
-      // so the user starts fresh on the home screen.
-      if (pendingReconnect.current) {
+      // A failed reconnect whose cause is a stale session/lobby means the stored
+      // session no longer exists → clear it so the user starts fresh. Unrelated
+      // errors during a pending reconnect are shown normally.
+      const staleSession =
+        payload.code === "SESSION_NOT_FOUND" ||
+        payload.code === "INVALID_SESSION" ||
+        payload.code === "LOBBY_NOT_FOUND" ||
+        payload.code === "PLAYER_NOT_FOUND";
+      if (pendingReconnect.current && staleSession) {
         pendingReconnect.current = false;
         reset();
         return;

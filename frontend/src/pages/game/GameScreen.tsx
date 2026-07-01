@@ -227,7 +227,8 @@ export function GameScreen() {
           ))}
         </div>
 
-        {buzzRejected === "incompleteAnswers" && (
+        {(buzzRejected === "incompleteAnswers" ||
+          buzzRejected === "invalidAnswers") && (
           <p className="text-sm text-destructive text-center">
             Du musst alle Kategorien gültig ausfüllen, bevor du buzzern kannst.
           </p>

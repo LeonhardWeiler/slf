@@ -18,10 +18,13 @@ func categoryExists(lobby *game.Lobby, catID string) bool {
 }
 
 func storeAnswer(round *game.Round, playerID, catID, value string) {
-	// An empty / whitespace-only value is not a real submission: drop any
-	// existing entry so it never shows up as a "submitted" answer in review
-	// (and so buzzing still requires every category to be filled).
-	if game.Normalize(value) == "" {
+	// An empty / whitespace-only value is not a real submission, and the server
+	// authoritatively enforces the 1–30 char limit (SRS 9.13.14) instead of
+	// trusting the client's maxLength: drop the entry in either case so it never
+	// shows up as a "submitted" answer in review (and so buzzing still requires
+	// every category to be filled).
+	norm := game.Normalize(value)
+	if norm == "" || len([]rune(norm)) > 30 {
 		if byCat, ok := round.Answers[playerID]; ok {
 			delete(byCat, catID)
 		}
@@ -32,7 +35,7 @@ func storeAnswer(round *game.Round, playerID, catID, value string) {
 	}
 	round.Answers[playerID][catID] = &game.Answer{
 		Value:      value,
-		Normalized: game.Normalize(value),
+		Normalized: norm,
 	}
 }
 
