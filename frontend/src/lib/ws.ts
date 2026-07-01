@@ -24,7 +24,40 @@ class WSClient {
 
   constructor(url: string) {
     this.url = url;
+    // When the browser signals it is back — network online again, or the tab was
+    // refocused / made visible — try to reconnect immediately with a fresh
+    // backoff, instead of waiting out a possibly long (up to 30s) pending retry.
+    // That stale wait is why the app could still show "not connected" while the
+    // server was already reachable again (a full-page reload that raced the
+    // server coming up would just restart the same slow backoff).
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", this.ensureConnected);
+      window.addEventListener("focus", this.ensureConnected);
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", this.ensureConnected);
+      }
+    }
   }
+
+  // Force an immediate reconnect attempt (resetting the backoff) when we are not
+  // already connected or connecting. Bound as a field so it can be added/removed
+  // as an event listener with a stable reference.
+  private ensureConnected = () => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return; // a tab going hidden is not a reason to reconnect
+    }
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+    if (this.connecting) return;
+    // Drop a pending backoff timer and retry right away with a fresh budget.
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+    void this.connect().then(() => {
+      if (getSessionId()) this.send({ type: "reconnect", payload: {} });
+    });
+  };
 
   // Idempotent: repeated calls (e.g. React StrictMode's double-invoked effect)
   // reuse the same socket instead of opening a second orphaned connection.
