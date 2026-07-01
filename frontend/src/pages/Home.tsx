@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useParams, Navigate } from "react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { QrScannerView } from "@/components/QrScanner";
+
+// The QR scanner pulls in the sizeable qr-scanner library (+ worker); load it
+// only when the user actually opens the scan step so the initial paint is lean.
+const QrScannerView = lazy(() =>
+  import("@/components/QrScanner").then((m) => ({ default: m.QrScannerView }))
+);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -179,13 +184,19 @@ export function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <QrScannerView
-                onScan={(scanned) => {
-                  setCode(scanned);
-                  goTo("joinName");
-                }}
-                onClose={() => goTo("joinCode")}
-              />
+              <Suspense
+                fallback={
+                  <p className="text-sm text-muted-foreground">Kamera wird geladen…</p>
+                }
+              >
+                <QrScannerView
+                  onScan={(scanned) => {
+                    setCode(scanned);
+                    goTo("joinName");
+                  }}
+                  onClose={() => goTo("joinCode")}
+                />
+              </Suspense>
             </CardContent>
           </Card>
         )}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate, Navigate } from "react-router";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
@@ -7,7 +7,11 @@ import { copyToClipboard } from "@/lib/clipboard";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
-import { QrCode } from "@/components/QrCode";
+// The QR generator (qrcode lib) is only needed when the host reveals the code,
+// so load it lazily instead of in the main bundle.
+const QrCode = lazy(() =>
+  import("@/components/QrCode").then((m) => ({ default: m.QrCode }))
+);
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -224,7 +228,9 @@ export function Lobby() {
 
             {showQr && (
               <div className="mt-4 flex flex-col items-center gap-3">
-                <QrCode value={joinLink} size={200} />
+                <Suspense fallback={<div style={{ height: 200 }} />}>
+                  <QrCode value={joinLink} size={200} />
+                </Suspense>
                 <button
                   type="button"
                   onClick={() => copyText(joinLink, "link")}
