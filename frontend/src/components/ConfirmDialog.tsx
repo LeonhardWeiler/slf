@@ -62,10 +62,12 @@ function ConfirmDialogView({
   onCancel,
 }: ConfirmOptions & { onConfirm: () => void; onCancel: () => void }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Focus the confirm button on open, lock body scroll so the page behind can't
   // move while the dialog is up, mark a dialog as open (so global screen
-  // shortcuts pause, UX-1) and let Escape cancel.
+  // shortcuts pause, UX-1), trap Tab focus inside the dialog (A11Y-1) and let
+  // Escape cancel.
   useEffect(() => {
     confirmRef.current?.focus();
     openDialogs++;
@@ -75,6 +77,25 @@ function ConfirmDialogView({
       if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
+        return;
+      }
+      // Keep Tab focus cycling inside the modal instead of escaping to the
+      // (visually obscured) content behind it.
+      if (e.key === "Tab") {
+        const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusables || focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || !dialogRef.current?.contains(active))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     }
     window.addEventListener("keydown", onKey);
@@ -97,6 +118,7 @@ function ConfirmDialogView({
       }}
     >
       <div
+        ref={dialogRef}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
