@@ -187,7 +187,6 @@ func handleBuzz(hub *Hub, c *Client) {
 			return
 		}
 	}
-	round.BuzzedBy = session.PlayerID
 	roundID := round.ID
 	hub.mu.Unlock()
 

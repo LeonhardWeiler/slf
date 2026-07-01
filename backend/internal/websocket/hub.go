@@ -1,14 +1,12 @@
 package websocket
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/coder/websocket"
 	"slf/internal/game"
 )
 
@@ -177,23 +175,10 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	}
 }
 
-func (h *Hub) sendTo(sessionID string, msgType string, payload any) {
-	h.mu.Lock()
-	c, ok := h.clients[sessionID]
-	h.mu.Unlock()
-	if ok {
-		c.send(msgType, payload)
-	}
-}
-
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
 	severity := severityOf(code)
 	if severity == "critical" {
 		slog.Error("critical error", "code", string(code), "session", c.sessionID, "message", message)
 	}
 	c.send("error", errorPayload{Code: code, Message: message, Severity: severity})
-}
-
-func (h *Hub) writeRawTo(c *Client, msg []byte) {
-	_ = c.conn.Write(context.Background(), websocket.MessageText, msg)
 }

@@ -44,10 +44,7 @@ func storeAnswer(round *game.Round, playerID, catID, value string) {
 	if round.Answers[playerID] == nil {
 		round.Answers[playerID] = map[string]*game.Answer{}
 	}
-	round.Answers[playerID][catID] = &game.Answer{
-		Value:      value,
-		Normalized: norm,
-	}
+	round.Answers[playerID][catID] = &game.Answer{Value: value}
 }
 
 // answerFor returns a player's answer (answerID == playerID) for a category.

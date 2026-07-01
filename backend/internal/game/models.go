@@ -44,9 +44,8 @@ type Lobby struct {
 
 // Answer is a single player's entry for one category in a round.
 type Answer struct {
-	Value      string `json:"value"`
-	Normalized string `json:"normalized"`
-	Valid      bool   `json:"valid"`
+	Value string `json:"value"`
+	Valid bool   `json:"valid"`
 	// MergedInto, if set, points at the categoryId-scoped answer key of the
 	// answer this one was merged into during review (treated as identical).
 	MergedInto string `json:"mergedInto"`
@@ -55,9 +54,8 @@ type Answer struct {
 
 // Round is one letter: its answers, buzz state and timing.
 type Round struct {
-	ID       string `json:"id"`
-	Letter   string `json:"letter"`
-	BuzzedBy string `json:"buzzedBy"`
+	ID     string `json:"id"`
+	Letter string `json:"letter"`
 	// Answers[playerID][categoryID] = answer
 	Answers map[string]map[string]*Answer `json:"-"`
 	// EndsAt is the round deadline when a time limit is set (zero = unlimited).

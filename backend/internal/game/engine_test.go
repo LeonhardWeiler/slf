@@ -33,7 +33,7 @@ func TestIsRuleValid(t *testing.T) {
 func mkAnswers(m map[string]string, validAll bool) map[string]*Answer {
 	out := map[string]*Answer{}
 	for pid, v := range m {
-		out[pid] = &Answer{Value: v, Normalized: Normalize(v), Valid: validAll}
+		out[pid] = &Answer{Value: v, Valid: validAll}
 	}
 	return out
 }
