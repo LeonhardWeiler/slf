@@ -128,6 +128,9 @@ func main() {
 				"timeLimit":                 nil,
 				"showLetterDuringCountdown": toggle,
 				"excludedLetters":           []string{},
+				"hostPlays":                 true,
+				"lastLetterMode":            false,
+				"flamesEnabled":             false,
 			})
 		}
 		deadline := time.After(3 * time.Second)
