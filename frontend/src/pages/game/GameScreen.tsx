@@ -246,6 +246,8 @@ export function GameScreen() {
         </p>
         <div
           key={display}
+          aria-live="assertive"
+          aria-atomic="true"
           className="text-8xl font-bold tabular-nums min-h-[1em] animate-countdown-pop"
         >
           {display}
