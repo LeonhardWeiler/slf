@@ -69,6 +69,10 @@ func main() {
 	stop() // a second signal now terminates immediately
 	log.Println("Fahre herunter…")
 
+	// Cleanly close all live WebSockets (1001) so clients reconnect gracefully
+	// instead of seeing a hard drop when the process exits.
+	hub.Shutdown()
+
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {

@@ -51,6 +51,24 @@ func NewHub() *Hub {
 	}
 }
 
+// Shutdown cleanly closes every open WebSocket with a 1001 (going away) frame so
+// clients see an orderly close and reconnect with backoff, instead of a hard
+// drop when the process exits. Call before http.Server.Shutdown.
+func (h *Hub) Shutdown() {
+	h.mu.Lock()
+	conns := make([]*Client, 0, len(h.clients)+len(h.pending))
+	for _, c := range h.clients {
+		conns = append(conns, c)
+	}
+	for c := range h.pending {
+		conns = append(conns, c)
+	}
+	h.mu.Unlock()
+	for _, c := range conns {
+		c.closeGoingAway()
+	}
+}
+
 // StartJanitor launches the background reaper that closes abandoned lobbies.
 func (h *Hub) StartJanitor() {
 	go func() {

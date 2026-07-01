@@ -202,6 +202,13 @@ func (c *Client) sendV(msgType string, payload any, version int) error {
 	return c.writeRaw(b)
 }
 
+// closeGoingAway sends a clean 1001 close so the client knows the server is
+// shutting down (and can reconnect with backoff) instead of just seeing the
+// socket drop. Used during graceful shutdown.
+func (c *Client) closeGoingAway() {
+	_ = c.conn.Close(websocket.StatusGoingAway, "server shutdown")
+}
+
 func (c *Client) writeRaw(b []byte) error {
 	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
 	defer cancel()
