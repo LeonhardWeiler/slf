@@ -73,8 +73,9 @@ Wette auf, gibt es **+5** Punkte (eindeutige Antwort 10 → 15, einzige gültige
   localhost/LAN erlaubt, sonst 403; `WS_ALLOWED_ORIGINS` als Override).
 - **Rate-Limiting** pro Verbindung, Join-Backoff und Obergrenzen für Lobbys,
   Spieler und Kategorien; verwaiste Lobbys werden automatisch abgeräumt.
-- **Security-Header** (CSP, HSTS, u. a.) für die ausgelieferte SPA; `sessionId`
-  wird nie an andere Clients geleakt und in Logs nur gehasht.
+- **Security-Header** (CSP, HSTS mit `preload`, COOP, u. a.) für die ausgelieferte
+  SPA; content-gehashte Assets werden `immutable` gecacht, `index.html`/`robots.txt`
+  revalidieren. `sessionId` wird nie an andere Clients geleakt und in Logs nur gehasht.
 
 ## Projektstruktur
 
