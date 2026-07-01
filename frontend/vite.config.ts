@@ -18,5 +18,14 @@ export default defineConfig({
     // The current suite is pure logic (validation + Zod parsing); no DOM needed.
     environment: "node",
     include: ["src/**/*.test.ts"],
+    server: {
+      deps: {
+        // CI runs on oven/bun (no node), so vitest executes under the bun
+        // runtime. Externalized zod resolves there with an undefined `z` export
+        // (ESM/CJS interop). Inlining lets vitest transform zod itself, so the
+        // named export works regardless of the runtime.
+        inline: ["zod"],
+      },
+    },
   },
 });
