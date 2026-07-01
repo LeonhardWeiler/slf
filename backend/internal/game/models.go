@@ -189,8 +189,10 @@ type RoundResultPayload struct {
 	RemainingLetters []string     `json:"remainingLetters"`
 	IsGameOver       bool         `json:"isGameOver"`
 	// Reason is set only when IsGameOver (SRS 9.15.14):
-	// "AlphabetFinished" | "HostEnded". HostDisconnected is not used since the
-	// host-disconnect timeout is intentionally not implemented (see TODO B1).
+	// "AlphabetFinished" | "HostEnded". A host disconnect does not produce a
+	// GameOver result — after the grace window the lobby is closed instead
+	// (hub.onHostGraceExpired → closeLobby, "hostDisconnected"), so there is no
+	// HostDisconnected reason here.
 	Reason string `json:"reason,omitempty"`
 }
 
