@@ -57,17 +57,20 @@
     laufen sauber durch. Der server-autoritative Kern, die durchgängige
     Zod-Validierung, der Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff),
     die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die A11y sind
-    solide. <b>Aktuell keine offenen Findings</b> — kein kritischer, hoher,
-    mittlerer, niedriger oder Info-Punkt. Mehrere ältere Themen sind <b>bewusste
-    Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
+    solide. Ein gezielter <b>UX-Durchlauf beider Flows</b> (Host: Lobby anlegen →
+    konfigurieren → spielen → bewerten → nächste Runde; Spieler: beitreten →
+    ausfüllen → buzzern) hat <b>keine Bugs</b>, aber mehrere konkrete
+    <b>UX-Verbesserungen</b> ergeben — <b>keine kritischen/hohen</b>, ein mittlerer
+    Steuerungs-Lückenpunkt und einige Feinschliffe. Mehrere ältere Themen sind
+    <b>bewusste Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
-    <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">0</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">0</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--med)">1</div><div class="l">Mittel</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">3</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -88,12 +91,82 @@
 
   <!-- ============ OPEN ============ -->
   <h2 id="open">1. Offene Findings</h2>
+  <p class="note">Ergebnis eines UX-Durchlaufs beider Flows. Alles funktioniert;
+    die Punkte sind Verbesserungen, keine Fehler.</p>
 
-  <p class="note">Aktuell <b>keine offenen Findings</b>. Der frische Scan (Backend
-    + Frontend + Config/CI/Docs) hat keinen kritischen, hohen, mittleren, niedrigen
-    oder Info-Punkt ergeben; alle Gates (<code>gofmt</code>, <code>go vet</code>,
-    <code>go test</code> inkl. <code>-race</code>, Biome, Vitest,
-    <code>vite build</code>) sind grün.</p>
+  <div class="card">
+    <h3><span class="id">UX-1</span> Laufende Runde ohne Zeitlimit lässt sich nicht beenden (nur Lobby schließen) <span class="badge b-med">mittel</span></h3>
+    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code> · <code>ReviewScreen.tsx</code> — kein Host-Steuer-Button; Server unterstützt es bereits (<code>handleEndGame</code> in <code>game_handlers.go</code> erlaubt <code>endGame</code> in jedem State außer Lobby/GameOver)</div>
+    <p>Ist <b>kein Zeitlimit</b> gesetzt, endet die Runde nur, wenn jemand buzzert —
+      und buzzern kann nur, wer <em>alle</em> Kategorien regelkonform gefüllt hat.
+      Bei einem schweren Buchstaben (z.&nbsp;B. „Q"/„Y") oder einer stockenden
+      Runde <b>hängt die Gruppe fest</b>: Im <code>GameScreen</code> (Countdown/
+      Playing) und im <code>ReviewScreen</code> gibt es keinen Host-Knopf, um die
+      Runde/das Spiel abzubrechen. Der einzige Ausweg ist „Verlassen", was die
+      <b>komplette Lobby schließt</b> (SRS 4.8) und alle rauswirft. Besonders hart
+      im <b>Kommentator-Modus</b> (<code>hostPlays=false</code>): Der Host spielt
+      nicht mit, <em>kann</em> also gar nicht buzzern und hat keinerlei Mittel, eine
+      hängende Runde aufzulösen.</p>
+    <div class="rec"><b>Empfehlung:</b> Im <code>GameScreen</code> (und optional
+      <code>ReviewScreen</code>) für den Host einen dezenten „Runde beenden" /
+      „Spiel beenden"-Button ergänzen, der das bereits vorhandene
+      <code>endGame</code>-Event sendet. Kein Backend-Change nötig.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">UX-2</span> Buzz/Rundenende ohne „Wer hat gestoppt?"-Moment <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>backend/internal/websocket/game_handlers.go</code> (<code>endRound</code> → <code>reviewState</code>) · <code>frontend/src/pages/game/GameScreen.tsx</code></div>
+    <p>Buzzert ein Spieler (oder läuft die Zeit ab), wechseln <b>alle</b> ohne
+      Zwischenschritt direkt in die Bewertung. Der <code>reviewState</code> trägt
+      nicht, <em>wer</em> gestoppt hat, und es gibt keinen kurzen „STOPP!"-Moment.
+      Genau dieser Augenblick ist beim Stadt-Land-Fluss aber der emotionale
+      Höhepunkt — der abrupte Screenwechsel nimmt ihm die Spannung, und Mitspieler
+      wissen nicht, wer sie „unterbrochen" hat.</p>
+    <div class="rec"><b>Empfehlung:</b> Den Buzzernden in <code>endRound</code>
+      mitschicken und clientseitig kurz einblenden („🔔 Anna hat gestoppt!"), bevor
+      die Bewertung erscheint — optional mit kurzem Sound/Vibration
+      (<code>navigator.vibrate</code>) als haptisches Feedback beim eigenen Buzz.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">UX-3</span> Destruktive Host-Aktionen ohne Bestätigung oder Undo <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/Lobby.tsx</code> (<code>kickPlayer</code>, <code>deleteCategory</code>)</div>
+    <p>Ein Klick auf das <code>X</code> neben einem Spieler kickt ihn <b>sofort</b>
+      (er landet auf der Startseite), und der Papierkorb neben einer Kategorie
+      löscht sie <b>ohne Rückfrage</b>. Auf Touch-Geräten sitzen diese Icons dicht
+      an den Bearbeiten-Buttons — ein Fehltipp ist schnell passiert und nicht
+      umkehrbar.</p>
+    <div class="rec"><b>Empfehlung:</b> Für das Kicken eine kurze Bestätigung
+      (oder ein „Rückgängig"-Toast für ein paar Sekunden) einbauen. Beim
+      Kategorie-Löschen genügt ein „Rückgängig"-Toast, da der Neuanlage-Aufwand
+      gering ist.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">UX-4</span> Uneinheitliche Fehlerdarstellung im Beitritts-Flow <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — Code-Schritt: Inline-<code>joinError</code>; Namensschritt: <code>addToast</code></div>
+    <p>Beim Code-Schritt erscheinen Fehler (ungültig/voll/läuft) sauber
+      <b>inline unter dem Feld</b>. Der anschließende Namensschritt meldet dagegen
+      z.&nbsp;B. „Name bereits vergeben" nur als <b>flüchtigen Toast</b> — er
+      verschwindet nach kurzer Zeit, und das Namensfeld bekommt weder rote Umrandung
+      (<code>aria-invalid</code>) noch eine bleibende Begründung. Das wirkt
+      inkonsistent und ist auf Mobilgeräten leicht zu übersehen.</p>
+    <div class="rec"><b>Empfehlung:</b> Den Join-Namensfehler analog zum Code-Schritt
+      inline am Feld anzeigen (roter Rahmen + Text), statt nur per Toast.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">UX-5</span> Startseiten-Aktionen bei fehlender Verbindung nicht deaktiviert <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — „Lobby erstellen"/„Lobby beitreten" bleiben klickbar, obwohl das „Keine Verbindung"-Banner sichtbar ist</div>
+    <p>Ist der Server nicht erreichbar, zeigt die Startseite oben ein
+      Warnbanner, doch die Aktions-Buttons bleiben aktiv. Wer klickt, sieht nur
+      „Verbinde…" und wartet die volle <b>8-Sekunden-Timeout</b> ab, bevor eine
+      Fehlermeldung kommt — ohne zu verstehen, dass schlicht keine Verbindung
+      besteht.</p>
+    <div class="rec"><b>Empfehlung:</b> Bei <code>!connected</code> die Weiter-/
+      Erstellen-Buttons deaktivieren (oder den Klick sofort mit einem klaren Hinweis
+      quittieren), statt in den stillen Timeout zu laufen.</div>
+  </div>
 
   <!-- ============ GOOD ============ -->
   <h2 id="good">2. Was schon stark ist</h2>
