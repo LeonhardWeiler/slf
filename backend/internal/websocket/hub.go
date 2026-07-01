@@ -186,6 +186,23 @@ func (h *Hub) onDisconnect(c *Client) {
 	}
 }
 
+// graceSecondsLeft returns the seconds until the host-grace deadline (rounded
+// up), or nil when no grace is active. Caller must hold h.mu.
+func graceSecondsLeft(lobby *game.Lobby) *int {
+	if lobby.HostGraceUntil.IsZero() {
+		return nil
+	}
+	d := time.Until(lobby.HostGraceUntil)
+	secs := int(d / time.Second)
+	if d%time.Second > 0 {
+		secs++
+	}
+	if secs < 0 {
+		secs = 0
+	}
+	return &secs
+}
+
 // startHostGrace begins the countdown after the host's connection dropped. All
 // clients are told so they can show a shared countdown; if the host does not
 // reconnect within hostGraceSeconds, the lobby is closed.
@@ -201,6 +218,7 @@ func (h *Hub) startHostGrace(lobby *game.Lobby) {
 		return
 	}
 	code := lobby.Code
+	lobby.HostGraceUntil = time.Now().Add(hostGraceSeconds * time.Second)
 	h.hostGrace[code] = time.AfterFunc(hostGraceSeconds*time.Second, func() {
 		h.onHostGraceExpired(code)
 	})
@@ -218,6 +236,9 @@ func (h *Hub) cancelHostGrace(code string) bool {
 	if ok {
 		t.Stop()
 		delete(h.hostGrace, code)
+		if lobby, found := h.rooms.Get(code); found {
+			lobby.HostGraceUntil = time.Time{}
+		}
 	}
 	h.mu.Unlock()
 	return ok
@@ -328,12 +349,13 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		players[i] = decoratedPlayers[i].player
 	}
 	payload := game.LobbyStatePayload{
-		LobbyCode:  lobby.Code,
-		HostID:     lobby.HostID,
-		Players:    players,
-		Categories: lobby.Categories,
-		Settings:   lobby.Settings,
-		State:      lobby.State,
+		LobbyCode:        lobby.Code,
+		HostID:           lobby.HostID,
+		Players:          players,
+		Categories:       lobby.Categories,
+		Settings:         lobby.Settings,
+		State:            lobby.State,
+		HostGraceSeconds: graceSecondsLeft(lobby),
 	}
 	msg, targets := h.prepareBroadcast(lobby, "lobbyState", payload)
 	h.mu.Unlock()

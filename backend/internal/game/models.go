@@ -54,6 +54,11 @@ type Lobby struct {
 	// players, and cleared while anyone is connected. Abandoned lobbies past a TTL
 	// are reaped so memory is not held forever.
 	EmptySince time.Time `json:"-"`
+	// HostGraceUntil is the deadline by which the disconnected host must return
+	// before the lobby is closed (SRS 4.6/8.5); zero when the host is present. It
+	// is included in the lobby state so late/reconnecting clients also see the
+	// shared countdown.
+	HostGraceUntil time.Time `json:"-"`
 }
 
 // Answer is a single player's entry for one category in a round.
@@ -118,6 +123,10 @@ type LobbyStatePayload struct {
 	Categories []*Category   `json:"categories"`
 	Settings   Settings      `json:"settings"`
 	State      GameState     `json:"state"`
+	// HostGraceSeconds is the seconds left until the lobby closes because the
+	// host is disconnected; nil when the host is present. Lets late/reconnecting
+	// clients render the shared countdown too.
+	HostGraceSeconds *int `json:"hostGraceSeconds"`
 }
 
 type SessionCreatedPayload struct {

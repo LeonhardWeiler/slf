@@ -31,6 +31,9 @@ function AppRoutes() {
     ws.on("lobbyState", (payload) => {
       pendingReconnect.current = false;
       setLobby(payload);
+      // Snapshot also carries the host-grace countdown, so a client that joins or
+      // reconnects mid-grace sees the shared banner too (not just via the event).
+      setHostGrace(payload.hostGraceSeconds ?? null);
     });
 
     ws.on("error", (payload) => {

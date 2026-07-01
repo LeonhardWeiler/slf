@@ -46,6 +46,9 @@ const lobbyStatePayload = z.object({
   categories: z.array(categorySchema),
   settings: settingsSchema,
   state: gameStateEnum,
+  // Seconds until the lobby closes because the host is gone; null/absent when
+  // the host is present. Lets late joiners see the shared countdown too.
+  hostGraceSeconds: z.number().nullish(),
 });
 
 const sessionCreatedPayload = z.object({

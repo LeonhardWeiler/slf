@@ -36,6 +36,9 @@ export interface LobbyStatePayload {
   categories: Category[];
   settings: Settings;
   state: GameState;
+  // Seconds until the lobby closes because the host is disconnected; null/absent
+  // when the host is present.
+  hostGraceSeconds?: number | null;
 }
 
 export interface SessionCreatedPayload {
