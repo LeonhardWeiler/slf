@@ -51,26 +51,25 @@
   <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
 
   <p class="lead">
-    Aktueller Health-Check des Codestands. Die zuletzt gelisteten Punkte sind
-    <b>umgesetzt</b>: der Host-Grace-Countdown springt nicht mehr zurück, die
-    Beitritts-Vorprüfung sperrt während der Prüfung die Navigation, der Home-Spinner
-    hängt nur noch an echten Fehlern, das Frontend hat jetzt ein
-    <b>Vitest-Setup</b> (Regel-Mirror + Zod-Parsing, in CI), und die Lighthouse-
-    Findings sind abgearbeitet (<code>&lt;main&gt;</code>-Landmark, dunklerer
-    Kontrast-Token, COOP-Header, HSTS-<code>preload</code>, unveränderliches
-    Asset-Caching, Meta-Description + echte <code>robots.txt</code>). Damit ist der
-    Stand <b>rund und auslieferbar</b>; offen bleibt nur ein triviales
-    <b>fehlendes Favicon</b>. Mehrere ältere Themen sind <b>bewusste
-    Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
-    <b>Keine kritischen/hohen</b> Lücken.
+    Aktueller Health-Check des Codestands. Der Stand ist <b>rund und
+    auslieferbar</b>: Backend (<code>go vet</code>, <code>go test</code> inkl.
+    <code>-race</code>) und Frontend (Biome, Vitest, <code>vite build</code>)
+    laufen sauber durch. Der server-autoritative Kern, die durchgängige
+    Zod-Validierung, der Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff),
+    die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die A11y sind
+    solide. <b>Keine kritischen/hohen/mittleren</b> Lücken — offen sind nur drei
+    <b>kosmetische</b> Punkte: ein fehlendes Favicon und zwei veraltete
+    Text-/Kommentar-Stellen aus dem Wechsel des Lobbycodes von Ziffern auf
+    alphanumerisch. Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im
+    README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">1</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">0</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -103,6 +102,36 @@
     <div class="rec"><b>Empfehlung:</b> Eine <code>favicon.svg</code> unter
       <code>frontend/public/</code> ablegen (wird von Vite ins <code>dist/</code>
       kopiert) — oder alternativ den <code>&lt;link rel="icon"&gt;</code> entfernen.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">CODE-WORDING</span> Veralteter „6&nbsp;Ziffern"-Text nach Umstieg auf alphanumerische Codes <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx:188</code> (Toast) · Kommentare in <code>backend/internal/websocket/util.go:37</code> und <code>hub.go:125</code></div>
+    <p>Der Lobbycode ist inzwischen 6&nbsp;Zeichen aus <code>[a-z0-9]</code>
+      (<code>generateLobbyCode</code>), doch an mehreren Stellen wird noch von
+      „Ziffern" gesprochen: der nutzersichtbare Toast <code>„Lobbycode muss 6
+      Ziffern lang sein"</code> in <code>submitJoinName</code> sowie zwei
+      Go-Kommentare, die einen <code>6-digit code</code> beschreiben. Der Toast
+      liegt zwar in einem praktisch toten Pfad (der Weiter-Button ist bei
+      &ne;&nbsp;6&nbsp;Zeichen ohnehin <code>disabled</code>), ist aber inhaltlich
+      falsch, sobald er doch erscheint.</p>
+    <div class="rec"><b>Empfehlung:</b> „Ziffern" → „Zeichen" im Toast und die
+      beiden <code>6-digit</code>-Kommentare auf „6-char [a-z0-9]" korrigieren.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">STALE-COMMENT</span> Kommentar behauptet, der Host-Disconnect-Timeout sei nicht implementiert <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>backend/internal/game/models.go:191-194</code> (Doc-Comment an <code>RoundResultPayload.Reason</code>)</div>
+    <p>Der Kommentar sagt: <code>„HostDisconnected is not used since the
+      host-disconnect timeout is intentionally not implemented (see TODO B1)"</code>.
+      Der Timeout <b>ist</b> aber implementiert: <code>startHostGrace</code> /
+      <code>onHostGraceExpired</code> in <code>hub.go</code> schließen die Lobby nach
+      15&nbsp;s. Korrekt bleibt nur, dass <code>Reason</code> hier nicht auf
+      <code>HostDisconnected</code> gesetzt wird — weil der Host-Drop zu einem
+      <code>lobbyClosed</code> führt, nicht zu einem <code>GameOver</code>.</p>
+    <div class="rec"><b>Empfehlung:</b> Die Begründung auf den echten Grund umschreiben
+      (Host-Disconnect endet in <code>lobbyClosed</code>, daher keine
+      <code>GameOver</code>-Reason) und den veralteten TODO-Verweis entfernen.</div>
   </div>
 
   <!-- ============ GOOD ============ -->
