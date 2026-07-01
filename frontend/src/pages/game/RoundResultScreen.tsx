@@ -6,7 +6,7 @@ import { useGameStore } from "@/store/game";
 import { isTypingTarget } from "@/lib/utils";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
-import { useConfirm } from "@/components/ConfirmDialog";
+import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -35,6 +35,9 @@ export function RoundResultScreen() {
     if (!isHost) return;
     function onKey(e: KeyboardEvent) {
       if (isTypingTarget(document.activeElement)) return;
+      // Don't fire while a confirm dialog is up (e.g. "Spiel beenden?"), so the
+      // Enter that confirms it doesn't also start the next round (UX-1).
+      if (isConfirmDialogOpen()) return;
       if (e.key === "Enter") {
         ws.send({ type: "startNextRound", payload: {} });
       }

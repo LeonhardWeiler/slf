@@ -5,7 +5,7 @@ import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useConfirm } from "@/components/ConfirmDialog";
+import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -66,6 +66,8 @@ export function Lobby() {
     function onCopy(e: KeyboardEvent) {
       if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
       if (isTypingTarget(document.activeElement)) return;
+      // Don't hijack copy while a confirm dialog is up (kick/delete/leave) — UX-1.
+      if (isConfirmDialogOpen()) return;
       if ((window.getSelection()?.toString() ?? "") !== "") return;
       copyText(lobbyCode, "code");
     }

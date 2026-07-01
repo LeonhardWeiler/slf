@@ -7,7 +7,7 @@ import { useGameStore } from "@/store/game";
 import { validateAnswers, isFieldInvalid } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
-import { useConfirm } from "@/components/ConfirmDialog";
+import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -209,6 +209,9 @@ export function GameScreen() {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Enter") return;
       if (!canBuzz) return;
+      // Pause while a confirm dialog is up (e.g. "Runde beenden?") so its Enter
+      // doesn't also buzz (UX-1).
+      if (isConfirmDialogOpen()) return;
       e.preventDefault();
       handleBuzz();
     }

@@ -43,6 +43,15 @@ export function useConfirm() {
   return { confirm, dialog };
 }
 
+// Count of currently-open confirm dialogs. Global keyboard shortcuts on the game
+// screens (Enter to start the next round / buzz, Ctrl/Cmd+C to copy the code)
+// query this and pause while a modal is up, so confirming a dialog with Enter
+// doesn't also trigger the action behind it (UX-1).
+let openDialogs = 0;
+export function isConfirmDialogOpen(): boolean {
+  return openDialogs > 0;
+}
+
 function ConfirmDialogView({
   title,
   description,
@@ -55,9 +64,11 @@ function ConfirmDialogView({
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   // Focus the confirm button on open, lock body scroll so the page behind can't
-  // move while the dialog is up, and let Escape cancel.
+  // move while the dialog is up, mark a dialog as open (so global screen
+  // shortcuts pause, UX-1) and let Escape cancel.
   useEffect(() => {
     confirmRef.current?.focus();
+    openDialogs++;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
@@ -70,6 +81,7 @@ function ConfirmDialogView({
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      openDialogs--;
     };
   }, [onCancel]);
 
