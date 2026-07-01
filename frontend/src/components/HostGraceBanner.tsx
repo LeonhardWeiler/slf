@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useLobbyStore } from "@/store/lobby";
 
@@ -6,20 +6,36 @@ import { useLobbyStore } from "@/store/lobby";
 // The lobby closes when it reaches zero unless the host reconnects (SRS 4.6/8.5).
 export function HostGraceBanner() {
   const hostGrace = useLobbyStore((s) => s.hostGrace);
-  const [remaining, setRemaining] = useState<number | null>(hostGrace);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  // Absolute local deadline we tick down to. Kept in a ref so an interim
+  // lobbyState broadcast that re-sends hostGrace can't reset our smooth
+  // countdown on every arrival.
+  const deadlineRef = useRef<number | null>(null);
 
+  // Adopt the server's remaining time on first sight or when it diverges by
+  // more than a second from what we're already showing; ignore sub-second
+  // re-syncs so the visible number never jumps back a second (former UX-2).
   useEffect(() => {
     if (hostGrace == null) {
+      deadlineRef.current = null;
       setRemaining(null);
       return;
     }
-    setRemaining(hostGrace);
-    const deadline = Date.now() + hostGrace * 1000;
+    const candidate = Date.now() + hostGrace * 1000;
+    if (deadlineRef.current == null || Math.abs(candidate - deadlineRef.current) > 1000) {
+      deadlineRef.current = candidate;
+    }
+    setRemaining(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
+  }, [hostGrace]);
+
+  // Single, stable ticker independent of hostGrace changes.
+  useEffect(() => {
     const id = setInterval(() => {
-      setRemaining(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+      if (deadlineRef.current == null) return;
+      setRemaining(Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000)));
     }, 250);
     return () => clearInterval(id);
-  }, [hostGrace]);
+  }, []);
 
   if (remaining == null) return null;
   return (
