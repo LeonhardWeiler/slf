@@ -1,8 +1,9 @@
 package game
 
 import (
+	"cmp"
 	"math/rand"
-	"sort"
+	"slices"
 	"strings"
 )
 
@@ -180,11 +181,11 @@ func ComputeRanking(players map[string]*Player) []RankEntry {
 	for _, p := range players {
 		list = append(list, entry{p.ID, p.Score, p.Name})
 	}
-	sort.Slice(list, func(i, j int) bool {
-		if list[i].score != list[j].score {
-			return list[i].score > list[j].score
+	slices.SortFunc(list, func(a, b entry) int {
+		if a.score != b.score {
+			return cmp.Compare(b.score, a.score) // higher score first
 		}
-		return strings.ToLower(list[i].name) < strings.ToLower(list[j].name)
+		return cmp.Compare(strings.ToLower(a.name), strings.ToLower(b.name))
 	})
 
 	ranking := make([]RankEntry, 0, len(list))

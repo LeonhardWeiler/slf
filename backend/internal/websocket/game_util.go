@@ -1,9 +1,10 @@
 package websocket
 
 import (
+	"cmp"
 	"encoding/json"
 	"log/slog"
-	"sort"
+	"slices"
 	"time"
 
 	"slf/internal/game"
@@ -96,7 +97,7 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 			Complete:          len(filled) == len(lobby.Categories),
 		})
 	}
-	sort.Slice(players, func(i, j int) bool { return players[i].PlayerID < players[j].PlayerID })
+	slices.SortFunc(players, func(a, b game.CommentatorPlayer) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
 	return game.CommentatorStatePayload{RoundID: r.ID, Players: players}
 }
 
@@ -205,7 +206,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			Flamed:        flamed[pid],
 		})
 	}
-	sort.Slice(answers, func(i, j int) bool { return answers[i].PlayerID < answers[j].PlayerID })
+	slices.SortFunc(answers, func(a, b game.ReviewAnswer) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
 
 	return game.ReviewStatePayload{
 		RoundID:       r.ID,
@@ -235,7 +236,7 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 			TotalPoints: pl.Score,
 		})
 	}
-	sort.Slice(scores, func(i, j int) bool { return scores[i].PlayerID < scores[j].PlayerID })
+	slices.SortFunc(scores, func(a, b game.ScoreEntry) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
 	// Carry the letter progress so the client's round-result screen is
 	// self-sufficient (also after a reconnect, where no gameState is replayed).
 	var used, remaining []string
