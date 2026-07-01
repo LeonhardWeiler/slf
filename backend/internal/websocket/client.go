@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -13,6 +16,24 @@ import (
 // (TCP backpressure) would stall the whole broadcast loop for everyone.
 const writeTimeout = 5 * time.Second
 
+// allowedOriginPatterns returns the WebSocket Origin allow-list, read once from
+// WS_ALLOWED_ORIGINS (comma-separated hostname patterns, coder/websocket syntax).
+// Same-origin requests are always accepted regardless. The default "*" keeps
+// LAN/dev usage working out of the box; set the env var to lock it down for a
+// public deployment (CSWSH hardening).
+var allowedOriginPatterns = sync.OnceValue(func() []string {
+	out := make([]string, 0)
+	for _, p := range strings.Split(os.Getenv("WS_ALLOWED_ORIGINS"), ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	if len(out) == 0 {
+		return []string{"*"}
+	}
+	return out
+})
+
 type Client struct {
 	conn      *websocket.Conn
 	hub       *Hub
@@ -21,7 +42,7 @@ type Client struct {
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: []string{"*"},
+		OriginPatterns: allowedOriginPatterns(),
 	})
 	if err != nil {
 		return

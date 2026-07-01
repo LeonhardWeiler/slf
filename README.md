@@ -64,7 +64,6 @@ frontend/
   src/store/         Zustand-Stores (lobby, game)
   src/lib/           WebSocket-Client, Theme, Session, Validierung
   src/types/         Gemeinsame Event-/Payload-Typen
-srs/                 Spezifikation (Anforderungen, Events, Zustände)
 Dockerfile           Multi-Stage-Build → ein Image (Frontend + Go-Server)
 docker-compose.yml   Start des veröffentlichten Images
 .gitlab-ci.yml       CI: Tests + Image-Build/-Push nach Docker Hub
@@ -139,10 +138,11 @@ Die GitLab-CI baut nach jedem Commit auf `master` das Image und pusht es nach
 | `LOG_LEVEL`   | `info`  | `debug` \| `info` \| `warn` \| `error` |
 | `LOG_FORMAT`  | `text`  | `text` \| `json` |
 | `LOG_FILE`    | –       | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume) |
+| `WS_ALLOWED_ORIGINS` | `*` (offen) | Erlaubte WebSocket-Origins (kommagetrennt); Same-Origin ist immer erlaubt. Für öffentlichen Betrieb einschränken |
 
 ## Performance
 
-Zwei isolierte, reproduzierbare Messungen (SRS-Ziele: Ø < 80 ms, max < 150 ms
+Zwei isolierte, reproduzierbare Messungen (Ziele: Ø < 80 ms, max < 150 ms
 Roundtrip, ≥ 500 gleichzeitige Spieler):
 
 ```bash
@@ -157,8 +157,3 @@ go run ./cmd/loadtest -players 500     # verbindet 500 Spieler, misst Broadcast-
 Das Werkzeug öffnet die Spieler über viele Lobbys, lässt alle Hosts gleichzeitig
 eine Zustandsänderung auslösen und misst je Client die Zeit bis zum
 resultierenden `lobbyState`-Broadcast (Ø/p50/p95/p99/max).
-
-## Spezifikation
-
-Detaillierte Anforderungen, WebSocket-Events, Zustände und Fehlerbehandlung
-liegen im Ordner [`srs/`](./srs).
