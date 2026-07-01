@@ -7,6 +7,7 @@ import { useGameStore } from "@/store/game";
 import { Home } from "@/pages/Home";
 import { Room } from "@/pages/Room";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function AppRoutes() {
   const { setLobby, setSession, setError, setHostGrace, closeWithNotice, lobby } =
@@ -113,8 +114,10 @@ function AppRoutes() {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // The QR scanner pulls in the sizeable qr-scanner library (+ worker); load it
 // only when the user actually opens the scan step so the initial paint is lean.
@@ -184,19 +185,28 @@ export function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Suspense
-                fallback={
-                  <p className="text-sm text-muted-foreground">Kamera wird geladen…</p>
-                }
+              <ErrorBoundary
+                fallback={() => (
+                  <p className="text-sm text-destructive">
+                    QR-Scanner konnte nicht geladen werden. Nutze stattdessen den
+                    Code.
+                  </p>
+                )}
               >
-                <QrScannerView
-                  onScan={(scanned) => {
-                    setCode(scanned);
-                    goTo("joinName");
-                  }}
-                  onClose={() => goTo("joinCode")}
-                />
-              </Suspense>
+                <Suspense
+                  fallback={
+                    <p className="text-sm text-muted-foreground">Kamera wird geladen…</p>
+                  }
+                >
+                  <QrScannerView
+                    onScan={(scanned) => {
+                      setCode(scanned);
+                      goTo("joinName");
+                    }}
+                    onClose={() => goTo("joinCode")}
+                  />
+                </Suspense>
+              </ErrorBoundary>
             </CardContent>
           </Card>
         )}

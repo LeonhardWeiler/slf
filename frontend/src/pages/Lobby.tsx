@@ -4,6 +4,7 @@ import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as Lin
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -228,9 +229,17 @@ export function Lobby() {
 
             {showQr && (
               <div className="mt-4 flex flex-col items-center gap-3">
-                <Suspense fallback={<div style={{ height: 200 }} />}>
-                  <QrCode value={joinLink} size={200} />
-                </Suspense>
+                <ErrorBoundary
+                  fallback={() => (
+                    <p className="text-sm text-destructive">
+                      QR-Code konnte nicht geladen werden.
+                    </p>
+                  )}
+                >
+                  <Suspense fallback={<div style={{ height: 200 }} />}>
+                    <QrCode value={joinLink} size={200} />
+                  </Suspense>
+                </ErrorBoundary>
                 <button
                   type="button"
                   onClick={() => copyText(joinLink, "link")}
