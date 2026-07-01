@@ -8,6 +8,7 @@ frontend/dist/
 # Backend build artifacts (air live-reload + manuelle go-build-Binaries)
 backend/tmp/
 backend/server
+backend/loadtest
 
 # Scratch
 tmp/
