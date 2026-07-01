@@ -84,7 +84,14 @@ function AppRoutes() {
 
     ws.on("lobbyClosed", (payload) => {
       useGameStore.getState().resetGame();
+      // The host receives this echo too when they close the lobby by leaving —
+      // but shouldn't be told it was closed when they did it themselves.
+      const { selfLeaving, setSelfLeaving } = useLobbyStore.getState();
       reset();
+      if (selfLeaving) {
+        setSelfLeaving(false);
+        return;
+      }
       useToastStore
         .getState()
         .addToast(

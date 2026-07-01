@@ -17,7 +17,7 @@ export function RoomHeader({
   subtitle?: string;
 }) {
   const navigate = useNavigate();
-  const { reset, lobby } = useLobbyStore();
+  const { reset, lobby, setSelfLeaving } = useLobbyStore();
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -36,6 +36,9 @@ export function RoomHeader({
   }
 
   function handleLeave() {
+    // Suppress the "lobby closed" toast the host would otherwise get from the
+    // server's own lobbyClosed echo.
+    setSelfLeaving(true);
     ws.send({ type: "leaveLobby", payload: {} });
     useGameStore.getState().resetGame();
     reset();

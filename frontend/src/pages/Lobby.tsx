@@ -31,7 +31,7 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
 
 export function Lobby() {
   const navigate = useNavigate();
-  const { lobby, myPlayerId, reset } = useLobbyStore();
+  const { lobby, myPlayerId, reset, setSelfLeaving } = useLobbyStore();
   const isHost = useIsHost();
 
   const [newCategory, setNewCategory] = useState("");
@@ -79,6 +79,9 @@ export function Lobby() {
   const activePlayers = lobby.players.filter((p) => !p.left);
 
   function handleLeave() {
+    // Suppress the "lobby closed" toast the host would otherwise get from the
+    // server's own lobbyClosed echo.
+    setSelfLeaving(true);
     ws.send({ type: "leaveLobby", payload: {} });
     reset();
     void navigate("/");
