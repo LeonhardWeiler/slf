@@ -59,10 +59,13 @@
     die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die A11y sind
     solide. Ein gezielter <b>UX-Durchlauf beider Flows</b> (Host: Lobby anlegen →
     konfigurieren → spielen → bewerten → nächste Runde; Spieler: beitreten →
-    ausfüllen → buzzern) hat <b>keine Bugs</b>, aber mehrere konkrete
-    <b>UX-Verbesserungen</b> ergeben — <b>keine kritischen/hohen/mittleren</b>, nur
-    Feinschliffe (niedrig/info). Mehrere ältere Themen sind <b>bewusste
-    Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
+    ausfüllen → buzzern) ist <b>umgesetzt</b>: Host kann eine Runde beenden, die
+    Bewertung zeigt den Buzzernden, destruktive Aktionen laufen über einen
+    Bestätigungsdialog, Beitritts-Fehler erscheinen inline, und die Startseite
+    sperrt ihre Aktionen bei fehlender Verbindung. <b>Keine kritischen/hohen/
+    mittleren</b> Findings; offen bleibt nur <b>ein bewusst zurückgestellter</b>
+    Punkt (UX-6). Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im
+    README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
@@ -70,7 +73,7 @@
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
     <div class="stat"><div class="n" style="color:var(--low)">1</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">0</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -105,19 +108,6 @@
       Mitspieler aus der Runde bzw. dem Spiel.</p>
     <div class="rec"><b>Empfehlung:</b> Denselben <code>useConfirm</code>-Dialog auch
       auf diese beiden Buttons anwenden. (Bewusst noch offen gelassen.)</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">UX-5</span> Startseiten-Aktionen bei fehlender Verbindung nicht deaktiviert <span class="badge b-info">info</span></h3>
-    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — „Lobby erstellen"/„Lobby beitreten" bleiben klickbar, obwohl das „Keine Verbindung"-Banner sichtbar ist</div>
-    <p>Ist der Server nicht erreichbar, zeigt die Startseite oben ein
-      Warnbanner, doch die Aktions-Buttons bleiben aktiv. Wer klickt, sieht nur
-      „Verbinde…" und wartet die volle <b>8-Sekunden-Timeout</b> ab, bevor eine
-      Fehlermeldung kommt — ohne zu verstehen, dass schlicht keine Verbindung
-      besteht.</p>
-    <div class="rec"><b>Empfehlung:</b> Bei <code>!connected</code> die Weiter-/
-      Erstellen-Buttons deaktivieren (oder den Klick sofort mit einem klaren Hinweis
-      quittieren), statt in den stillen Timeout zu laufen.</div>
   </div>
 
   <!-- ============ GOOD ============ -->

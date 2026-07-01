@@ -235,6 +235,7 @@ export function Home() {
             <Button
               className="w-full"
               size="lg"
+              disabled={!connected}
               onClick={() => goTo("createName")}
             >
               <Plus className="h-4 w-4" />
@@ -244,6 +245,7 @@ export function Home() {
               variant="outline"
               className="w-full"
               size="lg"
+              disabled={!connected}
               onClick={() => goTo("joinCode")}
             >
               <LogIn className="h-4 w-4" />
@@ -324,7 +326,7 @@ export function Home() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={loading || !name.trim()}
+                    disabled={loading || !name.trim() || !connected}
                   >
                     {loading ? "Verbinde…" : "Weiter"}
                   </Button>
@@ -384,7 +386,7 @@ export function Home() {
                   variant="outline"
                   className="w-full"
                   onClick={() => goTo("scan")}
-                  disabled={checking}
+                  disabled={checking || !connected}
                 >
                   <ScanLine className="h-4 w-4" />
                   QR-Code scannen
@@ -402,7 +404,7 @@ export function Home() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={code.trim().length !== 6 || checking}
+                    disabled={code.trim().length !== 6 || checking || !connected}
                   >
                     {checking ? "Prüfe…" : "Weiter"}
                   </Button>
@@ -457,7 +459,7 @@ export function Home() {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={loading || !name.trim()}
+                    disabled={loading || !name.trim() || !connected}
                   >
                     {loading ? "Verbinde…" : "Beitreten"}
                   </Button>
