@@ -58,17 +58,16 @@
     Zod-Validierung, der Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff),
     die Härtung (Origin-Check, Rate-Limits, CSP/HSTS/COOP) und die A11y sind
     solide. <b>Keine kritischen/hohen/mittleren</b> Lücken — offen sind nur drei
-    <b>kosmetische</b> Punkte: ein fehlendes Favicon und zwei veraltete
-    Text-/Kommentar-Stellen aus dem Wechsel des Lobbycodes von Ziffern auf
-    alphanumerisch. Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im
-    README dokumentiert (Abschnitt&nbsp;3).
+    <b>kosmetische</b> Punkte: zwei veraltete Text-/Kommentar-Stellen aus dem
+    Wechsel des Lobbycodes von Ziffern auf alphanumerisch. Mehrere ältere Themen
+    sind <b>bewusste Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">1</div><div class="l">Niedrig</div></div>
     <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
 
@@ -90,19 +89,6 @@
 
   <!-- ============ OPEN ============ -->
   <h2 id="open">1. Offene Findings</h2>
-
-  <div class="card">
-    <h3><span class="id">FAVICON</span> Referenziertes <code>/favicon.svg</code> existiert nicht <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/index.html</code> (<code>&lt;link rel="icon" href="/favicon.svg"&gt;</code>) · keine Datei unter <code>frontend/public/</code></div>
-    <p>Die <code>index.html</code> verlinkt ein Favicon, das im Repo nirgends existiert
-      (es gibt keine <code>favicon.svg</code>). In Produktion ist das ein <b>404 bei
-      jedem Seitenaufruf</b> (samt Konsolenfehler) und ein fehlendes Tab-Icon. Seit
-      dieser Runde gibt es ein <code>public/</code>-Verzeichnis (für die neue
-      <code>robots.txt</code>), in das die Datei einfach gehört.</p>
-    <div class="rec"><b>Empfehlung:</b> Eine <code>favicon.svg</code> unter
-      <code>frontend/public/</code> ablegen (wird von Vite ins <code>dist/</code>
-      kopiert) — oder alternativ den <code>&lt;link rel="icon"&gt;</code> entfernen.</div>
-  </div>
 
   <div class="card">
     <h3><span class="id">CODE-WORDING</span> Veralteter „6&nbsp;Ziffern"-Text nach Umstieg auf alphanumerische Codes <span class="badge b-low">niedrig</span></h3>
