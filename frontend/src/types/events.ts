@@ -102,6 +102,8 @@ export interface ReviewStatePayload {
   categoryIndex: number;
   categoryCount: number;
   answers: ReviewAnswer[];
+  // playerId of whoever buzzed to end the round; empty on timeout / host-ended.
+  buzzedBy?: string;
 }
 
 export interface ScoreEntry {

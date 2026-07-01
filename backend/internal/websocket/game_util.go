@@ -215,6 +215,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		CategoryIndex: idx,
 		CategoryCount: len(lobby.Categories),
 		Answers:       answers,
+		BuzzedBy:      r.BuzzedBy,
 	}
 }
 

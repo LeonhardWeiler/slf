@@ -85,6 +85,8 @@ const reviewStatePayload = z.object({
   categoryIndex: z.number(),
   categoryCount: z.number(),
   answers: z.array(reviewAnswerSchema),
+  // Optional/lenient: an older server without this field must not drop the event.
+  buzzedBy: z.string().optional(),
 });
 
 const commentatorStatePayload = z.object({

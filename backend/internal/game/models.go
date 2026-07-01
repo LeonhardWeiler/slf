@@ -86,6 +86,10 @@ type Round struct {
 	// that their answer is unique). At most one entry per player = one flame per
 	// round. Only meaningful when Settings.FlamesEnabled.
 	Flames map[string]string `json:"-"`
+	// BuzzedBy is the playerID of whoever buzzed to end the round; empty when the
+	// round ended by timeout or a host "end round". Surfaced in review so everyone
+	// sees who stopped the round.
+	BuzzedBy string `json:"-"`
 }
 
 // Game is a sequence of rounds over a fresh alphabet within one lobby.
@@ -167,6 +171,9 @@ type ReviewStatePayload struct {
 	CategoryIndex int            `json:"categoryIndex"`
 	CategoryCount int            `json:"categoryCount"`
 	Answers       []ReviewAnswer `json:"answers"`
+	// BuzzedBy is the playerID who buzzed to end the round; empty on timeout or a
+	// host-ended round.
+	BuzzedBy string `json:"buzzedBy"`
 }
 
 type ScoreEntry struct {

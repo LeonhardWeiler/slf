@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
-import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off, Flame } from "lucide-react";
+import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off, Flame, Bell } from "lucide-react";
 import { cn, isTypingTarget } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -65,6 +65,8 @@ export function ReviewScreen() {
     lobby.players.find((p) => p.id === id)?.name ?? "?";
   const categoryName =
     lobby.categories[review.categoryIndex]?.name ?? "Kategorie";
+  // Who buzzed to end the round (empty on timeout / host-ended round).
+  const buzzerName = review.buzzedBy ? playerName(review.buzzedBy) : null;
 
   function setValid(answerId: string, valid: boolean) {
     ws.send({ type: "setAnswerValidity", payload: { answerId, valid } });
@@ -91,6 +93,14 @@ export function ReviewScreen() {
           title="Bewertung"
           subtitle={isHost ? "Bewerte die Antworten" : "Der Host bewertet…"}
         />
+
+        {/* Everyone sees who stopped the round. */}
+        {buzzerName && (
+          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
+            <Bell className="h-4 w-4 shrink-0" />
+            <span><b>{buzzerName}</b> hat gestoppt</span>
+          </p>
+        )}
 
         <Card>
           <CardContent className="pt-6 flex items-center justify-between">
