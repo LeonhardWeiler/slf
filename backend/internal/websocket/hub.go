@@ -3,7 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"log/slog"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -202,26 +202,39 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Lock()
-	players := make([]game.LobbyPlayer, 0, len(lobby.Players))
+	// Decorate-sort: precompute the lowercased name once per player instead of
+	// re-lowering inside the comparator (which runs O(n log n) times and would
+	// allocate a fresh string each call).
+	type decorated struct {
+		key    string // lowercased name, used only for ordering
+		player game.LobbyPlayer
+	}
+	decoratedPlayers := make([]decorated, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
-		players = append(players, game.LobbyPlayer{
-			ID:        p.ID,
-			Name:      p.Name,
-			IsHost:    p.IsHost,
-			Connected: p.Connected,
-			Left:      p.Left,
-			Score:     p.Score,
+		decoratedPlayers = append(decoratedPlayers, decorated{
+			key: strings.ToLower(p.Name),
+			player: game.LobbyPlayer{
+				ID:        p.ID,
+				Name:      p.Name,
+				IsHost:    p.IsHost,
+				Connected: p.Connected,
+				Left:      p.Left,
+				Score:     p.Score,
+			},
 		})
 	}
 	// Stable, alphabetical order so the list never reshuffles on unrelated
 	// updates (e.g. a settings change). Tie-break on ID for determinism.
-	sort.Slice(players, func(i, j int) bool {
-		ni, nj := strings.ToLower(players[i].Name), strings.ToLower(players[j].Name)
-		if ni != nj {
-			return ni < nj
+	slices.SortFunc(decoratedPlayers, func(a, b decorated) int {
+		if a.key != b.key {
+			return strings.Compare(a.key, b.key)
 		}
-		return players[i].ID < players[j].ID
+		return strings.Compare(a.player.ID, b.player.ID)
 	})
+	players := make([]game.LobbyPlayer, len(decoratedPlayers))
+	for i := range decoratedPlayers {
+		players[i] = decoratedPlayers[i].player
+	}
 	payload := game.LobbyStatePayload{
 		LobbyCode:  lobby.Code,
 		HostID:     lobby.HostID,
