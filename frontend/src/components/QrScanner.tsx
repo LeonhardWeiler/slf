@@ -74,7 +74,7 @@ export function QrScannerView({
       <button
         type="button"
         onClick={onClose}
-        className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="w-full text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
       >
         Abbrechen
       </button>

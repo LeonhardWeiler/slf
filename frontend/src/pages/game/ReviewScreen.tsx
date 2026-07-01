@@ -131,7 +131,7 @@ export function ReviewScreen() {
                       ? "bg-green-500/10"
                       : "bg-muted/50",
                     clickable &&
-                      "cursor-pointer ring-1 ring-primary/40 hover:ring-2 hover:ring-primary"
+                      "cursor-pointer ring-1 ring-primary/40 hover:ring-2 hover:ring-primary active:ring-2 active:ring-primary"
                   )}
                 >
                   <div className="flex items-center justify-between gap-3">

@@ -168,7 +168,7 @@ export function Lobby() {
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Lobbycode
               </p>
-              <p className="text-5xl font-mono font-bold tracking-[0.2em] group-hover:opacity-80 transition-opacity">
+              <p className="text-5xl font-mono font-bold tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity">
                 {lobby.lobbyCode.replace(/(\d{3})(\d{3})/, "$1 $2")}
               </p>
               <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
@@ -214,7 +214,7 @@ export function Lobby() {
                   type="button"
                   onClick={() => copyText(joinLink, "link")}
                   title="Link kopieren"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors break-all"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors break-all"
                 >
                   <Copy className="h-3.5 w-3.5 shrink-0" />
                   {joinLink}
@@ -386,7 +386,7 @@ export function Lobby() {
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                           active
                             ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background hover:bg-muted border-border"
+                            : "bg-background hover:bg-muted active:bg-muted border-border"
                         }`}
                       >
                         {opt.label}
