@@ -27,7 +27,7 @@ type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
 export function Home() {
   const params = useParams<{ code?: string }>();
-  const { lobby, notice, setNotice } = useLobbyStore();
+  const { lobby } = useLobbyStore();
   const addToast = useToastStore((s) => s.addToast);
   // Monotonic toast counter: a new toast (validation or server error) means the
   // pending submit failed → stop the spinner. Robust against auto-dismissals.
@@ -91,7 +91,6 @@ export function Home() {
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    setNotice(null);
     setLoading(true);
     armTimeout();
     ws.send({ type: "createLobby", payload: { playerName: trimmedName } });
@@ -115,7 +114,6 @@ export function Home() {
       setStep("joinCode");
       return;
     }
-    setNotice(null);
     setLoading(true);
     armTimeout();
     ws.send({
@@ -134,12 +132,6 @@ export function Home() {
           <h1 className="text-3xl font-bold tracking-tight">Stadt Land Fluss</h1>
           <p className="text-muted-foreground text-sm">Multiplayer</p>
         </div>
-
-        {notice && (
-          <div className="rounded-md border border-border bg-muted px-4 py-3 text-sm">
-            {notice}
-          </div>
-        )}
 
         {!connected && (
           <div className="flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-600 dark:text-amber-400">

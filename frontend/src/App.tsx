@@ -12,9 +12,22 @@ import { Toaster } from "@/components/Toaster";
 import { useToastStore } from "@/store/toast";
 
 function AppRoutes() {
-  const { setLobby, setSession, setHostGrace, closeWithNotice, lobby } =
-    useLobbyStore();
+  const { setLobby, setSession, setHostGrace, reset, lobby } = useLobbyStore();
   const pendingReconnect = useRef(false);
+
+  // Toast on connection transitions. Starts "connected" so the initial connect
+  // is a no-op; only a real drop → reconnect surfaces a pair of toasts (and it
+  // ignores flapping by reacting only to actual state changes).
+  useEffect(() => {
+    let prevConnected = true;
+    return ws.onStatusChange((connected) => {
+      if (connected === prevConnected) return;
+      prevConnected = connected;
+      const addToast = useToastStore.getState().addToast;
+      if (connected) addToast("Verbindung wiederhergestellt.", "info");
+      else addToast("Verbindung zum Server verloren…");
+    });
+  }, []);
 
   useEffect(() => {
     void ws.connect().then(() => {
@@ -50,9 +63,10 @@ function AppRoutes() {
         // restarted and all in-RAM state is gone). Clear the session and
         // explain it instead of silently bouncing back to the start screen.
         pendingReconnect.current = false;
-        closeWithNotice(
-          "Verbindung zum Spiel verloren – bitte neu beitreten."
-        );
+        reset();
+        useToastStore
+          .getState()
+          .addToast("Verbindung zum Spiel verloren – bitte neu beitreten.");
         return;
       }
       useToastStore.getState().addToast(payload.message);
@@ -63,17 +77,21 @@ function AppRoutes() {
       // fresh lobbyState without the kicked player).
       if (payload.playerId === useLobbyStore.getState().myPlayerId) {
         useGameStore.getState().resetGame();
-        closeWithNotice("Du wurdest aus der Lobby entfernt.");
+        reset();
+        useToastStore.getState().addToast("Du wurdest aus der Lobby entfernt.");
       }
     });
 
     ws.on("lobbyClosed", (payload) => {
       useGameStore.getState().resetGame();
-      closeWithNotice(
-        payload.reason === "hostDisconnected"
-          ? "Der Host hat die Verbindung verloren – die Lobby wurde geschlossen."
-          : "Die Lobby wurde vom Host geschlossen."
-      );
+      reset();
+      useToastStore
+        .getState()
+        .addToast(
+          payload.reason === "hostDisconnected"
+            ? "Der Host hat die Verbindung verloren – die Lobby wurde geschlossen."
+            : "Die Lobby wurde vom Host geschlossen."
+        );
     });
 
     // Shared host-grace countdown (host dropped → 15s to reconnect, else close).
@@ -99,7 +117,7 @@ function AppRoutes() {
     ws.on("buzzRejected", (payload) => {
       useGameStore.getState().setBuzzRejected(payload.reason);
     });
-  }, [setLobby, setSession, setHostGrace, closeWithNotice]);
+  }, [setLobby, setSession, setHostGrace, reset]);
 
   return (
     <>
