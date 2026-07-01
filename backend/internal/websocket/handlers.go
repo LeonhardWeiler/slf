@@ -465,13 +465,16 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
+	// Booleans are *bool so an omitted field preserves the current value instead
+	// of silently resetting it to false (e.g. an old/partial client must not be
+	// able to flip hostPlays off just by not sending it).
 	var p struct {
 		TimeLimit                 *int     `json:"timeLimit"`
-		ShowLetterDuringCountdown bool     `json:"showLetterDuringCountdown"`
+		ShowLetterDuringCountdown *bool    `json:"showLetterDuringCountdown"`
 		ExcludedLetters           []string `json:"excludedLetters"`
-		HostPlays                 bool     `json:"hostPlays"`
-		LastLetterMode            bool     `json:"lastLetterMode"`
-		FlamesEnabled             bool     `json:"flamesEnabled"`
+		HostPlays                 *bool    `json:"hostPlays"`
+		LastLetterMode            *bool    `json:"lastLetterMode"`
+		FlamesEnabled             *bool    `json:"flamesEnabled"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
@@ -504,12 +507,23 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby == nil {
 		return
 	}
+	// TimeLimit and ExcludedLetters are always sent as a full replacement.
 	lobby.Settings.TimeLimit = p.TimeLimit
-	lobby.Settings.ShowLetterDuringCountdown = p.ShowLetterDuringCountdown
 	lobby.Settings.ExcludedLetters = excluded
-	lobby.Settings.HostPlays = p.HostPlays
-	lobby.Settings.LastLetterMode = p.LastLetterMode
-	lobby.Settings.FlamesEnabled = p.FlamesEnabled
+	// The bool options are only overwritten when actually present in the payload
+	// so a partial client cannot silently reset options it doesn't know about.
+	if p.ShowLetterDuringCountdown != nil {
+		lobby.Settings.ShowLetterDuringCountdown = *p.ShowLetterDuringCountdown
+	}
+	if p.HostPlays != nil {
+		lobby.Settings.HostPlays = *p.HostPlays
+	}
+	if p.LastLetterMode != nil {
+		lobby.Settings.LastLetterMode = *p.LastLetterMode
+	}
+	if p.FlamesEnabled != nil {
+		lobby.Settings.FlamesEnabled = *p.FlamesEnabled
+	}
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
