@@ -51,26 +51,26 @@
   <div class="meta">Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität · Performance · Sauberkeit) · Stand 2026-07-01 · Branch <code>master</code></div>
 
   <p class="lead">
-    Aktueller Health-Check nach Umsetzung der jüngsten UI-Runde: die <b>Toasts</b>
-    liegen jetzt als 3D-Stapel <b>unten links</b> (die frühere Banner/Toast-Überlappung
-    ist damit erledigt), mehr Ereignisse (Kick, Lobby-Schließen, Verbindungsverlust)
-    laufen über Toasts, der Host bekommt seinen eigenen Schließen-Hinweis nicht mehr,
-    und das Host-getrennt-Banner ist etwas größer. Neu evaluiert: ein externer
-    <b>Lighthouse-Lauf</b> (Abschnitt&nbsp;3 — reine Perf-Zahlen wegen Render-Hosting
-    bewusst ausgeklammert) und die Frage nach <b>shadcn</b> (Abschnitt&nbsp;4 — ist
-    faktisch schon im Einsatz). Der Stand ist <b>rund und auslieferbar</b>; es bleiben
-    nur <b>kleine Politur-Punkte</b> plus zwei server­seitige Ein-Zeiler (COOP-Header,
-    Asset-Caching). Mehrere ältere Themen sind <b>bewusste Entscheidungen</b> (kein
-    Host-Handoff, globaler Mutex, <code>execCommand</code>-Fallback), im README
-    dokumentiert; siehe Abschnitt&nbsp;6. <b>Keine kritischen/hohen</b> Lücken.
+    Aktueller Health-Check des Codestands. Der Kern ist <b>rund und auslieferbar</b>:
+    server-autoritativer Zustandsautomat, durchgängige Zod-Validierung, sauberer
+    Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff), stapelbares
+    Toast-System und eine <b>Beitritts-Vorprüfung</b>, die belegte/laufende Lobbys
+    schon beim Code meldet. Offen sind nur <b>kleine Punkte</b>: zwei serverseitige
+    Ein-Zeiler (COOP-Header, Asset-Caching), ein A11y-Landmark — und als einzige
+    strukturelle Lücke das <b>komplett fehlende Frontend-Test-Setup</b>
+    (Abschnitt&nbsp;2). Die reinen <b>Lighthouse-Perf-Zahlen</b> sind wegen des
+    langsamen Render-Hostings bewusst ausgeklammert (Abschnitt&nbsp;3), und shadcn
+    ist faktisch schon im Einsatz (Abschnitt&nbsp;4). Mehrere ältere Themen sind
+    <b>bewusste Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;6).
+    <b>Keine kritischen/hohen</b> Lücken.
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">4</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">4</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">5</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">5</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -110,6 +110,22 @@
       absolute Deadline (Timestamp) statt als Sekundenzahl übertragen.</div>
   </div>
 
+  <div class="card">
+    <h3><span class="id">CHECK-1</span> Späte <code>checkLobby</code>-Antwort kann Navigation überschreiben; zweigeteilte Fehleranzeige <span class="badge b-info">info</span></h3>
+    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — <code>onLobbyCheck</code> / Join-Schritte</div>
+    <p>Die neue Beitritts-Vorprüfung ist gut, hat aber zwei kleine Kanten: (1) Während
+      „Prüfe…" sind <code>Zurück</code> und der QR-Button nicht deaktiviert — klickt man
+      in diesem (meist kurzen, auf einer langsamen Instanz aber sekundenlangen) Fenster
+      zurück, zwingt die eintreffende Antwort den Schritt wieder auf
+      <code>joinName</code>/<code>joinCode</code>. (2) Beitritts-Fehler erscheinen
+      <em>zweigeteilt</em>: Verfügbarkeit inline am Code-Feld, Namenskollision/Race
+      dagegen als Toast am Namensschritt — leichte UI-Inkonsistenz.</p>
+    <div class="rec"><b>Empfehlung:</b> Während <code>checking</code> die anderen
+      Buttons deaktivieren bzw. die Antwort verwerfen, wenn der Schritt nicht mehr
+      <code>joinCode</code>/<code>scan</code> ist; Fehlerdarstellung im Join-Flow
+      vereinheitlichen.</div>
+  </div>
+
   <!-- ============ CODE QUALITY ============ -->
   <h2 id="cq">2. Code-Qualität</h2>
 
@@ -126,6 +142,21 @@
       Signal koppeln (z.&nbsp;B. eine <code>pending</code>-Kennung, die der
       <code>error</code>-Handler mit derselben ID quittiert), statt an den globalen
       Toast-Zähler.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="id">FE-TEST</span> Frontend komplett ohne Tests — Regel-Mirror ungeschützt <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/</code> (kein <code>test</code>-Script, kein Vitest) · <code>frontend/src/lib/answerValidation.ts</code></div>
+    <p>Alle automatisierten Tests liegen im Go-Backend; das Frontend hat <b>keinerlei
+      Tests</b> und keine Test-Infrastruktur. Besonders relevant: <code>answerValidation.ts</code>
+      spiegelt bewusst die autoritativen Backend-Regeln (Normalize, 1–30 Zeichen,
+      erster/letzter Buchstabe) — laut Kommentar „kept in sync". Genau dieser Mirror
+      driftet still ab, wenn die Go-Engine sich ändert, ohne dass ein Test es merkt.
+      Auch die Zod-Schemas (<code>serverEvents.ts</code>) und der neue checkLobby-Flow
+      sind ungetestet.</p>
+    <div class="rec"><b>Empfehlung:</b> Vitest aufsetzen und zumindest
+      <code>answerValidation</code> (Parität zur Engine) und die
+      <code>parseServerEvent</code>-Zod-Schemas mit ein paar Fällen absichern.</div>
   </div>
 
   <!-- ============ LIGHTHOUSE ============ -->
@@ -242,6 +273,7 @@
     <li><span class="badge b-ok">plus</span> <b>Accessibility</b>: Live-Region entkoppelt vom Sekundenticker, Labels, <code>aria-live</code>, <code>aria-invalid</code>, Tastaturbedienung, pausierbare Toasts.</li>
     <li><span class="badge b-ok">plus</span> <b>Frontend-Robustheit</b>: ErrorBoundary (auch um Lazy-Chunks), einheitliches stapelbares Toast-System, kein toter Zustand mehr (<code>store.error</code> entfernt).</li>
     <li><span class="badge b-ok">plus</span> <b>Server-autoritativ</b> &amp; durchgängige Zod-Validierung aller eingehenden Events (inkl. der Host-Events).</li>
+    <li><span class="badge b-ok">plus</span> <b>Beitritts-Vorprüfung</b> (<code>checkLobby</code>): belegte/laufende/volle Lobbys werden schon beim Code/QR/Link gemeldet, gegen Code-Enumeration gedrosselt (Join-Backoff), inkl. Integrationstest.</li>
     <li><span class="badge b-ok">plus</span> <b>Härtung</b>: Origin-Prüfung, Rate-Limit + Caps, Lobby-Reaper, CSP/HSTS, gehashte Session-IDs, kein sessionId-Leak.</li>
     <li><span class="badge b-ok">plus</span> <b>Konsistenz &amp; CI</b>: einheitliche Sortier-Idiome, TypeScript <code>strict</code>, Biome sauber, gofmt-Gate + WS-Integrationstests.</li>
   </ul>
@@ -267,7 +299,10 @@
       <code>Cache-Control</code> für gehashte Assets): beste Wirkung pro Aufwand.</li>
     <li><b>LH-A11Y</b> (<code>&lt;main&gt;</code>-Landmark, Kontrast-Token) — kleine,
       substanzielle A11y-Verbesserung.</li>
-    <li><b>CQ-1</b> (Spinner an aktionsspezifisches Signal koppeln) — kleine Robustheit.</li>
+    <li><b>FE-TEST</b> — Vitest-Grundgerüst; sichert vor allem den Regel-Mirror
+      (<code>answerValidation</code>) gegen stille Drift von der Engine ab.</li>
+    <li><b>CQ-1</b> (Spinner an aktionsspezifisches Signal koppeln) und
+      <b>CHECK-1</b> (Buttons während der Prüfung sperren) — kleine Robustheit.</li>
     <li>Rest (UX-2 Countdown-Sprung, LH-SEO, LH-CONSOLE) kosmetisch, deployment-abhängig
       oder für den Einsatzzweck zweitrangig.</li>
   </ol>
