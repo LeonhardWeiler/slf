@@ -36,6 +36,10 @@ type Lobby struct {
 	State      GameState          `json:"state"`
 	Game       *Game              `json:"-"`
 	CreatedAt  time.Time          `json:"createdAt"`
+	// Version is a monotonic counter bumped on every state broadcast and sent
+	// with each server→client state message (SRS 9.15.2 stateVersion) for
+	// consistency/debugging.
+	Version int `json:"-"`
 }
 
 // Answer is a single player's entry for one category in a round.
@@ -143,4 +147,8 @@ type RoundResultPayload struct {
 	Scores     []ScoreEntry `json:"scores"`
 	Ranking    []RankEntry  `json:"ranking"`
 	IsGameOver bool         `json:"isGameOver"`
+	// Reason is set only when IsGameOver (SRS 9.15.14):
+	// "AlphabetFinished" | "HostEnded". HostDisconnected is not used since the
+	// host-disconnect timeout is intentionally not implemented (see TODO B1).
+	Reason string `json:"reason,omitempty"`
 }

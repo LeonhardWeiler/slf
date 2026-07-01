@@ -109,11 +109,14 @@ export interface RankEntry {
   score: number;
 }
 
+export type GameOverReason = "AlphabetFinished" | "HostEnded";
+
 export interface RoundResultPayload {
   letter: string;
   scores: ScoreEntry[];
   ranking: RankEntry[];
   isGameOver: boolean;
+  reason?: GameOverReason;
 }
 
 export type BuzzRejectReason =

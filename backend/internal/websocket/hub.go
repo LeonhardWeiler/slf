@@ -112,6 +112,7 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Lock()
+	lobby.Version++
 	players := make([]*game.Player, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
 		cp := *p
@@ -134,7 +135,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		Settings:   lobby.Settings,
 		State:      lobby.State,
 	}
-	msg, _ := json.Marshal(OutboundMessage{Type: "lobbyState", Payload: payload})
+	msg, _ := json.Marshal(OutboundMessage{Type: "lobbyState", Payload: payload, StateVersion: lobby.Version})
 
 	var targets []*Client
 	for _, p := range lobby.Players {

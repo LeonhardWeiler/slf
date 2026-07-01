@@ -134,7 +134,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
-func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool) game.RoundResultPayload {
+func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
 	for pid, pl := range lobby.Players {
 		scores = append(scores, game.ScoreEntry{
@@ -149,14 +149,16 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 		Scores:     scores,
 		Ranking:    game.ComputeRanking(lobby.Players),
 		IsGameOver: isGameOver,
+		Reason:     reason,
 	}
 }
 
 // ---- broadcasts ----
 
 func (hub *Hub) broadcastTo(lobby *game.Lobby, msgType string, payload any) {
-	msg, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload})
 	hub.mu.Lock()
+	lobby.Version++
+	msg, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: lobby.Version})
 	var targets []*Client
 	for _, p := range lobby.Players {
 		if cl, ok := hub.clients[p.SessionID]; ok {

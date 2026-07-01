@@ -46,7 +46,12 @@ func (c *Client) read() {
 }
 
 func (c *Client) send(msgType string, payload any) error {
-	b, err := json.Marshal(OutboundMessage{Type: msgType, Payload: payload})
+	return c.sendV(msgType, payload, 0)
+}
+
+// sendV sends a message tagged with a specific stateVersion (SRS 9.15.2).
+func (c *Client) sendV(msgType string, payload any, version int) error {
+	b, err := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: version})
 	if err != nil {
 		return err
 	}

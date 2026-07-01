@@ -59,7 +59,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 	letter, remaining := game.PickRandomLetter(g.RemainingLetters)
 	if letter == "" {
 		hub.mu.Unlock()
-		hub.endGame(lobby)
+		hub.endGame(lobby, "AlphabetFinished")
 		return
 	}
 	g.RemainingLetters = remaining
@@ -356,7 +356,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 		}
 	}
 	lobby.State = game.StateRoundResult
-	result := buildRoundResult(lobby, round.Letter, roundPoints, false)
+	result := buildRoundResult(lobby, round.Letter, roundPoints, false, "")
 	lobby.Game.LastResult = &result
 	hub.mu.Unlock()
 
@@ -376,7 +376,7 @@ func handleStartNextRound(hub *Hub, c *Client) {
 	hub.mu.Unlock()
 
 	if noLetters {
-		hub.endGame(lobby)
+		hub.endGame(lobby, "AlphabetFinished")
 		return
 	}
 	hub.beginCountdown(lobby)
@@ -395,7 +395,7 @@ func handleEndGame(hub *Hub, c *Client) {
 		return
 	}
 	hub.mu.Unlock()
-	hub.endGame(lobby)
+	hub.endGame(lobby, "HostEnded")
 }
 
 // handleReturnToLobby brings a finished game back to the Lobby state so the
@@ -431,10 +431,10 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 	hub.broadcastLobbyState(lobby)
 }
 
-func (hub *Hub) endGame(lobby *game.Lobby) {
+func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.mu.Lock()
 	lobby.State = game.StateGameOver
-	result := buildRoundResult(lobby, "", map[string]int{}, true)
+	result := buildRoundResult(lobby, "", map[string]int{}, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result
 	}
@@ -452,15 +452,15 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 	switch lobby.State {
 	case game.StateCountdown, game.StatePlaying:
 		if lobby.Game != nil && lobby.Game.Round != nil {
-			c.send("gameState", buildGameState(lobby))
+			c.sendV("gameState", buildGameState(lobby), lobby.Version)
 		}
 	case game.StateReviewing:
 		if lobby.Game != nil && lobby.Game.Round != nil && len(lobby.Categories) > 0 {
-			c.send("reviewState", buildReviewState(lobby))
+			c.sendV("reviewState", buildReviewState(lobby), lobby.Version)
 		}
 	case game.StateRoundResult, game.StateGameOver:
 		if lobby.Game != nil && lobby.Game.LastResult != nil {
-			c.send("roundResult", *lobby.Game.LastResult)
+			c.sendV("roundResult", *lobby.Game.LastResult, lobby.Version)
 		}
 	}
 }
