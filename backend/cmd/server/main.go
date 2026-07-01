@@ -110,12 +110,35 @@ func setupLogging() {
 	slog.SetDefault(slog.New(h))
 }
 
+// securityHeaders applies a strict-but-functional set of headers to the served
+// SPA. The CSP allows: same-origin scripts/styles (React sets inline style
+// attributes → 'unsafe-inline' for style only), data: images (QR canvas),
+// same-origin WebSocket (ws/wss for /ws), and blob: workers (qr-scanner).
+// getUserMedia for the QR scanner needs camera=(self) in Permissions-Policy.
+func securityHeaders(h http.Header) {
+	h.Set("Content-Security-Policy",
+		"default-src 'self'; base-uri 'self'; frame-ancestors 'none'; "+
+			"object-src 'none'; form-action 'self'; img-src 'self' data:; "+
+			"style-src 'self' 'unsafe-inline'; "+
+			// The only inline script is the pre-paint theme switcher in
+			// frontend/index.html (anti-FOUC). Its sha256 is allow-listed so we do
+			// NOT need 'unsafe-inline' for scripts. If that snippet changes, update
+			// this hash (the browser console prints the expected value).
+			"script-src 'self' 'sha256-4sXzUGvzAZlY5lT80QJC2LfIdvaAGVrh73rtFO9aWVQ='; "+
+			"connect-src 'self' ws: wss:; worker-src 'self' blob:; font-src 'self'")
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("Referrer-Policy", "no-referrer")
+	h.Set("X-Frame-Options", "DENY")
+	h.Set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
+}
+
 // spaHandler serves static files from dir and falls back to index.html for
 // paths that do not map to an existing file (single-page-app routing).
 func spaHandler(dir string) http.Handler {
 	fs := http.FileServer(http.Dir(dir))
 	index := filepath.Join(dir, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		securityHeaders(w.Header())
 		clean := filepath.Clean(r.URL.Path)
 		path := filepath.Join(dir, clean)
 		// Only serve a real file inside dir; otherwise hand the SPA its entrypoint.
