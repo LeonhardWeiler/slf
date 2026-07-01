@@ -3,10 +3,11 @@ import { useNavigate } from "react-router";
 import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
-import { useLobbyStore } from "@/store/lobby";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
 export function RoomHeader({
@@ -18,6 +19,8 @@ export function RoomHeader({
 }) {
   const navigate = useNavigate();
   const { reset, lobby, setSelfLeaving } = useLobbyStore();
+  const isHost = useIsHost();
+  const { confirm, dialog } = useConfirm();
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -35,7 +38,23 @@ export function RoomHeader({
     }
   }
 
-  function handleLeave() {
+  async function handleLeave() {
+    const confirmed = await confirm(
+      isHost
+        ? {
+            title: "Lobby schließen?",
+            description: "Als Host beendest du das laufende Spiel für alle.",
+            confirmLabel: "Lobby schließen",
+            destructive: true,
+          }
+        : {
+            title: "Spiel verlassen?",
+            description: "Du verlässt das Spiel und kehrst zur Startseite zurück.",
+            confirmLabel: "Verlassen",
+            destructive: true,
+          }
+    );
+    if (!confirmed) return;
     // Suppress the "lobby closed" toast the host would otherwise get from the
     // server's own lobbyClosed echo.
     setSelfLeaving(true);
@@ -46,6 +65,7 @@ export function RoomHeader({
   }
 
   return (
+    <>
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0">
         <h1 className="text-2xl font-bold">{title}</h1>
@@ -81,5 +101,7 @@ export function RoomHeader({
         </Button>
       </div>
     </div>
+    {dialog}
+    </>
   );
 }

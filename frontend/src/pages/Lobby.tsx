@@ -5,6 +5,7 @@ import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -33,6 +34,7 @@ export function Lobby() {
   const navigate = useNavigate();
   const { lobby, myPlayerId, reset, setSelfLeaving } = useLobbyStore();
   const isHost = useIsHost();
+  const { confirm, dialog } = useConfirm();
 
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -78,7 +80,24 @@ export function Lobby() {
   // Players who left an in-progress game linger only for the final standings.
   const activePlayers = lobby.players.filter((p) => !p.left);
 
-  function handleLeave() {
+  async function handleLeave() {
+    const confirmed = await confirm(
+      isHost
+        ? {
+            title: "Lobby schließen?",
+            description:
+              "Als Host beendest du die Lobby für alle Mitspieler.",
+            confirmLabel: "Lobby schließen",
+            destructive: true,
+          }
+        : {
+            title: "Lobby verlassen?",
+            description: "Du verlässt die Lobby und kehrst zur Startseite zurück.",
+            confirmLabel: "Verlassen",
+            destructive: true,
+          }
+    );
+    if (!confirmed) return;
     // Suppress the "lobby closed" toast the host would otherwise get from the
     // server's own lobbyClosed echo.
     setSelfLeaving(true);
@@ -109,12 +128,30 @@ export function Lobby() {
     setEditingValue("");
   }
 
-  function deleteCategory(id: string) {
-    ws.send({ type: "deleteCategory", payload: { categoryId: id } });
+  async function deleteCategory(id: string, name: string) {
+    if (
+      await confirm({
+        title: "Kategorie löschen?",
+        description: `„${name}" wird aus der Lobby entfernt.`,
+        confirmLabel: "Löschen",
+        destructive: true,
+      })
+    ) {
+      ws.send({ type: "deleteCategory", payload: { categoryId: id } });
+    }
   }
 
-  function kickPlayer(id: string) {
-    ws.send({ type: "kickPlayer", payload: { playerId: id } });
+  async function kickPlayer(id: string, name: string) {
+    if (
+      await confirm({
+        title: `${name} entfernen?`,
+        description: `${name} wird aus der Lobby entfernt und kehrt zur Startseite zurück.`,
+        confirmLabel: "Entfernen",
+        destructive: true,
+      })
+    ) {
+      ws.send({ type: "kickPlayer", payload: { playerId: id } });
+    }
   }
 
   function updateSettings(patch: {
@@ -293,7 +330,7 @@ export function Lobby() {
                       size="icon"
                       className="h-7 w-7 text-destructive"
                       title={`${player.name} entfernen`}
-                      onClick={() => kickPlayer(player.id)}
+                      onClick={() => kickPlayer(player.id, player.name)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -364,7 +401,7 @@ export function Lobby() {
                           size="icon"
                           className="h-7 w-7 text-destructive"
                           title="Löschen"
-                          onClick={() => deleteCategory(cat.id)}
+                          onClick={() => deleteCategory(cat.id, cat.name)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -609,6 +646,7 @@ export function Lobby() {
           </p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

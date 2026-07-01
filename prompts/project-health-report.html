@@ -95,17 +95,16 @@
     die Punkte sind Verbesserungen, keine Fehler.</p>
 
   <div class="card">
-    <h3><span class="id">UX-3</span> Destruktive Host-Aktionen ohne Bestätigung oder Undo <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/pages/Lobby.tsx</code> (<code>kickPlayer</code>, <code>deleteCategory</code>)</div>
-    <p>Ein Klick auf das <code>X</code> neben einem Spieler kickt ihn <b>sofort</b>
-      (er landet auf der Startseite), und der Papierkorb neben einer Kategorie
-      löscht sie <b>ohne Rückfrage</b>. Auf Touch-Geräten sitzen diese Icons dicht
-      an den Bearbeiten-Buttons — ein Fehltipp ist schnell passiert und nicht
-      umkehrbar.</p>
-    <div class="rec"><b>Empfehlung:</b> Für das Kicken eine kurze Bestätigung
-      (oder ein „Rückgängig"-Toast für ein paar Sekunden) einbauen. Beim
-      Kategorie-Löschen genügt ein „Rückgängig"-Toast, da der Neuanlage-Aufwand
-      gering ist.</div>
+    <h3><span class="id">UX-6</span> „Runde/Spiel beenden" (Host) noch ohne Bestätigung <span class="badge b-low">niedrig</span></h3>
+    <div class="loc"><code>frontend/src/pages/game/GameScreen.tsx</code> („Runde beenden") · <code>frontend/src/pages/game/RoundResultScreen.tsx</code> („Spiel beenden")</div>
+    <p>Kicken, Kategorie-Löschen und Verlassen sind jetzt durch einen
+      Bestätigungsdialog (<code>useConfirm</code>) abgesichert. Zwei ähnlich
+      eingreifende Host-Aktionen lösen aber weiterhin <b>sofort</b> aus:
+      „Runde beenden" (beendet die laufende Runde für alle → Bewertung) und
+      „Spiel beenden" (beendet das ganze Spiel → GameOver). Ein Fehltipp reißt alle
+      Mitspieler aus der Runde bzw. dem Spiel.</p>
+    <div class="rec"><b>Empfehlung:</b> Denselben <code>useConfirm</code>-Dialog auch
+      auf diese beiden Buttons anwenden. (Bewusst noch offen gelassen.)</div>
   </div>
 
   <div class="card">
