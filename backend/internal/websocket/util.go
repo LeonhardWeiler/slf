@@ -34,7 +34,7 @@ func randomString(n int) string {
 func generateID() string { return randomString(12) }
 
 // generateLobbyCode returns a 6-char [a-z0-9] join code (~2.2e9 combinations, far
-// harder to enumerate than the old 6-digit space). Collisions are handled by
+// harder to enumerate than a plain 6-digit space). Collisions are handled by
 // hub.uniqueLobbyCode.
 func generateLobbyCode() string { return randomString(6) }
 

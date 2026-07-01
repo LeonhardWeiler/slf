@@ -185,7 +185,7 @@ export function Home() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
     if (code.trim().length !== 6) {
-      addToast("Lobbycode muss 6 Ziffern lang sein");
+      addToast("Lobbycode muss 6 Zeichen lang sein");
       setStep("joinCode");
       return;
     }

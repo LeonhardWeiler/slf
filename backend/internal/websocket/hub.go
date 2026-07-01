@@ -122,7 +122,7 @@ func (h *Hub) reapAbandoned() {
 	}
 }
 
-// uniqueLobbyCode returns a 6-digit code that is not currently in use.
+// uniqueLobbyCode returns a 6-char [a-z0-9] code that is not currently in use.
 // Caller must hold h.mu (it reads the room map).
 func (h *Hub) uniqueLobbyCode() string {
 	for {
