@@ -54,9 +54,12 @@ function ConfirmDialogView({
 }: ConfirmOptions & { onConfirm: () => void; onCancel: () => void }) {
   const confirmRef = useRef<HTMLButtonElement>(null);
 
-  // Focus the confirm button on open and let Escape cancel.
+  // Focus the confirm button on open, lock body scroll so the page behind can't
+  // move while the dialog is up, and let Escape cancel.
   useEffect(() => {
     confirmRef.current?.focus();
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -64,7 +67,10 @@ function ConfirmDialogView({
       }
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [onCancel]);
 
   return (
@@ -83,7 +89,7 @@ function ConfirmDialogView({
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby={description ? "confirm-desc" : undefined}
-        className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-xl"
+        className="w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl"
       >
         <h2 id="confirm-title" className="text-lg font-semibold">
           {title}
@@ -93,7 +99,8 @@ function ConfirmDialogView({
             {description}
           </p>
         )}
-        <div className="mt-5 flex justify-end gap-2">
+        {/* Stacked full-width on narrow screens, inline right-aligned from sm up. */}
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
