@@ -79,13 +79,6 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 
 	playerID := generateID()
 	sessionID := generateID()
-	lobbyCode := generateLobbyCode()
-
-	session := &game.Session{
-		ID:        sessionID,
-		PlayerID:  playerID,
-		LobbyCode: lobbyCode,
-	}
 
 	player := &game.Player{
 		ID:        playerID,
@@ -97,6 +90,10 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		JoinedAt:  time.Now(),
 	}
 
+	hub.mu.Lock()
+	// Pick a code not already in use, under the lock, so two lobbies can never
+	// collide and overwrite each other.
+	lobbyCode := hub.uniqueLobbyCode()
 	lobby := &game.Lobby{
 		Code:   lobbyCode,
 		HostID: playerID,
@@ -116,11 +113,14 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
 	}
-
-	hub.mu.Lock()
 	hub.rooms.Create(lobby)
 	hub.mu.Unlock()
 
+	session := &game.Session{
+		ID:        sessionID,
+		PlayerID:  playerID,
+		LobbyCode: lobbyCode,
+	}
 	hub.registerSession(c, session)
 
 	slog.Info("lobby created", "lobby", lobbyCode, "host", name)

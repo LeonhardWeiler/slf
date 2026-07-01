@@ -29,6 +29,17 @@ func NewHub() *Hub {
 	}
 }
 
+// uniqueLobbyCode returns a 6-digit code that is not currently in use.
+// Caller must hold h.mu (it reads the room map).
+func (h *Hub) uniqueLobbyCode() string {
+	for {
+		code := generateLobbyCode()
+		if _, exists := h.rooms.Get(code); !exists {
+			return code
+		}
+	}
+}
+
 func (h *Hub) addPending(c *Client) {
 	h.mu.Lock()
 	h.pending[c] = struct{}{}
