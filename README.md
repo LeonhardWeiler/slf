@@ -7,11 +7,17 @@ gesamte Spielzustand liegt im RAM.
 
 ## Features
 
-- **Lobbys** mit 6-stelligem Code, QR-Code und Teilen-Link zum Beitreten
-- **Host-Steuerung**: Kategorien anlegen/bearbeiten, Zeitlimit, Buchstaben
-  ab-/auswählen, Spieler entfernen
+- **Lobbys** mit 6-stelligem alphanumerischem Code, QR-Code und Teilen-Link
+- **Host-Steuerung**: Kategorien anlegen/bearbeiten/löschen, Zeitlimit,
+  Buchstaben ab-/auswählen, Spieler entfernen
 - **Rundenablauf**: Countdown → Antworten → Buzzern → Bewertung → Ergebnis
 - **Live-Bewertung** durch den Host inkl. Zusammenführen gleicher Antworten
+- **Optionale Spielmodi** (pro Lobby schaltbar):
+  - **Kommentator-Host** – der Host spielt nicht mit, sieht stattdessen eine
+    Live-Übersicht, welche Kategorien jeder Spieler ausgefüllt hat
+  - **Letzter statt erster Buchstabe** – Antworten müssen auf den Buchstaben
+    *enden* statt mit ihm zu beginnen
+  - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
 - **Punktevergabe** nach klassischen Regeln (siehe unten)
 - **Reconnect**: Reload oder kurzer Verbindungsabbruch führt zurück ins Spiel
 - Hell-/Dunkel-Theme, responsives Layout, Tastatur-Steuerung
@@ -33,7 +39,8 @@ gesamte Spielzustand liegt im RAM.
   `Lobby → Countdown → Playing → Reviewing → RoundResult → GameOver → Lobby`
 - **Nachrichtenformat** (JSON über `/ws`):
   - Client → Server: `{ "type": ..., "payload": ..., "sessionId": ... }`
-  - Server → Client: `{ "type": ..., "payload": ... }`
+  - Server → Client: `{ "type": ..., "payload": ..., "stateVersion": ... }`
+    (`stateVersion` = monotoner Lobby-Zähler zum Erkennen veralteter Snapshots)
 - **Session/Reconnect:** Die `sessionId` liegt bewusst in `sessionStorage`
   (pro Tab, übersteht Reload) statt `localStorage`, damit sich mehrere Tabs
   desselben Browsers als verschiedene Spieler verbinden können.
@@ -49,6 +56,22 @@ gesamte Spielzustand liegt im RAM.
 
 Der Host kann während der Bewertung Antworten als gültig/ungültig markieren und
 sinngleiche Antworten zusammenführen (zählen dann als eine Gruppe).
+
+**Flammen** (falls aktiviert): Ein Spieler kann pro Runde eine Kategorie
+„flammen" – eine Wette, dort die einzige gültige Antwort zu haben. Geht die
+Wette auf, gibt es **+5** Punkte (eindeutige Antwort 10 → 15, einzige gültige
+20 → 25); bei geteilter oder ungültiger Antwort zählt die Kategorie **0**.
+
+### Sicherheit
+
+- **Server-autoritativ**: Regeln, Scoring und Zustand werden ausschließlich
+  serverseitig erzwungen; eingehende Events werden validiert (Backend + Zod).
+- **WebSocket-Origin-Prüfung** gegen Cross-Site-Hijacking (Same-Origin +
+  localhost/LAN erlaubt, sonst 403; `WS_ALLOWED_ORIGINS` als Override).
+- **Rate-Limiting** pro Verbindung, Join-Backoff und Obergrenzen für Lobbys,
+  Spieler und Kategorien; verwaiste Lobbys werden automatisch abgeräumt.
+- **Security-Header** (CSP, HSTS, u. a.) für die ausgelieferte SPA; `sessionId`
+  wird nie an andere Clients geleakt und in Logs nur gehasht.
 
 ## Projektstruktur
 
@@ -107,12 +130,15 @@ auf `‹host›/join/‹code›`).
 ## Entwicklung
 
 ```bash
-# Backend-Tests
-cd backend && go test ./...
+# Backend: Format-Check, Vet, Tests (inkl. WS-Integrationstests)
+cd backend && gofmt -l . && go vet ./... && go test ./...
 
-# Frontend: Typecheck + Production-Build
-cd frontend && bun run build
+# Frontend: Biome-Lint, Typecheck + Production-Build
+cd frontend && bun run lint && bun run build
 ```
+
+Dieselben Schritte laufen in der CI (`.gitlab-ci.yml`): `gofmt`-Gate + `go vet`
++ `go test` fürs Backend, Biome-Lint + Build fürs Frontend.
 
 ## Deployment mit Docker
 
@@ -138,7 +164,7 @@ Die GitLab-CI baut nach jedem Commit auf `master` das Image und pusht es nach
 | `LOG_LEVEL`   | `info`  | `debug` \| `info` \| `warn` \| `error` |
 | `LOG_FORMAT`  | `text`  | `text` \| `json` |
 | `LOG_FILE`    | –       | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume) |
-| `WS_ALLOWED_ORIGINS` | `*` (offen) | Erlaubte WebSocket-Origins (kommagetrennt); Same-Origin ist immer erlaubt. Für öffentlichen Betrieb einschränken |
+| `WS_ALLOWED_ORIGINS` | Same-Origin + localhost/LAN | Zusätzlich erlaubte WebSocket-Origins (kommagetrennt). Standardmäßig sind Same-Origin sowie localhost/private LAN-IPs erlaubt; setzen, um das Frontend von einer **anderen** Domain aus zuzulassen |
 
 ## Performance
 
