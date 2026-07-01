@@ -26,6 +26,7 @@ test:frontend:
     - cd frontend
     - bun install --frozen-lockfile
     - bun run lint # Biome-Linter
+    - bun run test # Vitest (Unit-Tests: Regel-Mirror + Zod-Parsing)
     - bun run build # tsc -b && vite build → typecheckt und baut
 
 build:image:
