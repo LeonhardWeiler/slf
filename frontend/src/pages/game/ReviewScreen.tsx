@@ -136,27 +136,29 @@ export function ReviewScreen() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
                         {playerName(a.playerId)}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <p
+                          className={cn(
+                            "text-lg font-medium truncate",
+                            a.valid
+                              ? "text-foreground"
+                              : "line-through text-muted-foreground"
+                          )}
+                        >
+                          {a.value || "—"}
+                        </p>
                         {a.flamed && (
                           <span
-                            className="inline-flex items-center gap-0.5 text-orange-500"
+                            className="shrink-0 text-orange-500"
                             title="Flamme: Wette auf die einzige Antwort (+5 / 0)"
                           >
-                            <Flame className="h-3 w-3 fill-orange-500" />
+                            <Flame className="h-4 w-4 fill-orange-500" />
                           </span>
                         )}
-                      </span>
-                      <p
-                        className={cn(
-                          "text-lg font-medium truncate",
-                          a.valid
-                            ? "text-foreground"
-                            : "line-through text-muted-foreground"
-                        )}
-                      >
-                        {a.value || "—"}
-                      </p>
+                      </div>
                       {merged && (
                         <p className="text-xs text-muted-foreground">
                           ↳ zusammengeführt mit {playerName(a.mergedInto)}
