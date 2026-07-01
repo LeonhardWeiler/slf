@@ -19,6 +19,7 @@ class WSClient {
   private statusListeners = new Set<StatusListener>();
   private outbox: ClientEvent[] = [];
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
   private url: string;
 
   constructor(url: string) {
@@ -41,6 +42,7 @@ class WSClient {
 
       socket.onopen = () => {
         this.connecting = null;
+        this.reconnectAttempts = 0; // reset backoff after a successful connect
         this.notifyStatus(true);
         this.flush();
         resolve();
@@ -121,6 +123,13 @@ class WSClient {
 
   private scheduleReconnect() {
     if (this.reconnectTimer) return;
+    // Exponential backoff (1s → cap 30s) with jitter so many clients don't all
+    // retry in lock-step after a server restart (thundering herd). The delay is
+    // 50–100% of the current step; reset to 1s once a connection succeeds.
+    const cap = 30_000;
+    const base = Math.min(cap, 1000 * 2 ** this.reconnectAttempts);
+    const delay = base / 2 + Math.random() * (base / 2);
+    this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       void this.connect().then(() => {
@@ -128,7 +137,7 @@ class WSClient {
           this.send({ type: "reconnect", payload: {} });
         }
       });
-    }, 2000);
+    }, delay);
   }
 
   get isOpen() {
