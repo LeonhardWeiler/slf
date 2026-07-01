@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Frontend build output / TS incremental cache
+frontend/dist/
+*.tsbuildinfo
+
+# Backend build artifacts (air live-reload)
+backend/tmp/
+
+# Scratch
+tmp/
+
+# Editor / OS
+.DS_Store
