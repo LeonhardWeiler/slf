@@ -268,7 +268,6 @@ export function Home() {
                           .slice(0, 6)
                       )
                     }
-                    placeholder="z. B. a3f9k2"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
