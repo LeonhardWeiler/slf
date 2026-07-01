@@ -102,6 +102,19 @@ export function Home() {
     };
   }, []);
 
+  // While on the join-name step, route server errors (e.g. "Name bereits
+  // vergeben") to an inline message at the field instead of a toast — matching
+  // the code step. Cleared when leaving the step.
+  useEffect(() => {
+    if (step !== "joinName") return;
+    useToastStore.getState().setErrorSink((message) => {
+      setJoinError(message);
+      setLoading(false);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    });
+    return () => useToastStore.getState().setErrorSink(null);
+  }, [step]);
+
   // Already in a lobby (e.g. after a reconnect on reload, or once the server
   // confirms our create/join) → the global handlers set the lobby state and we
   // navigate there. The redirect unmounts this screen.
@@ -185,10 +198,11 @@ export function Home() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
     if (code.trim().length !== 6) {
-      addToast("Lobbycode muss 6 Zeichen lang sein");
+      setJoinError("Der Lobbycode muss 6 Zeichen lang sein.");
       setStep("joinCode");
       return;
     }
+    setJoinError(null);
     setLoading(true);
     armTimeout();
     ws.send({
@@ -414,18 +428,28 @@ export function Home() {
                   <Input
                     id="join-name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setJoinError(null);
+                      setName(e.target.value);
+                    }}
                     placeholder="Name eingeben…"
                     maxLength={20}
+                    aria-invalid={joinError != null}
                     autoFocus
                     autoComplete="off"
                   />
+                  {joinError && (
+                    <p className="text-sm text-destructive">{joinError}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => goTo("joinCode")}
+                    onClick={() => {
+                      setJoinError(null);
+                      goTo("joinCode");
+                    }}
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Zurück

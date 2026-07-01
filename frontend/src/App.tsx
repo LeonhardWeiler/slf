@@ -69,6 +69,13 @@ function AppRoutes() {
           .addToast("Verbindung zum Spiel verloren – bitte neu beitreten.");
         return;
       }
+      // If a form registered an inline error sink (e.g. the join-name step),
+      // route the error there instead of showing a transient toast.
+      const sink = useToastStore.getState().errorSink;
+      if (sink) {
+        sink(payload.message);
+        return;
+      }
       useToastStore.getState().addToast(payload.message);
     });
 

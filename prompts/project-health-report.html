@@ -69,7 +69,7 @@
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">2</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">1</div><div class="l">Niedrig</div></div>
     <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
   </div>
 
@@ -105,19 +105,6 @@
       Mitspieler aus der Runde bzw. dem Spiel.</p>
     <div class="rec"><b>Empfehlung:</b> Denselben <code>useConfirm</code>-Dialog auch
       auf diese beiden Buttons anwenden. (Bewusst noch offen gelassen.)</div>
-  </div>
-
-  <div class="card">
-    <h3><span class="id">UX-4</span> Uneinheitliche Fehlerdarstellung im Beitritts-Flow <span class="badge b-low">niedrig</span></h3>
-    <div class="loc"><code>frontend/src/pages/Home.tsx</code> — Code-Schritt: Inline-<code>joinError</code>; Namensschritt: <code>addToast</code></div>
-    <p>Beim Code-Schritt erscheinen Fehler (ungültig/voll/läuft) sauber
-      <b>inline unter dem Feld</b>. Der anschließende Namensschritt meldet dagegen
-      z.&nbsp;B. „Name bereits vergeben" nur als <b>flüchtigen Toast</b> — er
-      verschwindet nach kurzer Zeit, und das Namensfeld bekommt weder rote Umrandung
-      (<code>aria-invalid</code>) noch eine bleibende Begründung. Das wirkt
-      inkonsistent und ist auf Mobilgeräten leicht zu übersehen.</p>
-    <div class="rec"><b>Empfehlung:</b> Den Join-Namensfehler analog zum Code-Schritt
-      inline am Feld anzeigen (roter Rahmen + Text), statt nur per Toast.</div>
   </div>
 
   <div class="card">

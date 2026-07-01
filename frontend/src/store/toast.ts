@@ -14,6 +14,12 @@ interface ToastStore {
   // The Home submit spinner keys off this so a real error stops it, while
   // neutral "info" toasts (e.g. "reconnected") leave a pending action alone.
   errorSeq: number;
+  // Optional sink: while set, the next server error is delivered here (inline at
+  // a form field) instead of shown as a toast. The join-name step uses it so its
+  // error appears at the field — like the lobby-code step — rather than as a
+  // transient toast.
+  errorSink: ((message: string) => void) | null;
+  setErrorSink: (fn: ((message: string) => void) | null) => void;
   addToast: (message: string, variant?: ToastVariant) => void;
   dismissToast: (id: number) => void;
   clearToasts: () => void;
@@ -29,6 +35,8 @@ const MAX_TOASTS = 5;
 export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   errorSeq: 0,
+  errorSink: null,
+  setErrorSink: (fn) => set({ errorSink: fn }),
   addToast: (message, variant = "error") =>
     set((s) => ({
       toasts: [...s.toasts, { id: nextId++, message, variant }].slice(-MAX_TOASTS),
