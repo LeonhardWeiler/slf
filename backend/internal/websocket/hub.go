@@ -113,10 +113,16 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Lock()
 	lobby.Version++
-	players := make([]*game.Player, 0, len(lobby.Players))
+	players := make([]game.LobbyPlayer, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
-		cp := *p
-		players = append(players, &cp)
+		players = append(players, game.LobbyPlayer{
+			ID:        p.ID,
+			Name:      p.Name,
+			IsHost:    p.IsHost,
+			Connected: p.Connected,
+			Left:      p.Left,
+			Score:     p.Score,
+		})
 	}
 	// Stable, alphabetical order so the list never reshuffles on unrelated
 	// updates (e.g. a settings change). Tie-break on ID for determinism.

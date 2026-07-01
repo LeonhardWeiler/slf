@@ -3,11 +3,11 @@ package game
 import "time"
 
 type Player struct {
-	ID        string    `json:"id"`
-	SessionID string    `json:"sessionId"`
-	Name      string    `json:"name"`
-	IsHost    bool      `json:"isHost"`
-	Connected bool      `json:"connected"`
+	ID        string `json:"id"`
+	SessionID string `json:"sessionId"`
+	Name      string `json:"name"`
+	IsHost    bool   `json:"isHost"`
+	Connected bool   `json:"connected"`
 	// Left is true when the player left an in-progress game. They are kept in
 	// the standings but excluded from review and the lobby player list.
 	Left     bool      `json:"left"`
@@ -21,8 +21,8 @@ type Category struct {
 }
 
 type Settings struct {
-	TimeLimit                 *int     `json:"timeLimit"`
-	ShowLetterDuringCountdown bool     `json:"showLetterDuringCountdown"`
+	TimeLimit                 *int `json:"timeLimit"`
+	ShowLetterDuringCountdown bool `json:"showLetterDuringCountdown"`
 	// ExcludedLetters are letters the host disabled; they are never drawn.
 	ExcludedLetters []string `json:"excludedLetters"`
 }
@@ -83,13 +83,25 @@ type Session struct {
 	LobbyCode string
 }
 
+// LobbyPlayer is the public, broadcast-safe view of a player. It deliberately
+// omits SessionID (an auth secret that must never reach other clients) and the
+// internal JoinedAt, matching the SRS 9.15.3 player shape.
+type LobbyPlayer struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	IsHost    bool   `json:"isHost"`
+	Connected bool   `json:"connected"`
+	Left      bool   `json:"left"`
+	Score     int    `json:"score"`
+}
+
 type LobbyStatePayload struct {
-	LobbyCode  string      `json:"lobbyCode"`
-	HostID     string      `json:"hostId"`
-	Players    []*Player   `json:"players"`
-	Categories []*Category `json:"categories"`
-	Settings   Settings    `json:"settings"`
-	State      GameState   `json:"state"`
+	LobbyCode  string        `json:"lobbyCode"`
+	HostID     string        `json:"hostId"`
+	Players    []LobbyPlayer `json:"players"`
+	Categories []*Category   `json:"categories"`
+	Settings   Settings      `json:"settings"`
+	State      GameState     `json:"state"`
 }
 
 type SessionCreatedPayload struct {
@@ -102,7 +114,7 @@ type SessionCreatedPayload struct {
 // client-side in localStorage, SRS 5.6).
 type GameStatePayload struct {
 	RoundID            string   `json:"roundId"`
-	State              string   `json:"state"` // "Countdown" | "Playing"
+	State              string   `json:"state"`  // "Countdown" | "Playing"
 	Letter             string   `json:"letter"` // "" while hidden during countdown
 	UsedLetters        []string `json:"usedLetters"`
 	RemainingLetters   []string `json:"remainingLetters"`
