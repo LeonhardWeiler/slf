@@ -8,7 +8,7 @@ import { Home } from "@/pages/Home";
 import { Room } from "@/pages/Room";
 
 function AppRoutes() {
-  const { setLobby, setSession, setError, reset, closeWithNotice, lobby } =
+  const { setLobby, setSession, setError, closeWithNotice, lobby } =
     useLobbyStore();
   const pendingReconnect = useRef(false);
 
@@ -39,8 +39,13 @@ function AppRoutes() {
         payload.code === "LOBBY_NOT_FOUND" ||
         payload.code === "PLAYER_NOT_FOUND";
       if (pendingReconnect.current && staleSession) {
+        // The stored session no longer exists on the server (e.g. it was
+        // restarted and all in-RAM state is gone). Clear the session and
+        // explain it instead of silently bouncing back to the start screen.
         pendingReconnect.current = false;
-        reset();
+        closeWithNotice(
+          "Verbindung zum Spiel verloren – bitte neu beitreten."
+        );
         return;
       }
       setError(payload.message);
@@ -75,7 +80,7 @@ function AppRoutes() {
     ws.on("buzzRejected", (payload) => {
       useGameStore.getState().setBuzzRejected(payload.reason);
     });
-  }, [setLobby, setSession, setError, reset, closeWithNotice]);
+  }, [setLobby, setSession, setError, closeWithNotice]);
 
   return (
     <Routes>
