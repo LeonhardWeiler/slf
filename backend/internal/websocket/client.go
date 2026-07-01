@@ -3,7 +3,9 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -29,23 +31,61 @@ const (
 	rateRefill = 40.0  // tokens added per second
 )
 
-// allowedOriginPatterns returns the WebSocket Origin allow-list, read once from
-// WS_ALLOWED_ORIGINS (comma-separated hostname patterns, coder/websocket syntax).
-// Same-origin requests are always accepted regardless. The default "*" keeps
-// LAN/dev usage working out of the box; set the env var to lock it down for a
-// public deployment (CSWSH hardening).
-var allowedOriginPatterns = sync.OnceValue(func() []string {
-	out := make([]string, 0)
+// envAllowedOrigins is an optional explicit allow-list read once from
+// WS_ALLOWED_ORIGINS (comma-separated "host" or "host:port"). It is only needed
+// for origins that are neither same-origin nor local — e.g. a frontend hosted on
+// a different domain than the API. Entries are matched against the request
+// Origin's host (with and without port), case-insensitively.
+var envAllowedOrigins = sync.OnceValue(func() map[string]bool {
+	out := map[string]bool{}
 	for _, p := range strings.Split(os.Getenv("WS_ALLOWED_ORIGINS"), ",") {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
+		if p = strings.ToLower(strings.TrimSpace(p)); p != "" {
+			out[p] = true
 		}
-	}
-	if len(out) == 0 {
-		return []string{"*"}
 	}
 	return out
 })
+
+// originAllowed decides whether a WebSocket handshake may proceed, based on its
+// Origin header. Secure by default and zero-config:
+//   - No Origin header (native clients, tests) → allowed; CSWSH is browser-only.
+//   - Same-origin (Origin host == request Host) → allowed. This makes the
+//     single-image deploy work identically on localhost, a LAN IP or a domain.
+//   - localhost / loopback / private-LAN IPs (any port) → allowed, so the Vite
+//     dev server (also when reached via the machine's LAN IP, e.g. mobile
+//     testing) can connect cross-origin.
+//   - Anything else (e.g. a public attacker site) → rejected, unless explicitly
+//     listed in WS_ALLOWED_ORIGINS.
+//
+// net.ParseIP is used rather than glob patterns so a look-alike host such as
+// "192.168.evil.com" cannot slip through a "192.168.*" wildcard.
+func originAllowed(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	if strings.EqualFold(u.Host, r.Host) {
+		return true
+	}
+	if envAllowedOrigins()[strings.ToLower(u.Host)] {
+		return true
+	}
+	host := strings.ToLower(u.Hostname())
+	if envAllowedOrigins()[host] {
+		return true
+	}
+	if host == "localhost" {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsPrivate()) {
+		return true
+	}
+	return false
+}
 
 type Client struct {
 	conn      *websocket.Conn
@@ -77,8 +117,14 @@ func (c *Client) allow() bool {
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	// Reject cross-site origins ourselves (CSWSH protection), then skip the
+	// library's own origin check since originAllowed already covers it.
+	if !originAllowed(r) {
+		http.Error(w, "forbidden origin", http.StatusForbidden)
+		return
+	}
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		OriginPatterns: allowedOriginPatterns(),
+		InsecureSkipVerify: true,
 	})
 	if err != nil {
 		return
