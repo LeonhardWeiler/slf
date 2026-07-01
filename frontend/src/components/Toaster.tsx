@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 import { useToastStore, type Toast } from "@/store/toast";
 
@@ -6,17 +6,24 @@ const AUTO_DISMISS_MS = 3000;
 
 function ToastItem({ toast }: { toast: Toast }) {
   const dismiss = useToastStore((s) => s.dismissToast);
+  // Pause the auto-dismiss while the user hovers or focuses the toast, so a long
+  // message can be read (or reached with the keyboard) without it vanishing.
+  const [paused, setPaused] = useState(false);
 
-  // Each toast dismisses itself after a few seconds.
   useEffect(() => {
+    if (paused) return;
     const t = setTimeout(() => dismiss(toast.id), AUTO_DISMISS_MS);
     return () => clearTimeout(t);
-  }, [toast.id, dismiss]);
+  }, [toast.id, dismiss, paused]);
 
   return (
     <button
       type="button"
       onClick={() => dismiss(toast.id)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
       title="Schließen"
       className="pointer-events-auto flex w-full items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-left text-sm text-destructive shadow-lg backdrop-blur transition-colors hover:bg-destructive/20 animate-fade-in"
     >

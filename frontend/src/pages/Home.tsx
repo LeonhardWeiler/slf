@@ -197,7 +197,9 @@ export function Home() {
               >
                 <Suspense
                   fallback={
-                    <p className="text-sm text-muted-foreground">Kamera wird geladen…</p>
+                    <p aria-live="polite" className="text-sm text-muted-foreground">
+                      Kamera wird geladen…
+                    </p>
                   }
                 >
                   <QrScannerView
