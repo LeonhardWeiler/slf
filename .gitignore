@@ -5,8 +5,9 @@ node_modules/
 frontend/dist/
 *.tsbuildinfo
 
-# Backend build artifacts (air live-reload)
+# Backend build artifacts (air live-reload + manuelle go-build-Binaries)
 backend/tmp/
+backend/server
 
 # Scratch
 tmp/
