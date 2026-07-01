@@ -319,6 +319,9 @@ export function GameScreen() {
                         maxLength={30}
                         autoComplete="off"
                         autoFocus={idx === 0}
+                        // With flames on, Tab walks all inputs first (1..n), then
+                        // all flame buttons (n+1..2n), instead of input→flame.
+                        tabIndex={flamesEnabled ? idx + 1 : undefined}
                       />
                       {flamesEnabled && (
                         <Button
@@ -326,6 +329,7 @@ export function GameScreen() {
                           variant="outline"
                           size="icon"
                           aria-pressed={isFlamed}
+                          tabIndex={categories.length + idx + 1}
                           title={
                             isFlamed
                               ? "Flamme entfernen"
