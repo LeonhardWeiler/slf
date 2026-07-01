@@ -1,5 +1,6 @@
 import type { ClientEvent, ServerEvent } from "@/types/events";
 import { getSessionId } from "./session";
+import { parseServerEvent } from "./serverEvents";
 
 type EventHandler<T extends ServerEvent["type"]> = (
   payload: Extract<ServerEvent, { type: T }>["payload"]
@@ -52,15 +53,14 @@ class WSClient {
       };
 
       socket.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data as string) as ServerEvent;
-          const handler = this.handlers[msg.type];
-          if (handler) {
-            // @ts-expect-error dynamic dispatch
-            handler(msg.payload);
-          }
-        } catch {
-          // ignore malformed messages
+        // Validate with Zod before dispatching; malformed or unexpected-shape
+        // messages are dropped (SRS 9.3 / 9.12).
+        const msg = parseServerEvent(event.data as string);
+        if (!msg) return;
+        const handler = this.handlers[msg.type];
+        if (handler) {
+          // @ts-expect-error dynamic dispatch
+          handler(msg.payload);
         }
       };
 
