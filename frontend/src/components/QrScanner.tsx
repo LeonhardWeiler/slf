@@ -31,6 +31,15 @@ export function QrScannerView({
     const video = videoRef.current;
     if (!video) return;
 
+    // getUserMedia only works in a secure context (https or localhost); on a
+    // plain-http LAN address the browser never even shows the permission prompt.
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setError(
+        "Kamera nur über HTTPS verfügbar. Gib den Lobbycode stattdessen manuell ein."
+      );
+      return;
+    }
+
     const scanner = new QrScanner(
       video,
       (result) => {
@@ -47,10 +56,21 @@ export function QrScannerView({
       }
     );
 
-    scanner.start().catch(() => {
-      setError(
-        "Kamera konnte nicht gestartet werden. Erlaube den Kamerazugriff und versuche es erneut."
-      );
+    // start() internally calls getUserMedia, which triggers the iOS/Android
+    // permission prompt. Surface a helpful message per failure cause.
+    scanner.start().catch((err: unknown) => {
+      const name = err instanceof Error ? err.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError(
+          "Kamerazugriff wurde verweigert. Erlaube die Kamera in den Browser-Einstellungen und versuche es erneut."
+        );
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        setError("Keine Kamera gefunden. Gib den Lobbycode manuell ein.");
+      } else {
+        setError(
+          "Kamera konnte nicht gestartet werden. Erlaube den Kamerazugriff und versuche es erneut."
+        );
+      }
     });
 
     return () => {
@@ -62,7 +82,16 @@ export function QrScannerView({
   return (
     <div className="space-y-3">
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black">
-        <video ref={videoRef} className="h-full w-full object-cover" />
+        {/* playsInline + muted + autoPlay are required for the inline camera
+            preview to actually start on iOS Safari (otherwise it stays black or
+            tries to go fullscreen). */}
+        <video
+          ref={videoRef}
+          className="h-full w-full object-cover"
+          playsInline
+          muted
+          autoPlay
+        />
       </div>
       {error ? (
         <p className="text-sm text-destructive text-center">{error}</p>
