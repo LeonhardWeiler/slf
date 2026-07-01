@@ -93,6 +93,11 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 
 	hub.mu.Lock()
+	if hub.rooms.Count() >= maxLobbies {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, "Server ausgelastet – bitte später erneut versuchen")
+		return
+	}
 	// Pick a code not already in use, under the lock, so two lobbies can never
 	// collide and overwrite each other.
 	lobbyCode := hub.uniqueLobbyCode()
@@ -172,6 +177,11 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby.State != game.StateLobby {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
+		return
+	}
+	if len(lobby.Players) >= maxPlayersPerLobby {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, "Lobby ist voll")
 		return
 	}
 	for _, pl := range lobby.Players {
@@ -349,6 +359,11 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	lobby := hub.requireHostInLobby(c)
 	if lobby == nil {
+		return
+	}
+	if len(lobby.Categories) >= maxCategoriesPerLobby {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, "Maximale Anzahl Kategorien erreicht")
 		return
 	}
 	lobby.Categories = append(lobby.Categories, &game.Category{

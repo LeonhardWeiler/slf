@@ -10,6 +10,14 @@ import (
 	"slf/internal/game"
 )
 
+// Resource caps to bound memory use. Deliberately far above any realistic game
+// so normal players never hit them; they exist only to stop abuse.
+const (
+	maxLobbies            = 10000
+	maxPlayersPerLobby    = 200
+	maxCategoriesPerLobby = 100
+)
+
 type Hub struct {
 	mu       sync.Mutex
 	pending  map[*Client]struct{}
@@ -47,6 +55,19 @@ func (h *Hub) addPending(c *Client) {
 func (h *Hub) registerSession(c *Client, session *game.Session) {
 	h.mu.Lock()
 	delete(h.pending, c)
+	// If this socket was already bound to a different session (abnormal — a client
+	// creating/joining again without leaving), release the old binding so its
+	// lobby doesn't linger with a phantom-connected player and can be reaped.
+	if old := c.sessionID; old != "" && old != session.ID && h.clients[old] == c {
+		delete(h.clients, old)
+		if s, ok := h.sessions[old]; ok {
+			if r, ok := h.rooms.Get(s.LobbyCode); ok {
+				if p, ok := r.Players[s.PlayerID]; ok {
+					p.Connected = false
+				}
+			}
+		}
+	}
 	h.clients[session.ID] = c
 	h.sessions[session.ID] = session
 	h.mu.Unlock()

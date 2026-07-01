@@ -24,3 +24,7 @@ func (rm *RoomManager) Get(code string) (*game.Lobby, bool) {
 func (rm *RoomManager) Delete(code string) {
 	delete(rm.rooms, code)
 }
+
+func (rm *RoomManager) Count() int {
+	return len(rm.rooms)
+}
