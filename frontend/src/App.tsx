@@ -8,6 +8,8 @@ import { Home } from "@/pages/Home";
 import { Room } from "@/pages/Room";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toaster } from "@/components/Toaster";
+import { useToastStore } from "@/store/toast";
 
 function AppRoutes() {
   const { setLobby, setSession, setError, setHostGrace, closeWithNotice, lobby } =
@@ -50,7 +52,9 @@ function AppRoutes() {
         );
         return;
       }
+      // setError drives Home's submit spinner; the toast shows the message.
       setError(payload.message);
+      useToastStore.getState().addToast(payload.message);
     });
 
     ws.on("playerKicked", (payload) => {
@@ -99,6 +103,7 @@ function AppRoutes() {
   return (
     <>
       <HostGraceBanner />
+      <Toaster />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/join/:code" element={<Home />} />

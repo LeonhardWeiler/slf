@@ -3,6 +3,7 @@ import { useParams, Navigate } from "react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore } from "@/store/lobby";
+import { useToastStore } from "@/store/toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -27,6 +28,7 @@ type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 export function Home() {
   const params = useParams<{ code?: string }>();
   const { setError, error, lobby, notice, setNotice } = useLobbyStore();
+  const addToast = useToastStore((s) => s.addToast);
 
   const deepLinkCode = (params.code ?? "")
     .toLowerCase()
@@ -84,7 +86,7 @@ export function Home() {
     // on "Verbinde…" forever — surface an error so the user can retry.
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
-      setError("Keine Verbindung zum Server. Bitte erneut versuchen.");
+      addToast("Keine Verbindung zum Server. Bitte erneut versuchen.");
       setLoading(false);
     }, 8000);
   }
@@ -103,7 +105,7 @@ export function Home() {
   function submitJoinCode(e: React.FormEvent) {
     e.preventDefault();
     if (code.trim().length !== 6) {
-      setError("Lobbycode muss 6 Ziffern lang sein");
+      addToast("Lobbycode muss 6 Ziffern lang sein");
       return;
     }
     goTo("joinName");
@@ -114,7 +116,7 @@ export function Home() {
     const trimmedName = name.trim();
     if (!trimmedName) return;
     if (code.trim().length !== 6) {
-      setError("Lobbycode muss 6 Ziffern lang sein");
+      addToast("Lobbycode muss 6 Ziffern lang sein");
       setStep("joinCode");
       return;
     }
@@ -232,7 +234,6 @@ export function Home() {
                     autoComplete="off"
                   />
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -304,8 +305,6 @@ export function Home() {
                   <ScanLine className="h-4 w-4" />
                   QR-Code scannen
                 </Button>
-
-                {error && <p className="text-sm text-destructive">{error}</p>}
                 <div className="flex gap-2">
                   <Button
                     type="button"
@@ -351,7 +350,6 @@ export function Home() {
                     autoComplete="off"
                   />
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
                 <div className="flex gap-2">
                   <Button
                     type="button"

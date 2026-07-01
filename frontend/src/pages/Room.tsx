@@ -1,6 +1,5 @@
 import { Navigate } from "react-router";
 import { useLobbyStore } from "@/store/lobby";
-import { ErrorToast } from "@/components/ErrorToast";
 import { Lobby } from "./Lobby";
 import { GameScreen } from "./game/GameScreen";
 import { ReviewScreen } from "./game/ReviewScreen";
@@ -16,12 +15,7 @@ export function Room() {
     return <Navigate to="/" replace />;
   }
 
-  return (
-    <>
-      <ErrorToast />
-      {renderScreen(lobby.state)}
-    </>
-  );
+  return renderScreen(lobby.state);
 }
 
 function renderScreen(state: string) {
