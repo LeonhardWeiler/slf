@@ -43,7 +43,15 @@ func main() {
 	}
 
 	addr := "0.0.0.0:8080"
-	srv := &http.Server{Addr: addr, Handler: mux}
+	srv := &http.Server{
+		Addr:    addr,
+		Handler: mux,
+		// Bound the handshake/header read against slowloris. No ReadTimeout/
+		// WriteTimeout: they would kill long-lived WebSocket connections (which
+		// coder/websocket manages with its own deadlines after the upgrade).
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 
 	// Stop accepting new connections on SIGINT/SIGTERM (e.g. `docker stop`) and
 	// shut down cleanly instead of being killed mid-request.
