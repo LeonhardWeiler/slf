@@ -39,6 +39,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleInputSync(hub, c, msg.Payload)
 	case "buzz":
 		handleBuzz(hub, c)
+	case "setFlame":
+		handleSetFlame(hub, c, msg.Payload)
 	case "setAnswerValidity":
 		handleSetAnswerValidity(hub, c, msg.Payload)
 	case "mergeAnswers":
@@ -109,6 +111,9 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 			TimeLimit:                 nil,
 			ShowLetterDuringCountdown: true,
 			ExcludedLetters:           []string{},
+			HostPlays:                 true,
+			LastLetterMode:            false,
+			FlamesEnabled:             false,
 		},
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
@@ -288,6 +293,7 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		player.Connected = false
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			delete(lobby.Game.Round.Answers, player.ID)
+			delete(lobby.Game.Round.Flames, player.ID)
 		}
 		delete(hub.clients, sessionID)
 	}
@@ -436,6 +442,9 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		TimeLimit                 *int     `json:"timeLimit"`
 		ShowLetterDuringCountdown bool     `json:"showLetterDuringCountdown"`
 		ExcludedLetters           []string `json:"excludedLetters"`
+		HostPlays                 bool     `json:"hostPlays"`
+		LastLetterMode            bool     `json:"lastLetterMode"`
+		FlamesEnabled             bool     `json:"flamesEnabled"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
@@ -471,6 +480,9 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	lobby.Settings.TimeLimit = p.TimeLimit
 	lobby.Settings.ShowLetterDuringCountdown = p.ShowLetterDuringCountdown
 	lobby.Settings.ExcludedLetters = excluded
+	lobby.Settings.HostPlays = p.HostPlays
+	lobby.Settings.LastLetterMode = p.LastLetterMode
+	lobby.Settings.FlamesEnabled = p.FlamesEnabled
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)

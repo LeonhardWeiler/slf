@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { Flame } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore } from "@/store/lobby";
+import { cn } from "@/lib/utils";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { validateAnswers } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
+import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +40,7 @@ function useStopwatch(start: number, resetKey: string): number {
 }
 
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
+const flameKey = (roundId: string) => `slf:flame:${roundId}`;
 
 function formatClock(total: number): string {
   const m = Math.floor(total / 60);
@@ -46,9 +50,18 @@ function formatClock(total: number): string {
 
 export function GameScreen() {
   const { lobby } = useLobbyStore();
-  const { game, buzzRejected, setBuzzRejected } = useGameStore();
+  const { game, buzzRejected, setBuzzRejected, commentator } = useGameStore();
+  const isHost = useIsHost();
+
+  // A commentator host does not play: it fills nothing and instead watches the
+  // per-player fill overview.
+  const isSpectator = isHost && lobby?.settings.hostPlays === false;
+  const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
+  const flamesEnabled = lobby?.settings.flamesEnabled ?? false;
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  // The single category this player has "flamed" this round ("" = none).
+  const [flamed, setFlamed] = useState<string>("");
   const loadedRound = useRef<string>("");
   // Debounce buffer: latest value per category not yet sent to the server.
   const pendingAnswers = useRef<Record<string, string>>({});
@@ -70,8 +83,8 @@ export function GameScreen() {
     }
   }
 
-  // Load saved draft answers for this round and push them to the server so a
-  // reconnect mid-round restores progress (SRS 5.6 / 9.10).
+  // Load saved draft answers (and flame) for this round and push them to the
+  // server so a reconnect mid-round restores progress (SRS 5.6 / 9.10).
   useEffect(() => {
     if (!roundId || loadedRound.current === roundId) return;
     loadedRound.current = roundId;
@@ -88,6 +101,12 @@ export function GameScreen() {
       saved = {};
     }
     setAnswers(saved);
+
+    const savedFlame = localStorage.getItem(flameKey(roundId)) ?? "";
+    setFlamed(savedFlame);
+
+    if (isSpectator) return; // the commentator host submits nothing
+
     const entries = Object.entries(saved).filter(([, v]) => v.trim() !== "");
     if (entries.length > 0) {
       ws.send({
@@ -98,6 +117,10 @@ export function GameScreen() {
         },
       });
     }
+    if (savedFlame) {
+      ws.send({ type: "setFlame", payload: { categoryId: savedFlame } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roundId]);
 
   const countdown = useCountdown(
@@ -116,9 +139,9 @@ export function GameScreen() {
   // Validate once and reuse for both the buzz gate and the disabled-reason text.
   const validation =
     lobby && game
-      ? validateAnswers(lobby.categories, answers, game.letter)
+      ? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
       : { valid: false as const };
-  const canBuzz = lobby?.state === "Playing" && validation.valid;
+  const canBuzz = !isSpectator && lobby?.state === "Playing" && validation.valid;
 
   function handleBuzz() {
     flushAnswers(); // server must have the latest answers before the buzz check
@@ -167,6 +190,20 @@ export function GameScreen() {
     }
   }
 
+  // Toggle the flame on a category. Only one flame per round, so flaming another
+  // category moves it. The server is authoritative and enforces the same limit.
+  function toggleFlame(categoryId: string) {
+    const next = flamed === categoryId ? "" : categoryId;
+    setFlamed(next);
+    try {
+      if (next) localStorage.setItem(flameKey(roundId), next);
+      else localStorage.removeItem(flameKey(roundId));
+    } catch {
+      /* ignore quota errors */
+    }
+    ws.send({ type: "setFlame", payload: { categoryId: next } });
+  }
+
   // ---- Countdown phase ----
   // Phase is derived from the lobby state (single source of truth) so the
   // countdown screen shows immediately — even before the first gameState
@@ -199,10 +236,14 @@ export function GameScreen() {
 
   const categories = lobby.categories;
   const hasTimeLimit = lobby.settings.timeLimit !== null;
+  const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
 
   // ---- Playing phase ----
   // Red border stays on through 0 and until the round actually ends.
   const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5;
+
+  // Non-host players who are actually playing (for the commentator overview).
+  const playingPlayers = lobby.players.filter((p) => !p.left && !p.isHost);
 
   return (
     <div className="min-h-svh bg-background screen-pad">
@@ -211,13 +252,18 @@ export function GameScreen() {
         <div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
       )}
       <div className="mx-auto w-full max-w-5xl space-y-4 animate-fade-in">
-        <RoomHeader title="Runde läuft" />
+        <RoomHeader
+          title={isSpectator ? "Kommentator" : "Runde läuft"}
+          subtitle={
+            isSpectator ? "Wer hat schon ausgefüllt?" : undefined
+          }
+        />
 
         <Card>
           <CardContent className="pt-6 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Buchstabe
+                Buchstabe{lastLetterMode ? " (am Ende)" : ""}
               </p>
               <p className="text-6xl font-black leading-none">{game.letter}</p>
             </div>
@@ -247,44 +293,93 @@ export function GameScreen() {
           {dangerZone && timeLeft !== null ? `Noch ${timeLeft} Sekunden` : ""}
         </span>
 
-        <div className="space-y-3">
-          {categories.map((cat, idx) => (
-            <div key={cat.id} className="space-y-1">
-              <label className="text-sm font-medium">{cat.name}</label>
-              <Input
-                value={answers[cat.id] ?? ""}
-                onChange={(e) => updateAnswer(cat.id, e.target.value)}
-                placeholder={`${game.letter}…`}
-                maxLength={30}
-                autoComplete="off"
-                autoFocus={idx === 0}
+        {isSpectator ? (
+          <Card>
+            <CardContent className="pt-6">
+              <CommentatorBoard
+                categories={categories}
+                players={playingPlayers}
+                commentator={commentator}
               />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {categories.map((cat, idx) => {
+                const isFlamed = flamed === cat.id;
+                return (
+                  <div key={cat.id} className="space-y-1">
+                    <label className="text-sm font-medium">{cat.name}</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={answers[cat.id] ?? ""}
+                        onChange={(e) => updateAnswer(cat.id, e.target.value)}
+                        placeholder={placeholder}
+                        maxLength={30}
+                        autoComplete="off"
+                        autoFocus={idx === 0}
+                      />
+                      {flamesEnabled && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          aria-pressed={isFlamed}
+                          title={
+                            isFlamed
+                              ? "Flamme entfernen"
+                              : "Flamme setzen: Wette, dass du die einzige Antwort hast (+5 / 0)"
+                          }
+                          onClick={() => toggleFlame(cat.id)}
+                          className={cn(
+                            "shrink-0",
+                            isFlamed &&
+                              "border-orange-500 text-orange-500 bg-orange-500/10 hover:text-orange-500"
+                          )}
+                        >
+                          <Flame
+                            className={cn("h-4 w-4", isFlamed && "fill-orange-500")}
+                          />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
 
-        {(buzzRejected === "incompleteAnswers" ||
-          buzzRejected === "invalidAnswers") && (
-          <p className="text-sm text-destructive text-center">
-            Du musst alle Kategorien gültig ausfüllen, bevor du buzzern kannst.
-          </p>
+            {flamesEnabled && (
+              <p className="text-center text-xs text-muted-foreground">
+                🔥 = du wettest, die einzige Antwort zu haben (richtig +5, falsch 0).
+                Eine Flamme pro Runde.
+              </p>
+            )}
+
+            {(buzzRejected === "incompleteAnswers" ||
+              buzzRejected === "invalidAnswers") && (
+              <p className="text-sm text-destructive text-center">
+                Du musst alle Kategorien gültig ausfüllen, bevor du buzzern kannst.
+              </p>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleBuzz}
+                disabled={!validation.valid}
+              >
+                STOPP — Fertig!{validation.valid ? " (Enter)" : ""}
+              </Button>
+              {!validation.valid && (
+                <p className="text-center text-xs text-muted-foreground">
+                  {validation.reason}
+                </p>
+              )}
+            </div>
+          </>
         )}
-
-        <div className="space-y-2">
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleBuzz}
-            disabled={!validation.valid}
-          >
-            STOPP — Fertig!{validation.valid ? " (Enter)" : ""}
-          </Button>
-          {!validation.valid && (
-            <p className="text-center text-xs text-muted-foreground">
-              {validation.reason}
-            </p>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -55,6 +55,76 @@ func answerFor(round *game.Round, playerID, catID string) *game.Answer {
 	return nil
 }
 
+// flamedFor returns the set of players who flamed the given category this round.
+func flamedFor(round *game.Round, catID string) map[string]bool {
+	out := map[string]bool{}
+	for pid, fc := range round.Flames {
+		if fc == catID {
+			out[pid] = true
+		}
+	}
+	return out
+}
+
+// isSpectatorHost reports whether the player is a non-playing (commentator) host.
+func isSpectatorHost(lobby *game.Lobby, p *game.Player) bool {
+	return !lobby.Settings.HostPlays && p.IsHost
+}
+
+// buildCommentatorState summarises, per playing (non-host, non-left) player,
+// which categories they have filled — never the values. Caller must hold hub.mu.
+func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
+	r := lobby.Game.Round
+	players := make([]game.CommentatorPlayer, 0, len(lobby.Players))
+	for _, p := range lobby.Players {
+		if isSpectatorHost(lobby, p) || p.Left {
+			continue
+		}
+		filled := make([]string, 0, len(lobby.Categories))
+		for _, cat := range lobby.Categories {
+			if a := r.Answers[p.ID][cat.ID]; a != nil && game.Normalize(a.Value) != "" {
+				filled = append(filled, cat.ID)
+			}
+		}
+		players = append(players, game.CommentatorPlayer{
+			PlayerID:          p.ID,
+			FilledCategoryIDs: filled,
+			Complete:          len(filled) == len(lobby.Categories),
+		})
+	}
+	sort.Slice(players, func(i, j int) bool { return players[i].PlayerID < players[j].PlayerID })
+	return game.CommentatorStatePayload{RoundID: r.ID, Players: players}
+}
+
+// commentatorTarget returns the connected commentator-host client and the
+// current commentator payload, or ok=false when the host plays, is offline, or
+// there is no active round. Caller must hold hub.mu.
+func (hub *Hub) commentatorTarget(lobby *game.Lobby) (*Client, game.CommentatorStatePayload, bool) {
+	if lobby.Settings.HostPlays || lobby.Game == nil || lobby.Game.Round == nil {
+		return nil, game.CommentatorStatePayload{}, false
+	}
+	host := lobby.Players[lobby.HostID]
+	if host == nil {
+		return nil, game.CommentatorStatePayload{}, false
+	}
+	cl := hub.clients[host.SessionID]
+	if cl == nil {
+		return nil, game.CommentatorStatePayload{}, false
+	}
+	return cl, buildCommentatorState(lobby), true
+}
+
+// notifyCommentator sends the current fill overview to the commentator host, if
+// any. Caller must NOT hold hub.mu (it locks internally).
+func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
+	hub.mu.Lock()
+	cl, payload, ok := hub.commentatorTarget(lobby)
+	hub.mu.Unlock()
+	if ok {
+		_ = cl.send("commentatorState", payload)
+	}
+}
+
 // buildGameState builds the shared round view. Caller must hold hub.mu.
 func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 	g := lobby.Game
@@ -115,7 +185,8 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			perCat[pid] = a
 		}
 	}
-	game.ScoreCategory(perCat) // sets Points for the preview
+	flamed := flamedFor(r, cat.ID)
+	game.ScoreCategory(perCat, flamed) // sets Points for the preview
 
 	answers := make([]game.ReviewAnswer, 0, len(perCat))
 	for pid, a := range perCat {
@@ -126,6 +197,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			Valid:         a.Valid,
 			MergedInto:    a.MergedInto,
 			PointsPreview: a.Points,
+			Flamed:        flamed[pid],
 		})
 	}
 	sort.Slice(answers, func(i, j int) bool { return answers[i].PlayerID < answers[j].PlayerID })
@@ -143,8 +215,15 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
 func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
+	// A commentator host (HostPlays=false) does not participate, so it is left
+	// out of both the per-round scores and the ranking.
+	ranked := make(map[string]*game.Player, len(lobby.Players))
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
 	for pid, pl := range lobby.Players {
+		if isSpectatorHost(lobby, pl) {
+			continue
+		}
+		ranked[pid] = pl
 		scores = append(scores, game.ScoreEntry{
 			PlayerID:    pid,
 			RoundPoints: roundPoints[pid],
@@ -162,7 +241,7 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 	return game.RoundResultPayload{
 		Letter:           letter,
 		Scores:           scores,
-		Ranking:          game.ComputeRanking(lobby.Players),
+		Ranking:          game.ComputeRanking(ranked),
 		UsedLetters:      used,
 		RemainingLetters: remaining,
 		IsGameOver:       isGameOver,

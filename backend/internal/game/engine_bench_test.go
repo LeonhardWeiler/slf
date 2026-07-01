@@ -24,7 +24,7 @@ func BenchmarkScoreCategory(b *testing.B) {
 					cp := *a
 					answers[k] = &cp
 				}
-				ScoreCategory(answers)
+				ScoreCategory(answers, nil)
 			}
 		})
 	}

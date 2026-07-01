@@ -30,6 +30,20 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeValidationError, "Mindestens 1 Spieler und 1 Kategorie nötig")
 		return
 	}
+	// A commentator host does not play, so at least one other player is needed.
+	if !lobby.Settings.HostPlays {
+		playing := 0
+		for _, p := range lobby.Players {
+			if !p.IsHost {
+				playing++
+			}
+		}
+		if playing < 1 {
+			hub.mu.Unlock()
+			hub.sendError(c, CodeValidationError, "Als Kommentator brauchst du mindestens einen Mitspieler")
+			return
+		}
+	}
 	letters := game.AlphabetExcluding(lobby.Settings.ExcludedLetters)
 	if len(letters) < 1 {
 		hub.mu.Unlock()
@@ -69,6 +83,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 		ID:        generateID(),
 		Letter:    letter,
 		Answers:   map[string]map[string]*game.Answer{},
+		Flames:    map[string]string{},
 		StartedAt: time.Now(),
 	}
 	g.Round = round
@@ -102,6 +117,8 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastGameState(lobby)
+	// A commentator host sees the (initially empty) fill overview right away.
+	hub.notifyCommentator(lobby)
 
 	if !endsAt.IsZero() {
 		time.AfterFunc(time.Until(endsAt), func() {
@@ -121,15 +138,20 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	hub.mu.Lock()
-	defer hub.mu.Unlock()
 	session, lobby, _, ok := hub.lookupLocked(c.sessionID)
 	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
 		return
 	}
 	if !categoryExists(lobby, p.CategoryID) {
+		hub.mu.Unlock()
 		return
 	}
 	storeAnswer(lobby.Game.Round, session.PlayerID, p.CategoryID, p.Value)
+	hub.mu.Unlock()
+
+	// Keep a commentator host's fill overview live as players type.
+	hub.notifyCommentator(lobby)
 }
 
 func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
@@ -144,12 +166,13 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	hub.mu.Lock()
-	defer hub.mu.Unlock()
 	session, lobby, _, ok := hub.lookupLocked(c.sessionID)
 	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
 		return
 	}
 	if lobby.Game.Round.ID != p.RoundID {
+		hub.mu.Unlock()
 		return
 	}
 	for _, a := range p.Answers {
@@ -157,6 +180,41 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 			storeAnswer(lobby.Game.Round, session.PlayerID, a.CategoryID, a.Value)
 		}
 	}
+	hub.mu.Unlock()
+
+	hub.notifyCommentator(lobby)
+}
+
+// handleSetFlame records (or clears, when categoryId is empty) the player's
+// flame for this round — a bet that their answer for that category is unique.
+// At most one flame per player per round, only while playing and only when the
+// host enabled the feature.
+func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
+	var p struct {
+		CategoryID string `json:"categoryId"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return
+	}
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
+	if !ok || !lobby.Settings.FlamesEnabled ||
+		lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		return
+	}
+	// A commentator host does not play, so cannot flame.
+	if !lobby.Settings.HostPlays && player.IsHost {
+		return
+	}
+	if p.CategoryID == "" {
+		delete(lobby.Game.Round.Flames, session.PlayerID)
+		return
+	}
+	if !categoryExists(lobby, p.CategoryID) {
+		return
+	}
+	lobby.Game.Round.Flames[session.PlayerID] = p.CategoryID
 }
 
 func handleBuzz(hub *Hub, c *Client) {
@@ -179,7 +237,7 @@ func handleBuzz(hub *Hub, c *Client) {
 			hub.sendBuzzRejected(c, "incompleteAnswers")
 			return
 		}
-		if !game.IsRuleValid(round.Letter, ans.Value) {
+		if !game.IsRuleValid(round.Letter, ans.Value, lobby.Settings.LastLetterMode) {
 			hub.mu.Unlock()
 			hub.sendBuzzRejected(c, "invalidAnswers")
 			return
@@ -207,7 +265,7 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
 	// Default validity: rule-conforming answers start valid (SRS 6.4).
 	for _, byCat := range g.Round.Answers {
 		for _, ans := range byCat {
-			ans.Valid = game.IsRuleValid(g.Round.Letter, ans.Value)
+			ans.Valid = game.IsRuleValid(g.Round.Letter, ans.Value, lobby.Settings.LastLetterMode)
 		}
 	}
 	hub.mu.Unlock()
@@ -350,7 +408,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 				perCat[pid] = ans
 			}
 		}
-		game.ScoreCategory(perCat)
+		game.ScoreCategory(perCat, flamedFor(round, cat.ID))
 		for pid, ans := range perCat {
 			roundPoints[pid] += ans.Points
 		}
@@ -463,6 +521,10 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 	case game.StateCountdown, game.StatePlaying:
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			c.sendV("gameState", buildGameState(lobby), lobby.Version)
+			// A reconnecting commentator host also gets the current fill overview.
+			if cl, payload, ok := hub.commentatorTarget(lobby); ok && cl == c {
+				c.sendV("commentatorState", payload, lobby.Version)
+			}
 		}
 	case game.StateReviewing:
 		if lobby.Game != nil && lobby.Game.Round != nil && len(lobby.Categories) > 0 {

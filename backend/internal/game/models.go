@@ -25,6 +25,16 @@ type Settings struct {
 	ShowLetterDuringCountdown bool `json:"showLetterDuringCountdown"`
 	// ExcludedLetters are letters the host disabled; they are never drawn.
 	ExcludedLetters []string `json:"excludedLetters"`
+	// HostPlays controls whether the host participates. When false the host is a
+	// pure commentator: no answers, excluded from scoring/ranking, and shown a
+	// per-player completion overview during play (for a beamer setup).
+	HostPlays bool `json:"hostPlays"`
+	// LastLetterMode makes answers have to *end* with the drawn letter instead of
+	// starting with it (a "spice" the host can enable).
+	LastLetterMode bool `json:"lastLetterMode"`
+	// FlamesEnabled lets each player bet, once per round, that their answer for a
+	// category is unique (a "flame"): if right +5, if wrong 0.
+	FlamesEnabled bool `json:"flamesEnabled"`
 }
 
 type Lobby struct {
@@ -63,6 +73,10 @@ type Round struct {
 	StartedAt time.Time `json:"-"`
 	// ReviewIndex is the category currently under review.
 	ReviewIndex int `json:"-"`
+	// Flames maps a playerID to the categoryID they "flamed" this round (a bet
+	// that their answer is unique). At most one entry per player = one flame per
+	// round. Only meaningful when Settings.FlamesEnabled.
+	Flames map[string]string `json:"-"`
 }
 
 // Game is a sequence of rounds over a fresh alphabet within one lobby.
@@ -129,6 +143,8 @@ type ReviewAnswer struct {
 	Valid         bool   `json:"valid"`
 	MergedInto    string `json:"mergedInto"`
 	PointsPreview int    `json:"pointsPreview"`
+	// Flamed is true when this player bet (flamed) that their answer is unique.
+	Flamed bool `json:"flamed"`
 }
 
 type ReviewStatePayload struct {
@@ -163,4 +179,19 @@ type RoundResultPayload struct {
 	// "AlphabetFinished" | "HostEnded". HostDisconnected is not used since the
 	// host-disconnect timeout is intentionally not implemented (see TODO B1).
 	Reason string `json:"reason,omitempty"`
+}
+
+// CommentatorPlayer is one player's fill progress in the current round, without
+// leaking the answer contents themselves.
+type CommentatorPlayer struct {
+	PlayerID          string   `json:"playerId"`
+	FilledCategoryIDs []string `json:"filledCategoryIds"`
+	Complete          bool     `json:"complete"`
+}
+
+// CommentatorStatePayload is sent only to a non-playing (commentator) host so it
+// can show, on a beamer, who has filled in which categories — never the values.
+type CommentatorStatePayload struct {
+	RoundID string              `json:"roundId"`
+	Players []CommentatorPlayer `json:"players"`
 }

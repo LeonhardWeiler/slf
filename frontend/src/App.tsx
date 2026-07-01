@@ -66,6 +66,9 @@ function AppRoutes() {
     ws.on("reviewState", (payload) => {
       useGameStore.getState().setReview(payload);
     });
+    ws.on("commentatorState", (payload) => {
+      useGameStore.getState().setCommentator(payload);
+    });
     ws.on("roundResult", (payload) => {
       useGameStore.getState().setResult(payload);
     });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
-import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off } from "lucide-react";
+import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off, Flame } from "lucide-react";
 import { cn, isTypingTarget } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -136,8 +136,16 @@ export function ReviewScreen() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
                         {playerName(a.playerId)}
+                        {a.flamed && (
+                          <span
+                            className="inline-flex items-center gap-0.5 text-orange-500"
+                            title="Flamme: Wette auf die einzige Antwort (+5 / 0)"
+                          >
+                            <Flame className="h-3 w-3 fill-orange-500" />
+                          </span>
+                        )}
                       </span>
                       <p
                         className={cn(

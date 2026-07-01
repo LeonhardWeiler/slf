@@ -111,6 +111,9 @@ export function Lobby() {
     timeLimit?: number | null;
     showLetterDuringCountdown?: boolean;
     excludedLetters?: string[];
+    hostPlays?: boolean;
+    lastLetterMode?: boolean;
+    flamesEnabled?: boolean;
   }) {
     const s = lobby!.settings;
     ws.send({
@@ -120,6 +123,9 @@ export function Lobby() {
         showLetterDuringCountdown:
           patch.showLetterDuringCountdown ?? s.showLetterDuringCountdown,
         excludedLetters: patch.excludedLetters ?? s.excludedLetters,
+        hostPlays: patch.hostPlays ?? s.hostPlays,
+        lastLetterMode: patch.lastLetterMode ?? s.lastLetterMode,
+        flamesEnabled: patch.flamesEnabled ?? s.flamesEnabled,
       },
     });
   }
@@ -131,8 +137,13 @@ export function Lobby() {
     updateSettings({ excludedLetters: [...excluded] });
   }
 
+  // A commentator host (hostPlays=false) doesn't count as a player, so at least
+  // one other player is required to start.
+  const playingCount = lobby.settings.hostPlays
+    ? activePlayers.length
+    : activePlayers.filter((p) => !p.isHost).length;
   const canStart =
-    isHost && activePlayers.length >= 1 && lobby.categories.length >= 1;
+    isHost && playingCount >= 1 && lobby.categories.length >= 1;
 
   return (
     <div className="min-h-svh bg-background screen-pad">
@@ -251,7 +262,7 @@ export function Lobby() {
                 <div className="flex items-center gap-2">
                   {player.isHost && (
                     <span className="text-xs text-muted-foreground font-medium">
-                      Host
+                      {lobby.settings.hostPlays ? "Host" : "Host · Kommentator"}
                     </span>
                   )}
                   {isHost && player.id !== myPlayerId && (
@@ -421,6 +432,77 @@ export function Lobby() {
               )}
             </div>
 
+            {/* Host commentator mode */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Host spielt mit</p>
+                <p className="text-xs text-muted-foreground">
+                  Aus: Der Host ist nur Kommentator und sieht auf dem Beamer, wer
+                  schon ausgefüllt hat – ohne die Antworten selbst.
+                </p>
+              </div>
+              {isHost ? (
+                <Switch
+                  checked={lobby.settings.hostPlays}
+                  onCheckedChange={(v: boolean) =>
+                    updateSettings({ hostPlays: v })
+                  }
+                  aria-label="Host spielt mit"
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground shrink-0">
+                  {lobby.settings.hostPlays ? "Ja" : "Nein"}
+                </span>
+              )}
+            </div>
+
+            {/* Last-letter spice */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Letzter statt erster Buchstabe</p>
+                <p className="text-xs text-muted-foreground">
+                  Antworten müssen mit dem Buchstaben <em>enden</em> statt beginnen.
+                </p>
+              </div>
+              {isHost ? (
+                <Switch
+                  checked={lobby.settings.lastLetterMode}
+                  onCheckedChange={(v: boolean) =>
+                    updateSettings({ lastLetterMode: v })
+                  }
+                  aria-label="Letzter statt erster Buchstabe"
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground shrink-0">
+                  {lobby.settings.lastLetterMode ? "Ja" : "Nein"}
+                </span>
+              )}
+            </div>
+
+            {/* Flames spice */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Flammen 🔥</p>
+                <p className="text-xs text-muted-foreground">
+                  Wette pro Runde auf eine Kategorie, dass du die einzige Antwort
+                  hast: richtig +5 (15), falsch 0 Punkte.
+                </p>
+              </div>
+              {isHost ? (
+                <Switch
+                  checked={lobby.settings.flamesEnabled}
+                  onCheckedChange={(v: boolean) =>
+                    updateSettings({ flamesEnabled: v })
+                  }
+                  aria-label="Flammen aktivieren"
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground shrink-0">
+                  {lobby.settings.flamesEnabled ? "Ja" : "Nein"}
+                </span>
+              )}
+            </div>
+
             {/* Letter selection */}
             <div className="space-y-2">
               {/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
@@ -493,7 +575,9 @@ export function Lobby() {
             </Button>
             {!canStart && (
               <p className="text-center text-xs text-muted-foreground">
-                Mindestens 1 Spieler und 1 Kategorie nötig.
+                {!lobby.settings.hostPlays && playingCount < 1
+                  ? "Als Kommentator brauchst du mindestens einen Mitspieler."
+                  : "Mindestens 1 Spieler und 1 Kategorie nötig."}
               </p>
             )}
           </div>

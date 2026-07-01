@@ -59,23 +59,34 @@ func Normalize(value string) string {
 }
 
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
-// given letter: non-empty, 1–30 chars, starts with the letter (SRS 5.5).
-func IsRuleValid(letter, value string) bool {
+// given letter: non-empty, 1–30 chars, and starting with the letter — or, when
+// lastLetter is set, ending with it (SRS 5.5 + last-letter spice).
+func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
 	if n == "" {
 		return false
 	}
-	if rc := len([]rune(n)); rc < 1 || rc > 30 {
+	runes := []rune(n)
+	if rc := len(runes); rc < 1 || rc > 30 {
 		return false
 	}
-	return strings.HasPrefix(n, strings.ToUpper(letter))
+	upperLetter := strings.ToUpper(letter)
+	if lastLetter {
+		last := strings.ToUpper(string(runes[len(runes)-1]))
+		return last == upperLetter
+	}
+	return strings.HasPrefix(strings.ToUpper(n), upperLetter)
 }
 
 // ScoreCategory assigns points to every answer of one category in place
 // (SRS 7): 0 invalid/empty, 5 valid-but-shared, 10 unique valid, 20 only valid
 // answer in the category. Answers sharing a normalized value or linked via a
 // host merge count as the same group.
-func ScoreCategory(answers map[string]*Answer) {
+//
+// flamed lists players who bet that their answer is unique. A flamed answer that
+// turns out unique earns +5 on top of its base points (10→15, 20→25); a flamed
+// answer that is shared with someone earns 0 instead of 5.
+func ScoreCategory(answers map[string]*Answer, flamed map[string]bool) {
 	valid := make([]string, 0, len(answers))
 	validSet := map[string]bool{}
 	for pid, a := range answers {
@@ -144,6 +155,15 @@ func ScoreCategory(answers map[string]*Answer) {
 			a.Points = 20
 		default:
 			a.Points = 10
+		}
+		// Flame modifier: betting your answer is unique. If shared → 0; if
+		// actually unique → +5 (10→15, 20→25).
+		if flamed[pid] {
+			if size > 1 {
+				a.Points = 0
+			} else {
+				a.Points += 5
+			}
 		}
 	}
 }

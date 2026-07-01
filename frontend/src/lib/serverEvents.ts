@@ -34,6 +34,9 @@ const settingsSchema = z.object({
   timeLimit: z.number().nullable(),
   showLetterDuringCountdown: z.boolean(),
   excludedLetters: z.array(z.string()),
+  hostPlays: z.boolean(),
+  lastLetterMode: z.boolean(),
+  flamesEnabled: z.boolean(),
 });
 
 const lobbyStatePayload = z.object({
@@ -69,6 +72,7 @@ const reviewAnswerSchema = z.object({
   valid: z.boolean(),
   mergedInto: z.string(),
   pointsPreview: z.number(),
+  flamed: z.boolean(),
 });
 
 const reviewStatePayload = z.object({
@@ -78,6 +82,17 @@ const reviewStatePayload = z.object({
   categoryIndex: z.number(),
   categoryCount: z.number(),
   answers: z.array(reviewAnswerSchema),
+});
+
+const commentatorStatePayload = z.object({
+  roundId: z.string(),
+  players: z.array(
+    z.object({
+      playerId: z.string(),
+      filledCategoryIds: z.array(z.string()),
+      complete: z.boolean(),
+    })
+  ),
 });
 
 const roundResultPayload = z.object({
@@ -125,6 +140,10 @@ const serverEventSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("gameState"), payload: gameStatePayload }),
   z.object({ type: z.literal("reviewState"), payload: reviewStatePayload }),
+  z.object({
+    type: z.literal("commentatorState"),
+    payload: commentatorStatePayload,
+  }),
   z.object({ type: z.literal("roundResult"), payload: roundResultPayload }),
   z.object({
     type: z.literal("buzzRejected"),

@@ -24,6 +24,9 @@ export interface Settings {
   timeLimit: number | null;
   showLetterDuringCountdown: boolean;
   excludedLetters: string[];
+  hostPlays: boolean;
+  lastLetterMode: boolean;
+  flamesEnabled: boolean;
 }
 
 export interface LobbyStatePayload {
@@ -86,6 +89,7 @@ export interface ReviewAnswer {
   valid: boolean;
   mergedInto: string;
   pointsPreview: number;
+  flamed: boolean;
 }
 
 export interface ReviewStatePayload {
@@ -107,6 +111,17 @@ export interface RankEntry {
   playerId: string;
   rank: number;
   score: number;
+}
+
+export interface CommentatorPlayer {
+  playerId: string;
+  filledCategoryIds: string[];
+  complete: boolean;
+}
+
+export interface CommentatorStatePayload {
+  roundId: string;
+  players: CommentatorPlayer[];
 }
 
 export type GameOverReason = "AlphabetFinished" | "HostEnded";
@@ -134,6 +149,7 @@ export type ServerEvent =
   | { type: "lobbyClosed"; payload: { reason: "hostLeft" } }
   | { type: "gameState"; payload: GameStatePayload }
   | { type: "reviewState"; payload: ReviewStatePayload }
+  | { type: "commentatorState"; payload: CommentatorStatePayload }
   | { type: "roundResult"; payload: RoundResultPayload }
   | { type: "buzzRejected"; payload: { reason: BuzzRejectReason } }
   | { type: "error"; payload: ErrorPayload };
@@ -153,6 +169,9 @@ export type ClientEvent =
         timeLimit: number | null;
         showLetterDuringCountdown: boolean;
         excludedLetters: string[];
+        hostPlays: boolean;
+        lastLetterMode: boolean;
+        flamesEnabled: boolean;
       };
     }
   | { type: "kickPlayer"; payload: { playerId: string } }
@@ -163,6 +182,7 @@ export type ClientEvent =
       payload: { roundId: string; answers: { categoryId: string; value: string }[] };
     }
   | { type: "buzz"; payload: Record<string, never> }
+  | { type: "setFlame"; payload: { categoryId: string } }
   | { type: "setAnswerValidity"; payload: { answerId: string; valid: boolean } }
   | {
       type: "mergeAnswers";

@@ -12,8 +12,9 @@ export function normalize(value: string): string {
 }
 
 // Zod schema for a single answer given the current letter. Mirrors
-// engine.IsRuleValid: non-empty, 1–30 chars, starts with the round letter.
-function answerSchema(letter: string) {
+// engine.IsRuleValid: non-empty, 1–30 chars, starts with the round letter — or,
+// in last-letter mode, ends with it.
+function answerSchema(letter: string, lastLetter: boolean) {
   const upper = letter.toUpperCase();
   return z
     .string()
@@ -21,9 +22,15 @@ function answerSchema(letter: string) {
     .refine((n) => n.length >= 1 && n.length <= 30, {
       message: "1–30 Zeichen",
     })
-    .refine((n) => n.startsWith(upper), {
-      message: `muss mit ${upper} beginnen`,
-    });
+    .refine(
+      (n) =>
+        lastLetter
+          ? n.slice(-1).toUpperCase() === upper
+          : n.startsWith(upper),
+      {
+        message: lastLetter ? `muss mit ${upper} enden` : `muss mit ${upper} beginnen`,
+      }
+    );
 }
 
 export interface AnswerValidation {
@@ -37,9 +44,10 @@ export interface AnswerValidation {
 export function validateAnswers(
   categories: Category[],
   answers: Record<string, string>,
-  letter: string
+  letter: string,
+  lastLetter = false
 ): AnswerValidation {
-  const schema = answerSchema(letter);
+  const schema = answerSchema(letter, lastLetter);
   for (const cat of categories) {
     const raw = answers[cat.id] ?? "";
     if (raw.trim() === "") {
