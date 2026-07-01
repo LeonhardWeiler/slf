@@ -6,14 +6,15 @@ import { useLobbyStore } from "@/store/lobby";
 // events land in store.error but only Home renders them inline; this surfaces
 // them everywhere else (rejected host actions, validation, category minimum …).
 export function ErrorToast() {
-  const { error, setError } = useLobbyStore();
+  const { error, errorSeq, setError } = useLobbyStore();
 
-  // Auto-dismiss after a while so a stale error does not linger forever.
+  // Auto-dismiss after a while so a stale error does not linger forever. Keyed on
+  // errorSeq so an identical consecutive error restarts the timer (bug-2).
   useEffect(() => {
     if (!error) return;
     const t = setTimeout(() => setError(null), 6000);
     return () => clearTimeout(t);
-  }, [error, setError]);
+  }, [error, errorSeq, setError]);
 
   if (!error) return null;
   return (

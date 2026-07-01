@@ -7,6 +7,9 @@ interface LobbyStore {
   myPlayerId: string | null;
   mySessionId: string | null;
   error: string | null;
+  // Bumped on every setError so an identical consecutive error still counts as a
+  // fresh event (re-shows / resets the toast timer instead of being swallowed).
+  errorSeq: number;
   notice: string | null;
   // Seconds left until the lobby closes because the host is disconnected; null
   // when the host is present (SRS 4.6/8.5). Shown as a shared countdown banner.
@@ -36,6 +39,7 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
   myPlayerId: null,
   mySessionId: null,
   error: null,
+  errorSeq: 0,
   notice: null,
   hostGrace: null,
 
@@ -44,7 +48,8 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
     setSessionId(sessionId);
     set({ mySessionId: sessionId, myPlayerId: playerId });
   },
-  setError: (error) => set({ error }),
+  setError: (error) =>
+    set((s) => ({ error, errorSeq: error ? s.errorSeq + 1 : s.errorSeq })),
   setNotice: (notice) => set({ notice }),
   setHostGrace: (seconds) => set({ hostGrace: seconds }),
   reset: () => {
