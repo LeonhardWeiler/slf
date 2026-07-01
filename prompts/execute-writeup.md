@@ -1,0 +1,2 @@
+Ich hab das writeup angesehen und hab meine meinung zu den punkten in die todo.md datei geschrieben. gehe diese punkte durch und implementiere sie nach der reihe.
+Arbeite alle schritte aus der TODO.md Datei durch. Committe nach jedem punkt. Mach zuerst einen plan bevor du startest. wenn du fragen hast stelle diese. Wenn es Updates in der README gibt mach diese aus und commit danach. ändere die agent-writeup.html datei, wenn die aufgaben der todo datei darin etwas geändert haben
