@@ -20,6 +20,9 @@ gesamte Spielzustand liegt im RAM.
   - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
 - **Punktevergabe** nach klassischen Regeln (siehe unten)
 - **Reconnect**: Reload oder kurzer Verbindungsabbruch führt zurück ins Spiel
+- **Host-Disconnect-Schutz**: Verliert der Host die Verbindung, sehen alle
+  Spieler einen 15-Sekunden-Countdown; kehrt er zurück, geht es weiter, sonst
+  wird die Lobby geschlossen (SRS 4.6/8.5)
 - Hell-/Dunkel-Theme, responsives Layout, Tastatur-Steuerung
 
 ## Tech-Stack
@@ -183,3 +186,23 @@ go run ./cmd/loadtest -players 500     # verbindet 500 Spieler, misst Broadcast-
 Das Werkzeug öffnet die Spieler über viele Lobbys, lässt alle Hosts gleichzeitig
 eine Zustandsänderung auslösen und misst je Client die Zeit bis zum
 resultierenden `lobbyState`-Broadcast (Ø/p50/p95/p99/max).
+
+## Bewusste Entscheidungen & bekannte Einschränkungen
+
+Diese Punkte sind bekannt und bewusst so gewählt – sie sind **kein Problem** für
+den vorgesehenen Einsatz (LAN-/Party-Spiel):
+
+- **Ein globaler Mutex im Hub** serialisiert alle Lobbys. Für die aktuelle Skala
+  unkritisch (Loadtest: 500 Spieler, Ø < 5 ms Roundtrip); ein Sharding pro Lobby
+  wäre erst bei sehr vielen gleichzeitigen Spielen nötig und wurde daher bewusst
+  nicht umgesetzt.
+- **Clipboard-Fallback über `document.execCommand("copy")`**: Über plain-HTTP im
+  LAN (typisch: Handy verbindet per lokaler IP) ist `navigator.clipboard` nicht
+  verfügbar. Der Fallback nutzt das offiziell veraltete, aber weiterhin breit
+  unterstützte `execCommand` – bewusst als pragmatischer Kompromiss.
+- **Kein Host-Handoff**: Kehrt ein getrennter Host nicht innerhalb der 15 s
+  zurück, wird die Lobby geschlossen (keine Übertragung der Host-Rolle) – für ein
+  Party-Spiel gewollt einfach gehalten.
+- **Kein Persistenz-Layer**: Der gesamte Zustand liegt im RAM. Nach einem
+  Server-Neustart sind Lobbys weg; Clients werden sauber getrennt und kehren zur
+  Startseite zurück.
