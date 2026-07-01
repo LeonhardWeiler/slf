@@ -133,10 +133,13 @@ func securityHeaders(h http.Header) {
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
+	// Isolate our browsing context from any window that opened us (defence in
+	// depth against cross-origin popup/opener attacks).
+	h.Set("Cross-Origin-Opener-Policy", "same-origin")
 	h.Set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
 	// Only honoured by browsers over HTTPS (ignored on plain-HTTP localhost/LAN),
 	// so it is safe to always send and hardens a future TLS/domain deployment.
-	h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+	h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 }
 
 // spaHandler serves static files from dir and falls back to index.html for
@@ -150,9 +153,18 @@ func spaHandler(dir string) http.Handler {
 		path := filepath.Join(dir, clean)
 		// Only serve a real file inside dir; otherwise hand the SPA its entrypoint.
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			// Vite emits content-hashed filenames under /assets/, so those can be
+			// cached immutably for a year; everything else (index.html, robots.txt,
+			// favicon) must revalidate so a redeploy is picked up.
+			if strings.HasPrefix(r.URL.Path, "/assets/") {
+				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			} else {
+				w.Header().Set("Cache-Control", "no-cache")
+			}
 			fs.ServeHTTP(w, r)
 			return
 		}
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, index)
 	})
 }

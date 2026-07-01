@@ -130,15 +130,19 @@ function AppRoutes() {
     <>
       <HostGraceBanner />
       <Toaster />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/join/:code" element={<Home />} />
-        <Route
-          path="/lobby"
-          element={lobby ? <Room /> : <Navigate to="/" replace />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      {/* Single <main> landmark around the routed content (the fixed overlays
+          above stay outside it) so assistive tech can jump to the main content. */}
+      <main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/join/:code" element={<Home />} />
+          <Route
+            path="/lobby"
+            element={lobby ? <Room /> : <Navigate to="/" replace />}
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
     </>
   );
 }
