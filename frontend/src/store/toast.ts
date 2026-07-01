@@ -10,9 +10,10 @@ export interface Toast {
 
 interface ToastStore {
   toasts: Toast[];
-  // Monotonic count of toasts ever added (never decreases on dismiss). Lets
-  // consumers react to "a new toast appeared" without being fooled by removals.
-  seq: number;
+  // Monotonic count of *error* toasts ever shown (never decreases on dismiss).
+  // The Home submit spinner keys off this so a real error stops it, while
+  // neutral "info" toasts (e.g. "reconnected") leave a pending action alone.
+  errorSeq: number;
   addToast: (message: string, variant?: ToastVariant) => void;
   dismissToast: (id: number) => void;
   clearToasts: () => void;
@@ -27,11 +28,11 @@ const MAX_TOASTS = 5;
 // use the default "error" variant; neutral status updates pass "info".
 export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
-  seq: 0,
+  errorSeq: 0,
   addToast: (message, variant = "error") =>
     set((s) => ({
       toasts: [...s.toasts, { id: nextId++, message, variant }].slice(-MAX_TOASTS),
-      seq: s.seq + 1,
+      errorSeq: s.errorSeq + (variant === "error" ? 1 : 0),
     })),
   dismissToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),

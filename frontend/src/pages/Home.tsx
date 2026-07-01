@@ -40,9 +40,10 @@ export function Home() {
   const params = useParams<{ code?: string }>();
   const { lobby } = useLobbyStore();
   const addToast = useToastStore((s) => s.addToast);
-  // Monotonic toast counter: a new toast (validation or server error) means the
-  // pending submit failed → stop the spinner. Robust against auto-dismissals.
-  const toastSeq = useToastStore((s) => s.seq);
+  // Counter of error toasts: a new *error* (validation or server error) means the
+  // pending submit failed → stop the spinner. Info toasts (e.g. a reconnect
+  // notice) don't bump it, so they no longer end the spinner prematurely.
+  const errorSeq = useToastStore((s) => s.errorSeq);
 
   const deepLinkCode = (params.code ?? "")
     .toLowerCase()
@@ -86,12 +87,13 @@ export function Home() {
     };
   }, []);
 
-  // Stop the loading spinner once any toast appears (validation or server error).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new toast
+  // Stop the loading spinner once a new error toast appears (validation or
+  // server error) — not on unrelated info toasts.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new error toast
   useEffect(() => {
     setLoading(false);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, [toastSeq]);
+  }, [errorSeq]);
 
   // Clean up the pending timeout if the component unmounts.
   useEffect(() => {
