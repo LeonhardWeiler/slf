@@ -131,7 +131,6 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Lock()
-	lobby.Version++
 	players := make([]game.LobbyPlayer, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
 		players = append(players, game.LobbyPlayer{
@@ -160,19 +159,10 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		Settings:   lobby.Settings,
 		State:      lobby.State,
 	}
-	msg, _ := json.Marshal(OutboundMessage{Type: "lobbyState", Payload: payload, StateVersion: lobby.Version})
-
-	var targets []*Client
-	for _, p := range lobby.Players {
-		if c, ok := h.clients[p.SessionID]; ok {
-			targets = append(targets, c)
-		}
-	}
+	msg, targets := h.prepareBroadcast(lobby, "lobbyState", payload)
 	h.mu.Unlock()
 
-	for _, c := range targets {
-		_ = c.writeRaw(msg)
-	}
+	writeAll(targets, msg)
 }
 
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {

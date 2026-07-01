@@ -172,20 +172,32 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 
 // ---- broadcasts ----
 
-func (hub *Hub) broadcastTo(lobby *game.Lobby, msgType string, payload any) {
-	hub.mu.Lock()
+// prepareBroadcast bumps the lobby version, marshals the message and collects
+// the current recipients — all in one step. Caller must hold hub.mu; the actual
+// writes happen after unlocking via writeAll.
+func (hub *Hub) prepareBroadcast(lobby *game.Lobby, msgType string, payload any) ([]byte, []*Client) {
 	lobby.Version++
 	msg, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: lobby.Version})
-	var targets []*Client
+	targets := make([]*Client, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
 		if cl, ok := hub.clients[p.SessionID]; ok {
 			targets = append(targets, cl)
 		}
 	}
-	hub.mu.Unlock()
+	return msg, targets
+}
+
+func writeAll(targets []*Client, msg []byte) {
 	for _, cl := range targets {
 		_ = cl.writeRaw(msg)
 	}
+}
+
+func (hub *Hub) broadcastTo(lobby *game.Lobby, msgType string, payload any) {
+	hub.mu.Lock()
+	msg, targets := hub.prepareBroadcast(lobby, msgType, payload)
+	hub.mu.Unlock()
+	writeAll(targets, msg)
 }
 
 func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
@@ -194,9 +206,10 @@ func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
 		hub.mu.Unlock()
 		return
 	}
-	payload := buildGameState(lobby)
+	// Build payload, bump version and collect targets under a single lock.
+	msg, targets := hub.prepareBroadcast(lobby, "gameState", buildGameState(lobby))
 	hub.mu.Unlock()
-	hub.broadcastTo(lobby, "gameState", payload)
+	writeAll(targets, msg)
 }
 
 func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
@@ -205,9 +218,9 @@ func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 		hub.mu.Unlock()
 		return
 	}
-	payload := buildReviewState(lobby)
+	msg, targets := hub.prepareBroadcast(lobby, "reviewState", buildReviewState(lobby))
 	hub.mu.Unlock()
-	hub.broadcastTo(lobby, "reviewState", payload)
+	writeAll(targets, msg)
 }
 
 func (hub *Hub) sendBuzzRejected(c *Client, reason string) {
