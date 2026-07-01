@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function RoundResultScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
-  const { result, game } = useGameStore();
+  const { result } = useGameStore();
   const isHost = useIsHost();
 
   // Host can start the next round with Enter. Ending the game stays button-only.
@@ -42,8 +42,8 @@ export function RoundResultScreen() {
   const roundPointsOf = (id: string) =>
     result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
-  const lettersLeft = game?.remainingLetters.length ?? 0;
-  const usedLetters = new Set(game?.usedLetters ?? []);
+  const lettersLeft = result.remainingLetters.length;
+  const usedLetters = new Set(result.usedLetters);
   const excludedLetters = new Set(lobby.settings.excludedLetters);
 
   return (

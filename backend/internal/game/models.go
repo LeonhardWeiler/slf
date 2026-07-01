@@ -153,10 +153,12 @@ type RankEntry struct {
 }
 
 type RoundResultPayload struct {
-	Letter     string       `json:"letter"`
-	Scores     []ScoreEntry `json:"scores"`
-	Ranking    []RankEntry  `json:"ranking"`
-	IsGameOver bool         `json:"isGameOver"`
+	Letter           string       `json:"letter"`
+	Scores           []ScoreEntry `json:"scores"`
+	Ranking          []RankEntry  `json:"ranking"`
+	UsedLetters      []string     `json:"usedLetters"`
+	RemainingLetters []string     `json:"remainingLetters"`
+	IsGameOver       bool         `json:"isGameOver"`
 	// Reason is set only when IsGameOver (SRS 9.15.14):
 	// "AlphabetFinished" | "HostEnded". HostDisconnected is not used since the
 	// host-disconnect timeout is intentionally not implemented (see TODO B1).

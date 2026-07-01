@@ -115,6 +115,8 @@ export interface RoundResultPayload {
   letter: string;
   scores: ScoreEntry[];
   ranking: RankEntry[];
+  usedLetters: string[];
+  remainingLetters: string[];
   isGameOver: boolean;
   reason?: GameOverReason;
 }

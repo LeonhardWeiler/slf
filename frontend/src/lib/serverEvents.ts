@@ -96,6 +96,8 @@ const roundResultPayload = z.object({
       score: z.number(),
     })
   ),
+  usedLetters: z.array(z.string()),
+  remainingLetters: z.array(z.string()),
   isGameOver: z.boolean(),
   // Lenient: an unknown reason must not cause a valid result to be dropped.
   reason: z.string().optional(),

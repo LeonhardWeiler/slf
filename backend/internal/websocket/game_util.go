@@ -152,12 +152,21 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 		})
 	}
 	sort.Slice(scores, func(i, j int) bool { return scores[i].PlayerID < scores[j].PlayerID })
+	// Carry the letter progress so the client's round-result screen is
+	// self-sufficient (also after a reconnect, where no gameState is replayed).
+	var used, remaining []string
+	if lobby.Game != nil {
+		used = lobby.Game.UsedLetters
+		remaining = lobby.Game.RemainingLetters
+	}
 	return game.RoundResultPayload{
-		Letter:     letter,
-		Scores:     scores,
-		Ranking:    game.ComputeRanking(lobby.Players),
-		IsGameOver: isGameOver,
-		Reason:     reason,
+		Letter:           letter,
+		Scores:           scores,
+		Ranking:          game.ComputeRanking(lobby.Players),
+		UsedLetters:      used,
+		RemainingLetters: remaining,
+		IsGameOver:       isGameOver,
+		Reason:           reason,
 	}
 }
 
