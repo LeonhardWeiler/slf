@@ -44,7 +44,7 @@ export function RoundResultScreen() {
 
   const lettersLeft = game?.remainingLetters.length ?? 0;
   const usedLetters = new Set(game?.usedLetters ?? []);
-  const excludedLetters = new Set(lobby.settings.excludedLetters ?? []);
+  const excludedLetters = new Set(lobby.settings.excludedLetters);
 
   return (
     <div className="min-h-screen bg-background screen-pad">

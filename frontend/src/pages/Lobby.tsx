@@ -119,13 +119,13 @@ export function Lobby() {
         timeLimit: patch.timeLimit !== undefined ? patch.timeLimit : s.timeLimit,
         showLetterDuringCountdown:
           patch.showLetterDuringCountdown ?? s.showLetterDuringCountdown,
-        excludedLetters: patch.excludedLetters ?? s.excludedLetters ?? [],
+        excludedLetters: patch.excludedLetters ?? s.excludedLetters,
       },
     });
   }
 
   function toggleLetter(letter: string) {
-    const excluded = new Set(lobby!.settings.excludedLetters ?? []);
+    const excluded = new Set(lobby!.settings.excludedLetters);
     if (excluded.has(letter)) excluded.delete(letter);
     else excluded.add(letter);
     updateSettings({ excludedLetters: [...excluded] });
@@ -427,9 +427,9 @@ export function Lobby() {
                 <p className="text-sm font-medium">Buchstaben</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    {26 - (lobby.settings.excludedLetters ?? []).length} von 26 aktiv
+                    {26 - lobby.settings.excludedLetters.length} von 26 aktiv
                   </span>
-                  {isHost && (lobby.settings.excludedLetters ?? []).length > 0 && (
+                  {isHost && lobby.settings.excludedLetters.length > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -448,9 +448,8 @@ export function Lobby() {
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {ALPHABET.map((letter) => {
-                  const excluded = (lobby.settings.excludedLetters ?? []).includes(
-                    letter
-                  );
+                  const excluded =
+                    lobby.settings.excludedLetters.includes(letter);
                   return (
                     <button
                       key={letter}
