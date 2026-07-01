@@ -138,8 +138,14 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	hub.mu.Lock()
-	session, lobby, _, ok := hub.lookupLocked(c.sessionID)
+	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		return
+	}
+	// A commentator host does not play, so it must not submit answers (they would
+	// otherwise show up in review and skew the category scoring for everyone else).
+	if isSpectatorHost(lobby, player) {
 		hub.mu.Unlock()
 		return
 	}
@@ -166,8 +172,12 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	hub.mu.Lock()
-	session, lobby, _, ok := hub.lookupLocked(c.sessionID)
+	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		return
+	}
+	if isSpectatorHost(lobby, player) {
 		hub.mu.Unlock()
 		return
 	}
@@ -219,8 +229,14 @@ func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 
 func handleBuzz(hub *Hub, c *Client) {
 	hub.mu.Lock()
-	session, lobby, _, ok := hub.lookupLocked(c.sessionID)
+	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		hub.sendBuzzRejected(c, "invalidState")
+		return
+	}
+	// A commentator host does not play and therefore cannot buzz.
+	if isSpectatorHost(lobby, player) {
 		hub.mu.Unlock()
 		hub.sendBuzzRejected(c, "invalidState")
 		return
@@ -404,6 +420,11 @@ func handleFinishReview(hub *Hub, c *Client) {
 	for _, cat := range lobby.Categories {
 		perCat := map[string]*game.Answer{}
 		for pid, byCat := range round.Answers {
+			// Defense-in-depth: never score a commentator host, even if a crafted
+			// client managed to slip answers into the round.
+			if pl, ok := lobby.Players[pid]; ok && isSpectatorHost(lobby, pl) {
+				continue
+			}
 			if ans, ok := byCat[cat.ID]; ok {
 				perCat[pid] = ans
 			}

@@ -181,8 +181,9 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 
 	perCat := map[string]*game.Answer{}
 	for pid, byCat := range r.Answers {
-		// Skip players who left the game — they are kept only for the standings.
-		if pl, ok := lobby.Players[pid]; ok && pl.Left {
+		// Skip players who left the game (kept only for the standings) and a
+		// commentator host (must never have answers in play).
+		if pl, ok := lobby.Players[pid]; ok && (pl.Left || isSpectatorHost(lobby, pl)) {
 			continue
 		}
 		if a, ok := byCat[cat.ID]; ok {
