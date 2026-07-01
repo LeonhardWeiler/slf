@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	"slf/internal/game"
@@ -42,6 +43,8 @@ func handleStartGame(hub *Hub, c *Client) {
 		RemainingLetters: letters,
 		UsedLetters:      []string{},
 	}
+	slog.Info("game started",
+		"lobby", lobby.Code, "players", len(lobby.Players), "letters", len(letters))
 	hub.mu.Unlock()
 
 	hub.beginCountdown(lobby)
@@ -71,7 +74,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 		StartedAt: time.Now(),
 	}
 	g.Round = round
-	lobby.State = game.StateCountdown
+	setLobbyState(lobby, game.StateCountdown)
 	roundID := round.ID
 	hub.mu.Unlock()
 
@@ -90,7 +93,7 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 		hub.mu.Unlock()
 		return
 	}
-	lobby.State = game.StatePlaying
+	setLobbyState(lobby, game.StatePlaying)
 	g.Round.StartedAt = time.Now()
 	var endsAt time.Time
 	if lobby.Settings.TimeLimit != nil {
@@ -202,7 +205,7 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
 		hub.mu.Unlock()
 		return
 	}
-	lobby.State = game.StateReviewing
+	setLobbyState(lobby, game.StateReviewing)
 	g.Round.ReviewIndex = 0
 	// Default validity: rule-conforming answers start valid (SRS 6.4).
 	for _, byCat := range g.Round.Answers {
@@ -355,7 +358,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 			pl.Score += pts
 		}
 	}
-	lobby.State = game.StateRoundResult
+	setLobbyState(lobby, game.StateRoundResult)
 	result := buildRoundResult(lobby, round.Letter, roundPoints, false, "")
 	lobby.Game.LastResult = &result
 	hub.mu.Unlock()
@@ -413,7 +416,7 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
-	lobby.State = game.StateLobby
+	setLobbyState(lobby, game.StateLobby)
 	lobby.Game = nil
 	// Drop players who left mid-game (they only stayed for the final table) and
 	// reset every remaining score for the next game.
@@ -433,7 +436,7 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 
 func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.mu.Lock()
-	lobby.State = game.StateGameOver
+	setLobbyState(lobby, game.StateGameOver)
 	result := buildRoundResult(lobby, "", map[string]int{}, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result

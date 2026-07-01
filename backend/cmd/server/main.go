@@ -1,15 +1,20 @@
 package main
 
 import (
+	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"slf/internal/websocket"
 )
 
 func main() {
+	setupLogging()
+
 	hub := websocket.NewHub()
 
 	mux := http.NewServeMux()
@@ -37,6 +42,39 @@ func main() {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// setupLogging configures the global slog logger from the environment
+// (SRS 12.9). LOG_LEVEL: debug|info|warn|error (default info). LOG_FORMAT:
+// text|json (default text). LOG_FILE: if set, logs are appended to that file in
+// addition to stdout — in Docker this path lives on a volume (see compose).
+func setupLogging() {
+	level := slog.LevelInfo
+	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
+	case "debug":
+		level = slog.LevelDebug
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	}
+
+	var w io.Writer = os.Stdout
+	if lf := os.Getenv("LOG_FILE"); lf != "" {
+		f, err := os.OpenFile(lf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			log.Printf("Konnte Logdatei %s nicht öffnen: %v", lf, err)
+		} else {
+			w = io.MultiWriter(os.Stdout, f)
+		}
+	}
+
+	opts := &slog.HandlerOptions{Level: level}
+	var h slog.Handler = slog.NewTextHandler(w, opts)
+	if strings.ToLower(os.Getenv("LOG_FORMAT")) == "json" {
+		h = slog.NewJSONHandler(w, opts)
+	}
+	slog.SetDefault(slog.New(h))
 }
 
 // spaHandler serves static files from dir and falls back to index.html for

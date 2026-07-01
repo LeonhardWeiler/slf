@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"log/slog"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -121,6 +122,8 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 
 	hub.registerSession(c, session)
 
+	slog.Info("lobby created", "lobby", lobbyCode, "host", name)
+
 	c.send("sessionCreated", game.SessionCreatedPayload{
 		SessionID: sessionID,
 		PlayerID:  playerID,
@@ -195,6 +198,8 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.registerSession(c, session)
 
+	slog.Info("player joined", "lobby", code, "player", name)
+
 	c.send("sessionCreated", game.SessionCreatedPayload{
 		SessionID: sessionID,
 		PlayerID:  playerID,
@@ -231,6 +236,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 
 	// replace old client with new connection
 	hub.clients[sessionID] = c
+	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
 
 	c.sessionID = sessionID
@@ -253,6 +259,7 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		hub.mu.Unlock()
 		return
 	}
+	slog.Info("player left", "lobby", lobby.Code, "player", player.Name, "host", player.IsHost)
 
 	if player.IsHost {
 		hub.mu.Unlock()
@@ -493,6 +500,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	delete(lobby.Players, p.PlayerID)
 	delete(hub.sessions, targetSession)
 	delete(hub.clients, targetSession)
+	slog.Info("player kicked", "lobby", lobby.Code, "player", target.Name)
 	hub.mu.Unlock()
 
 	if targetClient != nil {

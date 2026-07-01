@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"sort"
 	"strings"
 	"sync"
@@ -55,6 +56,8 @@ func (h *Hub) onDisconnect(c *Client) {
 				lobby = r
 				if p, ok := r.Players[s.PlayerID]; ok {
 					p.Connected = false
+					slog.Info("player disconnected",
+						"lobby", r.Code, "player", p.Name, "host", p.IsHost)
 				}
 			}
 		}
@@ -88,6 +91,7 @@ func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.
 // every connected player so their clients return to the start screen.
 // Used when the host leaves or the lobby is otherwise torn down (SRS 4.8).
 func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
+	slog.Info("lobby closed", "lobby", lobby.Code, "reason", reason)
 	h.mu.Lock()
 	var targets []*Client
 	for _, p := range lobby.Players {
@@ -166,7 +170,11 @@ func (h *Hub) sendTo(sessionID string, msgType string, payload any) {
 }
 
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
-	c.send("error", errorPayload{Code: code, Message: message, Severity: severityOf(code)})
+	severity := severityOf(code)
+	if severity == "critical" {
+		slog.Error("critical error", "code", string(code), "session", c.sessionID, "message", message)
+	}
+	c.send("error", errorPayload{Code: code, Message: message, Severity: severity})
 }
 
 func (h *Hub) writeRawTo(c *Client, msg []byte) {

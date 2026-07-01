@@ -2,11 +2,22 @@ package websocket
 
 import (
 	"encoding/json"
+	"log/slog"
 	"sort"
 	"time"
 
 	"slf/internal/game"
 )
+
+// setLobbyState updates a lobby's state and logs the transition (SRS 12.9).
+// Caller must hold hub.mu.
+func setLobbyState(lobby *game.Lobby, to game.GameState) {
+	if lobby.State != to {
+		slog.Info("state transition",
+			"lobby", lobby.Code, "from", string(lobby.State), "to", string(to))
+	}
+	lobby.State = to
+}
 
 func categoryExists(lobby *game.Lobby, catID string) bool {
 	for _, c := range lobby.Categories {
