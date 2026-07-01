@@ -26,7 +26,7 @@ export function GameOverScreen() {
         : null;
 
   return (
-    <div className="min-h-screen bg-background screen-pad">
+    <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader title="Spiel beendet" />
 

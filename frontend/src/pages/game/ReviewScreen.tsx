@@ -54,7 +54,7 @@ export function ReviewScreen() {
 
   if (!lobby || !review) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-svh bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Bewertung wird geladen…</p>
       </div>
     );
@@ -84,7 +84,7 @@ export function ReviewScreen() {
   const mergeMode = mergeAnchor !== null;
 
   return (
-    <div className="min-h-screen bg-background screen-pad">
+    <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader
           title="Bewertung"

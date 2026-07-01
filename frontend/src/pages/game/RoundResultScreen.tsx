@@ -29,7 +29,7 @@ export function RoundResultScreen() {
 
   if (!lobby || !result) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-svh bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Ergebnis wird geladen…</p>
       </div>
     );
@@ -47,7 +47,7 @@ export function RoundResultScreen() {
   const excludedLetters = new Set(lobby.settings.excludedLetters);
 
   return (
-    <div className="min-h-screen bg-background screen-pad">
+    <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader title="Rundenergebnis" subtitle={`Buchstabe ${result.letter}`} />
 
