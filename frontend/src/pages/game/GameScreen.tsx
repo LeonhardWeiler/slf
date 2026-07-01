@@ -42,6 +42,28 @@ function useStopwatch(start: number, resetKey: string): number {
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
 const flameKey = (roundId: string) => `slf:flame:${roundId}`;
 
+// Draft answers/flames are stored per round. Drop every round's drafts except the
+// current one so localStorage doesn't grow unbounded across many games.
+function purgeOtherRoundDrafts(keepRoundId: string) {
+  try {
+    const keep = new Set([answersKey(keepRoundId), flameKey(keepRoundId)]);
+    const stale: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (
+        (k.startsWith("slf:answers:") || k.startsWith("slf:flame:")) &&
+        !keep.has(k)
+      ) {
+        stale.push(k);
+      }
+    }
+    for (const k of stale) localStorage.removeItem(k);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
 function formatClock(total: number): string {
   const m = Math.floor(total / 60);
   const s = total % 60;
@@ -88,6 +110,8 @@ export function GameScreen() {
   useEffect(() => {
     if (!roundId || loadedRound.current === roundId) return;
     loadedRound.current = roundId;
+    // Clear out drafts from earlier rounds so localStorage stays bounded.
+    purgeOtherRoundDrafts(roundId);
     // Drop any buffered answers from the previous round.
     pendingAnswers.current = {};
     if (flushTimer.current) {
