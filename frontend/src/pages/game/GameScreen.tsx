@@ -50,14 +50,37 @@ export function GameScreen() {
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const loadedRound = useRef<string>("");
+  // Debounce buffer: latest value per category not yet sent to the server.
+  const pendingAnswers = useRef<Record<string, string>>({});
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const roundId = game?.roundId ?? "";
+
+  // Send all buffered answer changes now (also used before buzzing and on unmount
+  // so no keystrokes are lost).
+  function flushAnswers() {
+    if (flushTimer.current) {
+      clearTimeout(flushTimer.current);
+      flushTimer.current = null;
+    }
+    const pending = pendingAnswers.current;
+    pendingAnswers.current = {};
+    for (const [categoryId, value] of Object.entries(pending)) {
+      ws.send({ type: "answerUpdate", payload: { categoryId, value } });
+    }
+  }
 
   // Load saved draft answers for this round and push them to the server so a
   // reconnect mid-round restores progress (SRS 5.6 / 9.10).
   useEffect(() => {
     if (!roundId || loadedRound.current === roundId) return;
     loadedRound.current = roundId;
+    // Drop any buffered answers from the previous round.
+    pendingAnswers.current = {};
+    if (flushTimer.current) {
+      clearTimeout(flushTimer.current);
+      flushTimer.current = null;
+    }
     let saved: Record<string, string> = {};
     try {
       saved = JSON.parse(localStorage.getItem(answersKey(roundId)) ?? "{}");
@@ -98,9 +121,17 @@ export function GameScreen() {
   const canBuzz = lobby?.state === "Playing" && validation.valid;
 
   function handleBuzz() {
+    flushAnswers(); // server must have the latest answers before the buzz check
     setBuzzRejected(null);
     ws.send({ type: "buzz", payload: {} });
   }
+
+  // Flush any buffered answers when leaving the screen (e.g. round ended on
+  // timeout) so the last keystrokes still reach the server.
+  useEffect(() => {
+    return () => flushAnswers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Buzz with Enter (there's no form to submit). Only when an all-valid set
   // is ready and we are actually in the playing phase.
@@ -128,7 +159,12 @@ export function GameScreen() {
       }
       return next;
     });
-    ws.send({ type: "answerUpdate", payload: { categoryId, value } });
+    // Debounce the server sync: batch keystrokes into at most one answerUpdate
+    // per ~250ms instead of one message per keystroke.
+    pendingAnswers.current[categoryId] = value;
+    if (!flushTimer.current) {
+      flushTimer.current = setTimeout(flushAnswers, 250);
+    }
   }
 
   // ---- Countdown phase ----
