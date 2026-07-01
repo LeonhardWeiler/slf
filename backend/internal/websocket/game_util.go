@@ -271,6 +271,11 @@ func (hub *Hub) prepareBroadcast(lobby *game.Lobby, msgType string, payload any)
 	return msg, targets
 }
 
+// writeAll sends msg to every target. Writes happen after hub.mu is released, so
+// two goroutines (e.g. a timer-driven broadcast and a handler-driven one) can
+// write to the same client concurrently — this is safe because coder/websocket
+// serialises Conn.Write internally with its own mutex. Do not add a shared
+// buffer here without accounting for that.
 func writeAll(targets []*Client, msg []byte) {
 	for _, cl := range targets {
 		_ = cl.writeRaw(msg)
