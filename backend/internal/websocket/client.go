@@ -16,6 +16,9 @@ import (
 // (TCP backpressure) would stall the whole broadcast loop for everyone.
 const writeTimeout = 5 * time.Second
 
+// maxMessageBytes caps a single inbound WebSocket message (64 KiB).
+const maxMessageBytes = 1 << 16
+
 // Per-connection message rate limit (token bucket). Deliberately generous: a
 // normal client peaks around a handful of messages per second (debounced answer
 // updates, occasional actions), so it never hits this — but a flooding client is
@@ -80,6 +83,10 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	// Cap a single inbound message. Set explicitly (rather than relying on the
+	// library default) so the bound is intentional and version-stable. 64 KiB is
+	// ample for the largest client message (an inputSync of all answers).
+	conn.SetReadLimit(maxMessageBytes)
 
 	c := &Client{conn: conn, hub: hub}
 	hub.addPending(c)
