@@ -39,16 +39,27 @@ type Hub struct {
 	// hostGrace holds the running grace timer per lobby code while its host is
 	// disconnected; cancelled on host reconnect, fired → lobby closed.
 	hostGrace map[string]*time.Timer
+	// hostGraceDuration is how long the grace lasts; overridable in tests.
+	hostGraceDuration time.Duration
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		pending:   make(map[*Client]struct{}),
-		clients:   make(map[string]*Client),
-		sessions:  make(map[string]*game.Session),
-		rooms:     NewRoomManager(),
-		hostGrace: make(map[string]*time.Timer),
+		pending:           make(map[*Client]struct{}),
+		clients:           make(map[string]*Client),
+		sessions:          make(map[string]*game.Session),
+		rooms:             NewRoomManager(),
+		hostGrace:         make(map[string]*time.Timer),
+		hostGraceDuration: hostGraceSeconds * time.Second,
 	}
+}
+
+// setHostGraceDuration overrides the grace window (used by tests to avoid waiting
+// the full 15s). Guarded by the hub mutex so it happens-before the reader.
+func (h *Hub) setHostGraceDuration(d time.Duration) {
+	h.mu.Lock()
+	h.hostGraceDuration = d
+	h.mu.Unlock()
 }
 
 // Shutdown cleanly closes every open WebSocket with a 1001 (going away) frame so
@@ -218,14 +229,15 @@ func (h *Hub) startHostGrace(lobby *game.Lobby) {
 		return
 	}
 	code := lobby.Code
-	lobby.HostGraceUntil = time.Now().Add(hostGraceSeconds * time.Second)
-	h.hostGrace[code] = time.AfterFunc(hostGraceSeconds*time.Second, func() {
+	lobby.HostGraceUntil = time.Now().Add(h.hostGraceDuration)
+	h.hostGrace[code] = time.AfterFunc(h.hostGraceDuration, func() {
 		h.onHostGraceExpired(code)
 	})
-	slog.Info("host disconnected, grace started", "lobby", code, "seconds", hostGraceSeconds)
+	graceSeconds := *graceSecondsLeft(lobby) // ceil of the (just-set) remaining
+	slog.Info("host disconnected, grace started", "lobby", code, "seconds", graceSeconds)
 	h.mu.Unlock()
 
-	h.broadcastTo(lobby, "hostDisconnected", map[string]int{"graceSeconds": hostGraceSeconds})
+	h.broadcastTo(lobby, "hostDisconnected", map[string]int{"graceSeconds": graceSeconds})
 }
 
 // cancelHostGrace stops a running grace timer (host came back). Returns true if

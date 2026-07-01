@@ -27,12 +27,20 @@ type testConn struct {
 
 func newServer(t *testing.T) *httptest.Server {
 	t.Helper()
+	srv, _ := newServerHub(t)
+	return srv
+}
+
+// newServerHub is like newServer but also returns the hub so a test can tweak
+// it (e.g. shorten the host-grace window).
+func newServerHub(t *testing.T) (*httptest.Server, *Hub) {
+	t.Helper()
 	hub := NewHub()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ServeWS(hub, w, r)
 	}))
 	t.Cleanup(srv.Close)
-	return srv
+	return srv, hub
 }
 
 func dial(t *testing.T, srv *httptest.Server) *testConn {
@@ -305,6 +313,31 @@ func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {
 	back.sessionID = host.sessionID
 	back.send("reconnect", map[string]any{})
 	guest.waitFor("hostReconnected")
+}
+
+// sr-1 / test-1: if the host never returns, the grace timer fires and the lobby
+// is closed with reason=hostDisconnected. Uses a shortened grace window.
+func TestHostGraceExpiryClosesLobby(t *testing.T) {
+	srv, hub := newServerHub(t)
+	hub.setHostGraceDuration(300 * time.Millisecond)
+
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("lobbyState")
+
+	// Host drops and does not come back.
+	host.conn.Close(websocket.StatusNormalClosure, "simulated drop")
+	guest.waitFor("hostDisconnected")
+
+	var lc struct {
+		Reason string `json:"reason"`
+	}
+	json.Unmarshal(guest.waitFor("lobbyClosed"), &lc)
+	if lc.Reason != "hostDisconnected" {
+		t.Fatalf("expected lobbyClosed reason hostDisconnected, got %q", lc.Reason)
+	}
 }
 
 // Full round over the wire: start -> Countdown -> Playing -> answer -> buzz -> review.
