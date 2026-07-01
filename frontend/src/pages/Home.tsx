@@ -67,6 +67,10 @@ export function Home() {
   // The code whose checkLobby reply we're currently awaiting (to ignore stale
   // replies when the user changed the code meanwhile).
   const pendingCode = useRef<string | null>(null);
+  // Mirror of `step` readable inside the once-registered lobbyCheck handler, so
+  // a late reply can be discarded when the user already left the join flow.
+  const stepRef = useRef(step);
+  stepRef.current = step;
 
   // Track live connection status so the user sees when the server is down.
   useEffect(() => ws.onStatusChange(setConnected), []);
@@ -132,6 +136,9 @@ export function Home() {
     pendingCode.current = null;
     if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
     setChecking(false);
+    // The user left the join flow before the (possibly slow) reply arrived →
+    // discard it instead of yanking them back into a step.
+    if (stepRef.current !== "joinCode" && stepRef.current !== "scan") return;
     if (payload.available) {
       setJoinError(null);
       setStep("joinName");
@@ -337,6 +344,7 @@ export function Home() {
                       );
                     }}
                     aria-invalid={joinError != null}
+                    disabled={checking}
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}
@@ -360,6 +368,7 @@ export function Home() {
                   variant="outline"
                   className="w-full"
                   onClick={() => goTo("scan")}
+                  disabled={checking}
                 >
                   <ScanLine className="h-4 w-4" />
                   QR-Code scannen
@@ -369,6 +378,7 @@ export function Home() {
                     type="button"
                     variant="ghost"
                     onClick={() => goTo("start")}
+                    disabled={checking}
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Zurück
