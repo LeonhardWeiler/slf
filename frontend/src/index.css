@@ -126,3 +126,15 @@ body {
   color: hsl(var(--foreground));
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Inverted text selection: the highlight uses the current text colour as its
+   background and the page background as its text colour (theme-aware, works in
+   light and dark). */
+::selection {
+  background-color: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
+::-moz-selection {
+  background-color: hsl(var(--foreground));
+  color: hsl(var(--background));
+}
