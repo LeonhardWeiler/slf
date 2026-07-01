@@ -125,7 +125,7 @@ func securityHeaders(h http.Header) {
 			// NOT need 'unsafe-inline' for scripts. If that snippet changes, update
 			// this hash (the browser console prints the expected value).
 			"script-src 'self' 'sha256-4sXzUGvzAZlY5lT80QJC2LfIdvaAGVrh73rtFO9aWVQ='; "+
-			"connect-src 'self' ws: wss:; worker-src 'self' blob:; font-src 'self'")
+			"connect-src 'self'; worker-src 'self' blob:; font-src 'self'")
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
