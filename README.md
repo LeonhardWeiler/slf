@@ -54,7 +54,8 @@ sinngleiche Antworten zusammenführen (zählen dann als eine Gruppe).
 
 ```
 backend/
-  cmd/server/        Einstiegspunkt (HTTP-Server + /ws)
+  cmd/server/        Einstiegspunkt (HTTP-Server + /ws + optional Frontend)
+  cmd/loadtest/      Last-/Latenz-Messwerkzeug (siehe „Performance")
   internal/game/     Domänenlogik: Modelle, Engine (Buchstaben, Regeln, Scoring)
   internal/websocket/ Hub, Clients, Message-Handler, Broadcasts
 frontend/
@@ -64,6 +65,9 @@ frontend/
   src/lib/           WebSocket-Client, Theme, Session, Validierung
   src/types/         Gemeinsame Event-/Payload-Typen
 srs/                 Spezifikation (Anforderungen, Events, Zustände)
+Dockerfile           Multi-Stage-Build → ein Image (Frontend + Go-Server)
+docker-compose.yml   Start des veröffentlichten Images
+.gitlab-ci.yml       CI: Tests + Image-Build/-Push nach Docker Hub
 flake.nix            Nix-Dev-Shell (Go, Bun, air, …)
 ```
 
@@ -110,6 +114,49 @@ cd backend && go test ./...
 # Frontend: Typecheck + Production-Build
 cd frontend && bun run build
 ```
+
+## Deployment mit Docker
+
+Backend und Frontend stecken in **einem** Image (Multi-Stage-Build): Das
+Frontend wird gebaut und vom Go-Server als statische Dateien zusammen mit `/ws`
+auf Port `8080` ausgeliefert.
+
+```bash
+docker compose up -d        # zieht weilerleonhard/slf:latest → http://localhost:8080
+docker compose up --build   # stattdessen lokal bauen (build:-Zeile in compose aktivieren)
+```
+
+Die GitLab-CI baut nach jedem Commit auf `master` das Image und pusht es nach
+`weilerleonhard/slf` (Tags `latest` + Commit-SHA). Dafür müssen in GitLab unter
+**Settings → CI/CD → Variables** die Variablen `DOCKERHUB_USERNAME` und
+`DOCKERHUB_TOKEN` (Docker-Hub-Access-Token, „Masked") gesetzt sein.
+
+### Konfiguration (Umgebungsvariablen)
+
+| Variable      | Default | Bedeutung |
+|---------------|---------|-----------|
+| `STATIC_DIR`  | –       | Verzeichnis mit dem gebauten Frontend; leer = nur `/ws` (Dev) |
+| `LOG_LEVEL`   | `info`  | `debug` \| `info` \| `warn` \| `error` |
+| `LOG_FORMAT`  | `text`  | `text` \| `json` |
+| `LOG_FILE`    | –       | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume) |
+
+## Performance
+
+Zwei isolierte, reproduzierbare Messungen (SRS-Ziele: Ø < 80 ms, max < 150 ms
+Roundtrip, ≥ 500 gleichzeitige Spieler):
+
+```bash
+# 1) Reine Logik (ohne Netz): Scoring & Ranking
+cd backend && go test -bench=. -benchmem -run=^$ ./internal/game/
+
+# 2) End-to-End-Roundtrip unter Last (Server muss laufen)
+go run ./cmd/server &
+go run ./cmd/loadtest -players 500     # verbindet 500 Spieler, misst Broadcast-Latenz
+```
+
+Das Werkzeug öffnet die Spieler über viele Lobbys, lässt alle Hosts gleichzeitig
+eine Zustandsänderung auslösen und misst je Client die Zeit bis zum
+resultierenden `lobbyState`-Broadcast (Ø/p50/p95/p99/max).
 
 ## Spezifikation
 
