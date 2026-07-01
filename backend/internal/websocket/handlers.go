@@ -438,13 +438,8 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby == nil {
 		return
 	}
-	// At least one category must remain (SRS 9.13.9): reject the deletion of the
-	// last category instead of silently allowing an unstartable lobby.
-	if len(lobby.Categories) <= 1 {
-		hub.mu.Unlock()
-		hub.sendError(c, CodeCategoryMinimum, "Mindestens eine Kategorie muss bestehen bleiben")
-		return
-	}
+	// All categories may be removed while editing the lobby; the game start check
+	// (game_handlers.go) enforces that at least one category exists to play.
 	next := lobby.Categories[:0]
 	removed := false
 	for _, cat := range lobby.Categories {
