@@ -2,22 +2,21 @@ import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
 import { Check, X, ChevronLeft, ChevronRight, Link2, Link2Off } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLobbyStore } from "@/store/lobby";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ReviewScreen() {
-  const { lobby, myPlayerId } = useLobbyStore();
+  const { lobby } = useLobbyStore();
   const { review } = useGameStore();
 
   // The answer picked as the merge target ("group anchor"). While set, the
   // host merges by clicking another answer's row directly (no second button).
   const [mergeAnchor, setMergeAnchor] = useState<string | null>(null);
 
-  const isHost =
-    lobby?.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
+  const isHost = useIsHost();
   const isFirst = (review?.categoryIndex ?? 0) <= 0;
   const isLast = review
     ? review.categoryIndex >= review.categoryCount - 1

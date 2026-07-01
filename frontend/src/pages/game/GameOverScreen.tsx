@@ -1,6 +1,6 @@
 import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore } from "@/store/lobby";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function GameOverScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { result } = useGameStore();
+  const isHost = useIsHost();
 
   if (!lobby) return null;
 
-  const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
   const hasLeft = (id: string) =>

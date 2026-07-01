@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore } from "@/store/lobby";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { QrCode } from "@/components/QrCode";
@@ -25,6 +25,7 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
 export function Lobby() {
   const navigate = useNavigate();
   const { lobby, myPlayerId, reset } = useLobbyStore();
+  const isHost = useIsHost();
 
   const [newCategory, setNewCategory] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -74,8 +75,6 @@ export function Lobby() {
     return <Navigate to="/" replace />;
   }
 
-  const me = lobby.players.find((p) => p.id === myPlayerId);
-  const isHost = me?.isHost ?? false;
   // Players who left an in-progress game linger only for the final standings.
   const activePlayers = lobby.players.filter((p) => !p.left);
 

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore } from "@/store/lobby";
+import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
@@ -11,12 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function RoundResultScreen() {
   const { lobby, myPlayerId } = useLobbyStore();
   const { result, game } = useGameStore();
-
-  const amHost = lobby?.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
+  const isHost = useIsHost();
 
   // Host can start the next round with Enter. Ending the game stays button-only.
   useEffect(() => {
-    if (!amHost) return;
+    if (!isHost) return;
     function onKey(e: KeyboardEvent) {
       const el = document.activeElement;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
@@ -26,7 +25,7 @@ export function RoundResultScreen() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [amHost]);
+  }, [isHost]);
 
   if (!lobby || !result) {
     return (
@@ -36,7 +35,6 @@ export function RoundResultScreen() {
     );
   }
 
-  const isHost = lobby.players.find((p) => p.id === myPlayerId)?.isHost ?? false;
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
   const hasLeft = (id: string) =>

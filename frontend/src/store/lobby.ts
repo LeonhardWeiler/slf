@@ -19,6 +19,14 @@ interface LobbyStore {
   closeWithNotice: (notice: string) => void;
 }
 
+// Whether the current player is the host of the active lobby. Centralises the
+// `players.find(p => p.id === myPlayerId)?.isHost` lookup used across screens.
+export function useIsHost(): boolean {
+  return useLobbyStore(
+    (s) => s.lobby?.players.find((p) => p.id === s.myPlayerId)?.isHost ?? false
+  );
+}
+
 export const useLobbyStore = create<LobbyStore>((set) => ({
   lobby: null,
   myPlayerId: null,
