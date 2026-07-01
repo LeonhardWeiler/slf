@@ -161,19 +161,31 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	code := strings.TrimSpace(p.LobbyCode)
-	if len(code) != 6 {
+	// Throttle repeated failed joins (code guessing) with a growing backoff.
+	if wait := c.joinBackoff(); wait > 0 && time.Since(c.lastJoinAt) < wait {
+		c.lastJoinAt = time.Now()
+		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche – bitte kurz warten")
+		return
+	}
+	c.lastJoinAt = time.Now()
+
+	code, ok := normalizeLobbyCode(p.LobbyCode)
+	if !ok {
+		c.joinFails++
 		hub.sendError(c, CodeInvalidLobbyCode, "Ungültiger Lobbycode")
 		return
 	}
 
 	hub.mu.Lock()
-	lobby, ok := hub.rooms.Get(code)
-	if !ok {
+	lobby, found := hub.rooms.Get(code)
+	if !found {
 		hub.mu.Unlock()
+		c.joinFails++
 		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht gefunden")
 		return
 	}
+	// A valid, existing code means this client is not blindly guessing → reset.
+	c.joinFails = 0
 	if lobby.State != game.StateLobby {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")

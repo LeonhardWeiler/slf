@@ -4,39 +4,53 @@ import (
 	crand "crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
-	"math/rand"
+	"strings"
 )
 
-// generateID returns a 12-char opaque id from a 36-char alphabet, drawn from
-// crypto/rand. IDs double as the sessionId — the only auth credential — so they
-// must be unpredictable (not math/rand). Rejection sampling keeps the mapping
-// unbiased.
-func generateID() string {
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-	const n = len(chars)
-	const limit = 256 - (256 % n) // largest multiple of n <= 256
+// idAlphabet is the 36-char set used for ids and lobby codes.
+const idAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-	out := make([]byte, 12)
+// randomString returns an unbiased n-char string over idAlphabet, drawn from
+// crypto/rand (rejection sampling avoids modulo bias). Used for both sessionIds
+// (which must be unpredictable — they are the only auth credential) and lobby
+// codes.
+func randomString(n int) string {
+	const limit = 256 - (256 % len(idAlphabet)) // largest multiple of len <= 256
+	out := make([]byte, n)
 	buf := make([]byte, 1)
-	for i := 0; i < len(out); {
+	for i := 0; i < n; {
 		if _, err := crand.Read(buf); err != nil {
 			panic(err) // crypto/rand should never fail
 		}
 		if int(buf[0]) >= limit {
 			continue // reject to avoid modulo bias
 		}
-		out[i] = chars[int(buf[0])%n]
+		out[i] = idAlphabet[int(buf[0])%len(idAlphabet)]
 		i++
 	}
 	return string(out)
 }
 
-// generateLobbyCode returns a 6-digit code. It stays on math/rand: the code is a
-// public join token (no secrecy needed) and collisions are handled by
+func generateID() string { return randomString(12) }
+
+// generateLobbyCode returns a 6-char [a-z0-9] join code (~2.2e9 combinations, far
+// harder to enumerate than the old 6-digit space). Collisions are handled by
 // hub.uniqueLobbyCode.
-func generateLobbyCode() string {
-	return fmt.Sprintf("%06d", rand.Intn(1000000))
+func generateLobbyCode() string { return randomString(6) }
+
+// normalizeLobbyCode lower-cases and trims a client-supplied code and verifies it
+// is exactly 6 chars of [a-z0-9]. Returns the normalized code and whether valid.
+func normalizeLobbyCode(s string) (string, bool) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if len(s) != 6 {
+		return "", false
+	}
+	for _, r := range s {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9')) {
+			return "", false
+		}
+	}
+	return s, true
 }
 
 // hashSession returns a short, non-reversible fingerprint of a sessionId for

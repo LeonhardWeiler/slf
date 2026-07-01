@@ -55,8 +55,8 @@ export function RoomHeader({
             title="Lobbycode kopieren"
             className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
           >
-            <span className="font-mono font-medium tracking-wider">
-              {code.replace(/(\d{3})(\d{3})/, "$1 $2")}
+            <span className="font-mono font-medium uppercase tracking-wider">
+              {code.replace(/(.{3})(.{3})/, "$1 $2")}
             </span>
             {copied ? (
               <Check className="h-3 w-3 text-green-600" />

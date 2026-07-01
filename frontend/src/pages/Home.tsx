@@ -22,7 +22,10 @@ export function Home() {
   const params = useParams<{ code?: string }>();
   const { setError, error, lobby, notice, setNotice } = useLobbyStore();
 
-  const deepLinkCode = (params.code ?? "").replace(/\D/g, "").slice(0, 6);
+  const deepLinkCode = (params.code ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 6);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState(deepLinkCode);
@@ -248,13 +251,21 @@ export function Home() {
                     id="code"
                     value={code}
                     onChange={(e) =>
-                      setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                      setCode(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]/g, "")
+                          .slice(0, 6)
+                      )
                     }
-                    placeholder="123456"
-                    inputMode="numeric"
+                    placeholder="z. B. a3f9k2"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     maxLength={6}
                     autoFocus
                     autoComplete="off"
+                    className="font-mono lowercase tracking-widest"
                   />
                 </div>
 
@@ -302,7 +313,7 @@ export function Home() {
             <CardHeader className="pb-4">
               <CardTitle className="text-base">Lobby beitreten</CardTitle>
               <CardDescription>
-                Lobby {code} — gib deinen Namen ein.
+                Lobby {code.toUpperCase()} — gib deinen Namen ein.
               </CardDescription>
             </CardHeader>
             <CardContent>

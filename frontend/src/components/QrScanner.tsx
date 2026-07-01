@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
 
-// Extracts a 6-digit lobby code from a scanned value. Accepts a full join link
-// (".../join/123456") or a bare code.
+// Extracts a 6-char [a-z0-9] lobby code from a scanned value. Accepts a full join
+// link (".../join/a3f9k2") or a bare code (case-insensitive).
 function extractCode(data: string): string | null {
   try {
     const url = new URL(data);
-    const m = url.pathname.match(/\/join\/(\d{6})/);
-    if (m) return m[1];
+    const m = url.pathname.match(/\/join\/([a-z0-9]{6})/i);
+    if (m) return m[1].toLowerCase();
   } catch {
     /* not a URL — fall through */
   }
-  const digits = data.replace(/\D/g, "");
-  return digits.length === 6 ? digits : null;
+  const cleaned = data.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return cleaned.length === 6 ? cleaned : null;
 }
 
 export function QrScannerView({

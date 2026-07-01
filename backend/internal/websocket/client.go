@@ -31,6 +31,15 @@ const (
 	rateRefill = 40.0  // tokens added per second
 )
 
+// Join backoff: after a few free tries, consecutive failed joins (wrong/unknown
+// code) must be spaced out by a growing delay. Gentle on purpose — legitimate
+// users rarely fail more than a couple of times — while slowing code guessing.
+const (
+	joinFreeAttempts = 5               // failures allowed before any throttling
+	joinBackoffStep  = 1 * time.Second // added delay per extra failure
+	joinBackoffMax   = 15 * time.Second
+)
+
 // envAllowedOrigins is an optional explicit allow-list read once from
 // WS_ALLOWED_ORIGINS (comma-separated "host" or "host:port"). It is only needed
 // for origins that are neither same-origin nor local — e.g. a frontend hosted on
@@ -96,6 +105,24 @@ type Client struct {
 	// so it needs no synchronisation.
 	rlTokens float64
 	rlLast   time.Time
+
+	// Join throttling state (also read-loop-only): consecutive failed joins and
+	// the time of the last join attempt.
+	joinFails  int
+	lastJoinAt time.Time
+}
+
+// joinBackoff returns how long this client must currently wait between join
+// attempts, based on its consecutive failure count.
+func (c *Client) joinBackoff() time.Duration {
+	if c.joinFails < joinFreeAttempts {
+		return 0
+	}
+	d := time.Duration(c.joinFails-joinFreeAttempts+1) * joinBackoffStep
+	if d > joinBackoffMax {
+		d = joinBackoffMax
+	}
+	return d
 }
 
 // allow consumes one token from the client's rate-limit bucket, refilling it

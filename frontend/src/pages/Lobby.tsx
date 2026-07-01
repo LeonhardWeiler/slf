@@ -179,8 +179,8 @@ export function Lobby() {
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 Lobbycode
               </p>
-              <p className="text-5xl font-mono font-bold tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity">
-                {lobby.lobbyCode.replace(/(\d{3})(\d{3})/, "$1 $2")}
+              <p className="text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity">
+                {lobby.lobbyCode.replace(/(.{3})(.{3})/, "$1 $2")}
               </p>
               <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
                 {copied === "code" ? (
