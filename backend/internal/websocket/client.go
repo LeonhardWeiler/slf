@@ -16,6 +16,16 @@ import (
 // (TCP backpressure) would stall the whole broadcast loop for everyone.
 const writeTimeout = 5 * time.Second
 
+// Per-connection message rate limit (token bucket). Deliberately generous: a
+// normal client peaks around a handful of messages per second (debounced answer
+// updates, occasional actions), so it never hits this — but a flooding client is
+// capped so it can't monopolise the single hub mutex. Over-limit messages are
+// dropped, not processed.
+const (
+	rateBurst  = 120.0 // bucket capacity
+	rateRefill = 40.0  // tokens added per second
+)
+
 // allowedOriginPatterns returns the WebSocket Origin allow-list, read once from
 // WS_ALLOWED_ORIGINS (comma-separated hostname patterns, coder/websocket syntax).
 // Same-origin requests are always accepted regardless. The default "*" keeps
@@ -38,6 +48,29 @@ type Client struct {
 	conn      *websocket.Conn
 	hub       *Hub
 	sessionID string
+
+	// Rate-limit state, only ever touched from this client's single read loop,
+	// so it needs no synchronisation.
+	rlTokens float64
+	rlLast   time.Time
+}
+
+// allow consumes one token from the client's rate-limit bucket, refilling it
+// based on elapsed time. Returns false when the bucket is empty (message should
+// be dropped). Must only be called from the read loop.
+func (c *Client) allow() bool {
+	now := time.Now()
+	if c.rlLast.IsZero() {
+		c.rlLast = now
+		c.rlTokens = rateBurst
+	}
+	c.rlTokens = min(c.rlTokens+now.Sub(c.rlLast).Seconds()*rateRefill, rateBurst)
+	c.rlLast = now
+	if c.rlTokens < 1 {
+		return false
+	}
+	c.rlTokens--
+	return true
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
@@ -60,6 +93,11 @@ func (c *Client) read() {
 		_, raw, err := c.conn.Read(context.Background())
 		if err != nil {
 			return
+		}
+
+		// Drop (ignore) messages beyond the rate limit before doing any work.
+		if !c.allow() {
+			continue
 		}
 
 		var msg InboundMessage
