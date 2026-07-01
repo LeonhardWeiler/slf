@@ -466,9 +466,16 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
-	// Booleans are *bool so an omitted field preserves the current value instead
-	// of silently resetting it to false (e.g. an old/partial client must not be
-	// able to flip hostPlays off just by not sending it).
+	// Every field is preserve-on-absent: a key that is not in the payload leaves
+	// the current value untouched, so a partial/old client can never silently
+	// reset an option it doesn't send. `present` records which keys were actually
+	// provided — needed because timeLimit=null is a legitimate value ("no limit")
+	// and must be distinguishable from an omitted timeLimit.
+	var present map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &present); err != nil {
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		return
+	}
 	var p struct {
 		TimeLimit                 *int     `json:"timeLimit"`
 		ShowLetterDuringCountdown *bool    `json:"showLetterDuringCountdown"`
@@ -481,13 +488,16 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
 		return
 	}
-	if p.TimeLimit != nil && (*p.TimeLimit < 5 || *p.TimeLimit > 3600) {
+
+	_, hasTimeLimit := present["timeLimit"]
+	if hasTimeLimit && p.TimeLimit != nil && (*p.TimeLimit < 5 || *p.TimeLimit > 3600) {
 		hub.sendError(c, CodeValidationError, "Zeitlimit muss zwischen 5 und 3600 Sekunden liegen")
 		return
 	}
 
 	// Sanitize excluded letters: only A–Z, uppercased and de-duplicated. At
 	// least one letter must remain playable.
+	_, hasExcluded := present["excludedLetters"]
 	seen := map[string]bool{}
 	excluded := make([]string, 0, len(p.ExcludedLetters))
 	for _, l := range p.ExcludedLetters {
@@ -498,7 +508,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		seen[u] = true
 		excluded = append(excluded, u)
 	}
-	if len(excluded) >= 26 {
+	if hasExcluded && len(excluded) >= 26 {
 		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv bleiben")
 		return
 	}
@@ -508,11 +518,13 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby == nil {
 		return
 	}
-	// TimeLimit and ExcludedLetters are always sent as a full replacement.
-	lobby.Settings.TimeLimit = p.TimeLimit
-	lobby.Settings.ExcludedLetters = excluded
-	// The bool options are only overwritten when actually present in the payload
-	// so a partial client cannot silently reset options it doesn't know about.
+	// Each field is applied only when present in the payload (see above).
+	if hasTimeLimit {
+		lobby.Settings.TimeLimit = p.TimeLimit
+	}
+	if hasExcluded {
+		lobby.Settings.ExcludedLetters = excluded
+	}
 	if p.ShowLetterDuringCountdown != nil {
 		lobby.Settings.ShowLetterDuringCountdown = *p.ShowLetterDuringCountdown
 	}

@@ -114,9 +114,11 @@ type lobbyStateDTO struct {
 		Name string `json:"name"`
 	} `json:"categories"`
 	Settings struct {
-		FlamesEnabled  bool `json:"flamesEnabled"`
-		HostPlays      bool `json:"hostPlays"`
-		LastLetterMode bool `json:"lastLetterMode"`
+		TimeLimit       *int     `json:"timeLimit"`
+		ExcludedLetters []string `json:"excludedLetters"`
+		FlamesEnabled   bool     `json:"flamesEnabled"`
+		HostPlays       bool     `json:"hostPlays"`
+		LastLetterMode  bool     `json:"lastLetterMode"`
 	} `json:"settings"`
 }
 
@@ -219,6 +221,44 @@ func TestUpdateSettingsPreservesOmittedBools(t *testing.T) {
 	}
 	if !ls.Settings.LastLetterMode {
 		t.Fatal("lastLetterMode should now be true")
+	}
+}
+
+// bug-1 (extended): timeLimit and excludedLetters are also preserve-on-absent;
+// timeLimit=null (unlimited) stays distinguishable from an omitted timeLimit.
+func TestUpdateSettingsPreservesTimeLimitAndLetters(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+
+	// Set a concrete time limit and exclude a letter.
+	host.send("updateSettings", map[string]any{
+		"timeLimit":       60,
+		"excludedLetters": []string{"Q"},
+	})
+	ls := host.readLobby()
+	if ls.Settings.TimeLimit == nil || *ls.Settings.TimeLimit != 60 {
+		t.Fatalf("expected timeLimit 60, got %v", ls.Settings.TimeLimit)
+	}
+	if len(ls.Settings.ExcludedLetters) != 1 || ls.Settings.ExcludedLetters[0] != "Q" {
+		t.Fatalf("expected excluded [Q], got %v", ls.Settings.ExcludedLetters)
+	}
+
+	// A payload that omits both must leave them untouched (only toggles a bool).
+	host.send("updateSettings", map[string]any{"flamesEnabled": true})
+	ls = host.readLobby()
+	if ls.Settings.TimeLimit == nil || *ls.Settings.TimeLimit != 60 {
+		t.Fatalf("timeLimit must be preserved when omitted, got %v", ls.Settings.TimeLimit)
+	}
+	if len(ls.Settings.ExcludedLetters) != 1 || ls.Settings.ExcludedLetters[0] != "Q" {
+		t.Fatalf("excludedLetters must be preserved when omitted, got %v", ls.Settings.ExcludedLetters)
+	}
+
+	// Explicit null clears the limit (unlimited) — must be honoured, not ignored.
+	host.send("updateSettings", map[string]any{"timeLimit": nil})
+	ls = host.readLobby()
+	if ls.Settings.TimeLimit != nil {
+		t.Fatalf("explicit null timeLimit should clear it, got %v", *ls.Settings.TimeLimit)
 	}
 }
 

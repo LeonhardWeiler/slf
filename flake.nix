@@ -41,7 +41,7 @@
             wget
             tree
             less
-            cloc
+            scc
           ];
 
           shellHook = ''
