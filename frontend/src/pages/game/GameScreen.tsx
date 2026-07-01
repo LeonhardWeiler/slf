@@ -334,9 +334,12 @@ export function GameScreen() {
                 const isFlamed = flamed === cat.id;
                 return (
                   <div key={cat.id} className="space-y-1">
-                    <label className="text-sm font-medium">{cat.name}</label>
+                    <label htmlFor={`cat-${cat.id}`} className="text-sm font-medium">
+                      {cat.name}
+                    </label>
                     <div className="flex items-center gap-2">
                       <Input
+                        id={`cat-${cat.id}`}
                         value={answers[cat.id] ?? ""}
                         onChange={(e) => updateAnswer(cat.id, e.target.value)}
                         placeholder={placeholder}
