@@ -15,17 +15,29 @@ function AppRoutes() {
   const { setLobby, setSession, setHostGrace, reset, lobby } = useLobbyStore();
   const pendingReconnect = useRef(false);
 
-  // Toast on connection transitions. Starts "connected" so the initial connect
-  // is a no-op; only a real drop → reconnect surfaces a pair of toasts (and it
-  // ignores flapping by reacting only to actual state changes).
+  // Toast on connection transitions. The very first successful connect stays
+  // silent, and a "disconnected" status is only announced as a *loss* once a
+  // connection was actually established before — so a cold start against an
+  // unreachable server doesn't wrongly claim the connection was "lost" (it was
+  // never there; the Home screen already shows a persistent "no connection"
+  // banner for that). Only a real drop → reconnect surfaces the toast pair, and
+  // flapping is ignored by reacting only to actual state changes.
   useEffect(() => {
-    let prevConnected = true;
+    // Seed from the current socket so a connect that raced ahead of this
+    // listener isn't mistaken for a fresh transition.
+    let everConnected = ws.isOpen;
+    let prevConnected = ws.isOpen;
     return ws.onStatusChange((connected) => {
       if (connected === prevConnected) return;
+      const wasEverConnected = everConnected;
       prevConnected = connected;
+      if (connected) everConnected = true;
       const addToast = useToastStore.getState().addToast;
-      if (connected) addToast("Verbindung wiederhergestellt.", "info");
-      else addToast("Verbindung zum Server verloren…");
+      if (connected) {
+        if (wasEverConnected) addToast("Verbindung wiederhergestellt.", "info");
+      } else if (wasEverConnected) {
+        addToast("Verbindung zum Server verloren…");
+      }
     });
   }, []);
 
