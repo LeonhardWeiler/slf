@@ -151,10 +151,11 @@ export type BuzzRejectReason =
   | "invalidState";
 
 // Why a lobby can't be joined right now, as reported by a pre-join checkLobby.
+// A running game is no longer a blocker (you join as a waiting spectator), so
+// only these reasons remain.
 export type LobbyUnavailableReason =
   | "invalidCode"
   | "notFound"
-  | "inProgress"
   | "full"
   | "throttled";
 

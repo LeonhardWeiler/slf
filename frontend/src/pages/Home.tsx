@@ -29,7 +29,6 @@ type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 // Human-readable reason why a lobby can't be joined, keyed by the server's
 // checkLobby reason code. Shown inline at the code step before a name is asked.
 const UNAVAILABLE_MESSAGES: Record<string, string> = {
-  inProgress: "Diese Lobby ist gerade in einer Runde.",
   full: "Diese Lobby ist voll.",
   notFound: "Diese Lobby gibt es nicht.",
   invalidCode: "Ungültiger Lobbycode.",

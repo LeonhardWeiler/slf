@@ -19,14 +19,14 @@ describe("parseServerEvent", () => {
     const ev = parseServerEvent(
       JSON.stringify({
         type: "lobbyCheck",
-        payload: { lobbyCode: "abc123", available: false, reason: "inProgress" },
+        payload: { lobbyCode: "abc123", available: false, reason: "full" },
       })
     );
     expect(ev).not.toBeNull();
     expect(ev?.type).toBe("lobbyCheck");
     if (ev?.type === "lobbyCheck") {
       expect(ev.payload.available).toBe(false);
-      expect(ev.payload.reason).toBe("inProgress");
+      expect(ev.payload.reason).toBe("full");
     }
   });
 
