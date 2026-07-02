@@ -247,7 +247,7 @@
           <div class="l">Mittel</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">2</div>
+          <div class="n" style="color: var(--low)">1</div>
           <div class="l">Niedrig</div>
         </div>
         <div class="stat">
@@ -311,33 +311,6 @@
           <b>Empfehlung:</b> Die Verlassen-Bestätigung <em>während eines
           laufenden Spiels</em> um einen Hinweis ergänzen, dass ein
           Wieder­einstieg erst nach Spielende (Rückkehr zur Lobby) möglich ist.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">niedrig</span> Flammen-Ausgang im
-          Rundenergebnis unsichtbar
-          <span class="id">UX-FLAME</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/RoundResultScreen.tsx</code> ·
-          <code>backend/internal/game/models.go</code>
-          (<code>RoundResultPayload</code>/<code>ScoreEntry</code>)
-        </div>
-        <p>
-          Flammen (die Wette „ich habe als Einzige diese Antwort") sind nur im
-          Review-Screen sichtbar. Das <code>RoundResultPayload</code> trägt
-          keinerlei Flammen-Info, daher sieht ein Spieler im Zwischenstand nur
-          das Ergebnis (<code>+15</code> bzw. <code>+0</code>) ohne
-          nachvollziehen zu können, ob die Wette aufging oder nach hinten
-          losging — gerade der +0-Fall (Flamme verloren) wirkt wie ein Fehler.
-        </p>
-        <div class="rec">
-          <b>Empfehlung:</b> Geflammte Einträge im Rundenergebnis kennzeichnen
-          (🔥 mit „aufgegangen +5" / „verloren"), damit der Punkte-Swing
-          verständlich ist. Erfordert, den Flammen-Ausgang pro Spieler mit ins
-          Result-Payload aufzunehmen.
         </div>
       </div>
 
