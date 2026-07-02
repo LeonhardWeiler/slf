@@ -130,17 +130,10 @@ export function Lobby() {
     setEditingValue("");
   }
 
-  async function deleteCategory(id: string, name: string) {
-    if (
-      await confirm({
-        title: "Kategorie löschen?",
-        description: `„${name}" wird aus der Lobby entfernt.`,
-        confirmLabel: "Löschen",
-        destructive: true,
-      })
-    ) {
-      ws.send({ type: "deleteCategory", payload: { categoryId: id } });
-    }
+  // Kategorien lassen sich jederzeit neu hinzufügen — Löschen ist billig
+  // reversibel, daher ohne Bestätigungs-Popup direkt ausführen.
+  function deleteCategory(id: string) {
+    ws.send({ type: "deleteCategory", payload: { categoryId: id } });
   }
 
   async function kickPlayer(id: string, name: string) {
@@ -403,7 +396,7 @@ export function Lobby() {
                           size="icon"
                           className="h-7 w-7 text-destructive"
                           title="Löschen"
-                          onClick={() => deleteCategory(cat.id, cat.name)}
+                          onClick={() => deleteCategory(cat.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
