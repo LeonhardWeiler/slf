@@ -228,10 +228,9 @@
         <b>komplette Varianten-Matrix</b> (Kommentator&nbsp;an/aus, Flammen
         an/aus, Zeitlimit an/aus, Letzter-Buchstabe, Buchstabe-im-Countdown,
         Solo/Mehrspieler, Verlassen&nbsp;vs.&nbsp;Verbindungsverlust) fördert
-        <b>keine Bugs, aber vier UX-Politur-Punkte</b> zutage (ein mittlerer,
-        zwei niedrige, einer Info) — siehe Abschnitt&nbsp;1. Mehrere ältere
-        Themen sind <b>bewusste Entscheidungen</b>, im README dokumentiert
-        (Abschnitt&nbsp;3).
+        <b>keine Bugs, nur UX-Politur</b> zutage — siehe Abschnitt&nbsp;1.
+        Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im README
+        dokumentiert (Abschnitt&nbsp;3).
       </p>
 
       <div class="summary">
@@ -244,7 +243,7 @@
           <div class="l">Hoch</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">1</div>
+          <div class="n" style="color: var(--med)">0</div>
           <div class="l">Mittel</div>
         </div>
         <div class="stat">
@@ -285,38 +284,6 @@
         grün. Gefunden bei einem Durchlauf beider Rollen durch alle
         Spielvarianten.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">mittel</span> Kommentator-Host: Runden­ende
-          ist versteckt &amp; ohne „alle fertig"-Signal
-          <span class="id">UX-COMM</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/GameScreen.tsx</code> (Spectator-Zweig,
-          <code>handleEndRound</code>) ·
-          <code>components/CommentatorBoard.tsx</code>
-        </div>
-        <p>
-          Im Kommentator-Modus (<code>hostPlays=false</code>) spielt der Host
-          nicht und kann nicht buzzern — seine <em>einzige</em> Möglichkeit, die
-          Runde weiterzubringen, ist der de-emphasierte graue Ghost-Button
-          „Runde beenden" ganz unten (<code>variant="ghost" size="sm"</code>,
-          <code>text-muted-foreground</code>). Für den Beamer-/Kommentator-Flow
-          ist das aber die <b>primäre Aktion</b>. Zusätzlich zeigt das
-          Commentator-Board zwar pro Spieler „fertig" (grüne Zeile,
-          <code>count/total</code>), aber wenn <em>alle</em> Mitspieler fertig
-          sind, gibt es keinerlei Hinweis, dass jetzt der richtige Moment zum
-          Beenden ist.
-        </p>
-        <div class="rec">
-          <b>Empfehlung:</b> Für den Kommentator-Host das Runden­ende als
-          prominenten Button darstellen (nicht Ghost) und hervorheben, sobald
-          alle spielenden Teilnehmer <code>complete</code> sind — z.&nbsp;B.
-          „Alle fertig — Runde beenden". Der <em>mitspielende</em> Host behält
-          seinen Buzz-Button; der Ghost-Escape-Hatch bleibt dort passend.
-        </div>
-      </div>
 
       <div class="card">
         <h3>
@@ -460,6 +427,13 @@
           <b>Kein Host-Handoff</b>: Kehrt der Host nicht in 15&nbsp;s zurück,
           wird die Lobby geschlossen — bewusst <em>kein</em> Übertragen der
           Host-Rolle.
+        </li>
+        <li>
+          <b>Host-„Runde beenden" ist ein Fallback</b>: Eine Runde endet im
+          Normalfall durch den ersten Buzz oder den Zeitablauf. Der Host-Button
+          „Runde beenden" ist bewusst de-emphasiert (Ghost) und nur für den
+          Sonderfall gedacht, dass niemand mehr etwas findet — er ist
+          <em>kein</em> Standard-Ablauf.
         </li>
         <li>
           <b>Ein globaler <code>hub.mu</code></b
