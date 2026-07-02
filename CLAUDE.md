@@ -54,7 +54,12 @@ lässt sich das lokal mit `bun --bun run test` (erzwingt die Bun-Runtime).
   Server→Client `{type, payload, stateVersion}`.
 - Backend: `cmd/server` (Einstieg + Security-Header/SPA-Serving),
   `internal/game` (Engine/State), `internal/websocket` (Hub, Handler).
-- `sessionId` liegt in `sessionStorage` (pro Tab, übersteht Reload).
+- `sessionId` liegt in `localStorage` (pro Browser, übersteht Tab-Schließen →
+  Auto-Reconnect als gleicher Spieler; explizites „Verlassen" löscht sie).
+- Beitritt ist in **jedem** Lobby-Zustand möglich; wer mitten im Spiel joint, ist
+  `Pending` (Zuschauer, nicht in Scoring/Ranking/Review) und wird beim nächsten
+  Rundenstart (`beginCountdown`) aktiviert. Serverseitig kapselt
+  `isRoundSpectator` (Kommentator-Host **oder** Pending) den Ausschluss.
 
 ## prompts/
 
