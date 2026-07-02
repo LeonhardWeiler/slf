@@ -453,11 +453,11 @@ export function GameScreen() {
         {/* Host can end a stuck round early (hard letter, or a commentator host
             who never buzzes) → everyone moves to review. */}
         {isHost && (
-          <div className="pt-1">
+          <div className="flex justify-center pt-1">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-muted-foreground"
+              className="text-muted-foreground"
               onClick={handleEndRound}
             >
               Runde beenden
