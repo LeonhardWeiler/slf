@@ -19,8 +19,12 @@ gesamte Spielzustand liegt im RAM.
     *enden* statt mit ihm zu beginnen
   - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
 - **Punktevergabe** nach klassischen Regeln (siehe unten)
-- **Reconnect**: Reload oder kurzer Verbindungsabbruch führt zurück ins Spiel;
-  sobald Netzwerk oder Tab wieder da sind, verbindet der Client sofort neu
+- **Reconnect**: Reload, Tab-Schließen oder kurzer Verbindungsabbruch führen
+  zurück ins Spiel; sobald Netzwerk oder Tab wieder da sind, verbindet der Client
+  sofort neu (die Session liegt in `localStorage`, siehe Architektur)
+- **Jederzeit beitreten**: Man kann einer bereits laufenden Lobby beitreten. Wer
+  mitten im Spiel dazukommt, wartet als Zuschauer (sieht die Ausfüll-Übersicht,
+  taucht noch nicht in der Tabelle auf) und spielt ab der nächsten Runde mit
 - **Host-Disconnect-Schutz**: Verliert der Host die Verbindung, sehen alle
   Spieler einen 15-Sekunden-Countdown; kehrt er zurück, geht es weiter, sonst
   wird die Lobby geschlossen (SRS 4.6/8.5)
@@ -45,9 +49,15 @@ gesamte Spielzustand liegt im RAM.
   - Client → Server: `{ "type": ..., "payload": ..., "sessionId": ... }`
   - Server → Client: `{ "type": ..., "payload": ..., "stateVersion": ... }`
     (`stateVersion` = monotoner Lobby-Zähler zum Erkennen veralteter Snapshots)
-- **Session/Reconnect:** Die `sessionId` liegt bewusst in `sessionStorage`
-  (pro Tab, übersteht Reload) statt `localStorage`, damit sich mehrere Tabs
-  desselben Browsers als verschiedene Spieler verbinden können.
+- **Session/Reconnect:** Die `sessionId` liegt in `localStorage` und übersteht
+  damit auch das Schließen des Tabs: Beim nächsten Öffnen verbindet der Client
+  automatisch wieder als derselbe Spieler (gleicher Name, Punkte, Rolle) –
+  sofern die Lobby noch existiert. Ein Host behält seine Rolle innerhalb des
+  15-Sekunden-Grace-Fensters. Trade-off (bewusst): Alle Tabs desselben Browsers
+  teilen sich eine Identität; ein zweiter Tab verbindet in dieselbe Session statt
+  ein eigener Spieler zu sein. Ein explizites **„Verlassen"** löscht die
+  gespeicherte `sessionId` und ist damit ein endgültiger Austritt – nur
+  Tab-Schließen/Verbindungsabbruch bleibt wieder-beitretbar.
 
 ### Punktevergabe (pro Kategorie)
 
