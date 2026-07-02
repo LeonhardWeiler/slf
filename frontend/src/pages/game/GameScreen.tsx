@@ -208,6 +208,9 @@ export function GameScreen() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Enter") return;
+      // Ignore auto-repeat so holding Enter buzzes only once; a second buzz
+      // after the round advances would hit an invalid state.
+      if (e.repeat) return;
       if (!canBuzz) return;
       // Pause while a confirm dialog is up (e.g. "Runde beenden?") so its Enter
       // doesn't also buzz (UX-1).

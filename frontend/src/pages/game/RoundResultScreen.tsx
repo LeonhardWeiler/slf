@@ -38,6 +38,10 @@ export function RoundResultScreen() {
       // Don't fire while a confirm dialog is up (e.g. "Spiel beenden?"), so the
       // Enter that confirms it doesn't also start the next round (UX-1).
       if (isConfirmDialogOpen()) return;
+      // Ignore auto-repeat: holding Enter would send startNextRound many times.
+      // The first advances the server past RoundResult, so the rest hit an
+      // invalid state and surface a spurious "Aktion nicht erlaubt".
+      if (e.repeat) return;
       if (e.key === "Enter") {
         ws.send({ type: "startNextRound", payload: {} });
       }
