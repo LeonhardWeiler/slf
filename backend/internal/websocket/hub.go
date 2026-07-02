@@ -275,6 +275,20 @@ func (h *Hub) onHostGraceExpired(code string) {
 	h.closeLobby(lobby, "hostDisconnected")
 }
 
+// playerForLocked resolves the player currently bound to a client's session, or
+// nil if none. The caller MUST hold h.mu.
+func (h *Hub) playerForLocked(c *Client) *game.Player {
+	s, ok := h.sessions[c.sessionID]
+	if !ok {
+		return nil
+	}
+	lobby, ok := h.rooms.Get(s.LobbyCode)
+	if !ok {
+		return nil
+	}
+	return lobby.Players[s.PlayerID]
+}
+
 // lookupLocked resolves a session to its lobby and player.
 // The caller MUST hold h.mu.
 func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.Player, bool) {
@@ -344,6 +358,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 				IsHost:    p.IsHost,
 				Connected: p.Connected,
 				Left:      p.Left,
+				Pending:   p.Pending,
 				Score:     p.Score,
 			},
 		})

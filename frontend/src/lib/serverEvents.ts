@@ -25,6 +25,8 @@ const playerSchema = z.object({
   isHost: z.boolean(),
   connected: z.boolean(),
   left: z.boolean(),
+  // Lenient default: tolerate a message from an older server without the field.
+  pending: z.boolean().optional().default(false),
   score: z.number(),
 });
 

@@ -74,14 +74,18 @@ function formatClock(total: number): string {
 }
 
 export function GameScreen() {
-  const { lobby } = useLobbyStore();
+  const { lobby, myPlayerId } = useLobbyStore();
   const { game, buzzRejected, setBuzzRejected, commentator } = useGameStore();
   const isHost = useIsHost();
   const { confirm, dialog } = useConfirm();
 
-  // A commentator host does not play: it fills nothing and instead watches the
-  // per-player fill overview.
-  const isSpectator = isHost && lobby?.settings.hostPlays === false;
+  // True for a mid-game joiner still waiting to play from the next round.
+  const isPending =
+    lobby?.players.find((p) => p.id === myPlayerId)?.pending ?? false;
+  // A commentator host and a pending joiner both watch instead of playing: they
+  // fill nothing and instead see the per-player fill overview.
+  const isSpectator =
+    (isHost && lobby?.settings.hostPlays === false) || isPending;
   const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
   const flamesEnabled = lobby?.settings.flamesEnabled ?? false;
 
@@ -296,8 +300,11 @@ export function GameScreen() {
   // Red border stays on through 0 and until the round actually ends.
   const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5;
 
-  // Non-host players who are actually playing (for the commentator overview).
-  const playingPlayers = lobby.players.filter((p) => !p.left && !p.isHost);
+  // Players actually participating this round (for the fill overview): not left,
+  // not a pending spectator, and — unless the host plays — not the host.
+  const playingPlayers = lobby.players.filter(
+    (p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays)
+  );
 
   return (
     <div className="min-h-svh bg-background screen-pad">
@@ -307,9 +314,19 @@ export function GameScreen() {
       )}
       <div className="mx-auto w-full max-w-5xl space-y-4 animate-fade-in">
         <RoomHeader
-          title={isSpectator ? "Kommentator" : "Runde läuft"}
+          title={
+            isSpectator
+              ? isPending
+                ? "Gleich dabei"
+                : "Kommentator"
+              : "Runde läuft"
+          }
           subtitle={
-            isSpectator ? "Wer hat schon ausgefüllt?" : undefined
+            isSpectator
+              ? isPending
+                ? "Du steigst in der nächsten Runde ein"
+                : "Wer hat schon ausgefüllt?"
+              : undefined
           }
         />
 

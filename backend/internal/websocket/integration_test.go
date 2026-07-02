@@ -196,15 +196,139 @@ func TestCheckLobbyReportsAvailability(t *testing.T) {
 		t.Fatalf("expected notFound, got available=%v reason=%q", chk.Available, chk.Reason)
 	}
 
-	// Once the game is running, the same lobby reports inProgress (the key case:
-	// "belegt" = mid-round). Wait for the host's gameState so the server-side
-	// state transition has definitely happened before we re-check.
+	// A running game is still joinable (the joiner waits as a spectator and plays
+	// from the next round), so checkLobby keeps reporting available. Wait for the
+	// host's gameState so the state transition has definitely happened first.
 	host.send("startGame", map[string]any{})
 	host.waitFor("gameState")
 	guest.send("checkLobby", map[string]any{"lobbyCode": code})
 	json.Unmarshal(guest.waitFor("lobbyCheck"), &chk)
-	if chk.Available || chk.Reason != "inProgress" {
-		t.Fatalf("expected inProgress, got available=%v reason=%q", chk.Available, chk.Reason)
+	if !chk.Available {
+		t.Fatalf("expected a running lobby to still be joinable, got reason %q", chk.Reason)
+	}
+}
+
+// ux-leave: joining a running game is allowed; the joiner is pending (a spectator
+// who does not appear in the standings) until the next round begins.
+func TestJoinMidGameIsPending(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	host.send("startGame", map[string]any{})
+	host.waitFor("gameState")
+
+	// Bob joins mid-game → accepted, and the lobbyState marks him pending.
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+		PlayerID  string `json:"playerId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.sessionID = sc.SessionID
+
+	var ls struct {
+		Players []struct {
+			ID      string `json:"id"`
+			Name    string `json:"name"`
+			Pending bool   `json:"pending"`
+		} `json:"players"`
+	}
+	json.Unmarshal(guest.waitFor("lobbyState"), &ls)
+	var bob *struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		Pending bool   `json:"pending"`
+	}
+	for i := range ls.Players {
+		if ls.Players[i].Name == "Bob" {
+			bob = &ls.Players[i]
+		}
+	}
+	if bob == nil {
+		t.Fatal("expected Bob in the lobby after a mid-game join")
+	}
+	if !bob.Pending {
+		t.Fatal("expected a mid-game joiner to be pending")
+	}
+
+	// A mid-game joiner also gets the current phase replayed (gameState) so their
+	// screen isn't blank.
+	guest.waitFor("gameState")
+}
+
+// ux-leave: a pending joiner is excluded from the standings during the round it
+// joined, and becomes a full participant when the next round begins.
+func TestPendingJoinerActivatesNextRound(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	// Keep two letters (A, B) so a second round can start after the first.
+	excluded := []string{}
+	for r := 'C'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.readLobby()
+
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State string `json:"state"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+
+	// Bob joins mid-round → pending.
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+		PlayerID  string `json:"playerId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.sessionID = sc.SessionID
+	bobID := sc.PlayerID
+
+	// Host ends the round and finishes review → RoundResult. Bob must not appear
+	// in the ranking while pending.
+	host.send("endRound", map[string]any{})
+	host.waitFor("reviewState")
+	host.send("finishReview", map[string]any{})
+	var rr struct {
+		Ranking []struct {
+			PlayerID string `json:"playerId"`
+		} `json:"ranking"`
+	}
+	json.Unmarshal(host.waitFor("roundResult"), &rr)
+	for _, r := range rr.Ranking {
+		if r.PlayerID == bobID {
+			t.Fatal("a pending joiner must not be in the ranking yet")
+		}
+	}
+
+	// Next round begins → Bob is activated (pending cleared).
+	host.send("startNextRound", map[string]any{})
+	deadline := time.Now().Add(3 * time.Second)
+	activated := false
+	for time.Now().Before(deadline) && !activated {
+		var ls struct {
+			Players []struct {
+				ID      string `json:"id"`
+				Pending bool   `json:"pending"`
+			} `json:"players"`
+		}
+		json.Unmarshal(guest.waitFor("lobbyState"), &ls)
+		for _, p := range ls.Players {
+			if p.ID == bobID && !p.Pending {
+				activated = true
+			}
+		}
+	}
+	if !activated {
+		t.Fatal("expected the pending joiner to be activated on the next round")
 	}
 }
 

@@ -190,11 +190,6 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	// A valid, existing code means this client is not blindly guessing → reset.
 	c.joinFails = 0
-	if lobby.State != game.StateLobby {
-		hub.mu.Unlock()
-		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
-		return
-	}
 	if len(lobby.Players) >= maxPlayersPerLobby {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeValidationError, "Lobby ist voll")
@@ -208,6 +203,11 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		}
 	}
 
+	// Joining while a game is already running is allowed: the player waits as a
+	// spectator (pending) and starts playing from the next round. Only during the
+	// Lobby state do they join as a full participant right away.
+	pending := lobby.State != game.StateLobby
+
 	playerID := generateID()
 	sessionID := generateID()
 
@@ -217,6 +217,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		Name:      name,
 		IsHost:    false,
 		Connected: true,
+		Pending:   pending,
 		Score:     0,
 		JoinedAt:  time.Now(),
 	}
@@ -230,13 +231,18 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.registerSession(c, session)
 
-	slog.Info("player joined", "lobby", code, "player", name)
+	slog.Info("player joined", "lobby", code, "player", name, "pending", pending)
 
 	c.send("sessionCreated", game.SessionCreatedPayload{
 		SessionID: sessionID,
 		PlayerID:  playerID,
 	})
 	hub.broadcastLobbyState(lobby)
+	// A mid-game joiner needs the current phase replayed (game/review/result) so
+	// their screen lands on the spectator view instead of a blank frame.
+	if pending {
+		hub.sendCurrentGameStateTo(c, lobby)
+	}
 }
 
 // handleCheckLobby answers whether a lobby can currently be joined, without
@@ -287,18 +293,16 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	// A valid, existing code means this client is not blindly guessing → reset.
 	c.joinFails = 0
-	state := lobby.State
 	playerCount := len(lobby.Players)
 	hub.mu.Unlock()
 
-	switch {
-	case state != game.StateLobby:
-		respond(false, "inProgress")
-	case playerCount >= maxPlayersPerLobby:
+	// A running game is joinable now (the joiner waits as a spectator and plays
+	// from the next round), so only a full lobby is reported as unavailable.
+	if playerCount >= maxPlayersPerLobby {
 		respond(false, "full")
-	default:
-		respond(true, "")
+		return
 	}
+	respond(true, "")
 }
 
 func handleReconnect(hub *Hub, c *Client, sessionID string) {

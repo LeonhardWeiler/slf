@@ -72,13 +72,21 @@ func isSpectatorHost(lobby *game.Lobby, p *game.Player) bool {
 	return !lobby.Settings.HostPlays && p.IsHost
 }
 
+// isRoundSpectator reports whether the player does not participate in the current
+// round and therefore watches instead of playing: a commentator host, or a
+// mid-game joiner still pending (waiting to play from the next round). Such a
+// player never submits answers, buzzes, is scored, ranked or reviewed.
+func isRoundSpectator(lobby *game.Lobby, p *game.Player) bool {
+	return isSpectatorHost(lobby, p) || p.Pending
+}
+
 // buildCommentatorState summarises, per playing (non-host, non-left) player,
 // which categories they have filled — never the values. Caller must hold hub.mu.
 func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	r := lobby.Game.Round
 	players := make([]game.CommentatorPlayer, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
-		if isSpectatorHost(lobby, p) || p.Left {
+		if isRoundSpectator(lobby, p) || p.Left {
 			continue
 		}
 		filled := make([]string, 0, len(lobby.Categories))
@@ -101,31 +109,37 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	return game.CommentatorStatePayload{RoundID: r.ID, Players: players}
 }
 
-// commentatorTarget returns the connected commentator-host client and the
-// current commentator payload, or ok=false when the host plays, is offline, or
-// there is no active round. Caller must hold hub.mu.
-func (hub *Hub) commentatorTarget(lobby *game.Lobby) (*Client, game.CommentatorStatePayload, bool) {
-	if lobby.Settings.HostPlays || lobby.Game == nil || lobby.Game.Round == nil {
-		return nil, game.CommentatorStatePayload{}, false
+// spectatorClients returns every connected client that should watch the round's
+// fill-overview board instead of playing: the commentator host and any pending
+// (mid-game) joiners. Empty when there is no active round. Caller must hold
+// hub.mu.
+func (hub *Hub) spectatorClients(lobby *game.Lobby) []*Client {
+	if lobby.Game == nil || lobby.Game.Round == nil {
+		return nil
 	}
-	host := lobby.Players[lobby.HostID]
-	if host == nil {
-		return nil, game.CommentatorStatePayload{}, false
+	var out []*Client
+	for _, p := range lobby.Players {
+		if p.Left || !isRoundSpectator(lobby, p) {
+			continue
+		}
+		if cl, ok := hub.clients[p.SessionID]; ok {
+			out = append(out, cl)
+		}
 	}
-	cl := hub.clients[host.SessionID]
-	if cl == nil {
-		return nil, game.CommentatorStatePayload{}, false
-	}
-	return cl, buildCommentatorState(lobby), true
+	return out
 }
 
-// notifyCommentator sends the current fill overview to the commentator host, if
-// any. Caller must NOT hold hub.mu (it locks internally).
+// notifyCommentator sends the current fill overview to every spectator (the
+// commentator host and any pending joiners). Caller must NOT hold hub.mu.
 func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
 	hub.mu.Lock()
-	cl, payload, ok := hub.commentatorTarget(lobby)
+	viewers := hub.spectatorClients(lobby)
+	var payload game.CommentatorStatePayload
+	if len(viewers) > 0 {
+		payload = buildCommentatorState(lobby)
+	}
 	hub.mu.Unlock()
-	if ok {
+	for _, cl := range viewers {
 		_ = cl.send("commentatorState", payload)
 	}
 }
@@ -182,9 +196,10 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 
 	perCat := map[string]*game.Answer{}
 	for pid, byCat := range r.Answers {
-		// Skip players who left the game (kept only for the standings) and a
-		// commentator host (must never have answers in play).
-		if pl, ok := lobby.Players[pid]; ok && (pl.Left || isSpectatorHost(lobby, pl)) {
+		// Skip players who left the game (kept only for the standings) and any
+		// round spectator (commentator host or pending mid-game joiner) that must
+		// never have answers in play.
+		if pl, ok := lobby.Players[pid]; ok && (pl.Left || isRoundSpectator(lobby, pl)) {
 			continue
 		}
 		if a, ok := byCat[cat.ID]; ok {
@@ -222,12 +237,13 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
 func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
-	// A commentator host (HostPlays=false) does not participate, so it is left
-	// out of both the per-round scores and the ranking.
+	// Round spectators — a commentator host (HostPlays=false) and mid-game joiners
+	// still pending — do not participate, so they are left out of both the
+	// per-round scores and the ranking.
 	ranked := make(map[string]*game.Player, len(lobby.Players))
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
 	for pid, pl := range lobby.Players {
-		if isSpectatorHost(lobby, pl) {
+		if isRoundSpectator(lobby, pl) {
 			continue
 		}
 		ranked[pid] = pl

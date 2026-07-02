@@ -12,6 +12,9 @@ export interface Player {
   isHost: boolean;
   connected: boolean;
   left: boolean;
+  // True for a player who joined mid-game and is waiting to play from the next
+  // round: shown a spectator view, hidden from the standings until then.
+  pending: boolean;
   score: number;
 }
 

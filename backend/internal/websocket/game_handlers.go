@@ -79,6 +79,11 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 	}
 	g.RemainingLetters = remaining
 	g.UsedLetters = append(g.UsedLetters, letter)
+	// A new round begins → any mid-game joiners who were waiting as spectators
+	// become full participants now and score from this round on.
+	for _, p := range lobby.Players {
+		p.Pending = false
+	}
 	round := &game.Round{
 		ID:        generateID(),
 		Letter:    letter,
@@ -146,9 +151,10 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.mu.Unlock()
 		return
 	}
-	// A commentator host does not play, so it must not submit answers (they would
-	// otherwise show up in review and skew the category scoring for everyone else).
-	if isSpectatorHost(lobby, player) {
+	// A round spectator (commentator host or pending mid-game joiner) does not
+	// play, so it must not submit answers (they would otherwise show up in review
+	// and skew the category scoring for everyone else).
+	if isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		return
 	}
@@ -180,7 +186,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.mu.Unlock()
 		return
 	}
-	if isSpectatorHost(lobby, player) {
+	if isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		return
 	}
@@ -216,8 +222,9 @@ func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 		lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
 		return
 	}
-	// A commentator host does not play, so cannot flame.
-	if !lobby.Settings.HostPlays && player.IsHost {
+	// A round spectator (commentator host or pending joiner) does not play, so
+	// cannot flame.
+	if isRoundSpectator(lobby, player) {
 		return
 	}
 	if p.CategoryID == "" {
@@ -238,8 +245,9 @@ func handleBuzz(hub *Hub, c *Client) {
 		hub.sendBuzzRejected(c, "invalidState")
 		return
 	}
-	// A commentator host does not play and therefore cannot buzz.
-	if isSpectatorHost(lobby, player) {
+	// A round spectator (commentator host or pending joiner) does not play and
+	// therefore cannot buzz.
+	if isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		hub.sendBuzzRejected(c, "invalidState")
 		return
@@ -442,9 +450,9 @@ func handleFinishReview(hub *Hub, c *Client) {
 	for _, cat := range lobby.Categories {
 		perCat := map[string]*game.Answer{}
 		for pid, byCat := range round.Answers {
-			// Defense-in-depth: never score a commentator host, even if a crafted
-			// client managed to slip answers into the round.
-			if pl, ok := lobby.Players[pid]; ok && isSpectatorHost(lobby, pl) {
+			// Defense-in-depth: never score a round spectator (commentator host or
+			// pending joiner), even if a crafted client slipped answers into the round.
+			if pl, ok := lobby.Players[pid]; ok && isRoundSpectator(lobby, pl) {
 				continue
 			}
 			if ans, ok := byCat[cat.ID]; ok {
@@ -516,6 +524,9 @@ func (hub *Hub) resetForNewGame(lobby *game.Lobby) {
 			continue
 		}
 		p.Score = 0
+		// A fresh game/lobby has no waiting spectators: any mid-game joiner who is
+		// still pending becomes a normal member.
+		p.Pending = false
 	}
 }
 
@@ -564,9 +575,11 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 	case game.StateCountdown, game.StatePlaying:
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			c.sendV("gameState", buildGameState(lobby), lobby.Version)
-			// A reconnecting commentator host also gets the current fill overview.
-			if cl, payload, ok := hub.commentatorTarget(lobby); ok && cl == c {
-				c.sendV("commentatorState", payload, lobby.Version)
+			// A reconnecting/joining spectator (commentator host or pending
+			// mid-game joiner) also gets the current fill overview so its board
+			// is populated right away.
+			if me := hub.playerForLocked(c); me != nil && isRoundSpectator(lobby, me) {
+				c.sendV("commentatorState", buildCommentatorState(lobby), lobby.Version)
 			}
 		}
 	case game.StateReviewing:

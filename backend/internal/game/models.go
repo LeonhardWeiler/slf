@@ -10,7 +10,12 @@ type Player struct {
 	Connected bool   `json:"connected"`
 	// Left is true when the player left an in-progress game. They are kept in
 	// the standings but excluded from review and the lobby player list.
-	Left     bool      `json:"left"`
+	Left bool `json:"left"`
+	// Pending is true for a player who joined while a game was already running.
+	// They wait as a spectator (seeing the fill overview, never buzzing/scoring)
+	// and are cleared to a full participant when the next round begins. Excluded
+	// from scoring, ranking and review while pending.
+	Pending  bool      `json:"pending"`
 	Score    int       `json:"score"`
 	JoinedAt time.Time `json:"joinedAt"`
 }
@@ -117,7 +122,10 @@ type LobbyPlayer struct {
 	IsHost    bool   `json:"isHost"`
 	Connected bool   `json:"connected"`
 	Left      bool   `json:"left"`
-	Score     int    `json:"score"`
+	// Pending marks a mid-game joiner who is waiting to play from the next round;
+	// the client renders them a spectator view and hides them from the standings.
+	Pending bool `json:"pending"`
+	Score   int  `json:"score"`
 }
 
 type LobbyStatePayload struct {
