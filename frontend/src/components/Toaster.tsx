@@ -75,8 +75,11 @@ export function Toaster() {
     .reverse();
 
   return (
+    // Only the front toast is read out (the peeking cards behind it are
+    // aria-hidden), so key the region's urgency off its variant: errors
+    // interrupt (assertive), neutral info updates wait their turn (polite).
     <div
-      aria-live="assertive"
+      aria-live={front.variant === "error" ? "assertive" : "polite"}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex w-full max-w-sm flex-col items-start gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       {toasts.length > 1 && (
