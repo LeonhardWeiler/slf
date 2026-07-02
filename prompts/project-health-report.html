@@ -251,7 +251,7 @@
           <div class="l">Niedrig</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--info)">1</div>
+          <div class="n" style="color: var(--info)">0</div>
           <div class="l">Info</div>
         </div>
       </div>
@@ -311,29 +311,6 @@
           <b>Empfehlung:</b> Die Verlassen-Bestätigung <em>während eines
           laufenden Spiels</em> um einen Hinweis ergänzen, dass ein
           Wieder­einstieg erst nach Spielende (Rückkehr zur Lobby) möglich ist.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-info">info</span> „+0" in Erfolgs-Grün im
-          Zwischenstand
-          <span class="id">UX-ZERO</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/RoundResultScreen.tsx</code>
-          (<code>roundPointsOf</code>-Anzeige)
-        </div>
-        <p>
-          Die Rundenpunkte werden immer grün und mit führendem „+" gezeigt
-          (<code>text-green-600</code>, <code>+{roundPoints}</code>) — auch bei
-          0&nbsp;Punkten. Ein Nullgewinn in Erfolgs-Grün ist leicht
-          irreführend.
-        </p>
-        <div class="rec">
-          <b>Empfehlung:</b> Bei <code>roundPoints === 0</code> neutral
-          einfärben (<code>text-muted-foreground</code>) bzw. „±0" statt „+0"
-          zeigen.
         </div>
       </div>
 

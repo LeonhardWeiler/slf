@@ -79,7 +79,9 @@ export function RoundResultScreen() {
             <CardTitle className="text-base">Zwischenstand</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {result.ranking.map((r) => (
+            {result.ranking.map((r) => {
+              const roundPoints = roundPointsOf(r.playerId);
+              return (
               <div
                 key={r.playerId}
                 className={`flex items-center justify-between py-2 px-3 rounded-md ${
@@ -106,15 +108,24 @@ export function RoundResultScreen() {
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-green-600 font-medium">
-                    +{roundPointsOf(r.playerId)}
+                  {/* Rundengewinn nur bei >0 in Erfolgs-Grün; ein Nullgewinn
+                      wird neutral als „±0" gezeigt, nicht als grünes „+0". */}
+                  <span
+                    className={`text-xs font-medium ${
+                      roundPoints === 0
+                        ? "text-muted-foreground"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {roundPoints === 0 ? "±0" : `+${roundPoints}`}
                   </span>
                   <span className="text-sm font-bold tabular-nums w-10 text-right">
                     {r.score}
                   </span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
