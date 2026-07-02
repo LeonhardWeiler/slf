@@ -124,20 +124,21 @@ export function RoundResultScreen() {
         </Card>
 
         {isHost ? (
-          <div className="space-y-2">
+          // Nebeneinander ab sm; auf schmalen Screens gestapelt.
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
             <Button
-              className="w-full"
+              variant="outline"
+              className="sm:flex-1"
+              onClick={handleEndGame}
+            >
+              Spiel beenden
+            </Button>
+            <Button
+              className="sm:flex-1"
               size="lg"
               onClick={() => ws.send({ type: "startNextRound", payload: {} })}
             >
               {lettersLeft > 0 ? "Nächste Runde (Enter)" : "Spiel abschließen (Enter)"}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleEndGame}
-            >
-              Spiel beenden
             </Button>
           </div>
         ) : (
