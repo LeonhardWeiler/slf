@@ -62,20 +62,22 @@
     Letzter-Buchstabe- und Flammen-Modus → spielen → bewerten/zusammenführen →
     nächste Runde; Spieler: beitreten per Code/QR/Deep-Link → ausfüllen → buzzern/
     flammen) funktionieren durchgehend, inkl. Bestätigungsdialogen für destruktive
-    Aktionen, inline-Beitritts-Fehlern und Verbindungs-Sperre der Startseite. Es sind
-    <b>keine kritischen, hohen oder mittleren Findings</b> offen; verblieben sind
-    <b>zwei kleine, nicht-blockierende UX-/A11y-Punkte</b> (irreführender
-    Verbindungs-Toast beim Kaltstart, <code>aria-live="assertive"</code> auch für
-    Info-Toasts). Mehrere ältere Themen sind <b>bewusste Entscheidungen</b>, im
-    README dokumentiert (Abschnitt&nbsp;3).
+    Aktionen, inline-Beitritts-Fehlern und Verbindungs-Sperre der Startseite. Die
+    zuletzt gefundenen kleinen Punkte — irreführender „Verbindung verloren"-Toast beim
+    Kaltstart und <code>aria-live="assertive"</code> auch für Info-Toasts — sind
+    <b>behoben</b>: der Status-Toast meldet einen Verlust nur nach einer zuvor
+    bestehenden Verbindung, und die Toast-Live-Region ist jetzt variantenabhängig
+    (<code>assertive</code> nur für Fehler, sonst <code>polite</code>).
+    <b>Aktuell keine offenen Findings.</b> Mehrere ältere Themen sind
+    <b>bewusste Entscheidungen</b>, im README dokumentiert (Abschnitt&nbsp;3).
   </p>
 
   <div class="summary">
     <div class="stat"><div class="n" style="color:var(--crit)">0</div><div class="l">Kritisch</div></div>
     <div class="stat"><div class="n" style="color:var(--high)">0</div><div class="l">Hoch</div></div>
     <div class="stat"><div class="n" style="color:var(--med)">0</div><div class="l">Mittel</div></div>
-    <div class="stat"><div class="n" style="color:var(--low)">1</div><div class="l">Niedrig</div></div>
-    <div class="stat"><div class="n" style="color:var(--info)">1</div><div class="l">Info</div></div>
+    <div class="stat"><div class="n" style="color:var(--low)">0</div><div class="l">Niedrig</div></div>
+    <div class="stat"><div class="n" style="color:var(--info)">0</div><div class="l">Info</div></div>
   </div>
 
   <div class="toc">
@@ -96,38 +98,11 @@
 
   <!-- ============ OPEN ============ -->
   <h2 id="open">1. Offene Findings</h2>
-  <p class="note">Kein kritisches, hohes oder mittleres Finding. Alle Gates
+  <p class="note">Aktuell <b>keine offenen Findings</b>. Die zuletzt gefundenen kleinen
+    Punkte (irreführender „Verbindung verloren"-Toast beim Kaltstart;
+    <code>aria-live="assertive"</code> auch für Info-Toasts) sind umgesetzt. Alle Gates
     (<code>gofmt</code>, <code>go vet</code>, <code>go test</code> inkl.
-    <code>-race</code>, Biome, Vitest, <code>vite build</code>) sind grün. Es
-    verbleiben zwei kleine, nicht-blockierende Punkte.</p>
-
-  <div class="card">
-    <h3><span class="badge b-low">niedrig</span> Irreführender „Verbindung verloren"-Toast beim Kaltstart <span class="id">UX-CONN</span></h3>
-    <div class="loc"><code>frontend/src/App.tsx</code> (Status-Effect) · <code>frontend/src/lib/ws.ts</code> (<code>scheduleReconnect</code>/<code>onclose</code>)</div>
-    <p>Der Status-Listener startet mit <code>prevConnected = true</code>. Ist der Server
-      beim allerersten Laden nicht erreichbar, feuert <code>onclose</code> → Status
-      <code>false</code>, und der Übergang <code>true→false</code> zeigt den Toast
-      „Verbindung zum Server <b>verloren</b>…" — obwohl noch nie eine Verbindung
-      bestand. Die Startseite blendet parallel bereits das persistente
-      „Keine&nbsp;Verbindung"-Banner ein, sodass die Meldung zusätzlich redundant und
-      im Wortlaut falsch ist.</p>
-    <div class="rec"><b>Empfehlung:</b> Den allerersten Nicht-Verbindungs-Übergang nicht
-      als „verloren" formulieren — z.&nbsp;B. <code>prevConnected</code> aus
-      <code>ws.isOpen</code> initialisieren oder den Toast erst nach einer zuvor
-      erfolgreichen Verbindung zeigen.</p>
-  </div>
-
-  <div class="card">
-    <h3><span class="badge b-info">info</span> <code>aria-live="assertive"</code> auch für Info-Toasts <span class="id">A11Y-TOAST</span></h3>
-    <div class="loc"><code>frontend/src/components/Toaster.tsx</code></div>
-    <p>Der Toast-Container ist durchgehend <code>aria-live="assertive"</code> und
-      unterbricht damit den Screenreader auch bei rein informativen Meldungen (z.&nbsp;B.
-      „Verbindung wiederhergestellt"). Für nicht-dringliche Hinweise empfiehlt die
-      ARIA-Praxis <code>polite</code>; <code>assertive</code>/<code>role="alert"</code>
-      bleibt Fehlern vorbehalten (wie beim <code>HostGraceBanner</code> bereits korrekt).</p>
-    <div class="rec"><b>Empfehlung:</b> Info-Toasts über eine <code>polite</code>-Region
-      ausgeben und <code>assertive</code> nur für die Fehler-Variante nutzen.</p>
-  </div>
+    <code>-race</code>, Biome, Vitest, <code>vite build</code>) sind grün.</p>
 
   <!-- ============ GOOD ============ -->
   <h2 id="good">2. Was schon stark ist</h2>
