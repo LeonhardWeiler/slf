@@ -16,7 +16,7 @@ gesamte Spielzustand liegt im RAM.
   - **Kommentator-Host** – der Host spielt nicht mit, sieht stattdessen eine
     Live-Übersicht, welche Kategorien jeder Spieler ausgefüllt hat
   - **Letzter statt erster Buchstabe** – Antworten müssen auf den Buchstaben
-    *enden* statt mit ihm zu beginnen
+    _enden_ statt mit ihm zu beginnen
   - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
 - **Punktevergabe** nach klassischen Regeln (siehe unten)
 - **Reconnect**: Reload, Tab-Schließen oder kurzer Verbindungsabbruch führen
@@ -32,11 +32,11 @@ gesamte Spielzustand liegt im RAM.
 
 ## Tech-Stack
 
-| Bereich   | Technologien |
-|-----------|--------------|
-| Backend   | Go, [`coder/websocket`](https://github.com/coder/websocket), In-Memory |
-| Frontend  | React 19, Vite, TypeScript, Tailwind CSS 4, shadcn/ui (Radix), Zustand, React Router 7, Zod |
-| Tooling   | Bun (Package-Manager), [air](https://github.com/air-verse/air) (Go Live-Reload), Nix (Dev-Shell) |
+| Bereich  | Technologien                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), In-Memory                           |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, shadcn/ui (Radix), Zustand, React Router 7, Zod      |
+| Tooling  | Bun (Package-Manager), [air](https://github.com/air-verse/air) (Go Live-Reload), Nix (Dev-Shell) |
 
 ## Architektur
 
@@ -61,12 +61,12 @@ gesamte Spielzustand liegt im RAM.
 
 ### Punktevergabe (pro Kategorie)
 
-| Punkte | Bedingung |
-|-------:|-----------|
-| 0  | ungültig oder leer |
-| 5  | gültig, aber dieselbe Antwort wie ein anderer Spieler |
-| 10 | gültige, eindeutige Antwort |
-| 20 | einzige gültige Antwort der Kategorie |
+| Punkte | Bedingung                                             |
+| -----: | ----------------------------------------------------- |
+|      0 | ungültig oder leer                                    |
+|      5 | gültig, aber dieselbe Antwort wie ein anderer Spieler |
+|     10 | gültige, eindeutige Antwort                           |
+|     20 | einzige gültige Antwort der Kategorie                 |
 
 Der Host kann während der Bewertung Antworten als gültig/ungültig markieren und
 sinngleiche Antworten zusammenführen (zählen dann als eine Gruppe).
@@ -153,7 +153,8 @@ cd frontend && bun run lint && bun run test && bun run build
 ```
 
 Dieselben Schritte laufen in der CI (`.gitlab-ci.yml`): `gofmt`-Gate + `go vet`
-+ `go test` fürs Backend, Biome-Lint + Vitest + Build fürs Frontend.
+
+- `go test` fürs Backend, Biome-Lint + Vitest + Build fürs Frontend.
 
 ## Deployment mit Docker
 
@@ -173,12 +174,12 @@ Die GitLab-CI baut nach jedem Commit auf `master` das Image und pusht es nach
 
 ### Konfiguration (Umgebungsvariablen)
 
-| Variable      | Default | Bedeutung |
-|---------------|---------|-----------|
-| `STATIC_DIR`  | –       | Verzeichnis mit dem gebauten Frontend; leer = nur `/ws` (Dev) |
-| `LOG_LEVEL`   | `info`  | `debug` \| `info` \| `warn` \| `error` |
-| `LOG_FORMAT`  | `text`  | `text` \| `json` |
-| `LOG_FILE`    | –       | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume) |
+| Variable             | Default                     | Bedeutung                                                                                                                                                                                          |
+| -------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STATIC_DIR`         | –                           | Verzeichnis mit dem gebauten Frontend; leer = nur `/ws` (Dev)                                                                                                                                      |
+| `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                             |
+| `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                   |
+| `LOG_FILE`           | –                           | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume)                                                                                                                                   |
 | `WS_ALLOWED_ORIGINS` | Same-Origin + localhost/LAN | Zusätzlich erlaubte WebSocket-Origins (kommagetrennt). Standardmäßig sind Same-Origin sowie localhost/private LAN-IPs erlaubt; setzen, um das Frontend von einer **anderen** Domain aus zuzulassen |
 
 ## Performance

@@ -49,7 +49,7 @@ lässt sich das lokal mit `bun --bun run test` (erzwingt die Bun-Runtime).
 ## Architektur (Kurz)
 
 - Zustandsautomat pro Lobby: `Lobby → Countdown → Playing → Reviewing →
-  RoundResult → GameOver → Lobby`.
+RoundResult → GameOver → Lobby`.
 - Nachrichten: JSON über `/ws`, Client→Server `{type, payload, sessionId}`,
   Server→Client `{type, payload, stateVersion}`.
 - Backend: `cmd/server` (Einstieg + Security-Header/SPA-Serving),
@@ -61,7 +61,7 @@ lässt sich das lokal mit `bun --bun run test` (erzwingt die Bun-Runtime).
   Rundenstart (`beginCountdown`) aktiviert. Serverseitig kapselt
   `isRoundSpectator` (Kommentator-Host **oder** Pending) den Ausschluss.
 
-## prompts/
+## AGENT/
 
 `project-health-report.html` = laufender Health-Report, `TODO.md` = Arbeitsliste.
 Gepflegt über die Skills `/review-and-update-report` und `/implement-todo`.
