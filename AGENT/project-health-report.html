@@ -200,27 +200,29 @@
       <h1>Stadt&nbsp;Land&nbsp;Fluss — Code-Review &amp; Findings</h1>
       <div class="meta">
         Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität ·
-        Performance · Sauberkeit) · Stand 2026-07-02 · Branch
+        Performance · Sauberkeit) · Stand 2026-07-04 · Branch
         <code>master</code>
       </div>
 
       <p class="lead">
-        <b>Finaler Health-Check</b> zum (vorläufigen) Projektabschluss. Der Stand
-        ist <b>rund und auslieferbar</b>: alle Qualitäts-Gates grün — Backend
-        (<code>gofmt</code>, <code>go vet</code>, <code>go test&nbsp;./...</code>
-        inkl. <code>-race</code>) und Frontend (Biome, Vitest, 20&nbsp;Tests,
-        <code>vite&nbsp;build</code> mit <code>tsc</code>). Der
-        server-autoritative Kern, die durchgängige Zod-Validierung, der robuste
-        Verbindungs-Lifecycle (Host-Grace, Reconnect mit Backoff+Jitter, jetzt
-        <code>localStorage</code>-Session über das Tab-Schließen hinweg), die
-        Härtung (Origin-Check, Rate-Limits/Caps/Join-Backoff, CSP/HSTS/COOP — der
-        CSP-Script-Hash deckt sich exakt mit dem Anti-FOUC-Snippet) und die A11y
-        sind solide. Beide Rollen wurden erneut durch die <b>komplette
-        Varianten-Matrix</b> gespielt (Kommentator&nbsp;an/aus, Flammen an/aus,
-        Zeitlimit an/aus, Letzter-Buchstabe, Buchstabe-im-Countdown,
-        Solo/Mehrspieler, Verlassen&nbsp;vs.&nbsp;Verbindungsverlust, Beitritt in
-        jeder Phase, Reconnect als Spieler <em>und</em> als wartender Zuschauer)
-        — ohne Befund. <b>Aktuell keine offenen Findings.</b> Eine ausführliche
+        <b>Finaler Health-Check</b> zum (vorläufigen) Projektabschluss. Der
+        Stand ist <b>rund und auslieferbar</b>: alle Qualitäts-Gates grün —
+        Backend (<code>gofmt</code>, <code>go vet</code>,
+        <code>go test&nbsp;./...</code> inkl. <code>-race</code>) und Frontend
+        (Biome, Vitest, 20&nbsp;Tests, <code>vite&nbsp;build</code> mit
+        <code>tsc</code>). Der server-autoritative Kern, die durchgängige
+        Zod-Validierung, der robuste Verbindungs-Lifecycle (Host-Grace,
+        Reconnect mit Backoff+Jitter, jetzt <code>localStorage</code>-Session
+        über das Tab-Schließen hinweg), die Härtung (Origin-Check,
+        Rate-Limits/Caps/Join-Backoff, CSP/HSTS/COOP — der CSP-Script-Hash deckt
+        sich exakt mit dem Anti-FOUC-Snippet) und die A11y sind solide. Beide
+        Rollen wurden erneut durch die
+        <b>komplette Varianten-Matrix</b> gespielt (Kommentator&nbsp;an/aus,
+        Flammen an/aus, Zeitlimit an/aus, Letzter-Buchstabe,
+        Buchstabe-im-Countdown, Solo/Mehrspieler,
+        Verlassen&nbsp;vs.&nbsp;Verbindungsverlust, Beitritt in jeder Phase,
+        Reconnect als Spieler <em>und</em> als wartender Zuschauer) — ohne
+        Befund. <b>Aktuell keine offenen Findings.</b> Eine ausführliche
         Gesamtbewertung steht in <b>Abschnitt&nbsp;4</b>; bewusste
         Einschränkungen (im README dokumentiert) in Abschnitt&nbsp;3.
       </p>
@@ -271,9 +273,9 @@
       <!-- ============ OPEN ============ -->
       <h2 id="open">1. Offene Findings</h2>
       <p class="note">
-        Aktuell <b>keine offenen Findings</b>. Alle Gates
-        (<code>gofmt</code>, <code>go vet</code>, <code>go test</code> inkl.
-        <code>-race</code>, Biome, Vitest, <code>vite build</code>) sind grün.
+        Aktuell <b>keine offenen Findings</b>. Alle Gates (<code>gofmt</code>,
+        <code>go vet</code>, <code>go test</code> inkl. <code>-race</code>,
+        Biome, Vitest, <code>vite build</code>) sind grün.
       </p>
 
       <!-- ============ GOOD ============ -->
@@ -328,6 +330,16 @@
           Rate-Limit + Caps + Join-Backoff (auch für die Vorprüfung),
           Lobby-Reaper, CSP/HSTS-<code>preload</code>/COOP, unveränderliches
           Asset-Caching, gehashte Session-IDs, kein sessionId-Leak.
+        </li>
+        <li>
+          <span class="badge b-ok">plus</span> <b>Render-Effizienz</b>: Alle
+          Store-Zugriffe nutzen feingranulare Zustand-Selektoren
+          (<code>useStore(s =&gt; s.feld)</code>) statt den ganzen Store zu
+          abonnieren, sodass Komponenten nur bei den von ihnen gelesenen Feldern
+          neu rendern. <code>Room</code> hängt z.&nbsp;B. nur an
+          <code>lobby?.state</code>, sodass der Routes-Baum nicht mehr bei jedem
+          <code>hostGrace</code>-Sekundentick neu rendert. Timer-Screens ticken
+          bewusst über lokalen State, nicht über den Store.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Konsistenz &amp; CI</b>:
@@ -390,20 +402,23 @@
         mehrere Review-Runden zu einem konsistenten, gut getesteten und bewusst
         gehärteten Stand gereift. Es gibt keine bekannten Korrektheits-,
         Security- oder A11y-Mängel; die verbleibenden Einschränkungen sind
-        allesamt bewusste, dokumentierte Design-Entscheidungen (Abschnitt&nbsp;3).
+        allesamt bewusste, dokumentierte Design-Entscheidungen
+        (Abschnitt&nbsp;3).
       </p>
 
       <h3>Architektur &amp; Code-Qualität</h3>
       <p>
         Klare Trennung: Go-Backend als <b>Single Source of Truth</b> (Engine,
         State-Machine, Hub/Handler getrennt), React-SPA als reiner View-Layer.
-        Der Zustandsautomat pro Lobby (<code>Lobby → Countdown → Playing →
-        Reviewing → RoundResult → GameOver</code>) ist sauber gekapselt; Timer
-        sind über <code>roundID</code>+State idempotent, sodass späte Callbacks
-        auf abgebrochene Runden folgenlos verpuffen. Die Client-seitige
-        Antwort-Validierung spiegelt die Engine-Regeln und ist per Vitest gegen
-        Drift abgesichert. Der Code ist durchgängig kommentiert (jede nicht
-        offensichtliche Entscheidung mit Begründung) und stilistisch homogen.
+        Der Zustandsautomat pro Lobby (<code
+          >Lobby → Countdown → Playing → Reviewing → RoundResult →
+          GameOver</code
+        >) ist sauber gekapselt; Timer sind über <code>roundID</code>+State
+        idempotent, sodass späte Callbacks auf abgebrochene Runden folgenlos
+        verpuffen. Die Client-seitige Antwort-Validierung spiegelt die
+        Engine-Regeln und ist per Vitest gegen Drift abgesichert. Der Code ist
+        durchgängig kommentiert (jede nicht offensichtliche Entscheidung mit
+        Begründung) und stilistisch homogen.
       </p>
 
       <h3>Nebenläufigkeit</h3>
@@ -420,10 +435,11 @@
       <p>
         Backend: Engine-Unit-Tests, Benchmarks und Protokoll-nahe
         WS-Integrationstests (u.&nbsp;a. voller Rundenzyklus, Host-Grace-Ablauf,
-        Mid-Game-Beitritt&nbsp;→&nbsp;Pending&nbsp;→&nbsp;Aktivierung). Frontend:
-        Zod-Parser und der Engine-Regel-Mirror. Die GitLab-CI läuft auf
-        <code>oven/bun</code> ohne Node; die Bun-Runtime-Eigenheit (zod inline in
-        <code>vite.config.ts</code>) ist bewusst gelöst und dokumentiert.
+        Mid-Game-Beitritt&nbsp;→&nbsp;Pending&nbsp;→&nbsp;Aktivierung).
+        Frontend: Zod-Parser und der Engine-Regel-Mirror. Die GitLab-CI läuft
+        auf
+        <code>oven/bun</code> ohne Node; die Bun-Runtime-Eigenheit (zod inline
+        in <code>vite.config.ts</code>) ist bewusst gelöst und dokumentiert.
         <em>Lücke (nicht kritisch):</em> Für die React-Komponenten/Screens gibt
         es keine Render-Tests — die UI wird über Typecheck, Lint und manuelle
         Varianten-Durchläufe abgesichert.
@@ -431,23 +447,24 @@
 
       <h3>Security</h3>
       <p>
-        Server-autoritativ mit durchgängiger Eingangsvalidierung; WS-Origin-Check
-        gegen CSWSH (IP-parsing statt Glob), Per-Connection-Rate-Limit,
-        Ressourcen-Caps, Join-Backoff gegen Code-Enumeration, abandoned-Lobby-
-        Reaper. Strikte CSP (Script-Hash statt <code>unsafe-inline</code>),
-        HSTS/COOP/nosniff, gehashte Session-IDs in Logs, kein
-        <code>sessionId</code>-Leak an andere Clients. Angemessen für ein
-        Spiel ohne Konten/Persistenz und ohne personenbezogene Daten.
+        Server-autoritativ mit durchgängiger Eingangsvalidierung;
+        WS-Origin-Check gegen CSWSH (IP-parsing statt Glob),
+        Per-Connection-Rate-Limit, Ressourcen-Caps, Join-Backoff gegen
+        Code-Enumeration, abandoned-Lobby- Reaper. Strikte CSP (Script-Hash
+        statt <code>unsafe-inline</code>), HSTS/COOP/nosniff, gehashte
+        Session-IDs in Logs, kein <code>sessionId</code>-Leak an andere Clients.
+        Angemessen für ein Spiel ohne Konten/Persistenz und ohne
+        personenbezogene Daten.
       </p>
 
       <h3>UX &amp; A11y</h3>
       <p>
         Beide Rollen sind durchgängig geführt (inline-Fehler am Feld,
         Bestätigungen für destruktive Aktionen, Verbindungs-Feedback,
-        Kommentator-Beamer-Ansicht, QR/Deep-Link-Beitritt, „jederzeit beitreten").
-        A11y: <code>&lt;main&gt;</code>-Landmark, Fokus-Trap im Modal,
-        variantenabhängige Live-Regions, Tastaturbedienung, pausierbare Toasts,
-        AA-Kontrast. Reaktionsschnell und mit Hell-/Dunkel-Theme.
+        Kommentator-Beamer-Ansicht, QR/Deep-Link-Beitritt, „jederzeit
+        beitreten"). A11y: <code>&lt;main&gt;</code>-Landmark, Fokus-Trap im
+        Modal, variantenabhängige Live-Regions, Tastaturbedienung, pausierbare
+        Toasts, AA-Kontrast. Reaktionsschnell und mit Hell-/Dunkel-Theme.
       </p>
 
       <h3>Optionale nächste Schritte (nicht blockierend)</h3>
