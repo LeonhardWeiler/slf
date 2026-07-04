@@ -12,7 +12,14 @@ import { Toaster } from "@/components/Toaster";
 import { useToastStore } from "@/store/toast";
 
 function AppRoutes() {
-  const { setLobby, setSession, setHostGrace, reset, lobby } = useLobbyStore();
+  // Individual selectors instead of destructuring the whole store: otherwise
+  // App (and with it the entire routed tree) re-renders on every unrelated
+  // lobby-store change — e.g. the per-second hostGrace countdown.
+  const setLobby = useLobbyStore((s) => s.setLobby);
+  const setSession = useLobbyStore((s) => s.setSession);
+  const setHostGrace = useLobbyStore((s) => s.setHostGrace);
+  const reset = useLobbyStore((s) => s.reset);
+  const lobby = useLobbyStore((s) => s.lobby);
   const pendingReconnect = useRef(false);
 
   // Toast on connection transitions. The very first successful connect stays

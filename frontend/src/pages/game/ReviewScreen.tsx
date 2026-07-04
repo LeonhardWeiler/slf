@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function ReviewScreen() {
-  const { lobby } = useLobbyStore();
-  const { review } = useGameStore();
+  const lobby = useLobbyStore((s) => s.lobby);
+  const review = useGameStore((s) => s.review);
 
   // The answer picked as the merge target ("group anchor"). While set, the
   // host merges by clicking another answer's row directly (no second button).

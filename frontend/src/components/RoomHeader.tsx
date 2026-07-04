@@ -18,7 +18,9 @@ export function RoomHeader({
   subtitle?: string;
 }) {
   const navigate = useNavigate();
-  const { reset, lobby, setSelfLeaving } = useLobbyStore();
+  const reset = useLobbyStore((s) => s.reset);
+  const lobby = useLobbyStore((s) => s.lobby);
+  const setSelfLeaving = useLobbyStore((s) => s.setSelfLeaving);
   const isHost = useIsHost();
   const { confirm, dialog } = useConfirm();
   const [copied, setCopied] = useState(false);

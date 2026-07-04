@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function GameOverScreen() {
-  const { lobby, myPlayerId } = useLobbyStore();
-  const { result } = useGameStore();
+  const lobby = useLobbyStore((s) => s.lobby);
+  const myPlayerId = useLobbyStore((s) => s.myPlayerId);
+  const result = useGameStore((s) => s.result);
   const isHost = useIsHost();
 
   if (!lobby) return null;

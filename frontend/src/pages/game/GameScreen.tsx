@@ -74,8 +74,12 @@ function formatClock(total: number): string {
 }
 
 export function GameScreen() {
-  const { lobby, myPlayerId } = useLobbyStore();
-  const { game, buzzRejected, setBuzzRejected, commentator } = useGameStore();
+  const lobby = useLobbyStore((s) => s.lobby);
+  const myPlayerId = useLobbyStore((s) => s.myPlayerId);
+  const game = useGameStore((s) => s.game);
+  const buzzRejected = useGameStore((s) => s.buzzRejected);
+  const setBuzzRejected = useGameStore((s) => s.setBuzzRejected);
+  const commentator = useGameStore((s) => s.commentator);
   const isHost = useIsHost();
   const { confirm, dialog } = useConfirm();
 

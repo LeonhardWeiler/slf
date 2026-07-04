@@ -32,7 +32,10 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
 
 export function Lobby() {
   const navigate = useNavigate();
-  const { lobby, myPlayerId, reset, setSelfLeaving } = useLobbyStore();
+  const lobby = useLobbyStore((s) => s.lobby);
+  const myPlayerId = useLobbyStore((s) => s.myPlayerId);
+  const reset = useLobbyStore((s) => s.reset);
+  const setSelfLeaving = useLobbyStore((s) => s.setSelfLeaving);
   const isHost = useIsHost();
   const { confirm, dialog } = useConfirm();
 

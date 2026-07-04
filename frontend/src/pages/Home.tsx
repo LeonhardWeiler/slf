@@ -37,7 +37,7 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 
 export function Home() {
   const params = useParams<{ code?: string }>();
-  const { lobby } = useLobbyStore();
+  const lobby = useLobbyStore((s) => s.lobby);
   const addToast = useToastStore((s) => s.addToast);
   // Counter of error toasts: a new *error* (validation or server error) means the
   // pending submit failed → stop the spinner. Info toasts (e.g. a reconnect
