@@ -362,6 +362,7 @@ export function Home() {
                     }}
                     aria-invalid={joinError != null}
                     disabled={checking}
+                    placeholder="z. B. a3f9k2"
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck={false}

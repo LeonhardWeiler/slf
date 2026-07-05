@@ -118,7 +118,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		},
 		Settings: game.Settings{
 			TimeLimit:                 nil,
-			ShowLetterDuringCountdown: true,
+			ShowLetterDuringCountdown: false,
 			ExcludedLetters:           []string{},
 			HostPlays:                 true,
 			LastLetterMode:            false,
