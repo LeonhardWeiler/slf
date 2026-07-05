@@ -35,8 +35,8 @@ func main() {
 
 	// When STATIC_DIR is set (production / single-image Docker), the Go server
 	// also serves the built frontend and falls back to index.html so client-side
-	// routes (/join/:code, /lobby) resolve. In dev this is empty and the frontend
-	// is served by Vite instead.
+	// routes (/ and /join/:code, where the active lobby also lives) resolve. In
+	// dev this is empty and the frontend is served by Vite instead.
 	if staticDir := os.Getenv("STATIC_DIR"); staticDir != "" {
 		mux.Handle("/", spaHandler(staticDir))
 		log.Printf("Serviere Frontend aus %s", staticDir)
