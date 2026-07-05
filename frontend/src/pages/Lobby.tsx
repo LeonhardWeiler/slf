@@ -471,24 +471,6 @@ export function Lobby() {
               )}
             </div>
 
-            {/* Show letter during countdown */}
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Buchstabe während Countdown zeigen</p>
-              {isHost ? (
-                <Switch
-                  checked={lobby.settings.showLetterDuringCountdown}
-                  onCheckedChange={(v: boolean) =>
-                    updateSettings({ showLetterDuringCountdown: v })
-                  }
-                  aria-label="Buchstabe während Countdown zeigen"
-                />
-              ) : (
-                <span className="text-sm text-muted-foreground">
-                  {lobby.settings.showLetterDuringCountdown ? "Ja" : "Nein"}
-                </span>
-              )}
-            </div>
-
             {/* Host commentator mode */}
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -509,6 +491,30 @@ export function Lobby() {
               ) : (
                 <span className="text-sm text-muted-foreground shrink-0">
                   {lobby.settings.hostPlays ? "Ja" : "Nein"}
+                </span>
+              )}
+            </div>
+
+            {/* Flames spice */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium">Flammen 🔥</p>
+                <p className="text-xs text-muted-foreground">
+                  Wette pro Runde auf eine Kategorie, dass du die einzige Antwort
+                  hast: richtig +5 (15), falsch 0 Punkte.
+                </p>
+              </div>
+              {isHost ? (
+                <Switch
+                  checked={lobby.settings.flamesEnabled}
+                  onCheckedChange={(v: boolean) =>
+                    updateSettings({ flamesEnabled: v })
+                  }
+                  aria-label="Flammen aktivieren"
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground shrink-0">
+                  {lobby.settings.flamesEnabled ? "Ja" : "Nein"}
                 </span>
               )}
             </div>
@@ -536,26 +542,20 @@ export function Lobby() {
               )}
             </div>
 
-            {/* Flames spice */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium">Flammen 🔥</p>
-                <p className="text-xs text-muted-foreground">
-                  Wette pro Runde auf eine Kategorie, dass du die einzige Antwort
-                  hast: richtig +5 (15), falsch 0 Punkte.
-                </p>
-              </div>
+            {/* Show letter during countdown */}
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Buchstabe während Countdown zeigen</p>
               {isHost ? (
                 <Switch
-                  checked={lobby.settings.flamesEnabled}
+                  checked={lobby.settings.showLetterDuringCountdown}
                   onCheckedChange={(v: boolean) =>
-                    updateSettings({ flamesEnabled: v })
+                    updateSettings({ showLetterDuringCountdown: v })
                   }
-                  aria-label="Flammen aktivieren"
+                  aria-label="Buchstabe während Countdown zeigen"
                 />
               ) : (
-                <span className="text-sm text-muted-foreground shrink-0">
-                  {lobby.settings.flamesEnabled ? "Ja" : "Nein"}
+                <span className="text-sm text-muted-foreground">
+                  {lobby.settings.showLetterDuringCountdown ? "Ja" : "Nein"}
                 </span>
               )}
             </div>
