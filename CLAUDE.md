@@ -8,7 +8,7 @@ Stadt-Land-Fluss — Echtzeit-Multiplayer im Browser. Go-WebSocket-Backend
 - **Backend:** Go, WebSocket (`coder/websocket`), In-Memory-State (kein Persistenz-Layer).
 - **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI-Bausteine
   im shadcn-Stil auf **Base UI** (`@base-ui-components/react` + CVA + `cn`),
-  Zustand, React Router 7, Zod.
+  Zustand, TanStack Router (code-basiert, `src/router.tsx`), Zod.
 - **Package-Manager: Bun** (nicht npm/yarn; `npx` ist **nicht** verfügbar).
 - Lint: Biome. Frontend-Tests: Vitest. Backend-Tests: `go test`.
 
