@@ -35,7 +35,7 @@ gesamte Spielzustand liegt im RAM.
 | Bereich  | Technologien                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------ |
 | Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), In-Memory                           |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, shadcn/ui (Radix), Zustand, React Router 7, Zod      |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn-Stil), Zustand, React Router 7, Zod  |
 | Tooling  | Bun (Package-Manager), [air](https://github.com/air-verse/air) (Go Live-Reload), Nix (Dev-Shell) |
 
 ## Architektur
@@ -98,7 +98,7 @@ backend/
   internal/websocket/ Hub, Clients, Message-Handler, Broadcasts
 frontend/
   src/pages/         Home, Lobby und Spielscreens (game/)
-  src/components/     UI-Bausteine (inkl. ui/ = shadcn)
+  src/components/     UI-Bausteine (inkl. ui/ = shadcn-Stil auf Base UI)
   src/store/         Zustand-Stores (lobby, game)
   src/lib/           WebSocket-Client, Theme, Session, Validierung
   src/types/         Gemeinsame Event-/Payload-Typen
