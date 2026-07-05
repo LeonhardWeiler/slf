@@ -117,9 +117,12 @@ export function Home() {
 
   // Already in a lobby (e.g. after a reconnect on reload, or once the server
   // confirms our create/join) → the global handlers set the lobby state and we
-  // navigate there. The redirect unmounts this screen.
+  // navigate to the lobby's own /join/:code URL (so the address bar equals the
+  // shareable join link). The redirect unmounts this screen.
   if (lobby) {
-    return <Navigate to="/lobby" replace />;
+    return (
+      <Navigate to="/join/$code" params={{ code: lobby.lobbyCode }} replace />
+    );
   }
 
   function goTo(next: Step) {

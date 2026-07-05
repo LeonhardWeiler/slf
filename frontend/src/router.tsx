@@ -87,6 +87,9 @@ function RootLayout() {
         // explain it instead of silently bouncing back to the start screen.
         pendingReconnect.current = false;
         reset();
+        // The lobby lives at /join/:code; back to the start screen since the
+        // stored session is gone (otherwise we'd land on that code's join flow).
+        void router.navigate({ to: "/" });
         useToastStore
           .getState()
           .addToast("Verbindung zum Spiel verloren – bitte neu beitreten.");
@@ -108,6 +111,8 @@ function RootLayout() {
       if (payload.playerId === useLobbyStore.getState().myPlayerId) {
         useGameStore.getState().resetGame();
         reset();
+        // Leave the lobby's /join/:code URL for the start screen.
+        void router.navigate({ to: "/" });
         useToastStore.getState().addToast("Du wurdest aus der Lobby entfernt.");
       }
     });
@@ -118,10 +123,13 @@ function RootLayout() {
       // but shouldn't be told it was closed when they did it themselves.
       const { selfLeaving, setSelfLeaving } = useLobbyStore.getState();
       reset();
+      // The host who left already navigated away themselves; everyone else is
+      // pulled off the lobby's /join/:code URL back to the start screen.
       if (selfLeaving) {
         setSelfLeaving(false);
         return;
       }
+      void router.navigate({ to: "/" });
       useToastStore
         .getState()
         .addToast(
@@ -176,28 +184,29 @@ const rootRoute = createRootRoute({
   notFoundComponent: () => <Navigate to="/" replace />,
 });
 
-// `/` and `/join/$code` both render the Home flow; Home reads the optional
-// `code` param (loose params) to prefill and pre-check a deep link.
+// `/` renders the Home join/create flow (Home reads the optional `code` param
+// for a deep link).
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: Home,
 });
 
+// The active lobby *lives* at `/join/$code` so the address bar always equals the
+// shareable join link. The same path serves the join flow for anyone not yet in
+// a lobby, so we branch on the store: in a lobby → Room, otherwise → Home.
+function JoinRoute() {
+  const inLobby = useLobbyStore((s) => s.lobby != null);
+  return inLobby ? <Room /> : <Home />;
+}
+
 const joinRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/join/$code",
-  component: Home,
+  component: JoinRoute,
 });
 
-// Room guards itself (redirects to `/` when there is no lobby).
-const lobbyRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/lobby",
-  component: Room,
-});
-
-const routeTree = rootRoute.addChildren([indexRoute, joinRoute, lobbyRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, joinRoute]);
 
 export const router = createRouter({ routeTree });
 
