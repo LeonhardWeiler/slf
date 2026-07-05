@@ -1,4 +1,4 @@
-import { Navigate } from "react-router";
+import { Navigate } from "@tanstack/react-router";
 import { useLobbyStore } from "@/store/lobby";
 import { Lobby } from "./Lobby";
 import { GameScreen } from "./game/GameScreen";

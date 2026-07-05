@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
@@ -63,7 +63,7 @@ export function RoomHeader({
     ws.send({ type: "leaveLobby", payload: {} });
     useGameStore.getState().resetGame();
     reset();
-    void navigate("/");
+    void navigate({ to: "/" });
   }
 
   return (

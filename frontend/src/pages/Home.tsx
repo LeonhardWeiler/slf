@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
-import { useParams, Navigate } from "react-router";
+import { useParams, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import type { LobbyCheckPayload } from "@/types/events";
@@ -36,7 +36,8 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 };
 
 export function Home() {
-  const params = useParams<{ code?: string }>();
+  // Loose params: Home renders on both `/` (no param) and `/join/$code`.
+  const params = useParams({ strict: false });
   const lobby = useLobbyStore((s) => s.lobby);
   const addToast = useToastStore((s) => s.addToast);
   // Counter of error toasts: a new *error* (validation or server error) means the

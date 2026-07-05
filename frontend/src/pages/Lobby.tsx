@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from "react";
-import { useNavigate, Navigate } from "react-router";
+import { useNavigate, Navigate } from "@tanstack/react-router";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
@@ -108,7 +108,7 @@ export function Lobby() {
     setSelfLeaving(true);
     ws.send({ type: "leaveLobby", payload: {} });
     reset();
-    void navigate("/");
+    void navigate({ to: "/" });
   }
 
   function handleAddCategory(e: React.FormEvent) {
