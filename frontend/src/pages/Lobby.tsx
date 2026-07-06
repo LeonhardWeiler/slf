@@ -697,27 +697,31 @@ export function Lobby() {
             <div className="space-y-2">
               {/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
                   the same height whether or not the button is shown — no layout
-                  shift when a letter is toggled. "Alle aktivieren" sits inward of
-                  the count, which stays flush right. */}
-              <div className="flex min-h-7 items-center justify-end gap-2">
-                {isHost && lobby.settings.excludedLetters.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => {
-                      updateSettings({ excludedLetters: [] });
-                      setStaggerLetters(true);
-                      // Long enough for the last letter's delayed pop to finish.
-                      setTimeout(() => setStaggerLetters(false), 26 * 18 + 350);
-                    }}
-                  >
-                    Alle aktivieren
-                  </Button>
-                )}
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {26 - lobby.settings.excludedLetters.length} von 26 aktiv
-                </span>
+                  shift when a letter is toggled. The "Buchstaben" label sits left
+                  (like the other setting titles); "Alle aktivieren" + the count
+                  stay flush right. */}
+              <div className="flex min-h-7 items-center justify-between gap-2">
+                <p className="text-sm font-medium">Buchstaben</p>
+                <div className="flex items-center gap-2">
+                  {isHost && lobby.settings.excludedLetters.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        updateSettings({ excludedLetters: [] });
+                        setStaggerLetters(true);
+                        // Long enough for the last letter's delayed pop to finish.
+                        setTimeout(() => setStaggerLetters(false), 26 * 18 + 350);
+                      }}
+                    >
+                      Alle aktivieren
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {26 - lobby.settings.excludedLetters.length} von 26 aktiv
+                  </span>
+                </div>
               </div>
               {!isHost && (
                 <p className="text-xs text-muted-foreground">
