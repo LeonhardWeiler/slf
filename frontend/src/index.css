@@ -124,6 +124,25 @@
     transform: scale(1);
   }
 }
+/* A short horizontal shake to signal a rejected/disabled action. */
+@keyframes slf-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
 /* A checkmark that pops in above an element to confirm a copy. */
 @keyframes slf-check-pop {
   0% {
@@ -163,12 +182,16 @@
 .animate-check-pop {
   animation: slf-check-pop 0.35s ease-out;
 }
+.animate-shake {
+  animation: slf-shake 0.4s ease-in-out;
+}
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-fade-out,
   .animate-countdown-pop,
   .animate-pop,
-  .animate-check-pop {
+  .animate-check-pop,
+  .animate-shake {
     animation: none;
   }
 }

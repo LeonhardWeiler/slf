@@ -101,6 +101,9 @@ export function Lobby() {
   // The letter currently playing its toggle pop; cleared when the animation ends
   // so the same letter can pop again on the next toggle.
   const [poppedLetter, setPoppedLetter] = useState<string | null>(null);
+  // Set when the disabled "Spiel starten" button is clicked, so the hint text
+  // shakes; reset once the shake animation ends.
+  const [startShake, setStartShake] = useState(false);
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
@@ -705,16 +708,32 @@ export function Lobby() {
         {/* Start Game (Host only) */}
         {isHost ? (
           <div className="space-y-1">
+            {/* Kept a real, focusable button (aria-disabled instead of disabled)
+                so a click while not startable still fires and can shake the hint
+                — a plain disabled button swallows the click. */}
             <Button
-              className="w-full"
+              className="w-full transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] aria-disabled:pointer-events-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:translate-y-0"
               size="lg"
-              disabled={!canStart}
-              onClick={() => ws.send({ type: "startGame", payload: {} })}
+              aria-disabled={!canStart}
+              onClick={() => {
+                if (!canStart) {
+                  setStartShake(true);
+                  return;
+                }
+                ws.send({ type: "startGame", payload: {} });
+              }}
             >
               Spiel starten
             </Button>
             {!canStart && (
-              <p className="text-center text-xs text-muted-foreground">
+              <p
+                onAnimationEnd={() => setStartShake(false)}
+                className={`text-center text-xs ${
+                  startShake
+                    ? "animate-shake text-destructive"
+                    : "text-muted-foreground"
+                }`}
+              >
                 {!lobby.settings.hostPlays && playingCount < 1
                   ? "Als Kommentator brauchst du mindestens einen Mitspieler."
                   : "Mindestens 1 Spieler und 1 Kategorie nötig."}
