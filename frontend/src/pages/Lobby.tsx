@@ -1,5 +1,6 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useRef, lazy, Suspense } from "react";
 import { useNavigate, Navigate } from "@tanstack/react-router";
+import type { Player } from "@/types/events";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
@@ -30,6 +31,54 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
   { label: "120 Sek.", value: 120 },
   { label: "180 Sek.", value: 180 },
 ];
+
+// Keeps players briefly rendered after they leave so the row can fade out
+// instead of snapping away. Present players carry fresh data (name/connection
+// stay live); a departed player lingers with its last-known data and
+// `leaving: true` until the exit animation has had time to play.
+const PLAYER_EXIT_MS = 220;
+function usePlayerPresence(
+  players: Player[]
+): { player: Player; leaving: boolean }[] {
+  const [leavingIds, setLeavingIds] = useState<string[]>([]);
+  const prevIdsRef = useRef<string[]>(players.map((p) => p.id));
+  const lastByIdRef = useRef<Map<string, Player>>(new Map());
+
+  // Remember the latest data for every present player, so a row that starts
+  // leaving still has a name to show on the way out.
+  for (const p of players) lastByIdRef.current.set(p.id, p);
+
+  useEffect(() => {
+    const curIds = players.map((p) => p.id);
+    const prev = prevIdsRef.current;
+    // Only react to added/removed ids, not to reorders or field updates — those
+    // would otherwise re-run this effect on every render and loop via setState.
+    const same =
+      curIds.length === prev.length && curIds.every((id, i) => id === prev[i]);
+    if (same) return;
+    prevIdsRef.current = curIds;
+    const curSet = new Set(curIds);
+    // A re-appeared player (reconnect within the exit window) drops its leaving flag.
+    setLeavingIds((l) => l.filter((id) => !curSet.has(id)));
+    const gone = prev.filter((id) => !curSet.has(id));
+    if (gone.length === 0) return;
+    setLeavingIds((l) => Array.from(new Set([...l, ...gone])));
+    const t = setTimeout(() => {
+      setLeavingIds((l) => l.filter((id) => !gone.includes(id)));
+      for (const id of gone) lastByIdRef.current.delete(id);
+    }, PLAYER_EXIT_MS);
+    return () => clearTimeout(t);
+  }, [players]);
+
+  const presentIds = new Set(players.map((p) => p.id));
+  const list = players.map((p) => ({ player: p, leaving: false }));
+  for (const id of leavingIds) {
+    if (presentIds.has(id)) continue;
+    const p = lastByIdRef.current.get(id);
+    if (p) list.push({ player: p, leaving: true });
+  }
+  return list;
+}
 
 export function Lobby() {
   const navigate = useNavigate();
@@ -105,12 +154,15 @@ export function Lobby() {
     };
   }, [showQr]);
 
+  // Players who left an in-progress game linger only for the final standings.
+  const activePlayers = (lobby?.players ?? []).filter((p) => !p.left);
+  // Rows to render, including players that just left (fading out). Called before
+  // the early return below so the hook order stays stable.
+  const playerRows = usePlayerPresence(activePlayers);
+
   if (!lobby) {
     return <Navigate to="/" replace />;
   }
-
-  // Players who left an in-progress game linger only for the final standings.
-  const activePlayers = lobby.players.filter((p) => !p.left);
 
   async function handleLeave() {
     const confirmed = await confirm(
@@ -320,15 +372,19 @@ export function Lobby() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {activePlayers.map((player) => (
+            {playerRows.map(({ player, leaving }) => (
               <div
                 key={player.id}
-                className="flex items-center justify-between py-2 px-3 rounded-md bg-muted/50"
+                className={`flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 ${
+                  leaving ? "animate-fade-out pointer-events-none" : "animate-fade-in"
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-2 h-2 rounded-full ${
-                      player.connected ? "bg-green-500" : "bg-muted-foreground"
+                    className={`w-2 h-2 rounded-full transition-colors duration-500 ${
+                      player.connected
+                        ? "bg-green-500"
+                        : "bg-muted-foreground animate-pulse"
                     }`}
                   />
                   <span className="text-sm font-medium">{player.name}</span>
@@ -342,7 +398,7 @@ export function Lobby() {
                       {lobby.settings.hostPlays ? "Host" : "Host · Kommentator"}
                     </span>
                   )}
-                  {isHost && player.id !== myPlayerId && (
+                  {isHost && !leaving && player.id !== myPlayerId && (
                     <Button
                       variant="ghost"
                       size="icon"

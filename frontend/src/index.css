@@ -101,6 +101,17 @@
     transform: scale(1);
   }
 }
+/* Counterpart to slf-fade-in: eases an element out before it's unmounted. */
+@keyframes slf-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
 /* A quick scale bump used to confirm an action (copy, toggle, select). */
 @keyframes slf-pop {
   0% {
@@ -143,6 +154,9 @@
 .animate-countdown-pop {
   animation: slf-countdown-pop 0.4s ease-out;
 }
+.animate-fade-out {
+  animation: slf-fade-out 0.2s ease-in forwards;
+}
 .animate-pop {
   animation: slf-pop 0.3s ease-out;
 }
@@ -151,6 +165,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
+  .animate-fade-out,
   .animate-countdown-pop,
   .animate-pop,
   .animate-check-pop {
