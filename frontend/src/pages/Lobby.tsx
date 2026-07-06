@@ -580,8 +580,11 @@ export function Lobby() {
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                           poppedTime === opt.label ? "animate-pop" : ""
                         } ${
+                          // Selected: border matches the fill so no lighter halo
+                          // shows (border reads as an edge only on the darker,
+                          // unselected fill). See TODO 13.
                           active
-                            ? "bg-primary text-primary-foreground border-transparent"
+                            ? "bg-primary text-primary-foreground border-primary"
                             : "bg-background hover:bg-muted active:bg-muted border-border"
                         }`}
                       >
@@ -749,7 +752,7 @@ export function Lobby() {
                       } ${isHost ? "cursor-pointer" : "cursor-default"} ${
                         excluded
                           ? "bg-muted text-muted-foreground/40 border-border line-through"
-                          : "bg-primary text-primary-foreground border-transparent"
+                          : "bg-primary text-primary-foreground border-primary"
                       }`}
                     >
                       {letter}
