@@ -221,9 +221,6 @@ export function Lobby() {
               title="Lobbycode kopieren (Strg+C)"
               className="block w-full text-center space-y-1 group"
             >
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Lobbycode
-              </p>
               <p className="flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity">
                 <span>{lobby.lobbyCode.slice(0, 3)}</span>
                 <span className="ml-2">{lobby.lobbyCode.slice(3)}</span>
