@@ -78,6 +78,25 @@ export function Lobby() {
     return () => window.removeEventListener("keydown", onCopy);
   }, [lobbyCode]);
 
+  // QR popup: lock body scroll while open and let Escape close it, matching the
+  // confirm dialog's modal behaviour.
+  useEffect(() => {
+    if (!showQr) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowQr(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [showQr]);
+
   if (!lobby) {
     return <Navigate to="/" replace />;
   }
@@ -256,37 +275,12 @@ export function Lobby() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowQr((v) => !v)}
+                onClick={() => setShowQr(true)}
               >
                 <QrCodeIcon className="h-4 w-4" />
-                {showQr ? "QR verbergen" : "QR anzeigen"}
+                QR anzeigen
               </Button>
             </div>
-
-            {showQr && (
-              <div className="mt-4 flex flex-col items-center gap-3">
-                <ErrorBoundary
-                  fallback={() => (
-                    <p className="text-sm text-destructive">
-                      QR-Code konnte nicht geladen werden.
-                    </p>
-                  )}
-                >
-                  <Suspense fallback={<div style={{ height: 200 }} />}>
-                    <QrCode value={joinLink} size={200} />
-                  </Suspense>
-                </ErrorBoundary>
-                <button
-                  type="button"
-                  onClick={() => copyText(joinLink, "link")}
-                  title="Link kopieren"
-                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors break-all"
-                >
-                  <Copy className="h-3.5 w-3.5 shrink-0" />
-                  {joinLink}
-                </button>
-              </div>
-            )}
           </CardContent>
         </Card>
 
@@ -642,6 +636,67 @@ export function Lobby() {
           </p>
         )}
       </div>
+
+      {/* QR popup — same modal chrome as the confirm dialog, so revealing the
+          code no longer pushes the page layout around. The join link lives here
+          too (previously under the inline QR). */}
+      {showQr && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; Escape is handled by the effect above and the close button
+        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar — Escape closes via the window listener above
+        <div
+          className="fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowQr(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-title"
+            className="w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl"
+          >
+            <h2 id="qr-title" className="text-center text-lg font-semibold">
+              Zum Beitreten scannen
+            </h2>
+            <div className="mt-4 flex flex-col items-center gap-3">
+              <ErrorBoundary
+                fallback={() => (
+                  <p className="text-sm text-destructive">
+                    QR-Code konnte nicht geladen werden.
+                  </p>
+                )}
+              >
+                <Suspense fallback={<div style={{ height: 220 }} />}>
+                  <QrCode value={joinLink} size={220} />
+                </Suspense>
+              </ErrorBoundary>
+              <button
+                type="button"
+                onClick={() => copyText(joinLink, "link")}
+                title="Link kopieren"
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors break-all"
+              >
+                {copied === "link" ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 shrink-0 text-green-600" />
+                    Link kopiert!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3.5 w-3.5 shrink-0" />
+                    {joinLink}
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <Button variant="ghost" onClick={() => setShowQr(false)}>
+                Schließen
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {dialog}
     </div>
   );
