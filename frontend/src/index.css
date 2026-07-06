@@ -112,6 +112,27 @@
     transform: translateY(4px);
   }
 }
+/* Scale+fade used to open/close modal panels (e.g. the QR popup). */
+@keyframes slf-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes slf-scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
 /* A quick scale bump used to confirm an action (copy, toggle, select). */
 @keyframes slf-pop {
   0% {
@@ -185,13 +206,21 @@
 .animate-shake {
   animation: slf-shake 0.4s ease-in-out;
 }
+.animate-scale-in {
+  animation: slf-scale-in 0.18s ease-out;
+}
+.animate-scale-out {
+  animation: slf-scale-out 0.16s ease-in forwards;
+}
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-fade-out,
   .animate-countdown-pop,
   .animate-pop,
   .animate-check-pop,
-  .animate-shake {
+  .animate-shake,
+  .animate-scale-in,
+  .animate-scale-out {
     animation: none;
   }
 }

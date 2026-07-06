@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, lazy, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { useNavigate, Navigate } from "@tanstack/react-router";
 import type { Player } from "@/types/events";
 import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as LinkIcon } from "lucide-react";
@@ -93,6 +93,8 @@ export function Lobby() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [showQr, setShowQr] = useState(false);
+  // True while the QR popup plays its exit animation before unmounting.
+  const [qrClosing, setQrClosing] = useState(false);
   const [copied, setCopied] = useState<null | "code" | "link">(null);
   const [copyFailed, setCopyFailed] = useState(false);
   // Bumped on every successful code copy so the pop animation replays even when
@@ -143,6 +145,15 @@ export function Lobby() {
     return () => window.removeEventListener("keydown", onCopy);
   }, [lobbyCode]);
 
+  // Play the exit animation, then unmount the popup.
+  const closeQr = useCallback(() => {
+    setQrClosing(true);
+    setTimeout(() => {
+      setShowQr(false);
+      setQrClosing(false);
+    }, 170);
+  }, []);
+
   // QR popup: lock body scroll while open and let Escape close it, matching the
   // confirm dialog's modal behaviour.
   useEffect(() => {
@@ -152,7 +163,7 @@ export function Lobby() {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        setShowQr(false);
+        closeQr();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -160,7 +171,7 @@ export function Lobby() {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [showQr]);
+  }, [showQr, closeQr]);
 
   // Players who left an in-progress game linger only for the final standings.
   const activePlayers = (lobby?.players ?? []).filter((p) => !p.left);
@@ -778,16 +789,20 @@ export function Lobby() {
         // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; Escape is handled by the effect above and the close button
         // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar — Escape closes via the window listener above
         <div
-          className="fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
+          className={`fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm ${
+            qrClosing ? "animate-fade-out" : "animate-fade-in"
+          }`}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowQr(false);
+            if (e.target === e.currentTarget) closeQr();
           }}
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="qr-title"
-            className="w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl"
+            className={`w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl ${
+              qrClosing ? "animate-scale-out" : "animate-scale-in"
+            }`}
           >
             <h2 id="qr-title" className="text-center text-lg font-semibold">
               Zum Beitreten scannen
@@ -824,7 +839,7 @@ export function Lobby() {
               </button>
             </div>
             <div className="mt-5 flex justify-end">
-              <Button variant="ghost" onClick={() => setShowQr(false)}>
+              <Button variant="ghost" onClick={closeQr}>
                 Schließen
               </Button>
             </div>
