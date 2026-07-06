@@ -50,10 +50,19 @@ function FrontToast({ toast }: { toast: Toast }) {
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
       title="Schließen"
-      className={`pointer-events-auto relative flex w-full items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm shadow-lg backdrop-blur transition-colors animate-fade-in ${front}`}
+      className={`pointer-events-auto relative flex w-full items-start gap-2 overflow-hidden rounded-lg border px-3 py-2 text-left text-sm shadow-lg backdrop-blur transition-colors animate-toast-in ${front}`}
     >
       <Icon className="mt-0.5 h-4 w-4 shrink-0" />
       <span className="flex-1">{toast.message}</span>
+      {/* Thin auto-dismiss countdown bar; pauses in step with the timer above. */}
+      <span
+        aria-hidden="true"
+        style={{
+          animationDuration: `${AUTO_DISMISS_MS}ms`,
+          animationPlayState: paused ? "paused" : "running",
+        }}
+        className="toast-progress absolute inset-x-0 bottom-0 h-0.5 bg-current opacity-30"
+      />
     </button>
   );
 }

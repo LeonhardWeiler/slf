@@ -179,6 +179,40 @@
     transform: translate(-50%, 0) scale(1);
   }
 }
+/* Toast slide-in from the bottom-left with a slight overshoot, plus the thin
+   auto-dismiss progress bar that shrinks left-to-right. */
+@keyframes slf-toast-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-16px) scale(0.98);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(2px) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes slf-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+.animate-toast-in {
+  animation: slf-toast-in 0.32s cubic-bezier(0.22, 1.2, 0.4, 1);
+}
+.toast-progress {
+  transform-origin: left;
+  animation-name: slf-toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
 /* Screen padding that also respects device safe areas (notch / home indicator)
    while keeping a sensible 1rem minimum. */
 .screen-pad {
@@ -220,7 +254,9 @@
   .animate-check-pop,
   .animate-shake,
   .animate-scale-in,
-  .animate-scale-out {
+  .animate-scale-out,
+  .animate-toast-in,
+  .toast-progress {
     animation: none;
   }
 }
