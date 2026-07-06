@@ -260,7 +260,14 @@ export function Lobby() {
             </button>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => copyText(joinLink, "link")}>
+              <Button
+                variant="outline"
+                size="sm"
+                // Fixed width so swapping the label to "Link kopiert!" doesn't
+                // make the button jump narrower.
+                className="min-w-[8.5rem]"
+                onClick={() => copyText(joinLink, "link")}
+              >
                 {copied === "link" ? (
                   <>
                     <Check className="h-4 w-4 text-green-600" />
