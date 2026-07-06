@@ -100,7 +100,7 @@ export function ReviewScreen() {
 
         {/* Everyone sees who stopped the round. */}
         {buzzerName && (
-          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
+          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-700 dark:text-amber-300">
             <Bell className="h-4 w-4 shrink-0" />
             <span><b>{buzzerName}</b> hat gestoppt</span>
           </p>
