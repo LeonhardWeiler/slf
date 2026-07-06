@@ -468,26 +468,28 @@ export function Lobby() {
               )}
             </div>
 
-            {/* Host commentator mode */}
+            {/* Commentator mode — on = host doesn't play, only comments (the
+                switch is the inverse of the hostPlays flag it drives). */}
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium">Host spielt mit</p>
-                <InfoHint label="Was bedeutet „Host spielt mit“?">
-                  Aus: Der Host ist nur Kommentator und sieht auf dem Beamer, wer
-                  schon ausgefüllt hat – ohne die Antworten selbst.
+                <p className="text-sm font-medium">Kommentator</p>
+                <InfoHint label="Was bedeutet „Kommentator“?">
+                  An: Der Host spielt nicht mit, sondern ist nur Kommentator und
+                  sieht auf dem Beamer, wer schon ausgefüllt hat – ohne die
+                  Antworten selbst.
                 </InfoHint>
               </div>
               {isHost ? (
                 <Switch
-                  checked={lobby.settings.hostPlays}
+                  checked={!lobby.settings.hostPlays}
                   onCheckedChange={(v: boolean) =>
-                    updateSettings({ hostPlays: v })
+                    updateSettings({ hostPlays: !v })
                   }
-                  aria-label="Host spielt mit"
+                  aria-label="Kommentator"
                 />
               ) : (
                 <span className="text-sm text-muted-foreground shrink-0">
-                  {lobby.settings.hostPlays ? "Ja" : "Nein"}
+                  {lobby.settings.hostPlays ? "Nein" : "Ja"}
                 </span>
               )}
             </div>
@@ -495,7 +497,7 @@ export function Lobby() {
             {/* Flames spice */}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">Flammen 🔥</p>
+                <p className="text-sm font-medium">Flammen</p>
                 <p className="text-xs text-muted-foreground">
                   Wette pro Runde auf eine Kategorie, dass du die einzige Antwort
                   hast: richtig +5 (15), falsch 0 Punkte.
@@ -519,7 +521,7 @@ export function Lobby() {
             {/* Last-letter spice */}
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">Letzter statt erster Buchstabe</p>
+                <p className="text-sm font-medium">Letzter Buchstabe</p>
                 <p className="text-xs text-muted-foreground">
                   Antworten müssen mit dem Buchstaben <em>enden</em> statt beginnen.
                 </p>
@@ -530,7 +532,7 @@ export function Lobby() {
                   onCheckedChange={(v: boolean) =>
                     updateSettings({ lastLetterMode: v })
                   }
-                  aria-label="Letzter statt erster Buchstabe"
+                  aria-label="Letzter Buchstabe"
                 />
               ) : (
                 <span className="text-sm text-muted-foreground shrink-0">
@@ -541,14 +543,14 @@ export function Lobby() {
 
             {/* Show letter during countdown */}
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Buchstabe während Countdown zeigen</p>
+              <p className="text-sm font-medium">Buchstabe während Countdown</p>
               {isHost ? (
                 <Switch
                   checked={lobby.settings.showLetterDuringCountdown}
                   onCheckedChange={(v: boolean) =>
                     updateSettings({ showLetterDuringCountdown: v })
                   }
-                  aria-label="Buchstabe während Countdown zeigen"
+                  aria-label="Buchstabe während Countdown"
                 />
               ) : (
                 <span className="text-sm text-muted-foreground">
@@ -561,30 +563,28 @@ export function Lobby() {
             <div className="space-y-2">
               {/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
                   the same height whether or not the button is shown — no layout
-                  shift when a letter is toggled. */}
-              <div className="flex min-h-7 items-center justify-between gap-2">
-                <p className="text-sm font-medium">Buchstaben</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {26 - lobby.settings.excludedLetters.length} von 26 aktiv
-                  </span>
-                  {isHost && lobby.settings.excludedLetters.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => updateSettings({ excludedLetters: [] })}
-                    >
-                      Alle aktivieren
-                    </Button>
-                  )}
-                </div>
+                  shift when a letter is toggled. "Alle aktivieren" sits inward of
+                  the count, which stays flush right. */}
+              <div className="flex min-h-7 items-center justify-end gap-2">
+                {isHost && lobby.settings.excludedLetters.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => updateSettings({ excludedLetters: [] })}
+                  >
+                    Alle aktivieren
+                  </Button>
+                )}
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {26 - lobby.settings.excludedLetters.length} von 26 aktiv
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {isHost
-                  ? "Tippe einen Buchstaben an, um ihn aus dem Spiel zu nehmen."
-                  : "Aktive Buchstaben für dieses Spiel."}
-              </p>
+              {!isHost && (
+                <p className="text-xs text-muted-foreground">
+                  Aktive Buchstaben für dieses Spiel.
+                </p>
+              )}
               <div className="flex flex-wrap gap-1.5">
                 {ALPHABET.map((letter) => {
                   const excluded =
