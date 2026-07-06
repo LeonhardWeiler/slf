@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { Flame } from "lucide-react";
+import { Flame, Check } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
@@ -348,6 +348,17 @@ export function GameScreen() {
     (p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays)
   );
 
+  // A category counts as done once it holds a valid answer (non-empty and
+  // matching the letter rule) — drives the per-field check and the fill bar.
+  const isAnswerDone = (categoryId: string) => {
+    const v = answers[categoryId] ?? "";
+    return v.trim() !== "" && !isFieldInvalid(v, game.letter, lastLetterMode);
+  };
+  const answeredCount = categories.filter((c) => isAnswerDone(c.id)).length;
+  const answeredPct = categories.length
+    ? (answeredCount / categories.length) * 100
+    : 0;
+
   return (
     <div className="min-h-svh bg-background screen-pad">
       {/* Red, pulsing screen border for the final 5 seconds (only when timed). */}
@@ -418,38 +429,62 @@ export function GameScreen() {
           </Card>
         ) : (
           <>
+            {/* Fill progress: how many categories already hold a valid answer. */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Ausgefüllt</span>
+                <span className="tabular-nums">
+                  {answeredCount}/{categories.length}
+                </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-[width] duration-300"
+                  style={{ width: `${answeredPct}%` }}
+                />
+              </div>
+            </div>
+
             <div className="space-y-3">
               {categories.map((cat, idx) => {
                 const isFlamed = flamed === cat.id;
                 const showInvalid =
                   touched[cat.id] &&
                   isFieldInvalid(answers[cat.id] ?? "", game.letter, lastLetterMode);
+                const done = isAnswerDone(cat.id);
                 return (
                   <div key={cat.id} className="space-y-1">
                     <label htmlFor={`cat-${cat.id}`} className="text-sm font-medium">
                       {cat.name}
                     </label>
                     <div className="flex items-center gap-2">
-                      <Input
-                        id={`cat-${cat.id}`}
-                        value={answers[cat.id] ?? ""}
-                        onChange={(e) => updateAnswer(cat.id, e.target.value)}
-                        onBlur={() =>
-                          setTouched((t) => ({ ...t, [cat.id]: true }))
-                        }
-                        placeholder={placeholder}
-                        maxLength={30}
-                        autoComplete="off"
-                        autoFocus={idx === 0}
-                        aria-invalid={showInvalid || undefined}
-                        className={cn(
-                          showInvalid &&
-                            "border-destructive focus-visible:ring-destructive"
+                      <div className="relative flex-1">
+                        <Input
+                          id={`cat-${cat.id}`}
+                          value={answers[cat.id] ?? ""}
+                          onChange={(e) => updateAnswer(cat.id, e.target.value)}
+                          onBlur={() =>
+                            setTouched((t) => ({ ...t, [cat.id]: true }))
+                          }
+                          placeholder={placeholder}
+                          maxLength={30}
+                          autoComplete="off"
+                          autoFocus={idx === 0}
+                          aria-invalid={showInvalid || undefined}
+                          className={cn(
+                            done && "pr-9",
+                            showInvalid &&
+                              "border-destructive focus-visible:ring-destructive"
+                          )}
+                          // With flames on, Tab walks all inputs first (1..n), then
+                          // all flame buttons (n+1..2n), instead of input→flame.
+                          tabIndex={flamesEnabled ? idx + 1 : undefined}
+                        />
+                        {/* Check pops in once the field holds a valid answer. */}
+                        {done && (
+                          <Check className="animate-scale-in pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
                         )}
-                        // With flames on, Tab walks all inputs first (1..n), then
-                        // all flame buttons (n+1..2n), instead of input→flame.
-                        tabIndex={flamesEnabled ? idx + 1 : undefined}
-                      />
+                      </div>
                       {flamesEnabled && (
                         <Button
                           type="button"
