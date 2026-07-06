@@ -111,6 +111,12 @@ export function Lobby() {
   // While true, every letter replays the pop with a staggered delay — used when
   // "Alle aktivieren" brings the whole row back at once.
   const [staggerLetters, setStaggerLetters] = useState(false);
+  // Flash a just-added category so it's clear what appeared. Known ids are
+  // seeded from the initial list so existing categories don't flash on mount.
+  const [flashCatId, setFlashCatId] = useState<string | null>(null);
+  const knownCatIds = useRef<Set<string>>(
+    new Set((lobby?.categories ?? []).map((c) => c.id))
+  );
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
@@ -178,6 +184,16 @@ export function Lobby() {
   // Rows to render, including players that just left (fading out). Called before
   // the early return below so the hook order stays stable.
   const playerRows = usePlayerPresence(activePlayers);
+
+  // Detect categories added since the last render and flash the newest one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: react to the id list only
+  useEffect(() => {
+    if (!lobby) return;
+    const current = lobby.categories.map((c) => c.id);
+    const added = current.filter((id) => !knownCatIds.current.has(id));
+    knownCatIds.current = new Set(current);
+    if (added.length > 0) setFlashCatId(added[added.length - 1]);
+  }, [lobby?.categories]);
 
   if (!lobby) {
     return <Navigate to="/" replace />;
@@ -445,9 +461,14 @@ export function Lobby() {
             {lobby.categories.map((cat) => (
               <div
                 key={cat.id}
+                onAnimationEnd={() =>
+                  setFlashCatId((id) => (id === cat.id ? null : id))
+                }
                 // Fixed height so switching a row into edit mode doesn't grow it
                 // and shove the rest of the list down.
-                className="flex h-10 items-center justify-between px-3 rounded-md bg-muted/50"
+                className={`flex h-10 items-center justify-between px-3 rounded-md bg-muted/50 ${
+                  flashCatId === cat.id ? "animate-highlight" : ""
+                }`}
               >
                 {isHost && editingId === cat.id ? (
                   <form

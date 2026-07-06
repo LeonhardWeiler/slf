@@ -101,6 +101,15 @@
     transform: scale(1);
   }
 }
+/* A one-shot background flash that fades out, to spotlight a freshly added row. */
+@keyframes slf-highlight {
+  0% {
+    background-color: hsl(var(--primary) / 0.25);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
 /* A brief flicker + warm glow to make a flame indicator feel alive. */
 @keyframes slf-flame-flicker {
   0%,
@@ -289,6 +298,9 @@
   animation: slf-flame-flicker 0.7s ease-in-out;
   filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
 }
+.animate-highlight {
+  animation: slf-highlight 1s ease-out;
+}
 .animate-pop {
   animation: slf-pop 0.3s ease-out;
 }
@@ -317,7 +329,8 @@
   .toast-progress,
   .countdown-ring,
   .animate-countdown-go,
-  .animate-flame {
+  .animate-flame,
+  .animate-highlight {
     animation: none;
   }
 }
