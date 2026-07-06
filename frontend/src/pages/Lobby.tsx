@@ -497,13 +497,13 @@ export function Lobby() {
                   </form>
                 ) : (
                   <>
-                    <span className="text-sm">{cat.name}</span>
+                    <span className="min-w-0 truncate text-sm">{cat.name}</span>
                     {isHost && (
-                      <div className="flex items-center gap-1">
+                      <div className="flex shrink-0 items-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-7 w-7 shrink-0"
                           title="Bearbeiten"
                           onClick={() => startEdit(cat.id, cat.name)}
                         >
@@ -512,7 +512,7 @@ export function Lobby() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive"
+                          className="h-7 w-7 shrink-0 text-destructive"
                           title="Löschen"
                           onClick={() => deleteCategory(cat.id)}
                         >
