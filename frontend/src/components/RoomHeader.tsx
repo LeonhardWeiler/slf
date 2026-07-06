@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
+import { markForcedLeave } from "@/lib/forcedLeave";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -62,6 +63,7 @@ export function RoomHeader({
     setSelfLeaving(true);
     ws.send({ type: "leaveLobby", payload: {} });
     useGameStore.getState().resetGame();
+    markForcedLeave();
     reset();
     void navigate({ to: "/" });
   }

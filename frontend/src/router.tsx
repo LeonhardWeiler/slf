@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { ws } from "@/lib/ws";
 import { getSessionId } from "@/lib/session";
+import { markForcedLeave } from "@/lib/forcedLeave";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { useToastStore } from "@/store/toast";
@@ -86,6 +87,7 @@ function RootLayout() {
         // restarted and all in-RAM state is gone). Clear the session and
         // explain it instead of silently bouncing back to the start screen.
         pendingReconnect.current = false;
+        markForcedLeave();
         reset();
         // The lobby lives at /join/:code; back to the start screen since the
         // stored session is gone (otherwise we'd land on that code's join flow).
@@ -110,6 +112,7 @@ function RootLayout() {
       // fresh lobbyState without the kicked player).
       if (payload.playerId === useLobbyStore.getState().myPlayerId) {
         useGameStore.getState().resetGame();
+        markForcedLeave();
         reset();
         // Leave the lobby's /join/:code URL for the start screen.
         void router.navigate({ to: "/" });
@@ -129,6 +132,7 @@ function RootLayout() {
         setSelfLeaving(false);
         return;
       }
+      markForcedLeave();
       void router.navigate({ to: "/" });
       useToastStore
         .getState()

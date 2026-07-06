@@ -5,6 +5,7 @@ import { Plus, Pencil, Check, X, Trash2, QrCode as QrCodeIcon, Copy, Link as Lin
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
+import { markForcedLeave } from "@/lib/forcedLeave";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
 import { InfoHint } from "@/components/InfoHint";
@@ -221,6 +222,7 @@ export function Lobby() {
     // server's own lobbyClosed echo.
     setSelfLeaving(true);
     ws.send({ type: "leaveLobby", payload: {} });
+    markForcedLeave();
     reset();
     void navigate({ to: "/" });
   }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useParams, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
+import { consumeForcedLeave } from "@/lib/forcedLeave";
 import type { LobbyCheckPayload } from "@/types/events";
 import { useLobbyStore } from "@/store/lobby";
 import { useToastStore } from "@/store/toast";
@@ -45,10 +46,20 @@ export function Home() {
   // notice) don't bump it, so they no longer end the spinner prematurely.
   const errorSeq = useToastStore((s) => s.errorSeq);
 
-  const deepLinkCode = (params.code ?? "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .slice(0, 6);
+  // When Home mounts because the player was just pulled out of a lobby (kicked,
+  // closed, left) the URL is still that lobby's /join/:code — but we must land on
+  // the start screen, not re-run the deep-link join. Consume the one-shot flag
+  // once per mount so a genuine external deep link still works.
+  const forcedLeaveRef = useRef<boolean | null>(null);
+  if (forcedLeaveRef.current === null) forcedLeaveRef.current = consumeForcedLeave();
+  const skipDeepLink = forcedLeaveRef.current;
+
+  const deepLinkCode = skipDeepLink
+    ? ""
+    : (params.code ?? "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "")
+        .slice(0, 6);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState(deepLinkCode);
