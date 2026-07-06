@@ -572,8 +572,11 @@ export function Lobby() {
                         type="button"
                         onClick={() => updateSettings({ timeLimit: opt.value })}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                          // Active fill already contrasts with the background, so
+                          // no border edge is drawn (only the unselected option
+                          // keeps a border to read as an outline).
                           active
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-primary text-primary-foreground border-transparent"
                             : "bg-background hover:bg-muted active:bg-muted border-border"
                         }`}
                       >
@@ -750,9 +753,11 @@ export function Lobby() {
                       className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
                         popping ? "animate-pop" : ""
                       } ${isHost ? "cursor-pointer" : "cursor-default"} ${
+                        // Active fill contrasts with the background, so no border
+                        // edge; only the excluded (muted) state keeps a border.
                         excluded
                           ? "bg-muted text-muted-foreground/40 border-border line-through"
-                          : "bg-primary text-primary-foreground border-primary"
+                          : "bg-primary text-primary-foreground border-transparent"
                       }`}
                     >
                       {letter}

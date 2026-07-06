@@ -8,11 +8,9 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SwitchPrimitive.Root
     className={cn(
-      // A soft glow lights the track up while checked (the optional "track lights
-      // up" cue). The border matches the track colour per state so no contrasting
-      // ring shows through (the border is only meant to read as an edge when the
-      // fill is darker than the border token — never as a lighter halo).
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[unchecked]:bg-input data-[checked]:border-primary data-[unchecked]:border-input data-[checked]:shadow-[0_0_8px_hsl(var(--primary)/0.45)]",
+      // Track fill alone signals the state — no glow and no border, since the
+      // fill already contrasts with the page background.
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[unchecked]:bg-input",
       className
     )}
     {...props}
