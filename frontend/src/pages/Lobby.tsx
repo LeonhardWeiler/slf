@@ -49,6 +49,9 @@ export function Lobby() {
   // Bumped on every successful code copy so the pop animation replays even when
   // copying repeatedly (a changing key re-mounts the element → animation reruns).
   const [copyPulse, setCopyPulse] = useState(0);
+  // The letter currently playing its toggle pop; cleared when the animation ends
+  // so the same letter can pop again on the next toggle.
+  const [poppedLetter, setPoppedLetter] = useState<string | null>(null);
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
@@ -204,6 +207,7 @@ export function Lobby() {
     if (excluded.has(letter)) excluded.delete(letter);
     else excluded.add(letter);
     updateSettings({ excludedLetters: [...excluded] });
+    setPoppedLetter(letter);
   }
 
   // A commentator host (hostPlays=false) doesn't count as a player, so at least
@@ -618,13 +622,16 @@ export function Lobby() {
                       type="button"
                       disabled={!isHost}
                       onClick={() => toggleLetter(letter)}
+                      onAnimationEnd={() =>
+                        setPoppedLetter((l) => (l === letter ? null : l))
+                      }
                       aria-pressed={!excluded}
                       title={
                         excluded ? `${letter} aktivieren` : `${letter} deaktivieren`
                       }
-                      className={`h-8 w-8 rounded-md text-sm font-semibold border transition-colors ${
-                        isHost ? "cursor-pointer" : "cursor-default"
-                      } ${
+                      className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
+                        poppedLetter === letter ? "animate-pop" : ""
+                      } ${isHost ? "cursor-pointer" : "cursor-default"} ${
                         excluded
                           ? "bg-muted text-muted-foreground/40 border-border line-through"
                           : "bg-primary text-primary-foreground border-transparent"
