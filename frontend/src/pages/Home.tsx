@@ -300,15 +300,14 @@ export function Home() {
         {step === "createName" && (
           <Card>
             <CardHeader className="pb-4">
-              <CardTitle className="text-base">Neue Lobby erstellen</CardTitle>
-              <CardDescription>Du wirst automatisch zum Host.</CardDescription>
+              <CardTitle className="text-base">Lobby erstellen</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={submitCreate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Dein Name</Label>
                   <Input
                     id="name"
+                    aria-label="Dein Name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Name eingeben…"
