@@ -133,14 +133,16 @@ function ConfirmDialogView({
             {description}
           </p>
         )}
-        {/* Stacked full-width on narrow screens, inline right-aligned from sm up. */}
-        <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button variant="ghost" onClick={onCancel}>
+        {/* Both buttons share the full width 50/50; cancel carries the same
+            outline border as the confirm button so the pair reads as one bar. */}
+        <div className="mt-5 flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={onCancel}>
             {cancelLabel}
           </Button>
           <Button
             ref={confirmRef}
             variant={destructive ? "destructive" : "default"}
+            className="flex-1"
             onClick={onConfirm}
           >
             {confirmLabel}
