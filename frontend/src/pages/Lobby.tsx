@@ -342,7 +342,9 @@ export function Lobby() {
             {lobby.categories.map((cat) => (
               <div
                 key={cat.id}
-                className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/50"
+                // Fixed height so switching a row into edit mode doesn't grow it
+                // and shove the rest of the list down.
+                className="flex h-10 items-center justify-between px-3 rounded-md bg-muted/50"
               >
                 {isHost && editingId === cat.id ? (
                   <form
@@ -357,7 +359,9 @@ export function Lobby() {
                       onChange={(e) => setEditingValue(e.target.value)}
                       maxLength={30}
                       autoFocus
-                      className="h-8"
+                      // Seamless inline edit: no border/extra padding so the text
+                      // stays exactly where the name span sat (no horizontal jump).
+                      className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
                     />
                     <Button type="submit" size="icon" className="h-7 w-7">
                       <Check className="h-4 w-4" />
