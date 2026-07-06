@@ -104,6 +104,11 @@ export function Lobby() {
   // Set when the disabled "Spiel starten" button is clicked, so the hint text
   // shakes; reset once the shake animation ends.
   const [startShake, setStartShake] = useState(false);
+  // The time option currently confirming its selection with a pop (by label).
+  const [poppedTime, setPoppedTime] = useState<string | null>(null);
+  // While true, every letter replays the pop with a staggered delay — used when
+  // "Alle aktivieren" brings the whole row back at once.
+  const [staggerLetters, setStaggerLetters] = useState(false);
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
@@ -533,8 +538,16 @@ export function Lobby() {
                       <button
                         key={opt.label}
                         type="button"
-                        onClick={() => updateSettings({ timeLimit: opt.value })}
+                        onClick={() => {
+                          updateSettings({ timeLimit: opt.value });
+                          setPoppedTime(opt.label);
+                        }}
+                        onAnimationEnd={() =>
+                          setPoppedTime((t) => (t === opt.label ? null : t))
+                        }
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                          poppedTime === opt.label ? "animate-pop" : ""
+                        } ${
                           active
                             ? "bg-primary text-primary-foreground border-transparent"
                             : "bg-background hover:bg-muted active:bg-muted border-border"
@@ -657,7 +670,12 @@ export function Lobby() {
                     variant="ghost"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => updateSettings({ excludedLetters: [] })}
+                    onClick={() => {
+                      updateSettings({ excludedLetters: [] });
+                      setStaggerLetters(true);
+                      // Long enough for the last letter's delayed pop to finish.
+                      setTimeout(() => setStaggerLetters(false), 26 * 18 + 350);
+                    }}
                   >
                     Alle aktivieren
                   </Button>
@@ -672,9 +690,10 @@ export function Lobby() {
                 </p>
               )}
               <div className="flex flex-wrap gap-1.5">
-                {ALPHABET.map((letter) => {
+                {ALPHABET.map((letter, idx) => {
                   const excluded =
                     lobby.settings.excludedLetters.includes(letter);
+                  const popping = poppedLetter === letter || staggerLetters;
                   return (
                     <button
                       key={letter}
@@ -688,8 +707,13 @@ export function Lobby() {
                       title={
                         excluded ? `${letter} aktivieren` : `${letter} deaktivieren`
                       }
+                      style={
+                        staggerLetters
+                          ? { animationDelay: `${idx * 18}ms` }
+                          : undefined
+                      }
                       className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
-                        poppedLetter === letter ? "animate-pop" : ""
+                        popping ? "animate-pop" : ""
                       } ${isHost ? "cursor-pointer" : "cursor-default"} ${
                         excluded
                           ? "bg-muted text-muted-foreground/40 border-border line-through"
