@@ -875,7 +875,7 @@ export function Lobby() {
                 )}
               </button>
             </div>
-            <div className="mt-5 flex justify-end">
+            <div className="mt-5 flex justify-center">
               <Button variant="ghost" onClick={closeQr}>
                 Schließen
               </Button>
