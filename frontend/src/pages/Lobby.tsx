@@ -449,7 +449,7 @@ export function Lobby() {
                         onClick={() => updateSettings({ timeLimit: opt.value })}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                           active
-                            ? "bg-primary text-primary-foreground border-primary"
+                            ? "bg-primary text-primary-foreground border-transparent"
                             : "bg-background hover:bg-muted active:bg-muted border-border"
                         }`}
                       >
@@ -603,7 +603,7 @@ export function Lobby() {
                       } ${
                         excluded
                           ? "bg-muted text-muted-foreground/40 border-border line-through"
-                          : "bg-primary text-primary-foreground border-primary"
+                          : "bg-primary text-primary-foreground border-transparent"
                       }`}
                     >
                       {letter}
