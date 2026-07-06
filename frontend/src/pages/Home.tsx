@@ -102,6 +102,24 @@ export function Home() {
     };
   }, []);
 
+  // Seed history so the browser back button walks the step flow like the in-app
+  // "Zurück" button instead of leaving the page. A deep link (/join/:code) lands
+  // on the code step, so we put a "start" entry beneath it — back then goes to
+  // the start screen, matching the button. popstate restores the step stored in
+  // each entry's state (same URL throughout, so the router doesn't re-route).
+  useEffect(() => {
+    window.history.replaceState({ homeStep: "start" }, "");
+    if (stepRef.current !== "start") {
+      window.history.pushState({ homeStep: stepRef.current }, "");
+    }
+    function onPop(e: PopStateEvent) {
+      const next = (e.state as { homeStep?: Step } | null)?.homeStep;
+      if (next && next !== stepRef.current) setStep(next);
+    }
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   // While on the join-name step, route server errors (e.g. "Name bereits
   // vergeben") to an inline message at the field instead of a toast — matching
   // the code step. Cleared when leaving the step.
@@ -125,8 +143,17 @@ export function Home() {
     );
   }
 
+  // Forward navigation pushes a real history entry (same URL) so the browser's
+  // back button / gesture mirrors the in-app "Zurück" button. The step lives in
+  // the history state; the popstate handler below restores it. `back()` simply
+  // pops, so both paths share one code path.
   function goTo(next: Step) {
+    window.history.pushState({ homeStep: next }, "");
     setStep(next);
+  }
+
+  function back() {
+    window.history.back();
   }
 
   function armTimeout() {
@@ -159,14 +186,24 @@ export function Home() {
     if (stepRef.current !== "joinCode" && stepRef.current !== "scan") return;
     if (payload.available) {
       setJoinError(null);
-      setStep("joinName");
+      // Advancing from the code step is a forward move (push); coming from the
+      // scan step we replace its entry so back from the name step lands on the
+      // code step, not the reopened camera.
+      if (stepRef.current === "scan") {
+        window.history.replaceState({ homeStep: "joinName" }, "");
+        setStep("joinName");
+      } else {
+        goTo("joinName");
+      }
     } else {
       setJoinError(
         UNAVAILABLE_MESSAGES[payload.reason ?? ""] ?? "Beitritt nicht möglich."
       );
       // Land back on the code step so the error sits next to the code field
-      // (covers the QR and deep-link paths too).
-      setStep("joinCode");
+      // (covers the QR and deep-link paths too). From scan, pop its history
+      // entry; on the code step already, just stay.
+      if (stepRef.current === "scan") back();
+      else setStep("joinCode");
     }
   }
 
@@ -288,7 +325,7 @@ export function Home() {
                       // Verify the scanned lobby is joinable before asking a name.
                       checkCode(scanned);
                     }}
-                    onClose={() => goTo("joinCode")}
+                    onClose={back}
                   />
                 </Suspense>
               </ErrorBoundary>
@@ -320,7 +357,7 @@ export function Home() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => goTo("start")}
+                    onClick={back}
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Zurück
@@ -395,7 +432,7 @@ export function Home() {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => goTo("start")}
+                    onClick={back}
                     disabled={checking}
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -450,7 +487,7 @@ export function Home() {
                     variant="ghost"
                     onClick={() => {
                       setJoinError(null);
-                      goTo("joinCode");
+                      back();
                     }}
                   >
                     <ArrowLeft className="h-4 w-4" />
