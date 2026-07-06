@@ -21,6 +21,11 @@ class WSClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private url: string;
+  // Optimistic connection status: starts `true` so the UI doesn't flash a
+  // "disconnected" state during the ~200ms initial handshake (a cold load would
+  // otherwise render the error banner before the very first onopen). It flips to
+  // the real value on the first actual open/close signal.
+  private lastStatus = true;
 
   constructor(url: string) {
     this.url = url;
@@ -151,6 +156,7 @@ class WSClient {
   }
 
   private notifyStatus(connected: boolean) {
+    this.lastStatus = connected;
     for (const l of this.statusListeners) l(connected);
   }
 
@@ -175,6 +181,13 @@ class WSClient {
 
   get isOpen() {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  // Best-known connection status for the UI: the real socket state once it is
+  // open, otherwise the optimistic/last-observed value. Used to seed component
+  // state so the "disconnected" UI only appears after an actual failure.
+  get status() {
+    return this.isOpen || this.lastStatus;
   }
 }
 

@@ -62,7 +62,7 @@ export function Home() {
   // Pre-join availability check (code/QR/deep-link) and its inline error.
   const [checking, setChecking] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
-  const [connected, setConnected] = useState(ws.isOpen);
+  const [connected, setConnected] = useState(ws.status);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // The code whose checkLobby reply we're currently awaiting (to ignore stale
