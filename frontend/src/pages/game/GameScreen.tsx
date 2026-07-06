@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flame, Check } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
@@ -272,50 +272,18 @@ export function GameScreen() {
     const display =
       countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
     const isGo = countdown === 0;
-    // Ring geometry: r=72 in a 160×160 box → circumference for the dash length.
-    const RING_R = 72;
-    const RING_CIRC = 2 * Math.PI * RING_R;
     return (
       <div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
         <p className="text-muted-foreground uppercase tracking-widest text-sm">
           Runde startet
         </p>
-        <div className="relative flex h-48 w-48 items-center justify-center">
-          {/* Depleting progress ring for each numeric tick; hidden on "Los!". */}
-          {!isGo && countdown !== null && (
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 160 160"
-              className="absolute inset-0 h-full w-full -rotate-90"
-            >
-              <circle
-                cx="80"
-                cy="80"
-                r={RING_R}
-                fill="none"
-                stroke="hsl(var(--muted))"
-                strokeWidth="6"
-              />
-              <circle
-                key={countdown}
-                cx="80"
-                cy="80"
-                r={RING_R}
-                fill="none"
-                stroke="hsl(var(--primary))"
-                strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={RING_CIRC}
-                className="countdown-ring"
-                style={{ "--circ": RING_CIRC } as CSSProperties}
-              />
-            </svg>
-          )}
+        <div className="flex h-48 w-48 items-center justify-center">
+          {/* Just the digits scale down and swap each tick — no progress ring. */}
           <div
             key={display}
             aria-live="assertive"
             aria-atomic="true"
-            className={`relative text-8xl font-bold tabular-nums min-h-[1em] ${
+            className={`text-8xl font-bold tabular-nums min-h-[1em] ${
               isGo ? "animate-countdown-go text-primary" : "animate-countdown-pop"
             }`}
           >
