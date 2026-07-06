@@ -60,7 +60,7 @@ export function InfoHint({
         <span
           role="tooltip"
           id={id}
-          className="absolute left-1/2 top-full z-50 mt-2 w-56 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-md border border-border bg-card p-2.5 text-xs font-normal leading-relaxed text-muted-foreground shadow-md"
+          className="absolute left-1/2 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-md border border-border bg-card p-3 text-xs font-normal leading-relaxed text-muted-foreground shadow-md"
         >
           {children}
         </span>

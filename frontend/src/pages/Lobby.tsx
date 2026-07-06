@@ -561,7 +561,14 @@ export function Lobby() {
           <CardContent className="space-y-4">
             {/* Time limit */}
             <div className="space-y-2">
-              <p className="text-sm font-medium">Zeitlimit pro Runde</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">Zeitlimit pro Runde</p>
+                <InfoHint label="Was bedeutet das Zeitlimit?">
+                  Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
+                  Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
+                  Host sie beendet.
+                </InfoHint>
+              </div>
               {isHost ? (
                 <div className="flex flex-wrap gap-2">
                   {TIME_OPTIONS.map((opt) => {
@@ -629,13 +636,13 @@ export function Lobby() {
             </div>
 
             {/* Flames spice */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Flammen</p>
-                <p className="text-xs text-muted-foreground">
+                <InfoHint label="Was bedeutet „Flammen“?">
                   Wette pro Runde auf eine Kategorie, dass du die einzige Antwort
                   hast: richtig +5 (15), falsch 0 Punkte.
-                </p>
+                </InfoHint>
               </div>
               {isHost ? (
                 <Switch
@@ -653,12 +660,13 @@ export function Lobby() {
             </div>
 
             {/* Last-letter spice */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Letzter Buchstabe</p>
-                <p className="text-xs text-muted-foreground">
-                  Antworten müssen mit dem Buchstaben <em>enden</em> statt beginnen.
-                </p>
+                <InfoHint label="Was bedeutet „Letzter Buchstabe“?">
+                  Antworten müssen mit dem Buchstaben <em>enden</em> statt
+                  beginnen.
+                </InfoHint>
               </div>
               {isHost ? (
                 <Switch
@@ -676,8 +684,14 @@ export function Lobby() {
             </div>
 
             {/* Show letter during countdown */}
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Buchstabe während Countdown</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium">Buchstabe während Countdown</p>
+                <InfoHint label="Was bedeutet „Buchstabe während Countdown“?">
+                  Zeigt den Buchstaben schon während des Start-Countdowns an,
+                  statt erst wenn die Runde beginnt.
+                </InfoHint>
+              </div>
               {isHost ? (
                 <Switch
                   checked={lobby.settings.showLetterDuringCountdown}
