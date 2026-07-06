@@ -93,10 +93,7 @@ export function ReviewScreen() {
   return (
     <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
-        <RoomHeader
-          title="Bewertung"
-          subtitle={isHost ? "Bewerte die Antworten" : "Der Host bewertet…"}
-        />
+        <RoomHeader title="Bewertung" />
 
         {/* Everyone sees who stopped the round. */}
         {buzzerName && (
