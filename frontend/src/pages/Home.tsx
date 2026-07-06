@@ -356,7 +356,7 @@ export function Home() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={back}
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -431,7 +431,7 @@ export function Home() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={back}
                     disabled={checking}
                   >
@@ -484,7 +484,7 @@ export function Home() {
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => {
                       setJoinError(null);
                       back();
