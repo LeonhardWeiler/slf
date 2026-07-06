@@ -101,6 +101,33 @@
     transform: scale(1);
   }
 }
+/* A quick scale bump used to confirm an action (copy, toggle, select). */
+@keyframes slf-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+/* A checkmark that pops in above an element to confirm a copy. */
+@keyframes slf-check-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.6);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
 /* Screen padding that also respects device safe areas (notch / home indicator)
    while keeping a sensible 1rem minimum. */
 .screen-pad {
@@ -116,9 +143,17 @@
 .animate-countdown-pop {
   animation: slf-countdown-pop 0.4s ease-out;
 }
+.animate-pop {
+  animation: slf-pop 0.3s ease-out;
+}
+.animate-check-pop {
+  animation: slf-check-pop 0.35s ease-out;
+}
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-countdown-pop {
+  .animate-countdown-pop,
+  .animate-pop,
+  .animate-check-pop {
     animation: none;
   }
 }

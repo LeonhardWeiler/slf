@@ -46,6 +46,9 @@ export function Lobby() {
   const [showQr, setShowQr] = useState(false);
   const [copied, setCopied] = useState<null | "code" | "link">(null);
   const [copyFailed, setCopyFailed] = useState(false);
+  // Bumped on every successful code copy so the pop animation replays even when
+  // copying repeatedly (a changing key re-mounts the element → animation reruns).
+  const [copyPulse, setCopyPulse] = useState(0);
 
   const lobbyCode = lobby?.lobbyCode ?? "";
   const joinLink = lobby ? `${window.location.origin}/join/${lobby.lobbyCode}` : "";
@@ -56,6 +59,7 @@ export function Lobby() {
     if (ok) {
       setCopyFailed(false);
       setCopied(kind);
+      if (kind === "code") setCopyPulse((n) => n + 1);
       setTimeout(() => setCopied(null), 2000);
     } else {
       setCopyFailed(true);
@@ -241,21 +245,33 @@ export function Lobby() {
               title="Lobbycode kopieren (Strg+C)"
               className="block w-full text-center space-y-1 group"
             >
-              <p className="flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity">
-                <span>{lobby.lobbyCode.slice(0, 3)}</span>
-                <span className="ml-2">{lobby.lobbyCode.slice(3)}</span>
-              </p>
-              <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-                {copied === "code" ? (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-green-600" />
-                    Code kopiert!
-                  </>
-                ) : copyFailed ? (
-                  "Kopieren nicht möglich – Code manuell markieren (nur über HTTPS)"
-                ) : (
-                  "Klicken oder Strg+C zum Kopieren"
+              <span className="relative block">
+                {/* Checkmark pops in above the code on a successful copy — the
+                    primary confirmation now sits over the code, not just as a
+                    text swap below it. */}
+                {copied === "code" && (
+                  <span
+                    aria-hidden="true"
+                    className="animate-check-pop absolute -top-5 left-1/2 flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-full bg-green-600 text-white shadow"
+                  >
+                    <Check className="h-4 w-4" />
+                  </span>
                 )}
+                <span
+                  // Keyed on copyPulse so the pop replays on every copy.
+                  key={copyPulse}
+                  className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity ${
+                    copyPulse > 0 ? "animate-pop" : ""
+                  }`}
+                >
+                  <span>{lobby.lobbyCode.slice(0, 3)}</span>
+                  <span className="ml-2">{lobby.lobbyCode.slice(3)}</span>
+                </span>
+              </span>
+              <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                {copyFailed
+                  ? "Kopieren nicht möglich – Code manuell markieren (nur über HTTPS)"
+                  : "Klicken oder Strg+C zum Kopieren"}
               </p>
             </button>
 
