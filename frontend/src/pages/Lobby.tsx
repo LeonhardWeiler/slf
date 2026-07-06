@@ -6,6 +6,7 @@ import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
+import { InfoHint } from "@/components/InfoHint";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -468,13 +469,13 @@ export function Lobby() {
             </div>
 
             {/* Host commentator mode */}
-            <div className="flex items-start justify-between gap-3">
-              <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
                 <p className="text-sm font-medium">Host spielt mit</p>
-                <p className="text-xs text-muted-foreground">
+                <InfoHint label="Was bedeutet „Host spielt mit“?">
                   Aus: Der Host ist nur Kommentator und sieht auf dem Beamer, wer
                   schon ausgefüllt hat – ohne die Antworten selbst.
-                </p>
+                </InfoHint>
               </div>
               {isHost ? (
                 <Switch
