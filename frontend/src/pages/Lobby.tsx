@@ -107,8 +107,6 @@ export function Lobby() {
   // Set when the disabled "Spiel starten" button is clicked, so the hint text
   // shakes; reset once the shake animation ends.
   const [startShake, setStartShake] = useState(false);
-  // The time option currently confirming its selection with a pop (by label).
-  const [poppedTime, setPoppedTime] = useState<string | null>(null);
   // While true, every letter replays the pop with a staggered delay — used when
   // "Alle aktivieren" brings the whole row back at once.
   const [staggerLetters, setStaggerLetters] = useState(false);
@@ -572,19 +570,8 @@ export function Lobby() {
                       <button
                         key={opt.label}
                         type="button"
-                        onClick={() => {
-                          updateSettings({ timeLimit: opt.value });
-                          setPoppedTime(opt.label);
-                        }}
-                        onAnimationEnd={() =>
-                          setPoppedTime((t) => (t === opt.label ? null : t))
-                        }
+                        onClick={() => updateSettings({ timeLimit: opt.value })}
                         className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                          poppedTime === opt.label ? "animate-pop" : ""
-                        } ${
-                          // Selected: border matches the fill so no lighter halo
-                          // shows (border reads as an edge only on the darker,
-                          // unselected fill). See TODO 13.
                           active
                             ? "bg-primary text-primary-foreground border-primary"
                             : "bg-background hover:bg-muted active:bg-muted border-border"
