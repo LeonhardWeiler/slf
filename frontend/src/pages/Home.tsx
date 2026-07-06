@@ -344,16 +344,13 @@ export function Home() {
           <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-base">Lobby beitreten</CardTitle>
-              <CardDescription>
-                Gib den Code ein, den du erhalten hast.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={submitJoinCode} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="code">Lobbycode</Label>
                   <Input
                     id="code"
+                    aria-label="Lobbycode"
                     value={code}
                     onChange={(e) => {
                       setJoinError(null);
