@@ -3,6 +3,7 @@ import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
+import { CountUp } from "@/components/CountUp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -42,10 +43,13 @@ export function GameOverScreen() {
             <CardTitle className="text-base">Endstand</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {ranking.map((r) => (
+            {ranking.map((r, i) => (
               <div
                 key={r.playerId}
-                className={`flex items-center justify-between py-2 px-3 rounded-md ${
+                // Final standings ease in top-to-bottom (backwards fill keeps
+                // them hidden through the stagger delay).
+                style={{ animationDelay: `${i * 70}ms`, animationFillMode: "backwards" }}
+                className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
                   r.rank === 1
                     ? "bg-amber-500/15 border border-amber-500/40"
                     : "bg-muted/50"
@@ -68,7 +72,7 @@ export function GameOverScreen() {
                     )}
                   </span>
                 </div>
-                <span className="text-sm font-bold tabular-nums">{r.score}</span>
+                <CountUp value={r.score} className="text-sm font-bold tabular-nums" />
               </div>
             ))}
           </CardContent>

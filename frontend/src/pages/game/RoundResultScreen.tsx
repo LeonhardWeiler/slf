@@ -6,6 +6,7 @@ import { useGameStore } from "@/store/game";
 import { isTypingTarget } from "@/lib/utils";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
+import { CountUp } from "@/components/CountUp";
 import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,12 +81,15 @@ export function RoundResultScreen() {
             <CardTitle className="text-base">Zwischenstand</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {result.ranking.map((r) => {
+            {result.ranking.map((r, i) => {
               const roundPoints = roundPointsOf(r.playerId);
               return (
               <div
                 key={r.playerId}
-                className={`flex items-center justify-between py-2 px-3 rounded-md ${
+                // Rows ease in one after another (backwards fill holds them
+                // hidden through the stagger delay so they don't flash first).
+                style={{ animationDelay: `${i * 70}ms`, animationFillMode: "backwards" }}
+                className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
                   r.rank === 1
                     ? "bg-amber-500/15 border border-amber-500/40"
                     : "bg-muted/50"
@@ -120,9 +124,10 @@ export function RoundResultScreen() {
                   >
                     {roundPoints === 0 ? "±0" : `+${roundPoints}`}
                   </span>
-                  <span className="text-sm font-bold tabular-nums w-10 text-right">
-                    {r.score}
-                  </span>
+                  <CountUp
+                    value={r.score}
+                    className="text-sm font-bold tabular-nums w-10 text-right"
+                  />
                 </div>
               </div>
               );

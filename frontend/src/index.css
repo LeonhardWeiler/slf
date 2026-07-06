@@ -101,6 +101,26 @@
     transform: scale(1);
   }
 }
+/* A brief flicker + warm glow to make a flame indicator feel alive. */
+@keyframes slf-flame-flicker {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.7;
+    transform: scale(1.12) rotate(-3deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(0.96);
+  }
+  75% {
+    opacity: 0.85;
+    transform: scale(1.08) rotate(2deg);
+  }
+}
 /* Counterpart to slf-fade-in: eases an element out before it's unmounted. */
 @keyframes slf-fade-out {
   from {
@@ -265,6 +285,10 @@
 .animate-fade-out {
   animation: slf-fade-out 0.2s ease-in forwards;
 }
+.animate-flame {
+  animation: slf-flame-flicker 0.7s ease-in-out;
+  filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
+}
 .animate-pop {
   animation: slf-pop 0.3s ease-out;
 }
@@ -292,7 +316,8 @@
   .animate-toast-in,
   .toast-progress,
   .countdown-ring,
-  .animate-countdown-go {
+  .animate-countdown-go,
+  .animate-flame {
     animation: none;
   }
 }

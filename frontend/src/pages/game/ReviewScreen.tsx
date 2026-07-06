@@ -180,7 +180,7 @@ export function ReviewScreen() {
                         </p>
                         {a.flamed && (
                           <span
-                            className="shrink-0 text-orange-500"
+                            className="animate-flame shrink-0 text-orange-500"
                             title="Flamme: Wette auf die einzige Antwort (+5 / 0)"
                           >
                             <Flame className="h-4 w-4 fill-orange-500" />
