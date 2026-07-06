@@ -336,7 +336,7 @@ export function Home() {
         {/* ---- Step: create → name ---- */}
         {step === "createName" && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <CardTitle className="text-base">Lobby erstellen</CardTitle>
             </CardHeader>
             <CardContent>
@@ -378,7 +378,7 @@ export function Home() {
         {/* ---- Step: join → code ---- */}
         {step === "joinCode" && (
           <Card>
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-2">
               <CardTitle className="text-base">Lobby beitreten</CardTitle>
             </CardHeader>
             <CardContent>
