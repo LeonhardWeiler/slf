@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import {
   createRootRoute,
   createRoute,
@@ -13,9 +13,15 @@ import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
-import { Room } from "@/pages/Room";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
 import { Toaster } from "@/components/Toaster";
+
+// The lobby/game view (Room + all in-game screens) is only needed once the
+// player is actually in a lobby. Splitting it out of the initial bundle keeps
+// the Home/start screen payload small (no unused in-game JS on first load).
+const Room = lazy(() =>
+  import("@/pages/Room").then((m) => ({ default: m.Room }))
+);
 
 function RootLayout() {
   // Individual selectors instead of destructuring the whole store: otherwise
@@ -201,7 +207,12 @@ const indexRoute = createRoute({
 // a lobby, so we branch on the store: in a lobby → Room, otherwise → Home.
 function JoinRoute() {
   const inLobby = useLobbyStore((s) => s.lobby != null);
-  return inLobby ? <Room /> : <Home />;
+  if (!inLobby) return <Home />;
+  return (
+    <Suspense fallback={null}>
+      <Room />
+    </Suspense>
+  );
 }
 
 const joinRoute = createRoute({

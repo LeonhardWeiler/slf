@@ -274,7 +274,7 @@ export function Home() {
         </div>
 
         {!connected && (
-          <div className="flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-700 dark:text-amber-300">
+          <div className="flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             Keine Verbindung zum Server…
           </div>

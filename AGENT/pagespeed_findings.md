@@ -123,12 +123,12 @@ useEffect(() => {
 
 ## 📋 Priorisierte Maßnahmenliste
 
-| Priorität | Maßnahme | Erwarteter Effekt |
-|---|---|---|
-| 🔴 Hoch | WebSocket Optimistic UI (useState default: true) | Best Practices Score, UX |
-| 🔴 Hoch | CSP-Header hinzufügen | Sicherheit + Best Practices |
-| 🟡 Mittel | Ungenutztes JS reduzieren (~68 KiB) | Bundle-Größe, LCP Mobile |
-| 🟡 Mittel | CSS nicht render-blockierend laden | FCP/LCP Mobile (-300 ms) |
-| 🟡 Mittel | Farbkontrast verbessern | Barrierefreiheit Score |
-| 🟢 Niedrig | llms.txt vervollständigen | Agentisches Browsing Score |
-| 🟢 Niedrig | font-display: swap setzen | CLS-Stabilität |
+| Priorität | Maßnahme | Erwarteter Effekt | Status |
+|---|---|---|---|
+| 🔴 Hoch | WebSocket Optimistic UI (useState default: true) | Best Practices Score, UX | ✅ umgesetzt (`ws.status`/`lastStatus=true`, `ConnectionBadge` seedet daraus) |
+| 🔴 Hoch | CSP-Header hinzufügen | Sicherheit + Best Practices | ✅ umgesetzt (`backend/cmd/server/main.go`, sogar ohne `'unsafe-inline'` für Scripts – sha256-Hash) |
+| 🟡 Mittel | Ungenutztes JS reduzieren (~68 KiB) | Bundle-Größe, LCP Mobile | ✅ umgesetzt (QR-Libs bereits lazy; jetzt auch `Room`+Game-Screens als eigener Chunk → Home-Bundle 459→401 KiB) |
+| 🟡 Mittel | CSS nicht render-blockierend laden | FCP/LCP Mobile (-300 ms) | ⏸️ offen – Vite-Default bündelt ein einziges CSS; kritisches Inlining wäre großer Aufwand bei bereits 100/100 Performance |
+| 🟡 Mittel | Farbkontrast verbessern | Barrierefreiheit Score | ✅ umgesetzt (`text-amber-700` → `text-amber-800`, ~4,48:1 → >6:1) |
+| 🟢 Niedrig | llms.txt vervollständigen | Agentisches Browsing Score | ✅ umgesetzt (`frontend/public/llms.txt` hat H1 + Links) |
+| 🟢 Niedrig | font-display: swap setzen | CLS-Stabilität | ➖ nicht relevant – keine Web-Fonts, nur `system-ui`-Stack |
