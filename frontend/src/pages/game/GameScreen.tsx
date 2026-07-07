@@ -289,9 +289,6 @@ export function GameScreen() {
     const isGo = countdown === 0;
     return (
       <div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
-        <p className="text-muted-foreground uppercase tracking-widest text-sm">
-          Runde startet
-        </p>
         <div className="flex h-48 w-48 items-center justify-center">
           {/* Just the digits scale down and swap each tick — no progress ring. */}
           <div
@@ -363,15 +360,16 @@ export function GameScreen() {
             frei auf dem Hintergrund (wie beim rahmenlosen Switch). */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">
-              Buchstabe{lastLetterMode ? " (am Ende)" : ""}
-            </p>
+            {/* "Buchstabe" ist selbsterklärend und entfällt; nur der nicht
+                offensichtliche „am Ende"-Modus bleibt als Hinweis stehen. */}
+            {lastLetterMode && (
+              <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                am Ende
+              </p>
+            )}
             <p className="text-6xl font-black leading-none">{game.letter}</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">
-              Zeit
-            </p>
             {hasTimeLimit ? (
               <p
                 className={`text-3xl font-mono font-bold tabular-nums ${
