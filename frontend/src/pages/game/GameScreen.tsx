@@ -342,13 +342,6 @@ export function GameScreen() {
                 : "Kommentator"
               : "Runde läuft"
           }
-          subtitle={
-            isSpectator
-              ? isPending
-                ? "Du steigst in der nächsten Runde ein"
-                : "Wer hat schon ausgefüllt?"
-              : undefined
-          }
         />
 
         <Card>

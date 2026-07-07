@@ -312,11 +312,6 @@ export function Lobby() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Lobby</h1>
-            <p className="text-muted-foreground text-sm">
-              {activePlayers.length <= 1
-                ? "Warte auf Mitspieler…"
-                : `${activePlayers.length} Spieler bereit`}
-            </p>
           </div>
           <div className="flex items-center gap-2">
             <ConnectionBadge />

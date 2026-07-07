@@ -11,13 +11,7 @@ import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
-export function RoomHeader({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-}) {
+export function RoomHeader({ title }: { title: string }) {
   const navigate = useNavigate();
   const reset = useLobbyStore((s) => s.reset);
   const lobby = useLobbyStore((s) => s.lobby);
@@ -97,7 +91,6 @@ export function RoomHeader({
             </button>
           )}
         </div>
-        {subtitle && <p className="text-muted-foreground text-sm">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <ConnectionBadge />

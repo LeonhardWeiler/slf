@@ -288,7 +288,6 @@ export function Home() {
       <div className="w-full max-w-sm space-y-4">
         <div className="text-center space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">Stadt Land Fluss</h1>
-          <p className="text-muted-foreground text-sm">Multiplayer</p>
         </div>
 
         {!connected && (

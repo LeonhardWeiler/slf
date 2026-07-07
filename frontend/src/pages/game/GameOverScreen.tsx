@@ -20,23 +20,11 @@ export function GameOverScreen() {
   const hasLeft = (id: string) =>
     lobby.players.find((p) => p.id === id)?.left ?? false;
   const ranking = result?.ranking ?? [];
-  const reasonText =
-    result?.reason === "AlphabetFinished"
-      ? "Das Alphabet ist durchgespielt."
-      : result?.reason === "HostEnded"
-        ? "Der Host hat das Spiel beendet."
-        : null;
 
   return (
     <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <RoomHeader title="Spiel beendet" />
-
-        {reasonText && (
-          <p className="text-center text-sm text-muted-foreground">
-            {reasonText}
-          </p>
-        )}
 
         <Card>
           <CardHeader className="pb-3">

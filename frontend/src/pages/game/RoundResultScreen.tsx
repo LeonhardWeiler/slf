@@ -74,7 +74,7 @@ export function RoundResultScreen() {
   return (
     <div className="min-h-svh bg-background screen-pad">
       <div className="mx-auto w-full max-w-5xl space-y-4">
-        <RoomHeader title="Rundenergebnis" subtitle={`Buchstabe ${result.letter}`} />
+        <RoomHeader title="Rundenergebnis" />
 
         <Card>
           <CardHeader className="pb-3">
