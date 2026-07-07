@@ -6,7 +6,7 @@ import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function ReviewScreen() {
   const lobby = useLobbyStore((s) => s.lobby);
@@ -118,10 +118,7 @@ export function ReviewScreen() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Antworten</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-6 space-y-2">
             {review.answers.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 Keine Antworten in dieser Kategorie.

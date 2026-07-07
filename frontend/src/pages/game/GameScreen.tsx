@@ -304,7 +304,6 @@ export function GameScreen() {
         </div>
         {game?.letter && (
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Buchstabe</p>
             <p className="text-6xl font-black">{game.letter}</p>
           </div>
         )}
@@ -406,8 +405,7 @@ export function GameScreen() {
           <>
             {/* Fill progress: how many categories already hold a valid answer. */}
             <div className="space-y-1">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Ausgefüllt</span>
+              <div className="flex justify-end text-xs text-muted-foreground">
                 <span className="tabular-nums">
                   {answeredCount}/{categories.length}
                 </span>
