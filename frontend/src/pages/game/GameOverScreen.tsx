@@ -17,8 +17,12 @@ export function GameOverScreen() {
 
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
-  const hasLeft = (id: string) =>
-    lobby.players.find((p) => p.id === id)?.left ?? false;
+  // "(verlassen)" gilt auch für getrennte Spieler (in der Kommentator-Ansicht
+  // schon ausgegraut), damit End- und Live-Ansicht konsistent sind.
+  const hasLeft = (id: string) => {
+    const p = lobby.players.find((pl) => pl.id === id);
+    return p ? p.left || !p.connected : false;
+  };
   const ranking = result?.ranking ?? [];
 
   return (

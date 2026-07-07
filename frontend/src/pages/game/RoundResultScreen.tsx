@@ -62,8 +62,13 @@ export function RoundResultScreen() {
 
   const playerName = (id: string) =>
     lobby.players.find((p) => p.id === id)?.name ?? "?";
-  const hasLeft = (id: string) =>
-    lobby.players.find((p) => p.id === id)?.left ?? false;
+  // "(verlassen)" gilt auch für getrennte Spieler: wer die Verbindung verloren
+  // hat, ist in der Kommentator-Ansicht bereits ausgegraut — die Endtabelle
+  // soll das konsistent zeigen (nicht nur bei explizitem Verlassen).
+  const hasLeft = (id: string) => {
+    const p = lobby.players.find((pl) => pl.id === id);
+    return p ? p.left || !p.connected : false;
+  };
   const roundPointsOf = (id: string) =>
     result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
