@@ -248,7 +248,7 @@ export function ReviewScreen() {
                         </Button>
                       ) : isAnchor ? (
                         <Button
-                          variant="secondary"
+                          variant="outline"
                           size="sm"
                           className="h-7 text-xs"
                           onClick={(e) => {
