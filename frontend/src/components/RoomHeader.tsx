@@ -66,7 +66,7 @@ export function RoomHeader({ title }: { title: string }) {
     <>
     <div className="flex items-center justify-between gap-2">
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5">
           <h1 className="text-2xl font-bold">{title}</h1>
           {code && (
             // The lobby code sits right next to the title and stays copyable on
