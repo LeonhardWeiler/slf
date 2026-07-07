@@ -189,21 +189,6 @@ export function GameScreen() {
     ws.send({ type: "buzz", payload: {} });
   }
 
-  // Host can remove a player straight from the commentator table mid-game. The
-  // server keeps them in the standings marked "(verlassen)" (todo-4).
-  async function handleKick(playerId: string, name: string) {
-    if (
-      await confirm({
-        title: `${name} entfernen?`,
-        description: `${name} wird aus dem laufenden Spiel entfernt und erscheint im Ergebnis als „verlassen“.`,
-        confirmLabel: "Entfernen",
-        destructive: true,
-      })
-    ) {
-      ws.send({ type: "kickPlayer", payload: { playerId } });
-    }
-  }
-
   async function handleEndRound() {
     if (
       await confirm({
@@ -397,7 +382,6 @@ export function GameScreen() {
                 categories={categories}
                 players={playingPlayers}
                 commentator={commentator}
-                onKick={isHost ? handleKick : undefined}
               />
             </CardContent>
           </Card>

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, X } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -17,6 +17,21 @@ export function RoundResultScreen() {
   const result = useGameStore((s) => s.result);
   const isHost = useIsHost();
   const { confirm, dialog } = useConfirm();
+
+  // Host can remove a player from the between-rounds standings (the points
+  // table). The server keeps them in the ranking marked "(verlassen)" (todo-4).
+  async function handleKick(playerId: string, name: string) {
+    if (
+      await confirm({
+        title: `${name} entfernen?`,
+        description: `${name} wird aus dem Spiel entfernt und erscheint im Stand weiter als „verlassen“.`,
+        confirmLabel: "Entfernen",
+        destructive: true,
+      })
+    ) {
+      ws.send({ type: "kickPlayer", payload: { playerId } });
+    }
+  }
 
   async function handleEndGame() {
     if (
@@ -133,6 +148,23 @@ export function RoundResultScreen() {
                     value={r.score}
                     className="text-sm font-bold tabular-nums w-10 text-right"
                   />
+                  {/* Host kann hier – wenn die Punkte-Tabelle zwischen den Runden
+                      steht – einen Spieler aus dem Spiel entfernen. */}
+                  {isHost &&
+                    r.playerId !== myPlayerId &&
+                    !hasLeft(r.playerId) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="-mr-1 h-7 w-7 text-destructive"
+                        title={`${playerName(r.playerId)} entfernen`}
+                        onClick={() =>
+                          handleKick(r.playerId, playerName(r.playerId))
+                        }
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                 </div>
               </div>
               );
