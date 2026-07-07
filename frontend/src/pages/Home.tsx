@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useParams, Navigate } from "@tanstack/react-router";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
+import { isTypingTarget } from "@/lib/utils";
 import { consumeForcedLeave } from "@/lib/forcedLeave";
 import type { LobbyCheckPayload } from "@/types/events";
 import { useLobbyStore } from "@/store/lobby";
@@ -129,6 +130,23 @@ export function Home() {
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Pfeiltaste links geht im Login-Flow einen Schritt zurück (wie der
+  // "Zurück"-Button). Ignoriert wird sie, während in einem Feld getippt wird,
+  // damit der Cursor dort weiter normal nach links wandern kann.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: back() is stable; register once on mount
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "ArrowLeft") return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isTypingTarget(document.activeElement)) return;
+      if (stepRef.current === "start") return;
+      e.preventDefault();
+      back();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // While on the join-name step, route server errors (e.g. "Name bereits
