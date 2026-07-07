@@ -359,34 +359,34 @@ export function GameScreen() {
           }
         />
 
-        <Card>
-          <CardContent className="pt-6 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Buchstabe{lastLetterMode ? " (am Ende)" : ""}
+        {/* Buchstabe & Zeit ohne umschließende Card/Rahmen — die Werte stehen
+            frei auf dem Hintergrund (wie beim rahmenlosen Switch). */}
+        <div className="flex items-center justify-between px-1">
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">
+              Buchstabe{lastLetterMode ? " (am Ende)" : ""}
+            </p>
+            <p className="text-6xl font-black leading-none">{game.letter}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground uppercase tracking-widest">
+              Zeit
+            </p>
+            {hasTimeLimit ? (
+              <p
+                className={`text-3xl font-mono font-bold tabular-nums ${
+                  dangerZone ? "text-destructive" : ""
+                }`}
+              >
+                {timeLeft === null ? "–" : `${timeLeft}s`}
               </p>
-              <p className="text-6xl font-black leading-none">{game.letter}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                Zeit
+            ) : (
+              <p className="text-3xl font-mono font-bold tabular-nums">
+                {formatClock(elapsed)}
               </p>
-              {hasTimeLimit ? (
-                <p
-                  className={`text-3xl font-mono font-bold tabular-nums ${
-                    dangerZone ? "text-destructive" : ""
-                  }`}
-                >
-                  {timeLeft === null ? "–" : `${timeLeft}s`}
-                </p>
-              ) : (
-                <p className="text-3xl font-mono font-bold tabular-nums">
-                  {formatClock(elapsed)}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
 
         {/* Screen-reader announcement for the final seconds. */}
         <span className="sr-only" aria-live="assertive">
