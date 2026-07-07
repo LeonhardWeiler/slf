@@ -282,7 +282,9 @@ export function Home() {
 
         {/* ---- Step: start ---- */}
         {step === "start" && (
-          <div className="space-y-3">
+          // Etwas schmaler und zentriert, damit die Buttons auf dem Handy nicht
+          // die volle Kartenbreite einnehmen.
+          <div className="mx-auto max-w-[16rem] space-y-3">
             <Button
               className="w-full"
               size="lg"
