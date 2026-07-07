@@ -67,10 +67,11 @@ function FrontToast({ toast }: { toast: Toast }) {
   );
 }
 
-// Stacking toast notifications, bottom-left. The newest sits in front and is the
-// only readable one; older toasts fan out behind it (offset up + scaled + dimmed)
-// so the user can tell several are queued without reading them. Clicking the
-// front toast dismisses it; a "clear all" control appears only when >1 is stacked.
+// Stacking toast notifications, top-center. The newest sits in front and is the
+// only readable one; older toasts fan out behind it (offset down + scaled +
+// dimmed) so the user can tell several are queued without reading them. Clicking
+// the front toast dismisses it; a "clear all" control appears only when >1 is
+// stacked.
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);
   const clearToasts = useToastStore((s) => s.clearToasts);
@@ -89,7 +90,7 @@ export function Toaster() {
     // interrupt (assertive), neutral info updates wait their turn (polite).
     <div
       aria-live={front.variant === "error" ? "assertive" : "polite"}
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex w-full max-w-sm flex-col items-start gap-2 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-sm flex-col items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
     >
       {toasts.length > 1 && (
         <button
@@ -102,7 +103,7 @@ export function Toaster() {
       )}
 
       {/* The front toast defines the box size; the peeking cards are absolutely
-          positioned to fill it and shifted up/back, so they poke out at the top. */}
+          positioned to fill it and shifted down/back, so they poke out below. */}
       <div className="relative w-full">
         {behind.map((t, i) => {
           const depth = i + 1;
@@ -112,8 +113,8 @@ export function Toaster() {
               aria-hidden="true"
               className={`absolute inset-0 rounded-lg border shadow-lg backdrop-blur ${VARIANTS[t.variant].peek}`}
               style={{
-                transform: `translateY(-${depth * 7}px) scale(${1 - depth * 0.05})`,
-                transformOrigin: "bottom center",
+                transform: `translateY(${depth * 7}px) scale(${1 - depth * 0.05})`,
+                transformOrigin: "top center",
                 opacity: 1 - depth * 0.2,
                 zIndex: -depth,
               }}
