@@ -1,16 +1,20 @@
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Category, CommentatorStatePayload, Player } from "@/types/events";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   categories: Category[];
   players: Player[];
   commentator: CommentatorStatePayload | null;
+  // When set, the host can remove a player straight from the table (a mid-game
+  // kick keeps them in the standings marked "(verlassen)").
+  onKick?: (playerId: string, name: string) => void;
 }
 
 // Beamer/commentator overview: a matrix of players × categories showing only
 // *whether* a field has been filled (a check), never the answer itself.
-export function CommentatorBoard({ categories, players, commentator }: Props) {
+export function CommentatorBoard({ categories, players, commentator, onKick }: Props) {
   const filledByPlayer = new Map<string, Set<string>>();
   const completeByPlayer = new Map<string, boolean>();
   for (const p of commentator?.players ?? []) {
@@ -41,6 +45,7 @@ export function CommentatorBoard({ categories, players, commentator }: Props) {
               </th>
             ))}
             <th className="font-medium px-2 py-1 text-right">Fertig</th>
+            {onKick && <th className="w-8 px-1 py-1" aria-label="Entfernen" />}
           </tr>
         </thead>
         <tbody>
@@ -79,11 +84,29 @@ export function CommentatorBoard({ categories, players, commentator }: Props) {
                     </td>
                   );
                 })}
-                <td className="px-2 py-2 text-right tabular-nums rounded-r-md">
+                <td
+                  className={cn(
+                    "px-2 py-2 text-right tabular-nums",
+                    !onKick && "rounded-r-md"
+                  )}
+                >
                   <span className={complete ? "text-green-600 font-semibold" : ""}>
                     {count}/{categories.length}
                   </span>
                 </td>
+                {onKick && (
+                  <td className="px-1 py-2 text-right rounded-r-md">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-destructive"
+                      title={`${player.name} entfernen`}
+                      onClick={() => onKick(player.id, player.name)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </td>
+                )}
               </tr>
             );
           })}

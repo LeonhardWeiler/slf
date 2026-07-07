@@ -623,7 +623,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 
 	hub.mu.Lock()
 	_, lobby, host, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !host.IsHost || lobby.State != game.StateLobby {
+	if !ok || !host.IsHost {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeNotHost, "Aktion nicht erlaubt")
 		return
@@ -641,10 +641,26 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	targetSession := target.SessionID
 	targetClient := hub.clients[targetSession]
-	delete(lobby.Players, p.PlayerID)
+	if lobby.State == game.StateLobby {
+		// Pre-game: remove the player entirely.
+		delete(lobby.Players, p.PlayerID)
+	} else {
+		// Mid-game: keep the player in the standings but mark them as left (so
+		// they still appear as "(verlassen)"), and drop their current-round
+		// answers — mirroring a self-initiated leave.
+		target.Left = true
+		target.Connected = false
+		if lobby.Game != nil && lobby.Game.Round != nil {
+			delete(lobby.Game.Round.Answers, p.PlayerID)
+			delete(lobby.Game.Round.Flames, p.PlayerID)
+		}
+	}
+	// Invalidate the session either way so the kicked player can't auto-reconnect
+	// back into this lobby.
 	delete(hub.sessions, targetSession)
 	delete(hub.clients, targetSession)
-	slog.Info("player kicked", "lobby", lobby.Code, "player", target.Name)
+	reviewing := lobby.State == game.StateReviewing
+	slog.Info("player kicked", "lobby", lobby.Code, "player", target.Name, "state", string(lobby.State))
 	hub.mu.Unlock()
 
 	if targetClient != nil {
@@ -652,4 +668,8 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 		targetClient.send("playerKicked", map[string]string{"playerId": p.PlayerID})
 	}
 	hub.broadcastLobbyState(lobby)
+	// While reviewing, the kicked player's answers must disappear there too.
+	if reviewing {
+		hub.broadcastReviewState(lobby)
+	}
 }

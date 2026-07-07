@@ -561,3 +561,59 @@ func (c *testConn) readLobby() lobbyStateDTO {
 	c.lastLobby = ls
 	return ls
 }
+
+// todo-4: the host can kick a player during a running round. The kicked player
+// is not removed but kept in the standings marked as "left", so they still show
+// up as "(verlassen)".
+func TestKickMidGameMarksPlayerLeft(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	// Bob joins before the game starts → full participant.
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+		PlayerID  string `json:"playerId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.sessionID = sc.SessionID
+	bobID := sc.PlayerID
+	guest.waitFor("lobbyState")
+
+	host.send("startGame", map[string]any{})
+	host.waitFor("gameState")
+
+	// Host kicks Bob mid-game.
+	host.send("kickPlayer", map[string]any{"playerId": bobID})
+
+	// Bob is told he was kicked.
+	var pk struct {
+		PlayerID string `json:"playerId"`
+	}
+	json.Unmarshal(guest.waitFor("playerKicked"), &pk)
+	if pk.PlayerID != bobID {
+		t.Fatalf("expected playerKicked for %q, got %q", bobID, pk.PlayerID)
+	}
+
+	// The host's lobbyState keeps Bob around, now flagged left (→ "(verlassen)").
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if time.Now().After(deadline) {
+			t.Fatal("expected kicked player to remain marked as left")
+		}
+		var ls struct {
+			Players []struct {
+				ID   string `json:"id"`
+				Left bool   `json:"left"`
+			} `json:"players"`
+		}
+		json.Unmarshal(host.waitFor("lobbyState"), &ls)
+		for _, p := range ls.Players {
+			if p.ID == bobID && p.Left {
+				return
+			}
+		}
+	}
+}
