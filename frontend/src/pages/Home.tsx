@@ -427,13 +427,13 @@ export function Home() {
 										aria-invalid={joinError != null}
 										disabled={checking}
 										placeholder="askzf6"
-										autoCapitalize="none"
+										autoCapitalize="characters"
 										autoCorrect="off"
 										spellCheck={false}
 										maxLength={6}
 										autoFocus
 										autoComplete="off"
-										className="font-mono lowercase tracking-widest"
+										className="font-mono uppercase tracking-widest"
 									/>
 									{joinError && (
 										<p className="text-sm text-destructive">{joinError}</p>
