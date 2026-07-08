@@ -11,14 +11,11 @@
 5. Wenn niemand etwas eingegeben hat und die runde beendet wird, überspringen alle den review screen und sind bei der tabelle. Wenn keine spielende person da ist, dann werden auch die eingaben übersprungen
 6. Der join code soll immer unter dem title und nie daneben, wie jetzt angezeigt werden
 7. Bei den input eingaben, muss man mindestens 2 zeichen für eine gültige eingabe haben, sonst wird kein grüner haken angezeigt, man kann nicht buzzern, man bekommt 0 punkte, etc.
-8. Es soll keine erklärung für den flammen emoji während dem game unten geben, dass sol weg. Es wird ja schon davor Beim tooltip erklärt
-9. Beim qr code scannen soll der erklärungstext über dem scanner, also "QR-Code scannen
-   Scanne den Lobby-Code, danach gibst du nur noch deinen Namen ein." nicht da sein
-10. Am start screen, sollen die beiden buttons nur auf mobile schmäler sein, aber auf beidem etwas breiter als gerade
-11. Wenn man einen lobby code eintippt, den es nicht gibt, soll die border vom input feld rot werden, wie bei einer nicht richtigen eingabe
-12. Wenn ich auf join klicke, einen code eingebe, zurück und dann wieder auf join klicke, soll das input feld wieder leer sein
-13. Alle animationen sollen schneller, oder ganz weggemacht werden, je nachdem was besser ist, damit sich die ui schneller anfühlt. Gerade fühlt es sich sehr sluggish an
-14. Bei den Kategorien soll Der edit und delete button, auf Der gleichen stell sein wie accept und dismiss, wenn du weißt welche ich meine. Gerade sind sie etwas versetzt
-15. Der delete button, bei der kategory, soll nicht die farbe wechseln, bei hover oder klickt, sondern immer rot sein
-16. Der edit und delete button, sollen bei hover und click, leicht gedreht werden, damit man eine useraction erkennt
-17. Tooltips öffnen sich gerade nur, wenn man ganz genau auf das icon clickt, ich möchte, dass sie sich auch öffnen, wenn man auf den namen daneben klickt, und vielleicht generell die klick area ein wenig größer
+8. Am start screen, sollen die beiden buttons nur auf mobile schmäler sein, aber auf beidem etwas breiter als gerade
+9. Wenn man einen lobby code eintippt, den es nicht gibt, soll die border vom input feld rot werden, wie bei einer nicht richtigen eingabe
+10. Wenn ich auf join klicke, einen code eingebe, zurück und dann wieder auf join klicke, soll das input feld wieder leer sein
+11. Alle animationen sollen schneller, oder ganz weggemacht werden, je nachdem was besser ist, damit sich die ui schneller anfühlt. Gerade fühlt es sich sehr sluggish an
+12. Bei den Kategorien soll Der edit und delete button, auf Der gleichen stell sein wie accept und dismiss, wenn du weißt welche ich meine. Gerade sind sie etwas versetzt
+13. Der delete button, bei der kategory, soll nicht die farbe wechseln, bei hover oder klickt, sondern immer rot sein
+14. Der edit und delete button, sollen bei hover und click, leicht gedreht werden, damit man eine useraction erkennt
+15. Tooltips öffnen sich gerade nur, wenn man ganz genau auf das icon clickt, ich möchte, dass sie sich auch öffnen, wenn man auf den namen daneben klickt, und vielleicht generell die klick area ein wenig größer

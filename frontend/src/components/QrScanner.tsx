@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
+import { Button } from "@/components/ui/button";
 
 // Extracts a 6-char [a-z0-9] lobby code from a scanned value. Accepts a full join
 // link (".../join/a3f9k2") or a bare code (case-insensitive).
@@ -100,13 +101,17 @@ export function QrScannerView({
 					Richte die Kamera auf den QR-Code der Lobby.
 				</p>
 			)}
-			<button
-				type="button"
-				onClick={onClose}
-				className="w-full text-sm text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
-			>
-				Abbrechen
-			</button>
+			<div className="flex justify-center">
+				<Button
+					size="sm"
+					type="button"
+					onClick={onClose}
+					className="text-muted-foreground"
+					variant="ghost"
+				>
+					Abbrechen
+				</Button>
+			</div>
 		</div>
 	);
 }

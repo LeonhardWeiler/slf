@@ -330,13 +330,7 @@ export function Home() {
 				{/* ---- Step: scan QR ---- */}
 				{step === "scan" && (
 					<Card>
-						<CardHeader className="pb-4">
-							<CardTitle className="text-base">QR-Code scannen</CardTitle>
-							<CardDescription>
-								Scanne den Lobby-Code, danach gibst du nur noch deinen Namen
-								ein.
-							</CardDescription>
-						</CardHeader>
+						<CardHeader className="pb-1"></CardHeader>
 						<CardContent>
 							<ErrorBoundary
 								fallback={() => (
