@@ -6,31 +6,31 @@
 // works in that context. Returns whether the copy succeeded so callers can show
 // a "copied" tick or a hint that copying isn't available.
 export async function copyToClipboard(text: string): Promise<boolean> {
-  if (!text) return false;
+	if (!text) return false;
 
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      // fall through to the execCommand fallback
-    }
-  }
+	if (navigator.clipboard?.writeText) {
+		try {
+			await navigator.clipboard.writeText(text);
+			return true;
+		} catch {
+			// fall through to the execCommand fallback
+		}
+	}
 
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    // Keep it out of view and out of the layout/scroll.
-    ta.setAttribute("readonly", "");
-    ta.style.position = "fixed";
-    ta.style.top = "-9999px";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
+	try {
+		const ta = document.createElement("textarea");
+		ta.value = text;
+		// Keep it out of view and out of the layout/scroll.
+		ta.setAttribute("readonly", "");
+		ta.style.position = "fixed";
+		ta.style.top = "-9999px";
+		ta.style.opacity = "0";
+		document.body.appendChild(ta);
+		ta.select();
+		const ok = document.execCommand("copy");
+		document.body.removeChild(ta);
+		return ok;
+	} catch {
+		return false;
+	}
 }

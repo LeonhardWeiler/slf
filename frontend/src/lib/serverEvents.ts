@@ -11,186 +11,192 @@ import type { ServerEvent } from "@/types/events";
 // surfaced to the handlers.
 
 const gameStateEnum = z.enum([
-  "Lobby",
-  "Countdown",
-  "Playing",
-  "Reviewing",
-  "RoundResult",
-  "GameOver",
+	"Lobby",
+	"Countdown",
+	"Playing",
+	"Reviewing",
+	"RoundResult",
+	"GameOver",
 ]);
 
 const playerSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  isHost: z.boolean(),
-  connected: z.boolean(),
-  left: z.boolean(),
-  // Lenient default: tolerate a message from an older server without the field.
-  pending: z.boolean().optional().default(false),
-  score: z.number(),
+	id: z.string(),
+	name: z.string(),
+	isHost: z.boolean(),
+	connected: z.boolean(),
+	left: z.boolean(),
+	// Lenient default: tolerate a message from an older server without the field.
+	pending: z.boolean().optional().default(false),
+	score: z.number(),
 });
 
 const categorySchema = z.object({ id: z.string(), name: z.string() });
 
 const settingsSchema = z.object({
-  timeLimit: z.number().nullable(),
-  showLetterDuringCountdown: z.boolean(),
-  excludedLetters: z.array(z.string()),
-  hostPlays: z.boolean(),
-  lastLetterMode: z.boolean(),
-  flamesEnabled: z.boolean(),
+	timeLimit: z.number().nullable(),
+	showLetterDuringCountdown: z.boolean(),
+	excludedLetters: z.array(z.string()),
+	hostPlays: z.boolean(),
+	lastLetterMode: z.boolean(),
+	flamesEnabled: z.boolean(),
 });
 
 const lobbyStatePayload = z.object({
-  lobbyCode: z.string(),
-  hostId: z.string(),
-  players: z.array(playerSchema),
-  categories: z.array(categorySchema),
-  settings: settingsSchema,
-  state: gameStateEnum,
-  // Seconds until the lobby closes because the host is gone; null/absent when
-  // the host is present. Lets late joiners see the shared countdown too.
-  hostGraceSeconds: z.number().nullish(),
+	lobbyCode: z.string(),
+	hostId: z.string(),
+	players: z.array(playerSchema),
+	categories: z.array(categorySchema),
+	settings: settingsSchema,
+	state: gameStateEnum,
+	// Seconds until the lobby closes because the host is gone; null/absent when
+	// the host is present. Lets late joiners see the shared countdown too.
+	hostGraceSeconds: z.number().nullish(),
 });
 
 const sessionCreatedPayload = z.object({
-  sessionId: z.string(),
-  playerId: z.string(),
+	sessionId: z.string(),
+	playerId: z.string(),
 });
 
 const gameStatePayload = z.object({
-  roundId: z.string(),
-  state: z.enum(["Countdown", "Playing"]),
-  letter: z.string(),
-  usedLetters: z.array(z.string()),
-  remainingLetters: z.array(z.string()),
-  timeRemaining: z.number().nullable(),
-  countdownRemaining: z.number().nullable(),
-  elapsed: z.number().nullable(),
-  categoryCount: z.number(),
+	roundId: z.string(),
+	state: z.enum(["Countdown", "Playing"]),
+	letter: z.string(),
+	usedLetters: z.array(z.string()),
+	remainingLetters: z.array(z.string()),
+	timeRemaining: z.number().nullable(),
+	countdownRemaining: z.number().nullable(),
+	elapsed: z.number().nullable(),
+	categoryCount: z.number(),
 });
 
 const reviewAnswerSchema = z.object({
-  answerId: z.string(),
-  playerId: z.string(),
-  value: z.string(),
-  valid: z.boolean(),
-  mergedInto: z.string(),
-  pointsPreview: z.number(),
-  flamed: z.boolean(),
+	answerId: z.string(),
+	playerId: z.string(),
+	value: z.string(),
+	valid: z.boolean(),
+	mergedInto: z.string(),
+	pointsPreview: z.number(),
+	flamed: z.boolean(),
 });
 
 const reviewStatePayload = z.object({
-  roundId: z.string(),
-  letter: z.string(),
-  categoryId: z.string(),
-  categoryIndex: z.number(),
-  categoryCount: z.number(),
-  answers: z.array(reviewAnswerSchema),
-  // Optional/lenient: an older server without this field must not drop the event.
-  buzzedBy: z.string().optional(),
+	roundId: z.string(),
+	letter: z.string(),
+	categoryId: z.string(),
+	categoryIndex: z.number(),
+	categoryCount: z.number(),
+	answers: z.array(reviewAnswerSchema),
+	// Optional/lenient: an older server without this field must not drop the event.
+	buzzedBy: z.string().optional(),
 });
 
 const commentatorStatePayload = z.object({
-  roundId: z.string(),
-  players: z.array(
-    z.object({
-      playerId: z.string(),
-      filledCategoryIds: z.array(z.string()),
-      complete: z.boolean(),
-    })
-  ),
+	roundId: z.string(),
+	players: z.array(
+		z.object({
+			playerId: z.string(),
+			filledCategoryIds: z.array(z.string()),
+			complete: z.boolean(),
+		}),
+	),
 });
 
 const roundResultPayload = z.object({
-  letter: z.string(),
-  scores: z.array(
-    z.object({
-      playerId: z.string(),
-      roundPoints: z.number(),
-      totalPoints: z.number(),
-    })
-  ),
-  ranking: z.array(
-    z.object({
-      playerId: z.string(),
-      rank: z.number(),
-      score: z.number(),
-    })
-  ),
-  usedLetters: z.array(z.string()),
-  remainingLetters: z.array(z.string()),
-  isGameOver: z.boolean(),
-  // Lenient: an unknown reason must not cause a valid result to be dropped.
-  reason: z.string().optional(),
+	letter: z.string(),
+	scores: z.array(
+		z.object({
+			playerId: z.string(),
+			roundPoints: z.number(),
+			totalPoints: z.number(),
+		}),
+	),
+	ranking: z.array(
+		z.object({
+			playerId: z.string(),
+			rank: z.number(),
+			score: z.number(),
+		}),
+	),
+	usedLetters: z.array(z.string()),
+	remainingLetters: z.array(z.string()),
+	isGameOver: z.boolean(),
+	// Lenient: an unknown reason must not cause a valid result to be dropped.
+	reason: z.string().optional(),
 });
 
 // Lenient on the string enums (code / reason) so a forward-compatible server
 // value never causes an otherwise-valid message to be discarded — the client
 // only needs to display the message / react to known values.
 const errorPayload = z.object({
-  code: z.string(),
-  message: z.string(),
-  severity: z.string(),
+	code: z.string(),
+	message: z.string(),
+	severity: z.string(),
 });
 
 const serverEventSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("lobbyState"), payload: lobbyStatePayload }),
-  z.object({ type: z.literal("sessionCreated"), payload: sessionCreatedPayload }),
-  z.object({
-    type: z.literal("lobbyCheck"),
-    payload: z.object({
-      lobbyCode: z.string(),
-      available: z.boolean(),
-      // Lenient: an unknown/forward-compatible reason must not drop the message.
-      reason: z.string().optional(),
-    }),
-  }),
-  z.object({
-    type: z.literal("playerKicked"),
-    payload: z.object({ playerId: z.string() }),
-  }),
-  z.object({
-    type: z.literal("lobbyClosed"),
-    payload: z.object({ reason: z.string() }),
-  }),
-  z.object({ type: z.literal("gameState"), payload: gameStatePayload }),
-  z.object({ type: z.literal("reviewState"), payload: reviewStatePayload }),
-  z.object({
-    type: z.literal("commentatorState"),
-    payload: commentatorStatePayload,
-  }),
-  z.object({ type: z.literal("roundResult"), payload: roundResultPayload }),
-  z.object({
-    type: z.literal("buzzRejected"),
-    payload: z.object({ reason: z.string() }),
-  }),
-  z.object({
-    type: z.literal("hostDisconnected"),
-    payload: z.object({ graceSeconds: z.number() }),
-  }),
-  z.object({
-    type: z.literal("hostReconnected"),
-    payload: z.object({}),
-  }),
-  z.object({ type: z.literal("error"), payload: errorPayload }),
+	z.object({ type: z.literal("lobbyState"), payload: lobbyStatePayload }),
+	z.object({
+		type: z.literal("sessionCreated"),
+		payload: sessionCreatedPayload,
+	}),
+	z.object({
+		type: z.literal("lobbyCheck"),
+		payload: z.object({
+			lobbyCode: z.string(),
+			available: z.boolean(),
+			// Lenient: an unknown/forward-compatible reason must not drop the message.
+			reason: z.string().optional(),
+		}),
+	}),
+	z.object({
+		type: z.literal("playerKicked"),
+		payload: z.object({ playerId: z.string() }),
+	}),
+	z.object({
+		type: z.literal("lobbyClosed"),
+		payload: z.object({ reason: z.string() }),
+	}),
+	z.object({ type: z.literal("gameState"), payload: gameStatePayload }),
+	z.object({ type: z.literal("reviewState"), payload: reviewStatePayload }),
+	z.object({
+		type: z.literal("commentatorState"),
+		payload: commentatorStatePayload,
+	}),
+	z.object({ type: z.literal("roundResult"), payload: roundResultPayload }),
+	z.object({
+		type: z.literal("buzzRejected"),
+		payload: z.object({ reason: z.string() }),
+	}),
+	z.object({
+		type: z.literal("hostDisconnected"),
+		payload: z.object({ graceSeconds: z.number() }),
+	}),
+	z.object({
+		type: z.literal("hostReconnected"),
+		payload: z.object({}),
+	}),
+	z.object({ type: z.literal("error"), payload: errorPayload }),
 ]);
 
 // Parses and validates a raw server message. Returns the typed event, or null
 // if the JSON is malformed or does not match any known event schema.
 export function parseServerEvent(raw: string): ServerEvent | null {
-  let json: unknown;
-  try {
-    json = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  const result = serverEventSchema.safeParse(json);
-  if (!result.success) {
-    if (import.meta.env?.DEV) {
-      console.warn("Ungültige Server-Nachricht verworfen:", result.error.issues);
-    }
-    return null;
-  }
-  return result.data as ServerEvent;
+	let json: unknown;
+	try {
+		json = JSON.parse(raw);
+	} catch {
+		return null;
+	}
+	const result = serverEventSchema.safeParse(json);
+	if (!result.success) {
+		if (import.meta.env?.DEV) {
+			console.warn(
+				"Ungültige Server-Nachricht verworfen:",
+				result.error.issues,
+			);
+		}
+		return null;
+	}
+	return result.data as ServerEvent;
 }

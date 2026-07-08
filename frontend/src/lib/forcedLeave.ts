@@ -6,13 +6,13 @@
 let forcedLeave = false;
 
 export function markForcedLeave(): void {
-  forcedLeave = true;
+	forcedLeave = true;
 }
 
 // Reads and clears the flag. Home consumes it on mount to decide whether to skip
 // the deep-link auto-join for this navigation.
 export function consumeForcedLeave(): boolean {
-  const value = forcedLeave;
-  forcedLeave = false;
-  return value;
+	const value = forcedLeave;
+	forcedLeave = false;
+	return value;
 }

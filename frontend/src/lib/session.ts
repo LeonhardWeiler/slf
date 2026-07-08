@@ -12,13 +12,13 @@
 const KEY = "sessionId";
 
 export function getSessionId(): string | null {
-  return localStorage.getItem(KEY);
+	return localStorage.getItem(KEY);
 }
 
 export function setSessionId(id: string): void {
-  localStorage.setItem(KEY, id);
+	localStorage.setItem(KEY, id);
 }
 
 export function clearSessionId(): void {
-  localStorage.removeItem(KEY);
+	localStorage.removeItem(KEY);
 }
