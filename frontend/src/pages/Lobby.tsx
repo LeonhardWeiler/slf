@@ -626,9 +626,8 @@ export function Lobby() {
 							<div className="flex items-center gap-1.5">
 								<p className="text-sm font-medium">Kommentator</p>
 								<InfoHint label="Was bedeutet „Kommentator“?">
-									An: Der Host spielt nicht mit, sondern ist nur Kommentator und
-									sieht auf dem Beamer, wer schon ausgefüllt hat – ohne die
-									Antworten selbst.
+									Der Host spielt nicht mit, sondern ist nur Kommentator und
+									sieht bei sich, welche Kategorien schon ausgefüllt wurden.
 								</InfoHint>
 							</div>
 							{isHost ? (
@@ -651,8 +650,8 @@ export function Lobby() {
 							<div className="flex items-center gap-1.5">
 								<p className="text-sm font-medium">Flammen</p>
 								<InfoHint label="Was bedeutet „Flammen“?">
-									Wette pro Runde auf eine Kategorie, dass du die einzige
-									Antwort hast: richtig +5 (15), falsch 0 Punkte.
+									Wette pro Runde auf eine Kategorie, dass deine Antwort
+									einzigartig ist: richtig +5, falsch 0 Punkte.
 								</InfoHint>
 							</div>
 							{isHost ? (
@@ -701,8 +700,8 @@ export function Lobby() {
 									Buchstabe während Countdown
 								</p>
 								<InfoHint label="Was bedeutet „Buchstabe während Countdown“?">
-									Zeigt den Buchstaben schon während des Start-Countdowns an,
-									statt erst wenn die Runde beginnt.
+									Zeigt den kommenden Buchstaben schon während des Countdowns
+									an.
 								</InfoHint>
 							</div>
 							{isHost ? (

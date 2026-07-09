@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Trophy, X } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
@@ -126,13 +126,26 @@ export function RoundResultScreen() {
 											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
 										)}
 										<span className="text-sm font-medium">
-											{playerName(r.playerId)}
+											{r.playerId !== myPlayerId && !hasLeft(r.playerId) ? (
+												<button
+													type="button"
+													className="font-medium hover:line-through cursor-pointer bg-transparent border-0 p-0 inline"
+													onClick={() =>
+														handleKick(r.playerId, playerName(r.playerId))
+													}
+												>
+													{playerName(r.playerId)}
+												</button>
+											) : (
+												<span>{playerName(r.playerId)}</span>
+											)}
 											{r.playerId === myPlayerId && (
 												<span className="text-xs text-muted-foreground">
 													{" "}
 													(du)
 												</span>
 											)}
+
 											{hasLeft(r.playerId) && (
 												<span className="text-xs text-muted-foreground">
 													{" "}
@@ -157,23 +170,6 @@ export function RoundResultScreen() {
 											value={r.score}
 											className="text-sm font-bold tabular-nums w-10 text-right"
 										/>
-										{/* Host kann hier – wenn die Punkte-Tabelle zwischen den Runden
-                      steht – einen Spieler aus dem Spiel entfernen. */}
-										{isHost &&
-											r.playerId !== myPlayerId &&
-											!hasLeft(r.playerId) && (
-												<Button
-													variant="ghost"
-													size="icon"
-													className="-mr-1 h-7 w-7 text-destructive"
-													title={`${playerName(r.playerId)} entfernen`}
-													onClick={() =>
-														handleKick(r.playerId, playerName(r.playerId))
-													}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											)}
 									</div>
 								</div>
 							);
@@ -205,9 +201,7 @@ export function RoundResultScreen() {
 							size="lg"
 							onClick={() => ws.send({ type: "startNextRound", payload: {} })}
 						>
-							{lettersLeft > 0
-								? "Nächste Runde (Enter)"
-								: "Spiel abschließen (Enter)"}
+							{lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
 						</Button>
 					</div>
 				) : (

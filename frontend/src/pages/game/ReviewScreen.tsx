@@ -322,7 +322,7 @@ export function ReviewScreen() {
 									className="flex-1"
 									onClick={() => ws.send({ type: "finishReview", payload: {} })}
 								>
-									Bewertung abschließen (Enter)
+									Bewertung abschließen
 								</Button>
 							) : (
 								<Button
@@ -334,9 +334,6 @@ export function ReviewScreen() {
 								</Button>
 							)}
 						</div>
-						<p className="text-center text-xs text-muted-foreground">
-							← → Kategorie wechseln · Enter = abschließen
-						</p>
 					</div>
 				) : (
 					<p className="text-center text-sm text-muted-foreground">

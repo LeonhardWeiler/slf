@@ -503,7 +503,7 @@ export function GameScreen() {
 								onClick={handleBuzz}
 								disabled={!validation.valid}
 							>
-								STOPP — Fertig!{validation.valid ? " (Enter)" : ""}
+								STOPP — Fertig!
 							</Button>
 							{!validation.valid && (
 								<p className="text-center text-xs text-muted-foreground">
