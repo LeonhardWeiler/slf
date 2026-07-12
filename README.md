@@ -1,4 +1,4 @@
-# Stadt Land Fluss — Multiplayer
+# Stadt Land Fluss - Multiplayer
 
 Eine Echtzeit-Multiplayer-Version des Klassikers **Stadt Land Fluss**. Ein
 Go-Backend und ein React-Frontend kommunizieren ausschließlich über WebSockets;
