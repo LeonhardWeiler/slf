@@ -333,13 +333,13 @@
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Render-Effizienz</b>: Alle
-          Store-Zugriffe nutzen feingranulare Zustand-Selektoren
-          (<code>useStore(s =&gt; s.feld)</code>) statt den ganzen Store zu
-          abonnieren, sodass Komponenten nur bei den von ihnen gelesenen Feldern
-          neu rendern. <code>Room</code> hängt z.&nbsp;B. nur an
-          <code>lobby?.state</code>, sodass der Routes-Baum nicht mehr bei jedem
-          <code>hostGrace</code>-Sekundentick neu rendert. Timer-Screens ticken
-          bewusst über lokalen State, nicht über den Store.
+          Store-Zugriffe nutzen feingranulare Zustand-Selektoren (<code
+            >useStore(s =&gt; s.feld)</code
+          >) statt den ganzen Store zu abonnieren, sodass Komponenten nur bei
+          den von ihnen gelesenen Feldern neu rendern. <code>Room</code> hängt
+          z.&nbsp;B. nur an <code>lobby?.state</code>, sodass der Routes-Baum
+          nicht mehr bei jedem <code>hostGrace</code>-Sekundentick neu rendert.
+          Timer-Screens ticken bewusst über lokalen State, nicht über den Store.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Konsistenz &amp; CI</b>:

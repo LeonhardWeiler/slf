@@ -1,21 +1,154 @@
-1. Beim reload soll nicht immer zuerst "Keine Verbindung zum Server ..." angezeigt werden, obwohl eine verbindung sofort da ist und auch nichts in die console geloggt wird. Diese Schrift verschiebt das layout und macht es einfach weniger schön alles. Vielleicht soll man auch erst überprüfen ob man verbindung zum server hat, wenn man auf join oder create klickt, wenn man am start screen ist
-2. Layout was forced before the page was fully loaded. If stylesheets are not yet loaded this may cause a flash of unstyled content. Node.js:416:1
-   Source map error: JSON.parse: unexpected character at line 1 column 1 of the JSON data
-   Resource URL: https://slf-production-41e3.up.railway.app/%3Canonymous%20code%3E
-   Source Map URL: installHook.js.map
-   Source map error: can't access property "sources", map is undefined
-   Resource URL: https://slf-production-41e3.up.railway.app/%3Canonymous%20code%3E
-   Source Map URL: react_devtools_backend_compact.js.map
-3. Der lobby code soll immer alles groß sein, auch zum eingeben und in der url
-4. Man soll keine runde starten können, wenn keine spieler mehr drinnen sind, wenn alle verlassen haben. Man kann aber dann wieder zurück zum lobby screen menschen her holen.
-5. Wenn niemand etwas eingegeben hat und die runde beendet wird, überspringen alle den review screen und sind bei der tabelle. Wenn keine spielende person da ist, dann werden auch die eingaben übersprungen
-6. Der join code soll immer unter dem title und nie daneben, wie jetzt angezeigt werden
-7. Bei den input eingaben, muss man mindestens 2 zeichen für eine gültige eingabe haben, sonst wird kein grüner haken angezeigt, man kann nicht buzzern, man bekommt 0 punkte, etc.
-8. Am start screen, sollen die beiden buttons nur auf mobile schmäler sein, aber auf beidem etwas breiter als gerade
-9. Wenn man einen lobby code eintippt, den es nicht gibt, soll die border vom input feld rot werden, wie bei einer nicht richtigen eingabe
-10. Wenn ich auf join klicke, einen code eingebe, zurück und dann wieder auf join klicke, soll das input feld wieder leer sein
-11. Alle animationen sollen schneller, oder ganz weggemacht werden, je nachdem was besser ist, damit sich die ui schneller anfühlt. Gerade fühlt es sich sehr sluggish an
-12. Bei den Kategorien soll Der edit und delete button, auf Der gleichen stell sein wie accept und dismiss, wenn du weißt welche ich meine. Gerade sind sie etwas versetzt
-13. Der delete button, bei der kategory, soll nicht die farbe wechseln, bei hover oder klickt, sondern immer rot sein
-14. Der edit und delete button, sollen bei hover und click, leicht gedreht werden, damit man eine useraction erkennt
-15. Tooltips öffnen sich gerade nur, wenn man ganz genau auf das icon clickt, ich möchte, dass sie sich auch öffnen, wenn man auf den namen daneben klickt, und vielleicht generell die klick area ein wenig größer
+# UI/UX, Performance & Bugfixes
+
+## 1. Server Connection & Start Screen
+
+- Do **not** show the "Keine Verbindung zum Server ..." message immediately after a page reload if the connection is still being established. It currently flashes briefly even when the connection succeeds instantly, causing unnecessary layout shifts.
+- While the user is on the start screen, defer the server connectivity check until they actually click **Join** or **Create Lobby** (unless there is a strong technical reason not to).
+
+---
+
+## 2. Console Warnings
+
+Investigate and fix the following console warnings/errors if they originate from the application:
+
+- `Layout was forced before the page was fully loaded...`
+- Source map errors (`installHook.js.map`, `react_devtools_backend_compact.js.map`, etc.)
+
+Ignore warnings originating solely from browser extensions or React DevTools.
+
+---
+
+## 3. Lobby Code Consistency
+
+- Lobby codes should always be uppercase:
+  - when displayed
+  - while typing
+  - when pasted
+  - in the URL
+- Automatically normalize lowercase input to uppercase.
+
+---
+
+## 4. Starting a Round
+
+Prevent starting a new round if there are no players left in the lobby (everyone disconnected). The lobby should remain usable so new players can join later.
+
+---
+
+## 5. Empty Round Handling
+
+If a round ends:
+
+- and **no active player submitted an answer**, skip the review screen entirely and go directly to the scoreboard.
+- Ignore players who already left the game when determining whether submissions exist.
+
+---
+
+## 6. Lobby Code Placement
+
+The join/lobby code should always be displayed **below the title**, never beside it, regardless of available screen width.
+
+---
+
+## 7. Minimum Input Length
+
+Require at least **2 characters** for a valid answer.
+Inputs shorter than 2 characters should:
+
+- not receive the green validation check,
+- not allow buzzing/submission (where applicable),
+- score 0 points,
+- be treated as invalid everywhere.
+
+---
+
+## 8. Start Screen Buttons
+
+Increase the width of the **Join** and **Create Lobby** buttons slightly overall.
+On mobile, keep them narrower than on desktop, but still wider than they currently are.
+
+---
+
+## 9. Invalid Lobby Code Feedback
+
+If a user attempts to join a lobby that does not exist, highlight the lobby code input with the same red error border used for invalid inputs.
+
+---
+
+## 10. Reset Join Input
+
+If the user:
+
+1. Opens the Join screen,
+2. Enters a lobby code,
+3. Goes back,
+4. Opens Join again,
+
+the input field should be empty.
+
+---
+
+## 11. UI Responsiveness
+
+Make the interface feel faster by reducing or removing unnecessary animations/transitions.
+Prefer responsiveness over visual effects wherever appropriate.
+
+---
+
+## 12. Category Action Button Alignment
+
+Align the **Edit** and **Delete** buttons exactly like the **Accept** and **Dismiss** buttons. They should occupy the same visual position and spacing.
+
+---
+
+## 13. Delete Button Color
+
+Keep the Delete button red at all times.
+Hover and active states should not change its color.
+
+---
+
+## 14. Edit/Delete Interaction Feedback
+
+Add subtle interaction feedback:
+
+- slight rotation on hover,
+- slight rotation (or a slightly stronger one) on click/press.
+
+The goal is to improve perceived interactivity without slowing the UI.
+
+---
+
+## 15. Tooltip Usability
+
+Increase the clickable area for tooltips.
+Clicking either:
+
+- the icon,
+- or the adjacent label/text
+
+should open the tooltip. In general, make the interaction target more forgiving.
+
+---
+
+## 16. Performance Audit
+
+Continuously watch for potential performance regressions while implementing these changes.
+
+Also generate a `performance-report.html` containing:
+
+- identified bottlenecks,
+- expensive renders,
+- unnecessary re-renders,
+- slow animations/transitions,
+- bundle/loading observations,
+- concrete optimization suggestions,
+- implemented performance improvements.
+
+The report should summarize both findings and actions taken.
+
+---
+
+## 17. Errors on Home screen
+
+At the home screen the error like no connection should have the same with as the join and create buttons
