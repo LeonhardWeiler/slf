@@ -47,6 +47,12 @@ describe("isFieldInvalid", () => {
 	it("rejects answers longer than 30 characters", () => {
 		expect(isFieldInvalid("A".repeat(31), "A")).toBe(true);
 	});
+
+	it("rejects a single character as too short (min 2)", () => {
+		expect(isFieldInvalid("A", "A")).toBe(true);
+		expect(isFieldInvalid("A", "A", true)).toBe(true); // last-letter mode too
+		expect(isFieldInvalid("Ab", "A")).toBe(false); // two chars is enough
+	});
 });
 
 describe("validateAnswers", () => {

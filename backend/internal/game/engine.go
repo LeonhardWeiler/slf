@@ -60,15 +60,16 @@ func Normalize(value string) string {
 }
 
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
-// given letter: non-empty, 1-30 chars, and starting with the letter - or, when
-// lastLetter is set, ending with it (SRS 5.5 + last-letter spice).
+// given letter: non-empty, 2-30 chars, and starting with the letter - or, when
+// lastLetter is set, ending with it (SRS 5.5 + last-letter spice). A single
+// character is too short to be a valid word and is rejected.
 func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
 	if n == "" {
 		return false
 	}
 	runes := []rune(n)
-	if rc := len(runes); rc < 1 || rc > 30 {
+	if rc := len(runes); rc < 2 || rc > 30 {
 		return false
 	}
 	upperLetter := strings.ToUpper(letter)

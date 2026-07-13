@@ -266,7 +266,7 @@ func handleBuzz(hub *Hub, c *Client) {
 	round := lobby.Game.Round
 	// Every category must have an answer (SRS 5.7) and - server-authoritative,
 	// not just the client's Zod gate - each answer must satisfy the formal rules
-	// for the round letter: 1-30 chars, starting with the letter (SRS 9.13.15).
+	// for the round letter: 2-30 chars, starting with the letter (SRS 9.13.15).
 	answers := round.Answers[session.PlayerID]
 	for _, cat := range lobby.Categories {
 		ans := answers[cat.ID]

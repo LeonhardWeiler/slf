@@ -12,15 +12,15 @@ export function normalize(value: string): string {
 }
 
 // Zod schema for a single answer given the current letter. Mirrors
-// engine.IsRuleValid: non-empty, 1-30 chars, starts with the round letter - or,
-// in last-letter mode, ends with it.
+// engine.IsRuleValid: non-empty, 2-30 chars, starts with the round letter - or,
+// in last-letter mode, ends with it. A single character is too short.
 function answerSchema(letter: string, lastLetter: boolean) {
 	const upper = letter.toUpperCase();
 	return z
 		.string()
 		.transform(normalize)
-		.refine((n) => n.length >= 1 && n.length <= 30, {
-			message: "1-30 Zeichen",
+		.refine((n) => n.length >= 2 && n.length <= 30, {
+			message: "2-30 Zeichen",
 		})
 		.refine(
 			(n) =>

@@ -42,9 +42,24 @@ func TestIsRuleValidLastLetter(t *testing.T) {
 	if !IsRuleValid("a", "Bamberga", true) {
 		t.Error("'Bamberga' ends with a and should be valid for letter a")
 	}
-	// Single-character answer matching the letter.
-	if !IsRuleValid("A", "a", true) {
-		t.Error("single-char 'a' should be valid for last-letter A")
+	// Single-character answers are too short (min 2 chars), even in last-letter
+	// mode.
+	if IsRuleValid("A", "a", true) {
+		t.Error("single-char 'a' should be too short to be valid")
+	}
+}
+
+func TestIsRuleValidMinLength(t *testing.T) {
+	// A single character is too short in both modes.
+	if IsRuleValid("B", "b", false) {
+		t.Error("single-char 'b' should be too short to be valid")
+	}
+	if IsRuleValid("N", "n", true) {
+		t.Error("single-char 'n' should be too short in last-letter mode")
+	}
+	// Two characters are the minimum accepted length.
+	if !IsRuleValid("B", "ba", false) {
+		t.Error("two-char 'ba' should be valid for letter B")
 	}
 }
 
