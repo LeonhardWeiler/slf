@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Version numbers were reconstructed from the Git history; the project has not been
 formally released yet, so all versions are in the `0.x` range.
 
-## [Unreleased]
+## [0.9.2] - 2026-07-13
 
 ### Added
 
@@ -18,6 +18,8 @@ formally released yet, so all versions are in the `0.x` range.
 
 - Declared the project license as `GPL-3.0-or-later`.
 - Translated the developer-facing documentation and remaining code comments to English.
+- Replaced em/en dashes and unicode arrows across the repository with plain ASCII.
+- Set the `frontend` package version to `0.9.2` (was `0.0.0`) to follow semantic versioning.
 
 ## [0.9.1] - 2026-07-09
 
@@ -174,4 +176,4 @@ formally released yet, so all versions are in the `0.x` range.
 - End-to-end WebSocket connection between client and server.
 - First playable round of the game.
 
-[Unreleased]: https://gitlab.com/weilerle/slf
+[0.9.2]: https://gitlab.com/weilerle/slf
