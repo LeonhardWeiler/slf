@@ -50,7 +50,10 @@ locally with `bun --bun run test` (forces the Bun runtime).
 ## Architecture (brief)
 
 - State machine per lobby: `Lobby -> Countdown -> Playing -> Reviewing ->
-RoundResult -> GameOver -> Lobby`.
+RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
+  non-left player submitted anything) skips `Reviewing` and goes
+  `Playing -> RoundResult` directly; and `beginCountdown` falls back to `Lobby`
+  instead of starting a round when the lobby has **no connected participant**.
 - Messages: JSON over `/ws`, client->server `{type, payload, sessionId}`,
   server->client `{type, payload, stateVersion}`.
 - Backend: `cmd/server` (entry point + security headers/SPA serving),
