@@ -2,17 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
 import { Button } from "@/components/ui/button";
 
-// Extracts a 6-char [a-z0-9] lobby code from a scanned value. Accepts a full join
-// link (".../join/a3f9k2") or a bare code (case-insensitive).
+// Extracts a 6-char lobby code from a scanned value. Accepts a full join link
+// (".../join/A3F9K2") or a bare code (case-insensitive). Returned uppercase so
+// the code stays uppercase everywhere; the server normalizes case-insensitively.
 function extractCode(data: string): string | null {
 	try {
 		const url = new URL(data);
 		const m = url.pathname.match(/\/join\/([a-z0-9]{6})/i);
-		if (m) return m[1].toLowerCase();
+		if (m) return m[1].toUpperCase();
 	} catch {
 		/* not a URL - fall through */
 	}
-	const cleaned = data.toLowerCase().replace(/[^a-z0-9]/g, "");
+	const cleaned = data.toUpperCase().replace(/[^A-Z0-9]/g, "");
 	return cleaned.length === 6 ? cleaned : null;
 }
 

@@ -133,9 +133,11 @@ export function Lobby() {
 		new Set((lobby?.categories ?? []).map((c) => c.id)),
 	);
 
-	const lobbyCode = lobby?.lobbyCode ?? "";
+	// Codes are presented uppercase everywhere (display, copy, link, URL); the
+	// server normalizes case-insensitively, so this stays purely cosmetic.
+	const lobbyCode = (lobby?.lobbyCode ?? "").toUpperCase();
 	const joinLink = lobby
-		? `${window.location.origin}/join/${lobby.lobbyCode}`
+		? `${window.location.origin}/join/${lobbyCode}`
 		: "";
 
 	async function copyText(text: string, kind: "code" | "link") {
@@ -360,8 +362,8 @@ export function Lobby() {
 										copyPulse > 0 ? "animate-pop" : ""
 									}`}
 								>
-									<span>{lobby.lobbyCode.slice(0, 3)}</span>
-									<span className="ml-2">{lobby.lobbyCode.slice(3)}</span>
+									<span>{lobbyCode.slice(0, 3)}</span>
+									<span className="ml-2">{lobbyCode.slice(3)}</span>
 								</span>
 							</span>
 							{/* Copy feedback swaps the hint text below the code (no icon over

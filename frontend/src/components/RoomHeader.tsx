@@ -21,7 +21,8 @@ export function RoomHeader({ title }: { title: string }) {
 	const [copied, setCopied] = useState(false);
 	const [copyFailed, setCopyFailed] = useState(false);
 
-	const code = lobby?.lobbyCode ?? "";
+	// Uppercase everywhere (display, copy, URL); the server is case-insensitive.
+	const code = (lobby?.lobbyCode ?? "").toUpperCase();
 
 	async function copyCode() {
 		if (!code) return;

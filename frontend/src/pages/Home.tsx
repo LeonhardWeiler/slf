@@ -59,8 +59,8 @@ export function Home() {
 	const deepLinkCode = skipDeepLink
 		? ""
 		: (params.code ?? "")
-				.toLowerCase()
-				.replace(/[^a-z0-9]/g, "")
+				.toUpperCase()
+				.replace(/[^A-Z0-9]/g, "")
 				.slice(0, 6);
 
 	const [name, setName] = useState("");
@@ -185,7 +185,11 @@ export function Home() {
 	// shareable join link). The redirect unmounts this screen.
 	if (lobby) {
 		return (
-			<Navigate to="/join/$code" params={{ code: lobby.lobbyCode }} replace />
+			<Navigate
+				to="/join/$code"
+				params={{ code: lobby.lobbyCode.toUpperCase() }}
+				replace
+			/>
 		);
 	}
 
@@ -434,16 +438,18 @@ export function Home() {
 										value={code}
 										onChange={(e) => {
 											setJoinError(null);
+											// Codes are uppercase everywhere (display, typing, paste,
+											// URL); the server normalizes case-insensitively.
 											setCode(
 												e.target.value
-													.toLowerCase()
-													.replace(/[^a-z0-9]/g, "")
+													.toUpperCase()
+													.replace(/[^A-Z0-9]/g, "")
 													.slice(0, 6),
 											);
 										}}
 										aria-invalid={joinError != null}
 										disabled={checking}
-										placeholder="askzf6"
+										placeholder="ASKZF6"
 										autoCapitalize="characters"
 										autoCorrect="off"
 										spellCheck={false}
