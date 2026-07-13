@@ -1,9 +1,9 @@
-# CI/CD: prüft Backend + Frontend und baut nach jedem master-Commit ein
-# Docker-Image, das nach weilerleonhard/slf gepusht wird.
+# CI/CD: checks backend + frontend and builds a Docker image after every
+# master commit, which is pushed to weilerleonhard/slf.
 #
-# Erwartete CI/CD-Variablen (Settings → CI/CD → Variables):
-#   DOCKERHUB_USERNAME  – Docker-Hub-Benutzer (weilerleonhard)
-#   DOCKERHUB_TOKEN     – Docker-Hub Access Token (als "Masked" markieren)
+# Expected CI/CD variables (Settings -> CI/CD -> Variables):
+#   DOCKERHUB_USERNAME  - Docker Hub user (weilerleonhard)
+#   DOCKERHUB_TOKEN     - Docker Hub access token (mark as "masked")
 
 stages:
   - test
@@ -14,8 +14,8 @@ test:backend:
   image: golang:1.26-alpine
   script:
     - cd backend
-    # gofmt-Gate: schlägt fehl, wenn Dateien nicht formatiert sind.
-    - test -z "$(gofmt -l .)" || { echo "gofmt-Diff in:"; gofmt -l .; exit 1; }
+    # gofmt gate: fails if files are not formatted.
+    - test -z "$(gofmt -l .)" || { echo "gofmt diff in:"; gofmt -l .; exit 1; }
     - go vet ./...
     - go test ./...
 
@@ -25,9 +25,9 @@ test:frontend:
   script:
     - cd frontend
     - bun install --frozen-lockfile
-    - bun run lint # Biome-Linter
-    - bun run test # Vitest (Unit-Tests: Regel-Mirror + Zod-Parsing)
-    - bun run build # tsc -b && vite build → typecheckt und baut
+    - bun run lint # Biome linter
+    - bun run test # Vitest (unit tests: rule mirror + Zod parsing)
+    - bun run build # tsc -b && vite build -> typechecks and builds
 
 build:image:
   stage: build
@@ -37,7 +37,7 @@ build:image:
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
   rules:
-    # Nur auf master pushen (Merge-Request-Pipelines bauen nichts).
+    # Only push on master (merge-request pipelines build nothing).
     - if: '$CI_COMMIT_BRANCH == "master"'
   script:
     - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
