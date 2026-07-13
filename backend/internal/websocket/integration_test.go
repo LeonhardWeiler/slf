@@ -264,6 +264,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
 	code := host.createLobby("Alice")
+	cats := host.lastLobby.Categories // the default categories
 
 	// Keep two letters (A, B) so a second round can start after the first.
 	excluded := []string{}
@@ -275,10 +276,17 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 
 	host.send("startGame", map[string]any{})
 	var gs struct {
-		State string `json:"state"`
+		State  string `json:"state"`
+		Letter string `json:"letter"`
 	}
 	for gs.State != "Playing" {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+
+	// Alice (the playing host) submits a valid answer so the round has something to
+	// review - otherwise endRound would skip straight to the scoreboard.
+	for _, cat := range cats {
+		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": gs.Letter + "test"})
 	}
 
 	// Bob joins mid-round -> pending.
@@ -329,6 +337,42 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	}
 	if !activated {
 		t.Fatal("expected the pending joiner to be activated on the next round")
+	}
+}
+
+// point-5: when no active player submitted anything, ending the round skips the
+// review screen and goes straight to the scoreboard (roundResult).
+func TestEmptyRoundSkipsReview(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+
+	// Force letter A so the round starts deterministically.
+	excluded := []string{}
+	for r := 'B'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.readLobby()
+
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State string `json:"state"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+
+	// No answers submitted -> ending the round jumps directly to the scoreboard.
+	// waitFor("roundResult") only succeeds if review was skipped (the host never
+	// sends finishReview here); a wrongly-entered review would time out instead.
+	host.send("endRound", map[string]any{})
+	var rr struct {
+		IsGameOver bool `json:"isGameOver"`
+	}
+	json.Unmarshal(host.waitFor("roundResult"), &rr)
+	if rr.IsGameOver {
+		t.Fatal("an empty round should produce a normal RoundResult, not GameOver")
 	}
 }
 

@@ -308,8 +308,11 @@ func handleEndRound(hub *Hub, c *Client) {
 
 // ---- Phase 3: review ----
 
-// endRound finalizes the playing phase and moves into review. Idempotent via
-// the roundID + state guard, so a late timer after a buzz is a no-op.
+// endRound finalizes the playing phase. When at least one active player submitted
+// something it moves into review; when no active (non-left, non-spectator) player
+// submitted anything there is nothing to review, so it scores straight away and
+// jumps to the scoreboard. Idempotent via the roundID + state guard, so a late
+// timer after a buzz is a no-op.
 func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
 	hub.mu.Lock()
 	g := lobby.Game
@@ -317,14 +320,24 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
 		hub.mu.Unlock()
 		return
 	}
-	setLobbyState(lobby, game.StateReviewing)
-	g.Round.ReviewIndex = 0
-	// Default validity: rule-conforming answers start valid (SRS 6.4).
+	// Default validity: rule-conforming answers start valid (SRS 6.4). Done before
+	// the empty-round check so scoring is correct on the direct-to-scoreboard path.
 	for _, byCat := range g.Round.Answers {
 		for _, ans := range byCat {
 			ans.Valid = game.IsRuleValid(g.Round.Letter, ans.Value, lobby.Settings.LastLetterMode)
 		}
 	}
+	// No active player submitted an answer (players who already left are ignored):
+	// skip the review screen entirely and go directly to the scoreboard.
+	if !hasActiveSubmission(lobby) {
+		result := hub.scoreAndFinishRound(lobby)
+		hub.mu.Unlock()
+		hub.broadcastLobbyState(lobby)
+		hub.broadcastTo(lobby, "roundResult", result)
+		return
+	}
+	setLobbyState(lobby, game.StateReviewing)
+	g.Round.ReviewIndex = 0
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
@@ -456,6 +469,18 @@ func handleFinishReview(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Keine aktive Runde")
 		return
 	}
+	result := hub.scoreAndFinishRound(lobby)
+	hub.mu.Unlock()
+
+	hub.broadcastLobbyState(lobby)
+	hub.broadcastTo(lobby, "roundResult", result)
+}
+
+// scoreAndFinishRound scores the current round, applies the points to each
+// player's total, transitions to RoundResult and returns the built result (also
+// stored as LastResult for reconnects). Shared by the normal review-finish path
+// and the empty-round shortcut in endRound. Caller must hold hub.mu.
+func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 	round := lobby.Game.Round
 	roundPoints := map[string]int{}
 	for _, cat := range lobby.Categories {
@@ -483,10 +508,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 	setLobbyState(lobby, game.StateRoundResult)
 	result := buildRoundResult(lobby, round.Letter, roundPoints, false, "")
 	lobby.Game.LastResult = &result
-	hub.mu.Unlock()
-
-	hub.broadcastLobbyState(lobby)
-	hub.broadcastTo(lobby, "roundResult", result)
+	return result
 }
 
 func handleStartNextRound(hub *Hub, c *Client) {

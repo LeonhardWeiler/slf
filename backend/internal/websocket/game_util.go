@@ -98,6 +98,25 @@ func hasRoundParticipant(lobby *game.Lobby) bool {
 	return false
 }
 
+// hasActiveSubmission reports whether at least one active (non-left, non-spectator)
+// player submitted a non-empty answer this round. Players who already left the game
+// are ignored (they linger only for the standings). Caller must hold hub.mu.
+func hasActiveSubmission(lobby *game.Lobby) bool {
+	r := lobby.Game.Round
+	for pid, byCat := range r.Answers {
+		pl, ok := lobby.Players[pid]
+		if !ok || pl.Left || isRoundSpectator(lobby, pl) {
+			continue
+		}
+		for _, ans := range byCat {
+			if game.Normalize(ans.Value) != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // buildCommentatorState summarises, per playing (non-host, non-left) player,
 // which categories they have filled - never the values. Caller must hold hub.mu.
 func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
