@@ -589,14 +589,14 @@ export function Lobby() {
 					<CardContent className="space-y-4">
 						{/* Time limit */}
 						<div className="space-y-2">
-							<div className="flex items-center gap-1.5">
-								<p className="text-sm font-medium">Zeitlimit pro Runde</p>
-								<InfoHint label="Was bedeutet das Zeitlimit?">
-									Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
-									Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
-									Host sie beendet.
-								</InfoHint>
-							</div>
+							<InfoHint
+								trigger="Zeitlimit pro Runde"
+								label="Was bedeutet das Zeitlimit?"
+							>
+								Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen. Bei
+								„Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der Host sie
+								beendet.
+							</InfoHint>
 							{isHost ? (
 								<div className="flex flex-wrap gap-2">
 									{TIME_OPTIONS.map((opt) => {
@@ -632,13 +632,10 @@ export function Lobby() {
 						{/* Commentator mode - on = host doesn't play, only comments (the
                 switch is the inverse of the hostPlays flag it drives). */}
 						<div className="flex items-center justify-between gap-3">
-							<div className="flex items-center gap-1.5">
-								<p className="text-sm font-medium">Kommentator</p>
-								<InfoHint label="Was bedeutet „Kommentator“?">
-									Der Host spielt nicht mit, sondern ist nur Kommentator und
-									sieht bei sich, welche Kategorien schon ausgefüllt wurden.
-								</InfoHint>
-							</div>
+							<InfoHint trigger="Kommentator" label="Was bedeutet „Kommentator“?">
+								Der Host spielt nicht mit, sondern ist nur Kommentator und sieht
+								bei sich, welche Kategorien schon ausgefüllt wurden.
+							</InfoHint>
 							{isHost ? (
 								<Switch
 									checked={!lobby.settings.hostPlays}
@@ -656,13 +653,10 @@ export function Lobby() {
 
 						{/* Flames spice */}
 						<div className="flex items-center justify-between gap-3">
-							<div className="flex items-center gap-1.5">
-								<p className="text-sm font-medium">Flammen</p>
-								<InfoHint label="Was bedeutet „Flammen“?">
-									Wette pro Runde auf eine Kategorie, dass deine Antwort
-									einzigartig ist: richtig +5, falsch 0 Punkte.
-								</InfoHint>
-							</div>
+							<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
+								Wette pro Runde auf eine Kategorie, dass deine Antwort einzigartig
+								ist: richtig +5, falsch 0 Punkte.
+							</InfoHint>
 							{isHost ? (
 								<Switch
 									checked={lobby.settings.flamesEnabled}
@@ -680,13 +674,12 @@ export function Lobby() {
 
 						{/* Last-letter spice */}
 						<div className="flex items-center justify-between gap-3">
-							<div className="flex items-center gap-1.5">
-								<p className="text-sm font-medium">Letzter Buchstabe</p>
-								<InfoHint label="Was bedeutet „Letzter Buchstabe“?">
-									Antworten müssen mit dem Buchstaben <em>enden</em> statt
-									beginnen.
-								</InfoHint>
-							</div>
+							<InfoHint
+								trigger="Letzter Buchstabe"
+								label="Was bedeutet „Letzter Buchstabe“?"
+							>
+								Antworten müssen mit dem Buchstaben <em>enden</em> statt beginnen.
+							</InfoHint>
 							{isHost ? (
 								<Switch
 									checked={lobby.settings.lastLetterMode}
@@ -704,15 +697,12 @@ export function Lobby() {
 
 						{/* Show letter during countdown */}
 						<div className="flex items-center justify-between gap-3">
-							<div className="flex items-center gap-1.5">
-								<p className="text-sm font-medium">
-									Buchstabe während Countdown
-								</p>
-								<InfoHint label="Was bedeutet „Buchstabe während Countdown“?">
-									Zeigt den kommenden Buchstaben schon während des Countdowns
-									an.
-								</InfoHint>
-							</div>
+							<InfoHint
+								trigger="Buchstabe während Countdown"
+								label="Was bedeutet „Buchstabe während Countdown“?"
+							>
+								Zeigt den kommenden Buchstaben schon während des Countdowns an.
+							</InfoHint>
 							{isHost ? (
 								<Switch
 									checked={lobby.settings.showLetterDuringCountdown}

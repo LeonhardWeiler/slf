@@ -6,11 +6,17 @@ import { HelpCircle } from "lucide-react";
 // it again. Kept dependency-free (no positioning lib): the panel is anchored
 // centred under the icon, then nudged horizontally so it never spills off either
 // viewport edge (measured after open and on resize).
+//
+// Pass `trigger` to render a visible label (e.g. the setting name) inside the
+// same clickable/hoverable target as the icon, so clicking either the label or
+// the icon opens the hint - a much more forgiving interaction target.
 export function InfoHint({
 	label,
+	trigger,
 	children,
 }: {
 	label: string;
+	trigger?: React.ReactNode;
 	children: React.ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
@@ -67,7 +73,7 @@ export function InfoHint({
 		// biome-ignore lint/a11y/noStaticElementInteractions: hover is mouse-only sugar; keyboard uses focus/blur and touch uses click on the button below
 		<span
 			ref={wrapRef}
-			className="relative inline-flex"
+			className="group relative inline-flex"
 			// Hover keeps it open across the whole wrapper (icon + panel), so moving
 			// onto the panel doesn't dismiss it on desktop.
 			onMouseEnter={() => setOpen(true)}
@@ -75,15 +81,20 @@ export function InfoHint({
 		>
 			<button
 				type="button"
-				aria-label={label}
+				// With a visible trigger the label itself names the button; without one
+				// (icon only) fall back to the descriptive label.
+				aria-label={trigger ? undefined : label}
 				aria-expanded={open}
 				aria-describedby={open ? id : undefined}
 				onClick={() => setOpen((v) => !v)}
 				onFocus={() => setOpen(true)}
 				onBlur={() => setOpen(false)}
-				className="inline-flex text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
+				className="inline-flex items-center gap-1.5 rounded text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			>
-				<HelpCircle className="h-4 w-4" />
+				{trigger != null && (
+					<span className="text-sm font-medium text-foreground">{trigger}</span>
+				)}
+				<HelpCircle className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-foreground" />
 			</button>
 			{open && (
 				<span
