@@ -50,7 +50,7 @@ export function HostGraceBanner() {
 			{/* The situation is announced once via a static live region; the ticking
           seconds are aria-hidden so screen readers aren't spammed every second. */}
 			<span className="sr-only" role="alert">
-				Host getrennt – die Lobby wird in Kürze geschlossen.
+				Host getrennt - die Lobby wird in Kürze geschlossen.
 			</span>
 			<div
 				aria-hidden="true"
@@ -58,7 +58,7 @@ export function HostGraceBanner() {
 			>
 				<AlertTriangle className="h-5 w-5 shrink-0" />
 				<span>
-					Host getrennt – Lobby schließt in{" "}
+					Host getrennt - Lobby schließt in{" "}
 					<span className="tabular-nums font-bold">{remaining}s</span>
 				</span>
 			</div>

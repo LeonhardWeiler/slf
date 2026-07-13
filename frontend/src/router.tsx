@@ -26,7 +26,7 @@ const Room = lazy(() =>
 function RootLayout() {
 	// Individual selectors instead of destructuring the whole store: otherwise
 	// the root layout (and with it the entire routed tree) re-renders on every
-	// unrelated lobby-store change — e.g. the per-second hostGrace countdown.
+	// unrelated lobby-store change - e.g. the per-second hostGrace countdown.
 	const setLobby = useLobbyStore((s) => s.setLobby);
 	const setSession = useLobbyStore((s) => s.setSession);
 	const setHostGrace = useLobbyStore((s) => s.setHostGrace);
@@ -35,10 +35,10 @@ function RootLayout() {
 
 	// Toast on connection transitions. The very first successful connect stays
 	// silent, and a "disconnected" status is only announced as a *loss* once a
-	// connection was actually established before — so a cold start against an
+	// connection was actually established before - so a cold start against an
 	// unreachable server doesn't wrongly claim the connection was "lost" (it was
 	// never there; the Home screen already shows a persistent "no connection"
-	// banner for that). Only a real drop → reconnect surfaces the toast pair, and
+	// banner for that). Only a real drop -> reconnect surfaces the toast pair, and
 	// flapping is ignored by reacting only to actual state changes.
 	useEffect(() => {
 		// Seed from the current socket so a connect that raced ahead of this
@@ -81,7 +81,7 @@ function RootLayout() {
 
 		ws.on("error", (payload) => {
 			// A failed reconnect whose cause is a stale session/lobby means the stored
-			// session no longer exists → clear it so the user starts fresh. Unrelated
+			// session no longer exists -> clear it so the user starts fresh. Unrelated
 			// errors during a pending reconnect are shown normally.
 			const staleSession =
 				payload.code === "SESSION_NOT_FOUND" ||
@@ -100,7 +100,7 @@ function RootLayout() {
 				void router.navigate({ to: "/" });
 				useToastStore
 					.getState()
-					.addToast("Verbindung zum Spiel verloren – bitte neu beitreten.");
+					.addToast("Verbindung zum Spiel verloren - bitte neu beitreten.");
 				return;
 			}
 			// If a form registered an inline error sink (e.g. the join-name step),
@@ -128,7 +128,7 @@ function RootLayout() {
 
 		ws.on("lobbyClosed", (payload) => {
 			useGameStore.getState().resetGame();
-			// The host receives this echo too when they close the lobby by leaving —
+			// The host receives this echo too when they close the lobby by leaving -
 			// but shouldn't be told it was closed when they did it themselves.
 			const { selfLeaving, setSelfLeaving } = useLobbyStore.getState();
 			reset();
@@ -144,12 +144,12 @@ function RootLayout() {
 				.getState()
 				.addToast(
 					payload.reason === "hostDisconnected"
-						? "Der Host hat die Verbindung verloren – die Lobby wurde geschlossen."
+						? "Der Host hat die Verbindung verloren - die Lobby wurde geschlossen."
 						: "Die Lobby wurde vom Host geschlossen.",
 				);
 		});
 
-		// Shared host-grace countdown (host dropped → 15s to reconnect, else close).
+		// Shared host-grace countdown (host dropped -> 15s to reconnect, else close).
 		ws.on("hostDisconnected", (payload) => {
 			setHostGrace(payload.graceSeconds);
 		});
@@ -204,7 +204,7 @@ const indexRoute = createRoute({
 
 // The active lobby *lives* at `/join/$code` so the address bar always equals the
 // shareable join link. The same path serves the join flow for anyone not yet in
-// a lobby, so we branch on the store: in a lobby → Room, otherwise → Home.
+// a lobby, so we branch on the store: in a lobby -> Room, otherwise -> Home.
 function JoinRoute() {
 	const inLobby = useLobbyStore((s) => s.lobby != null);
 	if (!inLobby) return <Home />;

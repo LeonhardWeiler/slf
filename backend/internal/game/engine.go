@@ -60,7 +60,7 @@ func Normalize(value string) string {
 }
 
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
-// given letter: non-empty, 1–30 chars, and starting with the letter — or, when
+// given letter: non-empty, 1-30 chars, and starting with the letter - or, when
 // lastLetter is set, ending with it (SRS 5.5 + last-letter spice).
 func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
@@ -85,7 +85,7 @@ func IsRuleValid(letter, value string, lastLetter bool) bool {
 // host merge count as the same group.
 //
 // flamed lists players who bet that their answer is unique. A flamed answer that
-// turns out unique earns +5 on top of its base points (10→15, 20→25); a flamed
+// turns out unique earns +5 on top of its base points (10->15, 20->25); a flamed
 // answer that is shared with someone earns 0 instead of 5.
 func ScoreCategory(answers map[string]*Answer, flamed map[string]bool) {
 	valid := make([]string, 0, len(answers))
@@ -157,8 +157,8 @@ func ScoreCategory(answers map[string]*Answer, flamed map[string]bool) {
 		default:
 			a.Points = 10
 		}
-		// Flame modifier: betting your answer is unique. If shared → 0; if
-		// actually unique → +5 (10→15, 20→25).
+		// Flame modifier: betting your answer is unique. If shared -> 0; if
+		// actually unique -> +5 (10->15, 20->25).
 		if flamed[pid] {
 			if size > 1 {
 				a.Points = 0

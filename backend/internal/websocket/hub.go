@@ -33,11 +33,11 @@ const hostGraceSeconds = 15
 type Hub struct {
 	mu       sync.Mutex
 	pending  map[*Client]struct{}
-	clients  map[string]*Client       // sessionId → client
-	sessions map[string]*game.Session // sessionId → session
+	clients  map[string]*Client       // sessionId -> client
+	sessions map[string]*game.Session // sessionId -> session
 	rooms    *RoomManager
 	// hostGrace holds the running grace timer per lobby code while its host is
-	// disconnected; cancelled on host reconnect, fired → lobby closed.
+	// disconnected; cancelled on host reconnect, fired -> lobby closed.
 	hostGrace map[string]*time.Timer
 	// hostGraceDuration is how long the grace lasts; overridable in tests.
 	hostGraceDuration time.Duration
@@ -142,7 +142,7 @@ func (h *Hub) addPending(c *Client) {
 func (h *Hub) registerSession(c *Client, session *game.Session) {
 	h.mu.Lock()
 	delete(h.pending, c)
-	// If this socket was already bound to a different session (abnormal — a client
+	// If this socket was already bound to a different session (abnormal - a client
 	// creating/joining again without leaving), release the old binding so its
 	// lobby doesn't linger with a phantom-connected player and can be reaped.
 	if old := c.sessionID; old != "" && old != session.ID && h.clients[old] == c {
@@ -169,7 +169,7 @@ func (h *Hub) onDisconnect(c *Client) {
 	hostDropped := false
 	// Only tear down if the map still points at *this* connection. If the player
 	// already reconnected on a newer socket, h.clients[sessionID] is that newer
-	// client — a stale old socket closing must not evict it or mark the player
+	// client - a stale old socket closing must not evict it or mark the player
 	// offline (reconnect race).
 	if c.sessionID != "" {
 		if cur, ok := h.clients[c.sessionID]; ok && cur == c {
@@ -256,7 +256,7 @@ func (h *Hub) cancelHostGrace(code string) bool {
 	return ok
 }
 
-// onHostGraceExpired fires when the host never reconnected in time → close.
+// onHostGraceExpired fires when the host never reconnected in time -> close.
 func (h *Hub) onHostGraceExpired(code string) {
 	h.mu.Lock()
 	delete(h.hostGrace, code)

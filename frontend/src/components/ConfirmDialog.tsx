@@ -111,7 +111,7 @@ function ConfirmDialogView({
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-cancel; keyboard is fully covered by the global Escape handler and the cancel button
-		// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar — Escape closes via the window listener above
+		// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar - Escape closes via the window listener above
 		<div
 			className="fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
 			onClick={(e) => {

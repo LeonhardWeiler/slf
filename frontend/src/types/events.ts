@@ -180,7 +180,7 @@ export type ServerEvent =
 	| { type: "hostReconnected"; payload: Record<string, never> }
 	| { type: "error"; payload: ErrorPayload };
 
-// Client → Server
+// Client -> Server
 export type ClientEvent =
 	| { type: "createLobby"; payload: { playerName: string } }
 	| { type: "joinLobby"; payload: { playerName: string; lobbyCode: string } }

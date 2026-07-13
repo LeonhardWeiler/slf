@@ -12,7 +12,7 @@ const buttonVariants = cva(
 					"bg-primary text-primary-foreground shadow hover:bg-primary/90 active:bg-primary/90",
 				destructive:
 					"bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:bg-destructive/90",
-				// Secondary button: only a border sets it apart — the fill is
+				// Secondary button: only a border sets it apart - the fill is
 				// transparent so it always matches the surface behind it (page or card),
 				// in both light and dark mode. Hover adds the interaction feedback.
 				outline:
@@ -41,7 +41,7 @@ export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement>,
 		VariantProps<typeof buttonVariants> {
 	// Base UI's composition escape hatch: pass a ReactElement (or render fn) to
-	// replace the underlying <button> — the Base UI equivalent of the former
+	// replace the underlying <button> - the Base UI equivalent of the former
 	// Radix `asChild`.
 	render?: useRender.RenderProp;
 }

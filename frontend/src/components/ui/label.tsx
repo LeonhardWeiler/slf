@@ -8,7 +8,7 @@ const Label = React.forwardRef<
 	HTMLLabelElement,
 	React.LabelHTMLAttributes<HTMLLabelElement>
 >(({ className, ...props }, ref) => (
-	// biome-ignore lint/a11y/noLabelWithoutControl: reusable primitive — callers associate it with a control via the spread htmlFor prop.
+	// biome-ignore lint/a11y/noLabelWithoutControl: reusable primitive - callers associate it with a control via the spread htmlFor prop.
 	<label
 		ref={ref}
 		className={cn(

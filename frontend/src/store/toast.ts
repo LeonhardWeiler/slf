@@ -16,7 +16,7 @@ interface ToastStore {
 	errorSeq: number;
 	// Optional sink: while set, the next server error is delivered here (inline at
 	// a form field) instead of shown as a toast. The join-name step uses it so its
-	// error appears at the field — like the lobby-code step — rather than as a
+	// error appears at the field - like the lobby-code step - rather than as a
 	// transient toast.
 	errorSink: ((message: string) => void) | null;
 	setErrorSink: (fn: ((message: string) => void) | null) => void;

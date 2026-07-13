@@ -94,7 +94,7 @@ export function GameScreen() {
 	const flamesEnabled = lobby?.settings.flamesEnabled ?? false;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
-	// Categories the player has blurred at least once — a field only shows a red
+	// Categories the player has blurred at least once - a field only shows a red
 	// "invalid" border after it was left, not while still being typed in.
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	// The single category this player has "flamed" this round ("" = none).
@@ -270,8 +270,8 @@ export function GameScreen() {
 
 	// ---- Countdown phase ----
 	// Phase is derived from the lobby state (single source of truth) so the
-	// countdown screen shows immediately — even before the first gameState
-	// arrives — instead of a blank frame or a flash of the Playing UI.
+	// countdown screen shows immediately - even before the first gameState
+	// arrives - instead of a blank frame or a flash of the Playing UI.
 	if (lobby.state === "Countdown") {
 		const display =
 			countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
@@ -279,7 +279,7 @@ export function GameScreen() {
 		return (
 			<div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
 				<div className="flex h-48 w-48 items-center justify-center">
-					{/* Just the digits scale down and swap each tick — no progress ring. */}
+					{/* Just the digits scale down and swap each tick - no progress ring. */}
 					<div
 						key={display}
 						aria-live="assertive"
@@ -313,13 +313,13 @@ export function GameScreen() {
 	const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5;
 
 	// Players actually participating this round (for the fill overview): not left,
-	// not a pending spectator, and — unless the host plays — not the host.
+	// not a pending spectator, and - unless the host plays - not the host.
 	const playingPlayers = lobby.players.filter(
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
 	);
 
 	// A category counts as done once it holds a valid answer (non-empty and
-	// matching the letter rule) — drives the per-field check and the fill bar.
+	// matching the letter rule) - drives the per-field check and the fill bar.
 	const isAnswerDone = (categoryId: string) => {
 		const v = answers[categoryId] ?? "";
 		return v.trim() !== "" && !isFieldInvalid(v, game.letter, lastLetterMode);
@@ -366,7 +366,7 @@ export function GameScreen() {
 									dangerZone ? "text-destructive" : ""
 								}`}
 							>
-								{timeLeft === null ? "–" : `${timeLeft}s`}
+								{timeLeft === null ? "-" : `${timeLeft}s`}
 							</p>
 						) : (
 							<p className="text-3xl font-mono font-bold tabular-nums">
@@ -447,7 +447,7 @@ export function GameScreen() {
 															"border-destructive focus-visible:ring-destructive",
 													)}
 													// With flames on, Tab walks all inputs first (1..n), then
-													// all flame buttons (n+1..2n), instead of input→flame.
+													// all flame buttons (n+1..2n), instead of input->flame.
 													tabIndex={flamesEnabled ? idx + 1 : undefined}
 												/>
 												{/* Check pops in once the field holds a valid answer. */}
@@ -503,7 +503,7 @@ export function GameScreen() {
 								onClick={handleBuzz}
 								disabled={!validation.valid}
 							>
-								STOPP — Fertig!
+								STOPP - Fertig!
 							</Button>
 							{!validation.valid && (
 								<p className="text-center text-xs text-muted-foreground">
@@ -515,7 +515,7 @@ export function GameScreen() {
 				)}
 
 				{/* Host can end a stuck round early (hard letter, or a commentator host
-            who never buzzes) → everyone moves to review. */}
+            who never buzzes) -> everyone moves to review. */}
 				{isHost && (
 					<div className="flex justify-center pt-1">
 						<Button

@@ -23,7 +23,7 @@ const maxMessageBytes = 1 << 16
 
 // Per-connection message rate limit (token bucket). Deliberately generous: a
 // normal client peaks around a handful of messages per second (debounced answer
-// updates, occasional actions), so it never hits this — but a flooding client is
+// updates, occasional actions), so it never hits this - but a flooding client is
 // capped so it can't monopolise the single hub mutex. Over-limit messages are
 // dropped, not processed.
 const (
@@ -32,8 +32,8 @@ const (
 )
 
 // Join backoff: after a few free tries, consecutive failed joins (wrong/unknown
-// code) must be spaced out by a growing delay. Gentle on purpose — legitimate
-// users rarely fail more than a couple of times — while slowing code guessing.
+// code) must be spaced out by a growing delay. Gentle on purpose - legitimate
+// users rarely fail more than a couple of times - while slowing code guessing.
 const (
 	joinFreeAttempts = 5               // failures allowed before any throttling
 	joinBackoffStep  = 1 * time.Second // added delay per extra failure
@@ -42,7 +42,7 @@ const (
 
 // envAllowedOrigins is an optional explicit allow-list read once from
 // WS_ALLOWED_ORIGINS (comma-separated "host" or "host:port"). It is only needed
-// for origins that are neither same-origin nor local — e.g. a frontend hosted on
+// for origins that are neither same-origin nor local - e.g. a frontend hosted on
 // a different domain than the API. Entries are matched against the request
 // Origin's host (with and without port), case-insensitively.
 var envAllowedOrigins = sync.OnceValue(func() map[string]bool {
@@ -57,13 +57,13 @@ var envAllowedOrigins = sync.OnceValue(func() map[string]bool {
 
 // originAllowed decides whether a WebSocket handshake may proceed, based on its
 // Origin header. Secure by default and zero-config:
-//   - No Origin header (native clients, tests) → allowed; CSWSH is browser-only.
-//   - Same-origin (Origin host == request Host) → allowed. This makes the
+//   - No Origin header (native clients, tests) -> allowed; CSWSH is browser-only.
+//   - Same-origin (Origin host == request Host) -> allowed. This makes the
 //     single-image deploy work identically on localhost, a LAN IP or a domain.
-//   - localhost / loopback / private-LAN IPs (any port) → allowed, so the Vite
+//   - localhost / loopback / private-LAN IPs (any port) -> allowed, so the Vite
 //     dev server (also when reached via the machine's LAN IP, e.g. mobile
 //     testing) can connect cross-origin.
-//   - Anything else (e.g. a public attacker site) → rejected, unless explicitly
+//   - Anything else (e.g. a public attacker site) -> rejected, unless explicitly
 //     listed in WS_ALLOWED_ORIGINS.
 //
 // net.ParseIP is used rather than glob patterns so a look-alike host such as
@@ -214,7 +214,7 @@ func (c *Client) writeRaw(b []byte) error {
 	defer cancel()
 	err := c.conn.Write(ctx, websocket.MessageText, b)
 	if err != nil {
-		// A failed/timed-out write leaves the connection unusable — close it so
+		// A failed/timed-out write leaves the connection unusable - close it so
 		// the read loop unblocks and onDisconnect cleans up, instead of letting a
 		// stuck client block future broadcasts.
 		_ = c.conn.Close(websocket.StatusInternalError, "write failed")

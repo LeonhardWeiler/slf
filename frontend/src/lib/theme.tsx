@@ -31,7 +31,7 @@ function getInitialTheme(): Theme {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
 	// Theme is a per-browser display preference, so localStorage (shared across
-	// tabs, persistent) is the right home for it — unlike the session identity.
+	// tabs, persistent) is the right home for it - unlike the session identity.
 	const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
 
 	useEffect(() => {

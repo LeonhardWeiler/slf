@@ -99,7 +99,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	if hub.rooms.Count() >= maxLobbies {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Server ausgelastet – bitte später erneut versuchen")
+		hub.sendError(c, CodeValidationError, "Server ausgelastet - bitte später erneut versuchen")
 		return
 	}
 	// Pick a code not already in use, under the lock, so two lobbies can never
@@ -168,7 +168,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	// Throttle repeated failed joins (code guessing) with a growing backoff.
 	if wait := c.joinBackoff(); wait > 0 && time.Since(c.lastJoinAt) < wait {
 		c.lastJoinAt = time.Now()
-		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche – bitte kurz warten")
+		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche - bitte kurz warten")
 		return
 	}
 	c.lastJoinAt = time.Now()
@@ -188,7 +188,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht gefunden")
 		return
 	}
-	// A valid, existing code means this client is not blindly guessing → reset.
+	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
 	if len(lobby.Players) >= maxPlayersPerLobby {
 		hub.mu.Unlock()
@@ -291,7 +291,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		respond(false, "notFound")
 		return
 	}
-	// A valid, existing code means this client is not blindly guessing → reset.
+	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
 	playerCount := len(lobby.Players)
 	hub.mu.Unlock()
@@ -440,7 +440,7 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	name := strings.TrimSpace(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
-		hub.sendError(c, CodeValidationError, "Kategorie muss 1–30 Zeichen lang sein")
+		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
 		return
 	}
 
@@ -474,7 +474,7 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	name := strings.TrimSpace(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
-		hub.sendError(c, CodeValidationError, "Kategorie muss 1–30 Zeichen lang sein")
+		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
 		return
 	}
 
@@ -539,7 +539,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	// Every field is preserve-on-absent: a key that is not in the payload leaves
 	// the current value untouched, so a partial/old client can never silently
 	// reset an option it doesn't send. `present` records which keys were actually
-	// provided — needed because timeLimit=null is a legitimate value ("no limit")
+	// provided - needed because timeLimit=null is a legitimate value ("no limit")
 	// and must be distinguishable from an omitted timeLimit.
 	var present map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &present); err != nil {
@@ -565,7 +565,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	// Sanitize excluded letters: only A–Z, uppercased and de-duplicated. At
+	// Sanitize excluded letters: only A-Z, uppercased and de-duplicated. At
 	// least one letter must remain playable.
 	_, hasExcluded := present["excludedLetters"]
 	seen := map[string]bool{}
@@ -647,7 +647,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	} else {
 		// Mid-game: keep the player in the standings but mark them as left (so
 		// they still appear as "(verlassen)"), and drop their current-round
-		// answers — mirroring a self-initiated leave.
+		// answers - mirroring a self-initiated leave.
 		target.Left = true
 		target.Connected = false
 		if lobby.Game != nil && lobby.Game.Round != nil {

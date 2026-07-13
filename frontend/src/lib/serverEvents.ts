@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ServerEvent } from "@/types/events";
 
-// Runtime validation of every incoming server→client message (SRS 9.3, 9.12,
+// Runtime validation of every incoming server->client message (SRS 9.3, 9.12,
 // 13.5.3: "Alle Nachrichten werden im Frontend mittels Zod validiert"). The
 // server is authoritative, so a message that does not match the expected shape
 // is dropped rather than fed into the store as malformed state.
@@ -126,7 +126,7 @@ const roundResultPayload = z.object({
 });
 
 // Lenient on the string enums (code / reason) so a forward-compatible server
-// value never causes an otherwise-valid message to be discarded — the client
+// value never causes an otherwise-valid message to be discarded - the client
 // only needs to display the message / react to known values.
 const errorPayload = z.object({
 	code: z.string(),

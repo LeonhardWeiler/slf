@@ -46,7 +46,7 @@ export function ReviewScreen() {
 			if (isTypingTarget(document.activeElement)) return;
 			// Ignore auto-repeat: holding Enter/arrow would fire the action many
 			// times. The first finishReview/nextCategory advances the server state,
-			// so the repeats hit an invalid state → spurious "Aktion nicht erlaubt".
+			// so the repeats hit an invalid state -> spurious "Aktion nicht erlaubt".
 			if (e.repeat) return;
 			if (e.key === "ArrowLeft" && !isFirst) {
 				ws.send({ type: "previousCategory", payload: {} });
@@ -183,7 +183,7 @@ export function ReviewScreen() {
 															: "line-through text-muted-foreground",
 													)}
 												>
-													{a.value || "—"}
+													{a.value || "-"}
 												</p>
 												{a.flamed && (
 													<span

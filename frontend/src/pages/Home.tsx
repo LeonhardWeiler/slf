@@ -34,7 +34,7 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 	full: "Diese Lobby ist voll.",
 	notFound: "Diese Lobby gibt es nicht.",
 	invalidCode: "Ungültiger Lobbycode.",
-	throttled: "Zu viele Versuche – bitte kurz warten.",
+	throttled: "Zu viele Versuche - bitte kurz warten.",
 };
 
 export function Home() {
@@ -43,12 +43,12 @@ export function Home() {
 	const lobby = useLobbyStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
 	// Counter of error toasts: a new *error* (validation or server error) means the
-	// pending submit failed → stop the spinner. Info toasts (e.g. a reconnect
+	// pending submit failed -> stop the spinner. Info toasts (e.g. a reconnect
 	// notice) don't bump it, so they no longer end the spinner prematurely.
 	const errorSeq = useToastStore((s) => s.errorSeq);
 
 	// When Home mounts because the player was just pulled out of a lobby (kicked,
-	// closed, left) the URL is still that lobby's /join/:code — but we must land on
+	// closed, left) the URL is still that lobby's /join/:code - but we must land on
 	// the start screen, not re-run the deep-link join. Consume the one-shot flag
 	// once per mount so a genuine external deep link still works.
 	const forcedLeaveRef = useRef<boolean | null>(null);
@@ -66,7 +66,7 @@ export function Home() {
 	const [name, setName] = useState("");
 	const [code, setCode] = useState(deepLinkCode);
 	// A deep link (/join/:code) prefills the code and lands on the code step so a
-	// pre-join check can run first — an unavailable lobby (mid-game/full/unknown)
+	// pre-join check can run first - an unavailable lobby (mid-game/full/unknown)
 	// is surfaced there instead of only after the player typed a name.
 	const [step, setStep] = useState<Step>(
 		deepLinkCode.length === 6 ? "joinCode" : "start",
@@ -101,7 +101,7 @@ export function Home() {
 	}, []);
 
 	// Stop the loading spinner once a new error toast appears (validation or
-	// server error) — not on unrelated info toasts.
+	// server error) - not on unrelated info toasts.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new error toast
 	useEffect(() => {
 		setLoading(false);
@@ -117,7 +117,7 @@ export function Home() {
 
 	// Seed history so the browser back button walks the step flow like the in-app
 	// "Zurück" button instead of leaving the page. A deep link (/join/:code) lands
-	// on the code step, so we put a "start" entry beneath it — back then goes to
+	// on the code step, so we put a "start" entry beneath it - back then goes to
 	// the start screen, matching the button. popstate restores the step stored in
 	// each entry's state (same URL throughout, so the router doesn't re-route).
 	useEffect(() => {
@@ -151,7 +151,7 @@ export function Home() {
 	}, []);
 
 	// While on the join-name step, route server errors (e.g. "Name bereits
-	// vergeben") to an inline message at the field instead of a toast — matching
+	// vergeben") to an inline message at the field instead of a toast - matching
 	// the code step. Cleared when leaving the step.
 	useEffect(() => {
 		if (step !== "joinName") return;
@@ -164,7 +164,7 @@ export function Home() {
 	}, [step]);
 
 	// Already in a lobby (e.g. after a reconnect on reload, or once the server
-	// confirms our create/join) → the global handlers set the lobby state and we
+	// confirms our create/join) -> the global handlers set the lobby state and we
 	// navigate to the lobby's own /join/:code URL (so the address bar equals the
 	// shareable join link). The redirect unmounts this screen.
 	if (lobby) {
@@ -188,7 +188,7 @@ export function Home() {
 
 	function armTimeout() {
 		// Safety net: if the server never answers (e.g. backend down), don't hang
-		// on "Verbinde…" forever — surface an error so the user can retry.
+		// on "Verbinde…" forever - surface an error so the user can retry.
 		if (timeoutRef.current) clearTimeout(timeoutRef.current);
 		timeoutRef.current = setTimeout(() => {
 			addToast("Keine Verbindung zum Server. Bitte erneut versuchen.");
@@ -211,7 +211,7 @@ export function Home() {
 		pendingCode.current = null;
 		if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
 		setChecking(false);
-		// The user left the join flow before the (possibly slow) reply arrived →
+		// The user left the join flow before the (possibly slow) reply arrived ->
 		// discard it instead of yanking them back into a step.
 		if (stepRef.current !== "joinCode" && stepRef.current !== "scan") return;
 		if (payload.available) {
@@ -364,7 +364,7 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: create → name ---- */}
+				{/* ---- Step: create -> name ---- */}
 				{step === "createName" && (
 					<Card>
 						<CardHeader className="pb-2">
@@ -402,7 +402,7 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: join → code ---- */}
+				{/* ---- Step: join -> code ---- */}
 				{step === "joinCode" && (
 					<Card>
 						<CardHeader className="pb-2">
@@ -480,13 +480,13 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: join → name ---- */}
+				{/* ---- Step: join -> name ---- */}
 				{step === "joinName" && (
 					<Card>
 						<CardHeader className="pb-4">
 							<CardTitle className="text-base">Lobby beitreten</CardTitle>
 							<CardDescription>
-								Lobby {code.toUpperCase()} — gib deinen Namen ein.
+								Lobby {code.toUpperCase()} - gib deinen Namen ein.
 							</CardDescription>
 						</CardHeader>
 						<CardContent>

@@ -79,7 +79,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 	}
 	g.RemainingLetters = remaining
 	g.UsedLetters = append(g.UsedLetters, letter)
-	// A new round begins → any mid-game joiners who were waiting as spectators
+	// A new round begins -> any mid-game joiners who were waiting as spectators
 	// become full participants now and score from this round on.
 	for _, p := range lobby.Players {
 		p.Pending = false
@@ -205,7 +205,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 // handleSetFlame records (or clears, when categoryId is empty) the player's
-// flame for this round — a bet that their answer for that category is unique.
+// flame for this round - a bet that their answer for that category is unique.
 // At most one flame per player per round, only while playing and only when the
 // host enabled the feature.
 func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
@@ -253,9 +253,9 @@ func handleBuzz(hub *Hub, c *Client) {
 		return
 	}
 	round := lobby.Game.Round
-	// Every category must have an answer (SRS 5.7) and — server-authoritative,
-	// not just the client's Zod gate — each answer must satisfy the formal rules
-	// for the round letter: 1–30 chars, starting with the letter (SRS 9.13.15).
+	// Every category must have an answer (SRS 5.7) and - server-authoritative,
+	// not just the client's Zod gate - each answer must satisfy the formal rules
+	// for the round letter: 1-30 chars, starting with the letter (SRS 9.13.15).
 	answers := round.Answers[session.PlayerID]
 	for _, cat := range lobby.Categories {
 		ans := answers[cat.ID]
@@ -278,7 +278,7 @@ func handleBuzz(hub *Hub, c *Client) {
 }
 
 // handleEndRound lets the host stop the running round early and move everyone to
-// review — the counterpart to a player's buzz for when nobody can (or wants to)
+// review - the counterpart to a player's buzz for when nobody can (or wants to)
 // buzz, e.g. a hard letter or a commentator host who never plays. Only the host,
 // only while playing.
 func handleEndRound(hub *Hub, c *Client) {

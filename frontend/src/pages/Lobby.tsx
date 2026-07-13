@@ -68,7 +68,7 @@ function usePlayerPresence(
 	useEffect(() => {
 		const curIds = players.map((p) => p.id);
 		const prev = prevIdsRef.current;
-		// Only react to added/removed ids, not to reorders or field updates — those
+		// Only react to added/removed ids, not to reorders or field updates - those
 		// would otherwise re-run this effect on every render and loop via setState.
 		const same =
 			curIds.length === prev.length && curIds.every((id, i) => id === prev[i]);
@@ -115,7 +115,7 @@ export function Lobby() {
 	const [copied, setCopied] = useState<null | "code" | "link">(null);
 	const [copyFailed, setCopyFailed] = useState(false);
 	// Bumped on every successful code copy so the pop animation replays even when
-	// copying repeatedly (a changing key re-mounts the element → animation reruns).
+	// copying repeatedly (a changing key re-mounts the element -> animation reruns).
 	const [copyPulse, setCopyPulse] = useState(0);
 	// The letter currently playing its toggle pop; cleared when the animation ends
 	// so the same letter can pop again on the next toggle.
@@ -123,7 +123,7 @@ export function Lobby() {
 	// Set when the disabled "Spiel starten" button is clicked, so the hint text
 	// shakes; reset once the shake animation ends.
 	const [startShake, setStartShake] = useState(false);
-	// While true, every letter replays the pop with a staggered delay — used when
+	// While true, every letter replays the pop with a staggered delay - used when
 	// "Alle aktivieren" brings the whole row back at once.
 	const [staggerLetters, setStaggerLetters] = useState(false);
 	// Flash a just-added category so it's clear what appeared. Known ids are
@@ -152,14 +152,14 @@ export function Lobby() {
 		}
 	}
 
-	// Ctrl/Cmd+C copies the lobby code — but only when the user isn't selecting
+	// Ctrl/Cmd+C copies the lobby code - but only when the user isn't selecting
 	// text or typing in a field, so normal copy still works there.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on lobbyCode
 	useEffect(() => {
 		function onCopy(e: KeyboardEvent) {
 			if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
 			if (isTypingTarget(document.activeElement)) return;
-			// Don't hijack copy while a confirm dialog is up (kick/delete/leave) — UX-1.
+			// Don't hijack copy while a confirm dialog is up (kick/delete/leave) - UX-1.
 			if (isConfirmDialogOpen()) return;
 			if ((window.getSelection()?.toString() ?? "") !== "") return;
 			copyText(lobbyCode, "code");
@@ -368,7 +368,7 @@ export function Lobby() {
                   the code), the "like before" behaviour. */}
 							<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
 								{copyFailed
-									? "Kopieren nicht möglich – Code manuell markieren (nur über HTTPS)"
+									? "Kopieren nicht möglich - Code manuell markieren (nur über HTTPS)"
 									: copied === "code"
 										? "Kopiert!"
 										: "Klicken oder Strg+C zum Kopieren"}
@@ -620,7 +620,7 @@ export function Lobby() {
 							)}
 						</div>
 
-						{/* Commentator mode — on = host doesn't play, only comments (the
+						{/* Commentator mode - on = host doesn't play, only comments (the
                 switch is the inverse of the hostPlays flag it drives). */}
 						<div className="flex items-center justify-between gap-3">
 							<div className="flex items-center gap-1.5">
@@ -722,7 +722,7 @@ export function Lobby() {
 						{/* Letter selection */}
 						<div className="space-y-2">
 							{/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
-                  the same height whether or not the button is shown — no layout
+                  the same height whether or not the button is shown - no layout
                   shift when a letter is toggled. The "Buchstaben" label sits left
                   (like the other setting titles); "Alle aktivieren" + the count
                   stay flush right. */}
@@ -806,7 +806,7 @@ export function Lobby() {
 					<div className="space-y-1">
 						{/* Kept a real, focusable button (aria-disabled instead of disabled)
                 so a click while not startable still fires and can shake the hint
-                — a plain disabled button swallows the click. */}
+                - a plain disabled button swallows the click. */}
 						<Button
 							className="w-full transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] aria-disabled:pointer-events-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:translate-y-0"
 							size="lg"
@@ -843,12 +843,12 @@ export function Lobby() {
 				)}
 			</div>
 
-			{/* QR popup — same modal chrome as the confirm dialog, so revealing the
+			{/* QR popup - same modal chrome as the confirm dialog, so revealing the
           code no longer pushes the page layout around. The join link lives here
           too (previously under the inline QR). */}
 			{showQr && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; Escape is handled by the effect above and the close button
-				// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar — Escape closes via the window listener above
+				// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar - Escape closes via the window listener above
 				<div
 					className={`fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm ${
 						qrClosing ? "animate-fade-out" : "animate-fade-in"

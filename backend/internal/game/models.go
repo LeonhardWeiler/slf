@@ -52,7 +52,7 @@ type Lobby struct {
 	Game       *Game              `json:"-"`
 	CreatedAt  time.Time          `json:"createdAt"`
 	// Version is a monotonic counter bumped on every state broadcast and sent
-	// with each server→client state message (SRS 9.15.2 stateVersion) for
+	// with each server->client state message (SRS 9.15.2 stateVersion) for
 	// consistency/debugging.
 	Version int `json:"-"`
 	// EmptySince is set (by the janitor) to when the lobby last had zero connected
@@ -205,8 +205,8 @@ type RoundResultPayload struct {
 	IsGameOver       bool         `json:"isGameOver"`
 	// Reason is set only when IsGameOver (SRS 9.15.14):
 	// "AlphabetFinished" | "HostEnded". A host disconnect does not produce a
-	// GameOver result — after the grace window the lobby is closed instead
-	// (hub.onHostGraceExpired → closeLobby, "hostDisconnected"), so there is no
+	// GameOver result - after the grace window the lobby is closed instead
+	// (hub.onHostGraceExpired -> closeLobby, "hostDisconnected"), so there is no
 	// HostDisconnected reason here.
 	Reason string `json:"reason,omitempty"`
 }
@@ -220,7 +220,7 @@ type CommentatorPlayer struct {
 }
 
 // CommentatorStatePayload is sent only to a non-playing (commentator) host so it
-// can show, on a beamer, who has filled in which categories — never the values.
+// can show, on a beamer, who has filled in which categories - never the values.
 type CommentatorStatePayload struct {
 	RoundID string              `json:"roundId"`
 	Players []CommentatorPlayer `json:"players"`

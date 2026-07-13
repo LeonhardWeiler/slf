@@ -39,7 +39,7 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
 	hostGrace: null,
 	selfLeaving: false,
 
-	// A fresh lobbyState means we're (back) in a lobby → clear any stale
+	// A fresh lobbyState means we're (back) in a lobby -> clear any stale
 	// self-leaving flag left over from a previous departure.
 	setLobby: (lobby) => set({ lobby, selfLeaving: false }),
 	setSession: (sessionId, playerId) => {

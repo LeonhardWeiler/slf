@@ -31,7 +31,7 @@ func categoryExists(lobby *game.Lobby, catID string) bool {
 
 func storeAnswer(round *game.Round, playerID, catID, value string) {
 	// An empty / whitespace-only value is not a real submission, and the server
-	// authoritatively enforces the 1–30 char limit (SRS 9.13.14) instead of
+	// authoritatively enforces the 1-30 char limit (SRS 9.13.14) instead of
 	// trusting the client's maxLength: drop the entry in either case so it never
 	// shows up as a "submitted" answer in review (and so buzzing still requires
 	// every category to be filled).
@@ -81,7 +81,7 @@ func isRoundSpectator(lobby *game.Lobby, p *game.Player) bool {
 }
 
 // buildCommentatorState summarises, per playing (non-host, non-left) player,
-// which categories they have filled — never the values. Caller must hold hub.mu.
+// which categories they have filled - never the values. Caller must hold hub.mu.
 func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	r := lobby.Game.Round
 	players := make([]game.CommentatorPlayer, 0, len(lobby.Players))
@@ -93,7 +93,7 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 		for _, cat := range lobby.Categories {
 			// A category counts as "done" only when the answer passes the same
 			// server-side rule check the player needs to buzz (e.g. "arst" for
-			// letter O is not done) — not merely when it is non-empty.
+			// letter O is not done) - not merely when it is non-empty.
 			if a := r.Answers[p.ID][cat.ID]; a != nil &&
 				game.IsRuleValid(r.Letter, a.Value, lobby.Settings.LastLetterMode) {
 				filled = append(filled, cat.ID)
@@ -237,8 +237,8 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
 func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
-	// Round spectators — a commentator host (HostPlays=false) and mid-game joiners
-	// still pending — do not participate, so they are left out of both the
+	// Round spectators - a commentator host (HostPlays=false) and mid-game joiners
+	// still pending - do not participate, so they are left out of both the
 	// per-round scores and the ranking.
 	ranked := make(map[string]*game.Player, len(lobby.Players))
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
@@ -275,7 +275,7 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 // ---- broadcasts ----
 
 // prepareBroadcast bumps the lobby version, marshals the message and collects
-// the current recipients — all in one step. Caller must hold hub.mu; the actual
+// the current recipients - all in one step. Caller must hold hub.mu; the actual
 // writes happen after unlocking via writeAll.
 func (hub *Hub) prepareBroadcast(lobby *game.Lobby, msgType string, payload any) ([]byte, []*Client) {
 	lobby.Version++
@@ -291,7 +291,7 @@ func (hub *Hub) prepareBroadcast(lobby *game.Lobby, msgType string, payload any)
 
 // writeAll sends msg to every target. Writes happen after hub.mu is released, so
 // two goroutines (e.g. a timer-driven broadcast and a handler-driven one) can
-// write to the same client concurrently — this is safe because coder/websocket
+// write to the same client concurrently - this is safe because coder/websocket
 // serialises Conn.Write internally with its own mutex. Do not add a shared
 // buffer here without accounting for that.
 func writeAll(targets []*Client, msg []byte) {

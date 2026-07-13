@@ -12,7 +12,7 @@ const idAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 // randomString returns an unbiased n-char string over idAlphabet, drawn from
 // crypto/rand (rejection sampling avoids modulo bias). Used for both sessionIds
-// (which must be unpredictable — they are the only auth credential) and lobby
+// (which must be unpredictable - they are the only auth credential) and lobby
 // codes.
 func randomString(n int) string {
 	const limit = 256 - (256 % len(idAlphabet)) // largest multiple of len <= 256

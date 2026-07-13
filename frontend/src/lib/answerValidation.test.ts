@@ -4,7 +4,7 @@ import { isFieldInvalid, normalize, validateAnswers } from "./answerValidation";
 
 // These tests guard the client-side mirror of the backend's authoritative rules
 // (game.Normalize / engine.IsRuleValid). If the Go engine changes, the mirror
-// must change with it — and these assertions should catch silent drift.
+// must change with it - and these assertions should catch silent drift.
 
 describe("normalize", () => {
 	it("trims and cases like the engine (first upper, rest lower)", () => {

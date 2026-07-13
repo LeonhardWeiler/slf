@@ -1,4 +1,4 @@
-# Build artifacts and deps — rebuilt inside the image
+# Build artifacts and deps - rebuilt inside the image
 **/node_modules
 frontend/dist
 backend/tmp

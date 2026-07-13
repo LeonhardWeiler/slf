@@ -8,7 +8,7 @@ const Switch = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<SwitchPrimitive.Root
 		className={cn(
-			// Track fill alone signals the state — no glow and no border, since the
+			// Track fill alone signals the state - no glow and no border, since the
 			// fill already contrasts with the page background.
 			"peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-0 px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[unchecked]:bg-input",
 			className,

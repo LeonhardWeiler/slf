@@ -29,8 +29,8 @@ class WSClient {
 
 	constructor(url: string) {
 		this.url = url;
-		// When the browser signals it is back — network online again, or the tab was
-		// refocused / made visible — try to reconnect immediately with a fresh
+		// When the browser signals it is back - network online again, or the tab was
+		// refocused / made visible - try to reconnect immediately with a fresh
 		// backoff, instead of waiting out a possibly long (up to 30s) pending retry.
 		// That stale wait is why the app could still show "not connected" while the
 		// server was already reachable again (a full-page reload that raced the
@@ -137,7 +137,7 @@ class WSClient {
 
 	// Queue the message and make sure it gets delivered. If the socket is not
 	// open yet (initial load, or mid-reconnect), the message is buffered and
-	// flushed as soon as the connection is established — instead of being
+	// flushed as soon as the connection is established - instead of being
 	// silently dropped.
 	send(event: ClientEvent) {
 		this.outbox.push(event);
@@ -165,9 +165,9 @@ class WSClient {
 
 	private scheduleReconnect() {
 		if (this.reconnectTimer) return;
-		// Exponential backoff (1s → cap 30s) with jitter so many clients don't all
+		// Exponential backoff (1s -> cap 30s) with jitter so many clients don't all
 		// retry in lock-step after a server restart (thundering herd). The delay is
-		// 50–100% of the current step; reset to 1s once a connection succeeds.
+		// 50-100% of the current step; reset to 1s once a connection succeeds.
 		const cap = 30_000;
 		const base = Math.min(cap, 1000 * 2 ** this.reconnectAttempts);
 		const delay = base / 2 + Math.random() * (base / 2);

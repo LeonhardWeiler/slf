@@ -28,7 +28,7 @@ const VARIANTS: Record<
 
 // The front (newest) toast: fully readable, clickable to dismiss, and it runs the
 // auto-dismiss timer. Once it goes, the next toast slides to the front and starts
-// its own timer — so a stack drains one readable card at a time.
+// its own timer - so a stack drains one readable card at a time.
 function FrontToast({ toast }: { toast: Toast }) {
 	const dismiss = useToastStore((s) => s.dismissToast);
 	// Pause the auto-dismiss while the user hovers or focuses, so a long message

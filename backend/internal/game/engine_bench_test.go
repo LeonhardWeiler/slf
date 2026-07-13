@@ -6,7 +6,7 @@ import (
 )
 
 // BenchmarkScoreCategory measures the isolated scoring cost for one category
-// with n answers (no network, no locks) — the hot path run once per category
+// with n answers (no network, no locks) - the hot path run once per category
 // on every review recompute.
 func BenchmarkScoreCategory(b *testing.B) {
 	for _, n := range []int{5, 25, 100, 500} {

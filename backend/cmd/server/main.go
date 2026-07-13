@@ -84,7 +84,7 @@ func main() {
 // setupLogging configures the global slog logger from the environment
 // (SRS 12.9). LOG_LEVEL: debug|info|warn|error (default info). LOG_FORMAT:
 // text|json (default text). LOG_FILE: if set, logs are appended to that file in
-// addition to stdout — in Docker this path lives on a volume (see compose).
+// addition to stdout - in Docker this path lives on a volume (see compose).
 func setupLogging() {
 	level := slog.LevelInfo
 	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
@@ -116,7 +116,7 @@ func setupLogging() {
 
 // securityHeaders applies a strict-but-functional set of headers to the served
 // SPA. The CSP allows: same-origin scripts/styles (React sets inline style
-// attributes → 'unsafe-inline' for style only), data: images (QR canvas),
+// attributes -> 'unsafe-inline' for style only), data: images (QR canvas),
 // same-origin WebSocket (ws/wss for /ws), and blob: workers (qr-scanner).
 // getUserMedia for the QR scanner needs camera=(self) in Permissions-Policy.
 func securityHeaders(h http.Header) {

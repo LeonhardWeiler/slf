@@ -10,7 +10,7 @@ function extractCode(data: string): string | null {
 		const m = url.pathname.match(/\/join\/([a-z0-9]{6})/i);
 		if (m) return m[1].toLowerCase();
 	} catch {
-		/* not a URL — fall through */
+		/* not a URL - fall through */
 	}
 	const cleaned = data.toLowerCase().replace(/[^a-z0-9]/g, "");
 	return cleaned.length === 6 ? cleaned : null;

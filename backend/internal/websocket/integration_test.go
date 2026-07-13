@@ -13,7 +13,7 @@ import (
 )
 
 // End-to-end tests that drive the real WebSocket protocol against an
-// httptest server wired to ServeWS — the same entry point cmd/server uses.
+// httptest server wired to ServeWS - the same entry point cmd/server uses.
 // These guard the message contract and the core game flow against regressions.
 
 // --- test harness ---
@@ -218,7 +218,7 @@ func TestJoinMidGameIsPending(t *testing.T) {
 	host.send("startGame", map[string]any{})
 	host.waitFor("gameState")
 
-	// Bob joins mid-game → accepted, and the lobbyState marks him pending.
+	// Bob joins mid-game -> accepted, and the lobbyState marks him pending.
 	guest := dial(t, srv)
 	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
 	var sc struct {
@@ -281,7 +281,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
 	}
 
-	// Bob joins mid-round → pending.
+	// Bob joins mid-round -> pending.
 	guest := dial(t, srv)
 	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
 	var sc struct {
@@ -292,7 +292,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	guest.sessionID = sc.SessionID
 	bobID := sc.PlayerID
 
-	// Host ends the round and finishes review → RoundResult. Bob must not appear
+	// Host ends the round and finishes review -> RoundResult. Bob must not appear
 	// in the ranking while pending.
 	host.send("endRound", map[string]any{})
 	host.waitFor("reviewState")
@@ -309,7 +309,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 		}
 	}
 
-	// Next round begins → Bob is activated (pending cleared).
+	// Next round begins -> Bob is activated (pending cleared).
 	host.send("startNextRound", map[string]any{})
 	deadline := time.Now().Add(3 * time.Second)
 	activated := false
@@ -425,7 +425,7 @@ func TestUpdateSettingsPreservesTimeLimitAndLetters(t *testing.T) {
 		t.Fatalf("excludedLetters must be preserved when omitted, got %v", ls.Settings.ExcludedLetters)
 	}
 
-	// Explicit null clears the limit (unlimited) — must be honoured, not ignored.
+	// Explicit null clears the limit (unlimited) - must be honoured, not ignored.
 	host.send("updateSettings", map[string]any{"timeLimit": nil})
 	ls = host.readLobby()
 	if ls.Settings.TimeLimit != nil {
@@ -471,7 +471,7 @@ func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {
 		t.Fatalf("expected a positive grace window, got %d", hd.GraceSeconds)
 	}
 
-	// Host reconnects in time on a new socket → grace cancelled for everyone.
+	// Host reconnects in time on a new socket -> grace cancelled for everyone.
 	back := dial(t, srv)
 	back.sessionID = host.sessionID
 	back.send("reconnect", map[string]any{})
@@ -570,7 +570,7 @@ func TestKickMidGameMarksPlayerLeft(t *testing.T) {
 	host := dial(t, srv)
 	code := host.createLobby("Alice")
 
-	// Bob joins before the game starts → full participant.
+	// Bob joins before the game starts -> full participant.
 	guest := dial(t, srv)
 	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
 	var sc struct {
@@ -597,7 +597,7 @@ func TestKickMidGameMarksPlayerLeft(t *testing.T) {
 		t.Fatalf("expected playerKicked for %q, got %q", bobID, pk.PlayerID)
 	}
 
-	// The host's lobbyState keeps Bob around, now flagged left (→ "(verlassen)").
+	// The host's lobbyState keeps Bob around, now flagged left (-> "(verlassen)").
 	deadline := time.Now().Add(3 * time.Second)
 	for {
 		if time.Now().After(deadline) {
