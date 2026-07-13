@@ -68,31 +68,30 @@ export function RoomHeader({ title }: { title: string }) {
 		<>
 			<div className="flex items-center justify-between gap-2">
 				<div className="min-w-0">
-					<div className="flex flex-wrap items-center gap-x-4 gap-y-0.5">
-						<h1 className="text-2xl font-bold">{title}</h1>
-						{code && (
-							// The lobby code sits right next to the title and stays copyable on
-							// every in-game screen, so latecomers can still be invited.
-							<button
-								type="button"
-								onClick={copyCode}
-								title="Lobbycode kopieren"
-								className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
-							>
-								<span className="font-mono font-medium uppercase tracking-wider">
-									{code.replace(/(.{3})(.{3})/, "$1 $2")}
-								</span>
-								{copied ? (
-									<Check className="h-3 w-3 text-green-600" />
-								) : (
-									<Copy className="h-3 w-3" />
-								)}
-								{copyFailed && (
-									<span className="text-[10px]">(manuell markieren)</span>
-								)}
-							</button>
-						)}
-					</div>
+					<h1 className="text-2xl font-bold">{title}</h1>
+					{code && (
+						// The lobby code always sits below the title (never beside it,
+						// regardless of width) and stays copyable on every in-game screen so
+						// latecomers can still be invited.
+						<button
+							type="button"
+							onClick={copyCode}
+							title="Lobbycode kopieren"
+							className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
+						>
+							<span className="font-mono font-medium uppercase tracking-wider">
+								{code.replace(/(.{3})(.{3})/, "$1 $2")}
+							</span>
+							{copied ? (
+								<Check className="h-3 w-3 text-green-600" />
+							) : (
+								<Copy className="h-3 w-3" />
+							)}
+							{copyFailed && (
+								<span className="text-[10px]">(manuell markieren)</span>
+							)}
+						</button>
+					)}
 				</div>
 				<div className="flex items-center gap-2 shrink-0">
 					<ConnectionBadge />
