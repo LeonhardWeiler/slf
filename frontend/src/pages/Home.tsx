@@ -317,7 +317,9 @@ export function Home() {
 				    only matters once the user actually creates/joins) and elsewhere is
 				    debounced so a fast (re)connect after a reload never flashes it. */}
 				{step !== "start" && showOffline && (
-					<div className="flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
+					// Same width and centering as the start-screen Join/Create buttons so
+					// the banner lines up with them instead of spanning the full card.
+					<div className="mx-auto flex max-w-[18rem] items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 sm:max-w-[22rem] dark:text-amber-300">
 						<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
 						Keine Verbindung zum Server…
 					</div>
