@@ -273,24 +273,26 @@
   padding-left: max(1rem, env(safe-area-inset-left));
 }
 
+/* Durations kept short so the UI feels snappy: motion confirms an action without
+   ever making the user wait on it (responsiveness over visual effect). */
 .animate-fade-in {
-  animation: slf-fade-in 0.25s ease-out;
+  animation: slf-fade-in 0.15s ease-out;
 }
 .animate-countdown-pop {
   animation: slf-countdown-pop 0.4s ease-out;
 }
 .animate-fade-out {
-  animation: slf-fade-out 0.2s ease-in forwards;
+  animation: slf-fade-out 0.12s ease-in forwards;
 }
 .animate-flame {
   animation: slf-flame-flicker 0.7s ease-in-out;
   filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
 }
 .animate-highlight {
-  animation: slf-highlight 1s ease-out;
+  animation: slf-highlight 0.6s ease-out;
 }
 .animate-pop {
-  animation: slf-pop 0.3s ease-out;
+  animation: slf-pop 0.2s ease-out;
 }
 .animate-check-pop {
   animation: slf-check-pop 0.35s ease-out;
@@ -299,10 +301,10 @@
   animation: slf-shake 0.4s ease-in-out;
 }
 .animate-scale-in {
-  animation: slf-scale-in 0.18s ease-out;
+  animation: slf-scale-in 0.12s ease-out;
 }
 .animate-scale-out {
-  animation: slf-scale-out 0.16s ease-in forwards;
+  animation: slf-scale-out 0.1s ease-in forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,

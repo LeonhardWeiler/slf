@@ -53,7 +53,7 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
 // instead of snapping away. Present players carry fresh data (name/connection
 // stay live); a departed player lingers with its last-known data and
 // `leaving: true` until the exit animation has had time to play.
-const PLAYER_EXIT_MS = 220;
+const PLAYER_EXIT_MS = 140;
 function usePlayerPresence(
 	players: Player[],
 ): { player: Player; leaving: boolean }[] {
@@ -176,7 +176,7 @@ export function Lobby() {
 		setTimeout(() => {
 			setShowQr(false);
 			setQrClosing(false);
-		}, 170);
+		}, 120);
 	}, []);
 
 	// QR popup: lock body scroll while open and let Escape close it, matching the
@@ -429,7 +429,7 @@ export function Lobby() {
 							>
 								<div className="flex items-center gap-2">
 									<span
-										className={`w-2 h-2 rounded-full transition-colors duration-500 ${
+										className={`w-2 h-2 rounded-full transition-colors duration-200 ${
 											player.connected
 												? "bg-green-500"
 												: "bg-muted-foreground animate-pulse"
