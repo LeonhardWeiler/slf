@@ -243,19 +243,17 @@
           <span class="badge">good</span> Fine-grained store subscriptions
         </h3>
         <p>
-          Every component reads Zustand through a narrow selector
-          (<code>useStore(s =&gt; s.field)</code>); a repo-wide check found
-          <b>no bare store subscriptions</b>. Notably <code>Room</code> only
-          hangs on <code>lobby?.state</code>, so the per-second
-          <code>hostGrace</code> countdown does not re-render the routed tree.
-          <code>useIsHost</code> centralises the host lookup as a derived
-          selector.
+          Every component reads Zustand through a narrow selector (<code
+            >useStore(s =&gt; s.field)</code
+          >); a repo-wide check found <b>no bare store subscriptions</b>.
+          Notably <code>Room</code> only hangs on <code>lobby?.state</code>, so
+          the per-second <code>hostGrace</code> countdown does not re-render the
+          routed tree. <code>useIsHost</code> centralises the host lookup as a
+          derived selector.
         </p>
       </div>
       <div class="card">
-        <h3>
-          <span class="badge">good</span> Timers tick on local state
-        </h3>
+        <h3><span class="badge">good</span> Timers tick on local state</h3>
         <p>
           The countdown and stopwatch in <code>GameScreen</code> run on local
           <code>useState</code> intervals, not on the store, so a per-second
@@ -264,9 +262,7 @@
         </p>
       </div>
       <div class="card">
-        <h3>
-          <span class="badge">good</span> Debounced answer sync
-        </h3>
+        <h3><span class="badge">good</span> Debounced answer sync</h3>
         <p>
           Keystrokes are batched into at most one <code>answerUpdate</code>
           per&nbsp;~250&nbsp;ms per category (with an immediate flush before a
@@ -380,8 +376,9 @@
         <h3><span class="badge warn">optional</span> Preload the Room chunk</h3>
         <p>
           The lobby/game code is lazy-loaded when a player enters a lobby. On a
-          slow link that shows a brief blank (<code>Suspense fallback={null}</code>).
-          Preloading the <code>Room</code> chunk on hover/focus of the
+          slow link that shows a brief blank (<code
+            >Suspense fallback={null}</code
+          >). Preloading the <code>Room</code> chunk on hover/focus of the
           Create/Join buttons (a warm <code>import()</code>) would hide that
           latency without enlarging the initial bundle.
         </p>
@@ -404,8 +401,8 @@
         <p>
           Zod sits in the initial chunk because it validates the first server
           messages. If the start screen ever needs to get even leaner, the
-          schema module could be split so only the connect path pulls it in.
-          Low priority - the current budget is fine.
+          schema module could be split so only the connect path pulls it in. Low
+          priority - the current budget is fine.
         </p>
       </div>
 
