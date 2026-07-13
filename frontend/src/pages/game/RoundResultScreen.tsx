@@ -77,9 +77,9 @@ export function RoundResultScreen() {
 
 	const playerName = (id: string) =>
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	// "(verlassen)" gilt auch für getrennte Spieler: wer die Verbindung verloren
-	// hat, ist in der Kommentator-Ansicht bereits ausgegraut — die Endtabelle
-	// soll das konsistent zeigen (nicht nur bei explizitem Verlassen).
+	// "(verlassen)" also applies to disconnected players: whoever lost their
+	// connection is already greyed out in the commentator view, so the final
+	// table should show that consistently (not only on an explicit leave).
 	const hasLeft = (id: string) => {
 		const p = lobby.players.find((pl) => pl.id === id);
 		return p ? p.left || !p.connected : false;
@@ -155,8 +155,8 @@ export function RoundResultScreen() {
 										</span>
 									</div>
 									<div className="flex items-center gap-3">
-										{/* Rundengewinn nur bei >0 in Erfolgs-Grün; ein Nullgewinn
-                      wird neutral als „±0" gezeigt, nicht als grünes „+0". */}
+										{/* Round gain only shown in success green when >0; a zero gain
+                      is shown neutrally as "±0", not as green "+0". */}
 										<span
 											className={`text-xs font-medium ${
 												roundPoints === 0

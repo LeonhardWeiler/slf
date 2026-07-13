@@ -133,9 +133,9 @@ export function Home() {
 		return () => window.removeEventListener("popstate", onPop);
 	}, []);
 
-	// Pfeiltaste links geht im Login-Flow einen Schritt zurück (wie der
-	// "Zurück"-Button). Ignoriert wird sie, während in einem Feld getippt wird,
-	// damit der Cursor dort weiter normal nach links wandern kann.
+	// Left arrow key steps back through the login flow (like the in-app
+	// "Zurück" button). It is ignored while typing in a field, so the cursor
+	// can still move left normally there.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: back() is stable; register once on mount
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -302,8 +302,8 @@ export function Home() {
 
 				{/* ---- Step: start ---- */}
 				{step === "start" && (
-					// Etwas schmaler und zentriert, damit die Buttons auf dem Handy nicht
-					// die volle Kartenbreite einnehmen.
+					// Slightly narrower and centered so the buttons do not take up the
+					// full card width on mobile.
 					<div className="mx-auto max-w-[16rem] space-y-3">
 						<Button
 							className="w-full"

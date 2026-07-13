@@ -1,7 +1,7 @@
 // Command loadtest measures the server's WebSocket roundtrip latency under
 // concurrent load, as an isolated, reproducible check against the SRS
 // performance targets (13.2 / 14.11: < 80 ms avg, < 150 ms max roundtrip,
-// >= 500 gleichzeitige Spieler).
+// >= 500 concurrent players).
 //
 // It spins up -lobbies lobbies with -perLobby players each (a host + joiners),
 // then repeatedly has every host trigger a state change (updateSettings) and
@@ -65,7 +65,7 @@ func main() {
 
 	total := *lobbies * *perLobby
 	results = make(chan time.Duration, total)
-	log.Printf("Verbinde %d Spieler (%d Lobbies × %d)…", total, *lobbies, *perLobby)
+	log.Printf("Connecting %d players (%d lobbies × %d)…", total, *lobbies, *perLobby)
 
 	ctx := context.Background()
 	var clients []*client
@@ -111,7 +111,7 @@ func main() {
 		}
 	}
 	wg.Wait()
-	log.Printf("%d Spieler verbunden. Messe %d Runden…", len(clients), *iters)
+	log.Printf("%d players connected. Measuring %d rounds…", len(clients), *iters)
 
 	// 3) Measurement rounds: every host toggles a setting simultaneously; every
 	// client times the resulting lobbyState broadcast.
@@ -142,7 +142,7 @@ func main() {
 				samples = append(samples, d)
 				got++
 			case <-deadline:
-				log.Printf("Runde %d: nur %d/%d Antworten (Timeout)", it+1, got, len(clients))
+				log.Printf("Round %d: only %d/%d answers (timeout)", it+1, got, len(clients))
 				break collect
 			}
 		}
@@ -157,7 +157,7 @@ func main() {
 func dial(ctx context.Context, addr string) *client {
 	conn, _, err := websocket.Dial(ctx, addr, nil)
 	if err != nil {
-		log.Fatalf("Dial fehlgeschlagen: %v", err)
+		log.Fatalf("Dial failed: %v", err)
 	}
 	conn.SetReadLimit(1 << 20)
 	return &client{conn: conn}
@@ -166,7 +166,7 @@ func dial(ctx context.Context, addr string) *client {
 func (c *client) send(ctx context.Context, typ string, payload any) {
 	b, _ := json.Marshal(map[string]any{"type": typ, "payload": payload, "sessionId": c.sessionID})
 	if err := c.conn.Write(ctx, websocket.MessageText, b); err != nil {
-		log.Fatalf("Write fehlgeschlagen: %v", err)
+		log.Fatalf("Write failed: %v", err)
 	}
 }
 
@@ -175,7 +175,7 @@ func (c *client) waitForSetup(ctx context.Context, host bool) {
 	for c.sessionID == "" || (host && c.lobbyCode == "") {
 		var m inbound
 		if !c.read(ctx, &m) {
-			log.Fatal("Verbindung während Setup verloren")
+			log.Fatal("Connection lost during setup")
 		}
 		switch m.Type {
 		case "sessionCreated":
@@ -213,7 +213,7 @@ func (c *client) readLoop(ctx context.Context) {
 
 func report(samples []time.Duration, players int) {
 	if len(samples) == 0 {
-		log.Fatal("Keine Messwerte erfasst")
+		log.Fatal("No measurements recorded")
 	}
 	sort.Slice(samples, func(i, j int) bool { return samples[i] < samples[j] })
 	var sum time.Duration
@@ -230,14 +230,14 @@ func report(samples []time.Duration, players int) {
 	}
 	ms := func(d time.Duration) string { return fmt.Sprintf("%.2f ms", float64(d.Microseconds())/1000) }
 
-	fmt.Println("\n===== Ergebnis =====")
-	fmt.Printf("Spieler gleichzeitig: %d\n", players)
-	fmt.Printf("Messwerte:            %d\n", len(samples))
-	fmt.Printf("Ø (avg):             %s   (SRS-Ziel < 80 ms)\n", ms(avg))
+	fmt.Println("\n===== Result =====")
+	fmt.Printf("Concurrent players:  %d\n", players)
+	fmt.Printf("Measurements:        %d\n", len(samples))
+	fmt.Printf("avg:                 %s   (SRS target < 80 ms)\n", ms(avg))
 	fmt.Printf("p50:                 %s\n", ms(pct(50)))
 	fmt.Printf("p95:                 %s\n", ms(pct(95)))
 	fmt.Printf("p99:                 %s\n", ms(pct(99)))
-	fmt.Printf("max:                 %s   (SRS-Ziel < 150 ms)\n", ms(samples[len(samples)-1]))
+	fmt.Printf("max:                 %s   (SRS target < 150 ms)\n", ms(samples[len(samples)-1]))
 	okAvg, okMax := avg < 80*time.Millisecond, samples[len(samples)-1] < 150*time.Millisecond
-	fmt.Printf("Ziele erfüllt:        Ø %v · max %v\n", okAvg, okMax)
+	fmt.Printf("Targets met:         avg %v · max %v\n", okAvg, okMax)
 }

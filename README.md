@@ -1,136 +1,135 @@
 # Stadt Land Fluss - Multiplayer
 
-Eine Echtzeit-Multiplayer-Version des Klassikers **Stadt Land Fluss**. Ein
-Go-Backend und ein React-Frontend kommunizieren ausschließlich über WebSockets;
-der Server ist die einzige Wahrheitsquelle, es gibt keine Datenbank – der
-gesamte Spielzustand liegt im RAM.
+A real-time multiplayer version of the classic game **Stadt Land Fluss**. A Go
+backend and a React frontend communicate exclusively over WebSockets; the server
+is the single source of truth, there is no database, the entire game state lives
+in RAM.
 
 ## Features
 
-- **Lobbys** mit 6-stelligem alphanumerischem Code, QR-Code und Teilen-Link
-- **Host-Steuerung**: Kategorien anlegen/bearbeiten/löschen, Zeitlimit,
-  Buchstaben ab-/auswählen, Spieler entfernen, laufende Runde beenden
-- **Rundenablauf**: Countdown → Antworten → Buzzern → Bewertung → Ergebnis
-- **Live-Bewertung** durch den Host inkl. Zusammenführen gleicher Antworten
-- **Optionale Spielmodi** (pro Lobby schaltbar):
-  - **Kommentator-Host** – der Host spielt nicht mit, sieht stattdessen eine
-    Live-Übersicht, welche Kategorien jeder Spieler ausgefüllt hat
-  - **Letzter statt erster Buchstabe** – Antworten müssen auf den Buchstaben
-    _enden_ statt mit ihm zu beginnen
-  - **Flammen** – einmal pro Runde auf „einzige Antwort" wetten (+5, siehe unten)
-- **Punktevergabe** nach klassischen Regeln (siehe unten)
-- **Reconnect**: Reload, Tab-Schließen oder kurzer Verbindungsabbruch führen
-  zurück ins Spiel; sobald Netzwerk oder Tab wieder da sind, verbindet der Client
-  sofort neu (die Session liegt in `localStorage`, siehe Architektur)
-- **Jederzeit beitreten**: Man kann einer bereits laufenden Lobby beitreten. Wer
-  mitten im Spiel dazukommt, wartet als Zuschauer (sieht die Ausfüll-Übersicht,
-  taucht noch nicht in der Tabelle auf) und spielt ab der nächsten Runde mit
-- **Host-Disconnect-Schutz**: Verliert der Host die Verbindung, sehen alle
-  Spieler einen 15-Sekunden-Countdown; kehrt er zurück, geht es weiter, sonst
-  wird die Lobby geschlossen (SRS 4.6/8.5)
-- Hell-/Dunkel-Theme, responsives Layout, Tastatur-Steuerung
+- **Lobbies** with a 6-character alphanumeric code, QR code and share link
+- **Host controls**: create/edit/delete categories, time limit, enable/disable
+  letters, remove players, end the running round
+- **Round flow**: countdown -> answers -> buzzing -> review -> result
+- **Live review** by the host, including merging identical answers
+- **Optional game modes** (toggleable per lobby):
+  - **Commentator host**: the host does not play and instead sees a live
+    overview of which categories each player has filled in
+  - **Last letter instead of first**: answers must _end_ with the letter instead
+    of starting with it
+  - **Flames**: bet once per round on being the "only answer" (+5, see below)
+- **Scoring** by classic rules (see below)
+- **Reconnect**: a reload, tab close or brief connection drop lead back into the
+  game; as soon as the network or tab is back, the client reconnects immediately
+  (the session lives in `localStorage`, see Architecture)
+- **Join anytime**: you can join a lobby that is already running. Whoever joins
+  mid-game waits as a spectator (sees the fill-in overview, does not yet appear
+  in the table) and plays from the next round on
+- **Host disconnect protection**: if the host loses the connection, all players
+  see a 15-second countdown; if the host returns, the game continues, otherwise
+  the lobby is closed (SRS 4.6/8.5)
+- Light/dark theme, responsive layout, keyboard controls
 
-## Tech-Stack
+## Tech stack
 
-| Bereich  | Technologien                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------ |
-| Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), In-Memory                           |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn-Stil), Zustand, TanStack Router, Zod |
-| Tooling  | Bun (Package-Manager), [air](https://github.com/air-verse/air) (Go Live-Reload), Nix (Dev-Shell) |
+| Area     | Technologies                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), in-memory                             |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn style), Zustand, TanStack Router, Zod  |
+| Tooling  | Bun (package manager), [air](https://github.com/air-verse/air) (Go live-reload), Nix (dev shell)   |
 
-## Architektur
+## Architecture
 
-- **Server = Single Source of Truth.** Clients schicken Aktionen, der Server
-  validiert, verändert den Zustand und broadcastet den neuen Stand. Kein
-  Client-Vertrauen für Punkte/Regeln.
-- **Zustandsautomat pro Lobby:**
-  `Lobby → Countdown → Playing → Reviewing → RoundResult → GameOver → Lobby`
-- **Nachrichtenformat** (JSON über `/ws`):
-  - Client → Server: `{ "type": ..., "payload": ..., "sessionId": ... }`
-  - Server → Client: `{ "type": ..., "payload": ..., "stateVersion": ... }`
-    (`stateVersion` = monotoner Lobby-Zähler zum Erkennen veralteter Snapshots)
-- **Session/Reconnect:** Die `sessionId` liegt in `localStorage` und übersteht
-  damit auch das Schließen des Tabs: Beim nächsten Öffnen verbindet der Client
-  automatisch wieder als derselbe Spieler (gleicher Name, Punkte, Rolle) –
-  sofern die Lobby noch existiert. Ein Host behält seine Rolle innerhalb des
-  15-Sekunden-Grace-Fensters. Trade-off (bewusst): Alle Tabs desselben Browsers
-  teilen sich eine Identität; ein zweiter Tab verbindet in dieselbe Session statt
-  ein eigener Spieler zu sein. Ein explizites **„Verlassen"** löscht die
-  gespeicherte `sessionId` und ist damit ein endgültiger Austritt – nur
-  Tab-Schließen/Verbindungsabbruch bleibt wieder-beitretbar.
+- **Server = single source of truth.** Clients send actions, the server
+  validates them, mutates the state and broadcasts the new state. No client is
+  trusted for points/rules.
+- **State machine per lobby:**
+  `Lobby -> Countdown -> Playing -> Reviewing -> RoundResult -> GameOver -> Lobby`
+- **Message format** (JSON over `/ws`):
+  - Client -> Server: `{ "type": ..., "payload": ..., "sessionId": ... }`
+  - Server -> Client: `{ "type": ..., "payload": ..., "stateVersion": ... }`
+    (`stateVersion` = monotonic lobby counter for detecting stale snapshots)
+- **Session/reconnect:** the `sessionId` lives in `localStorage` and therefore
+  survives closing the tab: on the next open the client reconnects automatically
+  as the same player (same name, points, role), as long as the lobby still
+  exists. A host keeps its role within the 15-second grace window. Trade-off
+  (deliberate): all tabs of the same browser share one identity; a second tab
+  connects into the same session instead of becoming its own player. An explicit
+  **leave** clears the stored `sessionId` and is therefore a final exit; only a
+  tab close/connection drop remains re-joinable.
 
-### Punktevergabe (pro Kategorie)
+### Scoring (per category)
 
-| Punkte | Bedingung                                             |
-| -----: | ----------------------------------------------------- |
-|      0 | ungültig oder leer                                    |
-|      5 | gültig, aber dieselbe Antwort wie ein anderer Spieler |
-|     10 | gültige, eindeutige Antwort                           |
-|     20 | einzige gültige Antwort der Kategorie                 |
+| Points | Condition                                              |
+| -----: | ------------------------------------------------------ |
+|      0 | invalid or empty                                       |
+|      5 | valid, but the same answer as another player           |
+|     10 | valid, unique answer                                   |
+|     20 | only valid answer in the category                      |
 
-Der Host kann während der Bewertung Antworten als gültig/ungültig markieren und
-sinngleiche Antworten zusammenführen (zählen dann als eine Gruppe).
+During review the host can mark answers as valid/invalid and merge answers that
+mean the same thing (they then count as one group).
 
-**Flammen** (falls aktiviert): Ein Spieler kann pro Runde eine Kategorie
-„flammen" – eine Wette, dort die einzige gültige Antwort zu haben. Geht die
-Wette auf, gibt es **+5** Punkte (eindeutige Antwort 10 → 15, einzige gültige
-20 → 25); bei geteilter oder ungültiger Antwort zählt die Kategorie **0**.
+**Flames** (if enabled): once per round a player can "flame" a category, a bet
+that they hold the only valid answer there. If the bet pays off, it gives **+5**
+points (unique answer 10 -> 15, only valid 20 -> 25); with a shared or invalid
+answer the category counts **0**.
 
-### Sicherheit
+### Security
 
-- **Server-autoritativ**: Regeln, Scoring und Zustand werden ausschließlich
-  serverseitig erzwungen; eingehende Events werden validiert (Backend + Zod).
-- **WebSocket-Origin-Prüfung** gegen Cross-Site-Hijacking (Same-Origin +
-  localhost/LAN erlaubt, sonst 403; `WS_ALLOWED_ORIGINS` als Override).
-- **Rate-Limiting** pro Verbindung, Join-Backoff und Obergrenzen für Lobbys,
-  Spieler und Kategorien; verwaiste Lobbys werden automatisch abgeräumt.
-- **Security-Header** (CSP, HSTS mit `preload`, COOP, u. a.) für die ausgelieferte
-  SPA; content-gehashte Assets werden `immutable` gecacht, `index.html`/`robots.txt`
-  revalidieren. `sessionId` wird nie an andere Clients geleakt und in Logs nur gehasht.
+- **Server-authoritative**: rules, scoring and state are enforced only on the
+  server; incoming events are validated (backend + Zod).
+- **WebSocket origin check** against cross-site hijacking (same-origin +
+  localhost/LAN allowed, otherwise 403; `WS_ALLOWED_ORIGINS` as an override).
+- **Rate limiting** per connection, join backoff and caps for lobbies, players
+  and categories; orphaned lobbies are cleaned up automatically.
+- **Security headers** (CSP, HSTS with `preload`, COOP, and more) for the served
+  SPA; content-hashed assets are cached `immutable`, `index.html`/`robots.txt`
+  revalidate. `sessionId` is never leaked to other clients and only logged hashed.
 
-## Projektstruktur
+## Project structure
 
 ```
 backend/
-  cmd/server/        Einstiegspunkt (HTTP-Server + /ws + optional Frontend)
-  cmd/loadtest/      Last-/Latenz-Messwerkzeug (siehe „Performance")
-  internal/game/     Domänenlogik: Modelle, Engine (Buchstaben, Regeln, Scoring)
-  internal/websocket/ Hub, Clients, Message-Handler, Broadcasts
+  cmd/server/        Entry point (HTTP server + /ws + optional frontend)
+  cmd/loadtest/      Load/latency measurement tool (see "Performance")
+  internal/game/     Domain logic: models, engine (letters, rules, scoring)
+  internal/websocket/ Hub, clients, message handlers, broadcasts
 frontend/
-  src/pages/         Home, Lobby und Spielscreens (game/)
-  src/components/     UI-Bausteine (inkl. ui/ = shadcn-Stil auf Base UI)
-  src/store/         Zustand-Stores (lobby, game)
-  src/lib/           WebSocket-Client, Theme, Session, Validierung
-  src/types/         Gemeinsame Event-/Payload-Typen
-Dockerfile           Multi-Stage-Build → ein Image (Frontend + Go-Server)
-docker-compose.yml   Start des veröffentlichten Images
-.gitlab-ci.yml       CI: Tests + Image-Build/-Push nach Docker Hub
-flake.nix            Nix-Dev-Shell (Go, Bun, air, …)
+  src/pages/         Home, Lobby and game screens (game/)
+  src/components/     UI building blocks (incl. ui/ = shadcn style on Base UI)
+  src/store/         Zustand stores (lobby, game)
+  src/lib/           WebSocket client, theme, session, validation
+  src/types/         Shared event/payload types
+Dockerfile           Multi-stage build -> one image (frontend + Go server)
+docker-compose.yml   Starts the published image
+.gitlab-ci.yml       CI: tests + image build/push to Docker Hub
+flake.nix            Nix dev shell (Go, Bun, air, ...)
 ```
 
-## Erste Schritte
+## Getting started
 
-### Voraussetzungen
+### Prerequisites
 
-- Go (siehe `backend/go.mod`) und [air](https://github.com/air-verse/air)
+- Go (see `backend/go.mod`) and [air](https://github.com/air-verse/air)
 - [Bun](https://bun.sh)
 
-Alternativ stellt die Nix-Flake alles bereit:
+Alternatively the Nix flake provides everything:
 
 ```bash
 nix develop
 ```
 
-### Backend starten (Port 8080)
+### Start the backend (port 8080)
 
 ```bash
 cd backend
-air                 # Live-Reload bei Dateiänderungen
-# oder ohne air:
+air                 # live-reload on file changes
+# or without air:
 go run ./cmd/server
 ```
 
-### Frontend starten (Port ab 5173)
+### Start the frontend (port 5173 and up)
 
 ```bash
 cd frontend
@@ -138,87 +137,87 @@ bun install
 bun dev
 ```
 
-Danach die angezeigte URL im Browser öffnen. Für ein lokales Mehrspieler-Spiel
-mehrere Tabs/Geräte im selben Netzwerk verbinden (der Join-Link/QR-Code zeigt
-auf `‹host›/join/‹code›`).
+Then open the shown URL in the browser. For a local multiplayer game, connect
+several tabs/devices on the same network (the join link/QR code points to
+`<host>/join/<code>`).
 
-## Entwicklung
+## Development
 
 ```bash
-# Backend: Format-Check, Vet, Tests (inkl. WS-Integrationstests)
+# Backend: format check, vet, tests (incl. WS integration tests)
 cd backend && gofmt -l . && go vet ./... && go test ./...
 
-# Frontend: Biome-Lint, Unit-Tests (Vitest), Typecheck + Production-Build
+# Frontend: Biome lint, unit tests (Vitest), typecheck + production build
 cd frontend && bun run lint && bun run test && bun run build
 ```
 
-Dieselben Schritte laufen in der CI (`.gitlab-ci.yml`): `gofmt`-Gate + `go vet`
+The same steps run in CI (`.gitlab-ci.yml`): `gofmt` gate + `go vet`
 
-- `go test` fürs Backend, Biome-Lint + Vitest + Build fürs Frontend.
+- `go test` for the backend, Biome lint + Vitest + build for the frontend.
 
-## Deployment mit Docker
+## Deployment with Docker
 
-Backend und Frontend stecken in **einem** Image (Multi-Stage-Build): Das
-Frontend wird gebaut und vom Go-Server als statische Dateien zusammen mit `/ws`
-auf Port `8080` ausgeliefert.
+Backend and frontend sit in **one** image (multi-stage build): the frontend is
+built and served by the Go server as static files together with `/ws` on port
+`8080`.
 
 ```bash
-docker compose up -d        # zieht weilerleonhard/slf:latest → http://localhost:8080
-docker compose up --build   # stattdessen lokal bauen (build:-Zeile in compose aktivieren)
+docker compose up -d        # pulls weilerleonhard/slf:latest -> http://localhost:8080
+docker compose up --build   # build locally instead (enable the build: line in compose)
 ```
 
-Die GitLab-CI baut nach jedem Commit auf `master` das Image und pusht es nach
-`weilerleonhard/slf` (Tags `latest` + Commit-SHA). Dafür müssen in GitLab unter
-**Settings → CI/CD → Variables** die Variablen `DOCKERHUB_USERNAME` und
-`DOCKERHUB_TOKEN` (Docker-Hub-Access-Token, „Masked") gesetzt sein.
+The GitLab CI builds the image after every commit on `master` and pushes it to
+`weilerleonhard/slf` (tags `latest` + commit SHA). For that, the variables
+`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (Docker Hub access token, "masked")
+must be set in GitLab under **Settings -> CI/CD -> Variables**.
 
-### Konfiguration (Umgebungsvariablen)
+### Configuration (environment variables)
 
-| Variable             | Default                     | Bedeutung                                                                                                                                                                                          |
-| -------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STATIC_DIR`         | –                           | Verzeichnis mit dem gebauten Frontend; leer = nur `/ws` (Dev)                                                                                                                                      |
-| `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                             |
-| `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                   |
-| `LOG_FILE`           | –                           | zusätzlich in Datei loggen (in Docker auf dem `slf-logs`-Volume)                                                                                                                                   |
-| `WS_ALLOWED_ORIGINS` | Same-Origin + localhost/LAN | Zusätzlich erlaubte WebSocket-Origins (kommagetrennt). Standardmäßig sind Same-Origin sowie localhost/private LAN-IPs erlaubt; setzen, um das Frontend von einer **anderen** Domain aus zuzulassen |
+| Variable             | Default                     | Meaning                                                                                                                                                                                           |
+| -------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STATIC_DIR`         | -                           | Directory with the built frontend; empty = only `/ws` (dev)                                                                                                                                      |
+| `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                           |
+| `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                 |
+| `LOG_FILE`           | -                           | additionally log to a file (in Docker on the `slf-logs` volume)                                                                                                                                  |
+| `WS_ALLOWED_ORIGINS` | Same-origin + localhost/LAN | Additionally allowed WebSocket origins (comma-separated). By default same-origin as well as localhost/private LAN IPs are allowed; set this to allow the frontend from a **different** domain    |
 
 ## Performance
 
-Zwei isolierte, reproduzierbare Messungen (Ziele: Ø < 80 ms, max < 150 ms
-Roundtrip, ≥ 500 gleichzeitige Spieler):
+Two isolated, reproducible measurements (targets: avg < 80 ms, max < 150 ms
+roundtrip, >= 500 concurrent players):
 
 ```bash
-# 1) Reine Logik (ohne Netz): Scoring & Ranking
+# 1) Pure logic (no network): scoring & ranking
 cd backend && go test -bench=. -benchmem -run=^$ ./internal/game/
 
-# 2) End-to-End-Roundtrip unter Last (Server muss laufen)
+# 2) End-to-end roundtrip under load (server must be running)
 go run ./cmd/server &
-go run ./cmd/loadtest -players 500     # verbindet 500 Spieler, misst Broadcast-Latenz
+go run ./cmd/loadtest -players 500     # connects 500 players, measures broadcast latency
 ```
 
-Das Werkzeug öffnet die Spieler über viele Lobbys, lässt alle Hosts gleichzeitig
-eine Zustandsänderung auslösen und misst je Client die Zeit bis zum
-resultierenden `lobbyState`-Broadcast (Ø/p50/p95/p99/max).
+The tool spreads the players across many lobbies, has all hosts trigger a state
+change at the same time and measures, per client, the time until the resulting
+`lobbyState` broadcast (avg/p50/p95/p99/max).
 
-## Bewusste Entscheidungen & bekannte Einschränkungen
+## Deliberate decisions & known limitations
 
-Diese Punkte sind bekannt und bewusst so gewählt – sie sind **kein Problem** für
-den vorgesehenen Einsatz (LAN-/Party-Spiel):
+These points are known and chosen deliberately; they are **not a problem** for
+the intended use (LAN/party game):
 
-- **Ein globaler Mutex im Hub** serialisiert alle Lobbys. Für die aktuelle Skala
-  unkritisch (Loadtest: 500 Spieler, Ø < 5 ms Roundtrip); ein Sharding pro Lobby
-  wäre erst bei sehr vielen gleichzeitigen Spielen nötig und wurde daher bewusst
-  nicht umgesetzt.
-- **Clipboard-Fallback über `document.execCommand("copy")`**: Über plain-HTTP im
-  LAN (typisch: Handy verbindet per lokaler IP) ist `navigator.clipboard` nicht
-  verfügbar. Der Fallback nutzt das offiziell veraltete, aber weiterhin breit
-  unterstützte `execCommand` – bewusst als pragmatischer Kompromiss.
-- **Kein Host-Handoff**: Kehrt ein getrennter Host nicht innerhalb der 15 s
-  zurück, wird die Lobby geschlossen (keine Übertragung der Host-Rolle) – für ein
-  Party-Spiel gewollt einfach gehalten.
-- **Kein Persistenz-Layer**: Der gesamte Zustand liegt im RAM. Nach einem
-  Server-Neustart sind Lobbys weg; Clients werden sauber getrennt und kehren zur
-  Startseite zurück.
+- **A single global mutex in the hub** serializes all lobbies. Not critical at
+  the current scale (load test: 500 players, avg < 5 ms roundtrip); sharding per
+  lobby would only be needed with very many concurrent games and was therefore
+  deliberately not implemented.
+- **Clipboard fallback via `document.execCommand("copy")`**: over plain HTTP on
+  the LAN (typical: phone connects via a local IP) `navigator.clipboard` is not
+  available. The fallback uses the officially deprecated but still widely
+  supported `execCommand`, a deliberate pragmatic compromise.
+- **No host handoff**: if a disconnected host does not return within the 15 s,
+  the lobby is closed (no transfer of the host role), kept deliberately simple
+  for a party game.
+- **No persistence layer**: the entire state lives in RAM. After a server
+  restart the lobbies are gone; clients are disconnected cleanly and return to
+  the home screen.
 
 ## License
 

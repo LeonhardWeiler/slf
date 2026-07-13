@@ -39,7 +39,7 @@ func main() {
 	// dev this is empty and the frontend is served by Vite instead.
 	if staticDir := os.Getenv("STATIC_DIR"); staticDir != "" {
 		mux.Handle("/", spaHandler(staticDir))
-		log.Printf("Serviere Frontend aus %s", staticDir)
+		log.Printf("Serving frontend from %s", staticDir)
 	}
 
 	addr := "0.0.0.0:8080"
@@ -59,15 +59,15 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("Server läuft auf %s", addr)
+		log.Printf("Server listening on %s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server-Fehler: %v", err)
+			log.Fatalf("Server error: %v", err)
 		}
 	}()
 
 	<-ctx.Done()
 	stop() // a second signal now terminates immediately
-	log.Println("Fahre herunter…")
+	log.Println("Shutting down…")
 
 	// Cleanly close all live WebSockets (1001) so clients reconnect gracefully
 	// instead of seeing a hard drop when the process exits.
@@ -76,9 +76,9 @@ func main() {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Shutdown-Fehler: %v", err)
+		log.Printf("Shutdown error: %v", err)
 	}
-	log.Println("Server beendet")
+	log.Println("Server stopped")
 }
 
 // setupLogging configures the global slog logger from the environment
@@ -100,7 +100,7 @@ func setupLogging() {
 	if lf := os.Getenv("LOG_FILE"); lf != "" {
 		f, err := os.OpenFile(lf, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 		if err != nil {
-			log.Printf("Konnte Logdatei %s nicht öffnen: %v", lf, err)
+			log.Printf("Could not open log file %s: %v", lf, err)
 		} else {
 			w = io.MultiWriter(os.Stdout, f)
 		}

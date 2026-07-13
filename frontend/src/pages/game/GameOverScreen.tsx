@@ -17,8 +17,8 @@ export function GameOverScreen() {
 
 	const playerName = (id: string) =>
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	// "(verlassen)" gilt auch für getrennte Spieler (in der Kommentator-Ansicht
-	// schon ausgegraut), damit End- und Live-Ansicht konsistent sind.
+	// "(verlassen)" also applies to disconnected players (already greyed out
+	// in the commentator view), so the final and live views stay consistent.
 	const hasLeft = (id: string) => {
 		const p = lobby.players.find((pl) => pl.id === id);
 		return p ? p.left || !p.connected : false;

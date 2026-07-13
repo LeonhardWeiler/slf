@@ -1,68 +1,68 @@
 # CLAUDE.md
 
-Stadt-Land-Fluss — Echtzeit-Multiplayer im Browser. Go-WebSocket-Backend
-(server-autoritativ) + React-SPA-Frontend. Details in der `README.md`.
+Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
+(server-authoritative) + React SPA frontend. Details in the `README.md`.
 
 ## Stack
 
-- **Backend:** Go, WebSocket (`coder/websocket`), In-Memory-State (kein Persistenz-Layer).
-- **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI-Bausteine
-  im shadcn-Stil auf **Base UI** (`@base-ui-components/react` + CVA + `cn`),
-  Zustand, TanStack Router (code-basiert, `src/router.tsx`), Zod.
-- **Package-Manager: Bun** (nicht npm/yarn; `npx` ist **nicht** verfügbar).
-- Lint: Biome. Frontend-Tests: Vitest. Backend-Tests: `go test`.
+- **Backend:** Go, WebSocket (`coder/websocket`), in-memory state (no persistence layer).
+- **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI building
+  blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`),
+  Zustand, TanStack Router (code-based, `src/router.tsx`), Zod.
+- **Package manager: Bun** (not npm/yarn; `npx` is **not** available).
+- Lint: Biome. Frontend tests: Vitest. Backend tests: `go test`.
 
-## Befehle
+## Commands
 
-Immer im jeweiligen Unterordner ausführen:
+Always run inside the respective subfolder:
 
 ```bash
 # Backend (in backend/)
-gofmt -l .            # muss leer sein (Format-Gate)
+gofmt -l .            # must be empty (format gate)
 go vet ./...
-go test ./...         # bei Nebenläufigkeit: go test ./... -race
+go test ./...         # for concurrency: go test ./... -race
 
 # Frontend (in frontend/)
 bun install
 bun run lint          # Biome
 bun run test          # Vitest
-bun run build         # tsc -b && vite build (typecheckt + baut)
-bun dev               # Dev-Server
+bun run build         # tsc -b && vite build (typechecks + builds)
+bun dev               # dev server
 ```
 
-Vor jedem Commit die passenden Checks grün machen. Es gibt keine `npx`; nutze
-`bun run <script>` oder die Binaries in `frontend/node_modules/.bin/`.
-Die CI (`.gitlab-ci.yml`) läuft auf `oven/bun` **ohne node** — Vitest läuft dort
-unter der Bun-Runtime. Deshalb ist `zod` in `frontend/vite.config.ts`
-(`test.server.deps.inline`) inlined; sonst schlägt der zod-Import fehl. Cold prüfen
-lässt sich das lokal mit `bun --bun run test` (erzwingt die Bun-Runtime).
+Make the relevant checks green before every commit. There is no `npx`; use
+`bun run <script>` or the binaries in `frontend/node_modules/.bin/`.
+The CI (`.gitlab-ci.yml`) runs on `oven/bun` **without node**, so Vitest runs there
+under the Bun runtime. That is why `zod` is inlined in `frontend/vite.config.ts`
+(`test.server.deps.inline`); otherwise the zod import fails. You can check this
+locally with `bun --bun run test` (forces the Bun runtime).
 
-## Konventionen
+## Conventions
 
-- **Direkt auf `master` committen** (Solo-Projekt); nicht ohne Aufforderung branchen.
-- Ein Commit pro logischer Änderung, aussagekräftige Message.
-- Server ist Single Source of Truth: Regeln/Scoring/State nur serverseitig; jede
-  eingehende Nachricht wird per Zod validiert (`frontend/src/lib/serverEvents.ts`).
-- `frontend/src/lib/answerValidation.ts` **spiegelt** die Backend-Engine-Regeln
-  (`backend/internal/game/engine.go`) — bei Änderungen beide synchron halten
-  (Vitest deckt das ab).
+- **Commit directly to `master`** (solo project); do not branch without being asked.
+- One commit per logical change, with a meaningful message.
+- The server is the single source of truth: rules/scoring/state live only on the
+  server; every incoming message is validated with Zod (`frontend/src/lib/serverEvents.ts`).
+- `frontend/src/lib/answerValidation.ts` **mirrors** the backend engine rules
+  (`backend/internal/game/engine.go`); keep both in sync when changing either one
+  (Vitest covers this).
 
-## Architektur (Kurz)
+## Architecture (brief)
 
-- Zustandsautomat pro Lobby: `Lobby → Countdown → Playing → Reviewing →
-RoundResult → GameOver → Lobby`.
-- Nachrichten: JSON über `/ws`, Client→Server `{type, payload, sessionId}`,
-  Server→Client `{type, payload, stateVersion}`.
-- Backend: `cmd/server` (Einstieg + Security-Header/SPA-Serving),
-  `internal/game` (Engine/State), `internal/websocket` (Hub, Handler).
-- `sessionId` liegt in `localStorage` (pro Browser, übersteht Tab-Schließen →
-  Auto-Reconnect als gleicher Spieler; explizites „Verlassen" löscht sie).
-- Beitritt ist in **jedem** Lobby-Zustand möglich; wer mitten im Spiel joint, ist
-  `Pending` (Zuschauer, nicht in Scoring/Ranking/Review) und wird beim nächsten
-  Rundenstart (`beginCountdown`) aktiviert. Serverseitig kapselt
-  `isRoundSpectator` (Kommentator-Host **oder** Pending) den Ausschluss.
+- State machine per lobby: `Lobby -> Countdown -> Playing -> Reviewing ->
+RoundResult -> GameOver -> Lobby`.
+- Messages: JSON over `/ws`, client->server `{type, payload, sessionId}`,
+  server->client `{type, payload, stateVersion}`.
+- Backend: `cmd/server` (entry point + security headers/SPA serving),
+  `internal/game` (engine/state), `internal/websocket` (hub, handlers).
+- `sessionId` lives in `localStorage` (per browser, survives closing the tab ->
+  auto-reconnect as the same player; an explicit "leave" clears it).
+- Joining is possible in **any** lobby state; whoever joins mid-game is
+  `Pending` (spectator, not in scoring/ranking/review) and is activated at the
+  next round start (`beginCountdown`). On the server, `isRoundSpectator`
+  (commentator host **or** pending) encapsulates the exclusion.
 
 ## AGENT/
 
-`project-health-report.html` = laufender Health-Report, `TODO.md` = Arbeitsliste.
-Gepflegt über die Skills `/review-and-update-report` und `/implement-todo`.
+`project-health-report.html` = running health report, `TODO.md` = work list.
+Maintained through the `/review-and-update-report` and `/implement-todo` skills.

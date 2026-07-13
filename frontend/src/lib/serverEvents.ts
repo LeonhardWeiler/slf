@@ -192,7 +192,7 @@ export function parseServerEvent(raw: string): ServerEvent | null {
 	if (!result.success) {
 		if (import.meta.env?.DEV) {
 			console.warn(
-				"Ungültige Server-Nachricht verworfen:",
+				"Discarded invalid server message:",
 				result.error.issues,
 			);
 		}

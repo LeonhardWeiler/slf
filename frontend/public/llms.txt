@@ -1,21 +1,21 @@
 # Stadt Land Fluss
 
-> Echtzeit-Multiplayer-Variante des Klassikers „Stadt Land Fluss" im Browser.
-> Eine Lobby erstellen oder per 6-stelligem Code bzw. QR-Code beitreten und
-> gemeinsam in Echtzeit spielen — server-autoritativ, ohne Anmeldung.
+> Real-time multiplayer version of the classic game "Stadt Land Fluss" in the
+> browser. Create a lobby or join via a 6-character code or QR code and play
+> together in real time, server-authoritative and without any sign-up.
 
-Das Spiel läuft vollständig im Browser (React-SPA) gegen ein Go-WebSocket-Backend.
-Der Server ist die einzige Quelle der Wahrheit für Regeln, Bewertung und Spielstand.
-Es gibt keine öffentlichen API-Endpunkte für Agenten; das Spiel wird interaktiv
-über die Weboberfläche bedient.
+The game runs entirely in the browser (React SPA) against a Go WebSocket backend.
+The server is the single source of truth for rules, scoring and game state.
+There are no public API endpoints for agents; the game is operated interactively
+through the web interface.
 
-## Seiten
+## Pages
 
-- [Startseite](/): Lobby erstellen oder einer bestehenden Lobby beitreten.
-- [Beitreten per Code](/join/CODE): Direktlink in eine Lobby (CODE = 6-stelliger Lobby-Code).
+- [Home](/): Create a lobby or join an existing one.
+- [Join by code](/join/CODE): Direct link into a lobby (CODE = 6-character lobby code).
 
-## Ablauf
+## Flow
 
-- Lobby erstellen, Mitspieler per Code oder QR-Code einladen.
-- Kategorien und Rundenzahl festlegen, dann Runden mit gemeinsamem Buchstaben spielen.
-- Antworten werden nach jeder Runde bewertet; am Ende gibt es eine Rangliste.
+- Create a lobby and invite other players via code or QR code.
+- Set the categories and number of rounds, then play rounds that share a letter.
+- Answers are reviewed after each round; the game ends with a ranking.

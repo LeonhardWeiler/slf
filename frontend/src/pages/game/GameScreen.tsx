@@ -346,12 +346,12 @@ export function GameScreen() {
 					}
 				/>
 
-				{/* Buchstabe & Zeit ohne umschließende Card/Rahmen — die Werte stehen
-            frei auf dem Hintergrund (wie beim rahmenlosen Switch). */}
+				{/* Letter & time without a surrounding card/border; the values sit
+            freely on the background (like the borderless switch). */}
 				<div className="flex items-center justify-between px-1">
 					<div>
-						{/* "Buchstabe" ist selbsterklärend und entfällt; nur der nicht
-                offensichtliche „am Ende"-Modus bleibt als Hinweis stehen. */}
+						{/* "Buchstabe" is self-explanatory and omitted; only the non-obvious
+                "am Ende" mode stays as a hint. */}
 						{lastLetterMode && (
 							<p className="text-xs text-muted-foreground uppercase tracking-widest">
 								am Ende

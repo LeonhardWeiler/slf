@@ -268,8 +268,8 @@ export function Lobby() {
 		setEditingValue("");
 	}
 
-	// Kategorien lassen sich jederzeit neu hinzufügen — Löschen ist billig
-	// reversibel, daher ohne Bestätigungs-Popup direkt ausführen.
+	// Categories can be re-added at any time, so deleting is cheaply
+	// reversible; run it directly without a confirmation popup.
 	function deleteCategory(id: string) {
 		ws.send({ type: "deleteCategory", payload: { categoryId: id } });
 	}
@@ -365,7 +365,7 @@ export function Lobby() {
 								</span>
 							</span>
 							{/* Copy feedback swaps the hint text below the code (no icon over
-                  the code) — the "wie früher" behaviour. */}
+                  the code), the "like before" behaviour. */}
 							<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
 								{copyFailed
 									? "Kopieren nicht möglich – Code manuell markieren (nur über HTTPS)"

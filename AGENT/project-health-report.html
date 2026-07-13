@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SLF — Code-Review & Findings</title>
+    <title>SLF - Code Review & Findings</title>
     <style>
       :root {
         --bg: #0f1115;
@@ -197,52 +197,52 @@
   </head>
   <body>
     <div class="wrap">
-      <h1>Stadt&nbsp;Land&nbsp;Fluss — Code-Review &amp; Findings</h1>
+      <h1>Stadt&nbsp;Land&nbsp;Fluss - Code Review &amp; Findings</h1>
       <div class="meta">
-        Ganzheitlicher Scan (Bugs · Security · UI/UX · A11y · Code-Qualität ·
-        Performance · Sauberkeit) · Stand 2026-07-04 · Branch
+        Holistic scan (bugs · security · UI/UX · a11y · code quality ·
+        performance · cleanliness) · as of 2026-07-04 · branch
         <code>master</code>
       </div>
 
       <p class="lead">
-        <b>Finaler Health-Check</b> zum (vorläufigen) Projektabschluss. Der
-        Stand ist <b>rund und auslieferbar</b>: alle Qualitäts-Gates grün —
-        Backend (<code>gofmt</code>, <code>go vet</code>,
-        <code>go test&nbsp;./...</code> inkl. <code>-race</code>) und Frontend
-        (Biome, Vitest, 20&nbsp;Tests, <code>vite&nbsp;build</code> mit
-        <code>tsc</code>). Der server-autoritative Kern, die durchgängige
-        Zod-Validierung, der robuste Verbindungs-Lifecycle (Host-Grace,
-        Reconnect mit Backoff+Jitter, jetzt <code>localStorage</code>-Session
-        über das Tab-Schließen hinweg), die Härtung (Origin-Check,
-        Rate-Limits/Caps/Join-Backoff, CSP/HSTS/COOP — der CSP-Script-Hash deckt
-        sich exakt mit dem Anti-FOUC-Snippet) und die A11y sind solide. Beide
-        Rollen wurden erneut durch die
-        <b>komplette Varianten-Matrix</b> gespielt (Kommentator&nbsp;an/aus,
-        Flammen an/aus, Zeitlimit an/aus, Letzter-Buchstabe,
-        Buchstabe-im-Countdown, Solo/Mehrspieler,
-        Verlassen&nbsp;vs.&nbsp;Verbindungsverlust, Beitritt in jeder Phase,
-        Reconnect als Spieler <em>und</em> als wartender Zuschauer) — ohne
-        Befund. <b>Aktuell keine offenen Findings.</b> Eine ausführliche
-        Gesamtbewertung steht in <b>Abschnitt&nbsp;4</b>; bewusste
-        Einschränkungen (im README dokumentiert) in Abschnitt&nbsp;3.
+        <b>Final health check</b> for the (preliminary) project close-out. The
+        state is <b>rounded and shippable</b>: all quality gates green, backend
+        (<code>gofmt</code>, <code>go vet</code>,
+        <code>go test&nbsp;./...</code> incl. <code>-race</code>) and frontend
+        (Biome, Vitest, 20&nbsp;tests, <code>vite&nbsp;build</code> with
+        <code>tsc</code>). The server-authoritative core, the end-to-end
+        Zod validation, the robust connection lifecycle (host grace, reconnect
+        with backoff+jitter, now a <code>localStorage</code> session that
+        survives closing the tab), the hardening (origin check,
+        rate limits/caps/join backoff, CSP/HSTS/COOP, the CSP script hash
+        matches the anti-FOUC snippet exactly) and the a11y are solid. Both
+        roles were played through the
+        <b>complete variant matrix</b> again (commentator&nbsp;on/off,
+        flames on/off, time limit on/off, last letter,
+        letter-in-countdown, solo/multiplayer,
+        leave&nbsp;vs.&nbsp;connection loss, joining in every phase,
+        reconnect as a player <em>and</em> as a waiting spectator), with no
+        finding. <b>Currently no open findings.</b> A detailed
+        overall assessment is in <b>section&nbsp;4</b>; deliberate
+        limitations (documented in the README) are in section&nbsp;3.
       </p>
 
       <div class="summary">
         <div class="stat">
           <div class="n" style="color: var(--crit)">0</div>
-          <div class="l">Kritisch</div>
+          <div class="l">Critical</div>
         </div>
         <div class="stat">
           <div class="n" style="color: var(--high)">0</div>
-          <div class="l">Hoch</div>
+          <div class="l">High</div>
         </div>
         <div class="stat">
           <div class="n" style="color: var(--med)">0</div>
-          <div class="l">Mittel</div>
+          <div class="l">Medium</div>
         </div>
         <div class="stat">
           <div class="n" style="color: var(--low)">0</div>
-          <div class="l">Niedrig</div>
+          <div class="l">Low</div>
         </div>
         <div class="stat">
           <div class="n" style="color: var(--info)">0</div>
@@ -251,243 +251,243 @@
       </div>
 
       <div class="toc">
-        <b>Inhalt</b>
+        <b>Contents</b>
         <ul>
-          <li><a href="#open">1. Offene Findings</a></li>
-          <li><a href="#good">2. Was schon stark ist</a></li>
+          <li><a href="#open">1. Open findings</a></li>
+          <li><a href="#good">2. What is already strong</a></li>
           <li>
-            <a href="#decided">3. Bewusst entschieden (kein Handlungsbedarf)</a>
+            <a href="#decided">3. Deliberately decided (no action needed)</a>
           </li>
-          <li><a href="#final">4. Finale Projektanalyse</a></li>
+          <li><a href="#final">4. Final project analysis</a></li>
         </ul>
       </div>
       <p class="note">
-        Legende:
-        <span class="badge b-crit">kritisch</span>
-        <span class="badge b-high">hoch</span>
-        <span class="badge b-med">mittel</span>
-        <span class="badge b-low">niedrig</span>
+        Legend:
+        <span class="badge b-crit">critical</span>
+        <span class="badge b-high">high</span>
+        <span class="badge b-med">medium</span>
+        <span class="badge b-low">low</span>
         <span class="badge b-info">info</span>
       </p>
 
       <!-- ============ OPEN ============ -->
-      <h2 id="open">1. Offene Findings</h2>
+      <h2 id="open">1. Open findings</h2>
       <p class="note">
-        Aktuell <b>keine offenen Findings</b>. Alle Gates (<code>gofmt</code>,
-        <code>go vet</code>, <code>go test</code> inkl. <code>-race</code>,
-        Biome, Vitest, <code>vite build</code>) sind grün.
+        Currently <b>no open findings</b>. All gates (<code>gofmt</code>,
+        <code>go vet</code>, <code>go test</code> incl. <code>-race</code>,
+        Biome, Vitest, <code>vite build</code>) are green.
       </p>
 
       <!-- ============ GOOD ============ -->
-      <h2 id="good">2. Was schon stark ist</h2>
+      <h2 id="good">2. What is already strong</h2>
       <ul class="tight">
         <li>
-          <span class="badge b-ok">plus</span> <b>Verbindungs-Lifecycle</b>:
-          Host-Grace mit stabilem Deadline-Ticker (kein Sekunden-Rücksprung
-          mehr), snapshot-getragenem Countdown, sauberem 1001-Shutdown und
-          Reconnect mit Backoff+Jitter — inkl. Ablauf-Test (<code>-race</code>
-          grün). Die Session liegt in <code>localStorage</code> und übersteht
-          das Tab-Schließen: Wieder­einstieg als gleicher Spieler (Host behält
-          seine Rolle im Grace-Fenster), explizites „Verlassen" ist endgültig.
+          <span class="badge b-ok">plus</span> <b>Connection lifecycle</b>:
+          host grace with a stable deadline ticker (no more second-by-second
+          jump-back), a snapshot-carried countdown, a clean 1001 shutdown and
+          reconnect with backoff+jitter, incl. an expiry test (<code>-race</code>
+          green). The session lives in <code>localStorage</code> and survives
+          closing the tab: re-entry as the same player (the host keeps its role
+          within the grace window), an explicit "leave" is final.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Jederzeit-Beitritt</b>: Man
-          kann einer laufenden Lobby in jeder Phase beitreten. Mid-Game-Joiner
-          sind serverseitig <code>Pending</code> — Zuschauer mit
-          Ausfüll-Übersicht, aus Scoring/Ranking/Review/Buzz sauber
-          ausgeschlossen (<code>isRoundSpectator</code>) — und werden beim
-          nächsten Rundenstart automatisch aktiviert. Durch Integrationstests
-          abgedeckt (Pending-Status + Aktivierung).
+          <span class="badge b-ok">plus</span> <b>Join anytime</b>: you
+          can join a running lobby in any phase. Mid-game joiners are
+          <code>Pending</code> on the server, spectators with a
+          fill-in overview, cleanly excluded from scoring/ranking/review/buzz
+          (<code>isRoundSpectator</code>), and are activated automatically at the
+          next round start. Covered by integration tests
+          (pending status + activation).
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Accessibility</b>:
-          <code>&lt;main&gt;</code>-Landmark, Live-Region entkoppelt vom
-          Sekundenticker, Labels,
-          <code>aria-live</code>/<code>aria-invalid</code>, Tastaturbedienung,
-          pausierbare Toasts, AA-tauglicher Kontrast-Token.
+          a <code>&lt;main&gt;</code> landmark, a live region decoupled from the
+          second ticker, labels,
+          <code>aria-live</code>/<code>aria-invalid</code>, keyboard operation,
+          pausable toasts, an AA-capable contrast token.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Frontend-Robustheit</b>:
-          ErrorBoundary (auch um Lazy-Chunks), stapelbares 3D-Toast-System mit
-          Error/Info-Varianten, Beitritts-Vorprüfung (<code>checkLobby</code>)
-          mit während der Prüfung gesperrter Navigation.
+          <span class="badge b-ok">plus</span> <b>Frontend robustness</b>:
+          an ErrorBoundary (also around lazy chunks), a stackable 3D toast system
+          with error/info variants, a join pre-check (<code>checkLobby</code>)
+          with navigation locked during the check.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Tests</b>:
-          Go-WS-Integrationstests (<code>-race</code>) <em>und</em> neues
-          Frontend-Vitest-Setup — der Client-Mirror der Engine-Regeln
-          (<code>answerValidation</code>) und
-          <code>parseServerEvent</code> (Zod) sind abgesichert, beides läuft in
-          der CI.
+          Go WS integration tests (<code>-race</code>) <em>and</em> a new
+          frontend Vitest setup, the client mirror of the engine rules
+          (<code>answerValidation</code>) and
+          <code>parseServerEvent</code> (Zod) are covered, both run in
+          CI.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Server-autoritativ</b> &amp;
-          durchgängige Zod-Validierung aller eingehenden Events (inkl. Host- und
-          <code>checkLobby</code>-Events).
+          <span class="badge b-ok">plus</span> <b>Server-authoritative</b> &amp;
+          end-to-end Zod validation of all incoming events (incl. host and
+          <code>checkLobby</code> events).
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Härtung</b>: Origin-Prüfung,
-          Rate-Limit + Caps + Join-Backoff (auch für die Vorprüfung),
-          Lobby-Reaper, CSP/HSTS-<code>preload</code>/COOP, unveränderliches
-          Asset-Caching, gehashte Session-IDs, kein sessionId-Leak.
+          <span class="badge b-ok">plus</span> <b>Hardening</b>: origin check,
+          rate limit + caps + join backoff (also for the pre-check),
+          a lobby reaper, CSP/HSTS-<code>preload</code>/COOP, immutable
+          asset caching, hashed session IDs, no sessionId leak.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Render-Effizienz</b>: Alle
-          Store-Zugriffe nutzen feingranulare Zustand-Selektoren (<code
-            >useStore(s =&gt; s.feld)</code
-          >) statt den ganzen Store zu abonnieren, sodass Komponenten nur bei
-          den von ihnen gelesenen Feldern neu rendern. <code>Room</code> hängt
-          z.&nbsp;B. nur an <code>lobby?.state</code>, sodass der Routes-Baum
-          nicht mehr bei jedem <code>hostGrace</code>-Sekundentick neu rendert.
-          Timer-Screens ticken bewusst über lokalen State, nicht über den Store.
+          <span class="badge b-ok">plus</span> <b>Render efficiency</b>: all
+          store accesses use fine-grained Zustand selectors (<code
+            >useStore(s =&gt; s.field)</code
+          >) instead of subscribing to the whole store, so components re-render
+          only for the fields they read. <code>Room</code> hangs
+          only on <code>lobby?.state</code>, for example, so the route tree
+          no longer re-renders on every <code>hostGrace</code> second tick.
+          Timer screens deliberately tick on local state, not on the store.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Konsistenz &amp; CI</b>:
-          einheitliche Sortier-Idiome, TypeScript <code>strict</code>, Biome
-          sauber, gofmt-Gate, Vitest + WS-Integrationstests in der Pipeline.
+          <span class="badge b-ok">plus</span> <b>Consistency &amp; CI</b>:
+          uniform sort idioms, TypeScript <code>strict</code>, Biome
+          clean, a gofmt gate, Vitest + WS integration tests in the pipeline.
         </li>
       </ul>
 
       <!-- ============ DECIDED ============ -->
-      <h2 id="decided">3. Bewusst entschieden (kein Handlungsbedarf)</h2>
+      <h2 id="decided">3. Deliberately decided (no action needed)</h2>
       <p class="note">
-        Die folgenden, in früheren Runden genannten Punkte sind bewusst so
-        gewählt und im README unter „Bewusste Entscheidungen &amp; bekannte
-        Einschränkungen" dokumentiert. Sie sind <b>kein Problem</b> für den
-        Einsatzzweck (LAN-/Party-Spiel) und werden hier nur der Vollständigkeit
-        halber genannt.
+        The following points, raised in earlier rounds, are chosen
+        deliberately and documented in the README under "Deliberate decisions &amp;
+        known limitations". They are <b>not a problem</b> for the
+        intended use (LAN/party game) and are listed here only for
+        completeness.
       </p>
       <ul class="tight">
         <li>
-          <b>Kein Host-Handoff</b>: Kehrt der Host nicht in 15&nbsp;s zurück,
-          wird die Lobby geschlossen — bewusst <em>kein</em> Übertragen der
-          Host-Rolle.
+          <b>No host handoff</b>: if the host does not return within 15&nbsp;s,
+          the lobby is closed, deliberately <em>not</em> transferring the
+          host role.
         </li>
         <li>
-          <b>Host-„Runde beenden" ist ein Fallback</b>: Eine Runde endet im
-          Normalfall durch den ersten Buzz oder den Zeitablauf. Der Host-Button
-          „Runde beenden" ist bewusst de-emphasiert (Ghost) und nur für den
-          Sonderfall gedacht, dass niemand mehr etwas findet — er ist
-          <em>kein</em> Standard-Ablauf.
+          <b>Host "end round" is a fallback</b>: a round normally ends
+          through the first buzz or the timeout. The host button
+          "end round" is deliberately de-emphasized (ghost) and only meant for
+          the special case that no one can find anything else, it is
+          <em>not</em> a standard flow.
         </li>
         <li>
-          <b>Ein globaler <code>hub.mu</code></b
-          >: serialisiert alle Lobbys; bei 500 Spielern
-          Ø&nbsp;&lt;&nbsp;5&nbsp;ms. Sharding erst bei sehr vielen parallelen
-          Spielen nötig.
+          <b>A single global <code>hub.mu</code></b
+          >: serializes all lobbies; at 500 players
+          avg&nbsp;&lt;&nbsp;5&nbsp;ms. Sharding is only needed with very many
+          parallel games.
         </li>
         <li>
-          <b><code>execCommand</code>-Clipboard-Fallback</b>: für
-          plain-HTTP-LAN, wo <code>navigator.clipboard</code> fehlt —
-          deprecated, aber breit unterstützt.
+          <b><code>execCommand</code> clipboard fallback</b>: for
+          plain-HTTP LAN, where <code>navigator.clipboard</code> is missing,
+          deprecated but widely supported.
         </li>
         <li>
-          <b>Spielerlisten-Cache</b>: geprüft und verworfen — fast jeder
-          Broadcast folgt auf eine
-          <code>connected</code>/<code>score</code>-Änderung, die einen Cache
-          ohnehin invalidieren würde.
+          <b>Player-list cache</b>: evaluated and rejected, almost every
+          broadcast follows a
+          <code>connected</code>/<code>score</code> change that
+          would invalidate a cache anyway.
         </li>
         <li>
-          <b>Kein Persistenz-Layer</b>: Zustand liegt im RAM; nach
-          Server-Neustart werden Clients sauber getrennt und kehren zur
-          Startseite zurück.
+          <b>No persistence layer</b>: state lives in RAM; after a
+          server restart clients are disconnected cleanly and return to the
+          home screen.
         </li>
       </ul>
 
       <!-- ============ FINAL ANALYSIS ============ -->
-      <h2 id="final">4. Finale Projektanalyse</h2>
+      <h2 id="final">4. Final project analysis</h2>
       <p>
-        <b>Gesamturteil: produktionsreif für den vorgesehenen Einsatzzweck</b>
-        (Echtzeit-Multiplayer-Partyspiel im LAN/Browser). Das Projekt ist über
-        mehrere Review-Runden zu einem konsistenten, gut getesteten und bewusst
-        gehärteten Stand gereift. Es gibt keine bekannten Korrektheits-,
-        Security- oder A11y-Mängel; die verbleibenden Einschränkungen sind
-        allesamt bewusste, dokumentierte Design-Entscheidungen
-        (Abschnitt&nbsp;3).
+        <b>Overall verdict: production-ready for the intended use</b>
+        (real-time multiplayer party game on the LAN/browser). Over
+        several review rounds the project has matured into a consistent,
+        well-tested and deliberately hardened state. There are no known
+        correctness, security or a11y defects; the remaining limitations are
+        all deliberate, documented design decisions
+        (section&nbsp;3).
       </p>
 
-      <h3>Architektur &amp; Code-Qualität</h3>
+      <h3>Architecture &amp; code quality</h3>
       <p>
-        Klare Trennung: Go-Backend als <b>Single Source of Truth</b> (Engine,
-        State-Machine, Hub/Handler getrennt), React-SPA als reiner View-Layer.
-        Der Zustandsautomat pro Lobby (<code
-          >Lobby → Countdown → Playing → Reviewing → RoundResult →
+        Clear separation: the Go backend as the <b>single source of truth</b>
+        (engine, state machine, hub/handlers separated), the React SPA as a pure
+        view layer. The state machine per lobby (<code
+          >Lobby -&gt; Countdown -&gt; Playing -&gt; Reviewing -&gt; RoundResult -&gt;
           GameOver</code
-        >) ist sauber gekapselt; Timer sind über <code>roundID</code>+State
-        idempotent, sodass späte Callbacks auf abgebrochene Runden folgenlos
-        verpuffen. Die Client-seitige Antwort-Validierung spiegelt die
-        Engine-Regeln und ist per Vitest gegen Drift abgesichert. Der Code ist
-        durchgängig kommentiert (jede nicht offensichtliche Entscheidung mit
-        Begründung) und stilistisch homogen.
+        >) is cleanly encapsulated; timers are idempotent via
+        <code>roundID</code>+state, so late callbacks on aborted rounds
+        fizzle out without effect. The client-side answer validation mirrors the
+        engine rules and is guarded against drift by Vitest. The code is
+        commented throughout (every non-obvious decision with a
+        rationale) and stylistically homogeneous.
       </p>
 
-      <h3>Nebenläufigkeit</h3>
+      <h3>Concurrency</h3>
       <p>
-        Ein globaler <code>hub.mu</code> serialisiert allen Lobby-State; Writes
-        an die Sockets passieren <em>nach</em> dem Entsperren (coder/websocket
-        serialisiert <code>Conn.Write</code> intern). Reconnect-Races sind über
-        Identitäts-Guards (nur die aktuell gebundene Verbindung räumt auf)
-        entschärft. <code>go test -race</code> ist grün, inkl. der End-to-End-
-        WebSocket-Tests.
+        A single global <code>hub.mu</code> serializes all lobby state; writes
+        to the sockets happen <em>after</em> unlocking (coder/websocket
+        serializes <code>Conn.Write</code> internally). Reconnect races are
+        defused via identity guards (only the currently bound connection cleans
+        up). <code>go test -race</code> is green, incl. the end-to-end
+        WebSocket tests.
       </p>
 
       <h3>Tests &amp; CI</h3>
       <p>
-        Backend: Engine-Unit-Tests, Benchmarks und Protokoll-nahe
-        WS-Integrationstests (u.&nbsp;a. voller Rundenzyklus, Host-Grace-Ablauf,
-        Mid-Game-Beitritt&nbsp;→&nbsp;Pending&nbsp;→&nbsp;Aktivierung).
-        Frontend: Zod-Parser und der Engine-Regel-Mirror. Die GitLab-CI läuft
-        auf
-        <code>oven/bun</code> ohne Node; die Bun-Runtime-Eigenheit (zod inline
-        in <code>vite.config.ts</code>) ist bewusst gelöst und dokumentiert.
-        <em>Lücke (nicht kritisch):</em> Für die React-Komponenten/Screens gibt
-        es keine Render-Tests — die UI wird über Typecheck, Lint und manuelle
-        Varianten-Durchläufe abgesichert.
+        Backend: engine unit tests, benchmarks and protocol-level
+        WS integration tests (among others a full round cycle, host-grace expiry,
+        mid-game join&nbsp;-&gt;&nbsp;pending&nbsp;-&gt;&nbsp;activation).
+        Frontend: the Zod parser and the engine-rule mirror. The GitLab CI runs
+        on
+        <code>oven/bun</code> without Node; the Bun runtime quirk (zod inlined
+        in <code>vite.config.ts</code>) is deliberately solved and documented.
+        <em>Gap (not critical):</em> there are no render tests for the
+        React components/screens, the UI is guarded via typecheck, lint and
+        manual variant runs.
       </p>
 
       <h3>Security</h3>
       <p>
-        Server-autoritativ mit durchgängiger Eingangsvalidierung;
-        WS-Origin-Check gegen CSWSH (IP-parsing statt Glob),
-        Per-Connection-Rate-Limit, Ressourcen-Caps, Join-Backoff gegen
-        Code-Enumeration, abandoned-Lobby- Reaper. Strikte CSP (Script-Hash
-        statt <code>unsafe-inline</code>), HSTS/COOP/nosniff, gehashte
-        Session-IDs in Logs, kein <code>sessionId</code>-Leak an andere Clients.
-        Angemessen für ein Spiel ohne Konten/Persistenz und ohne
-        personenbezogene Daten.
+        Server-authoritative with end-to-end input validation;
+        a WS origin check against CSWSH (IP parsing instead of a glob),
+        a per-connection rate limit, resource caps, a join backoff against
+        code enumeration, an abandoned-lobby reaper. A strict CSP (script hash
+        instead of <code>unsafe-inline</code>), HSTS/COOP/nosniff, hashed
+        session IDs in logs, no <code>sessionId</code> leak to other clients.
+        Appropriate for a game without accounts/persistence and without
+        personal data.
       </p>
 
-      <h3>UX &amp; A11y</h3>
+      <h3>UX &amp; a11y</h3>
       <p>
-        Beide Rollen sind durchgängig geführt (inline-Fehler am Feld,
-        Bestätigungen für destruktive Aktionen, Verbindungs-Feedback,
-        Kommentator-Beamer-Ansicht, QR/Deep-Link-Beitritt, „jederzeit
-        beitreten"). A11y: <code>&lt;main&gt;</code>-Landmark, Fokus-Trap im
-        Modal, variantenabhängige Live-Regions, Tastaturbedienung, pausierbare
-        Toasts, AA-Kontrast. Reaktionsschnell und mit Hell-/Dunkel-Theme.
+        Both roles are guided throughout (inline field errors,
+        confirmations for destructive actions, connection feedback,
+        the commentator beamer view, QR/deep-link joining, "join
+        anytime"). A11y: a <code>&lt;main&gt;</code> landmark, a focus trap in
+        the modal, variant-dependent live regions, keyboard operation, pausable
+        toasts, AA contrast. Responsive and with a light/dark theme.
       </p>
 
-      <h3>Optionale nächste Schritte (nicht blockierend)</h3>
+      <h3>Optional next steps (non-blocking)</h3>
       <p class="note">
-        Nur als Ideen für den Fall, dass das Projekt später wieder aufgenommen
-        wird — nichts davon ist nötig für einen Abschluss:
+        Only ideas in case the project is picked up again later,
+        none of it is needed for a close-out:
       </p>
       <ul class="tight">
         <li>
-          Leichte Render-/Interaktionstests für die Kern-Screens (z.&nbsp;B.
-          Testing-Library) als Ergänzung zu den bestehenden Logik-Tests.
+          Lightweight render/interaction tests for the core screens (e.g.
+          Testing Library) as a complement to the existing logic tests.
         </li>
         <li>
-          Optionaler Persistenz-Layer (z.&nbsp;B. Redis), falls Lobbys je einen
-          Server-Neustart überleben sollen — aktuell bewusst rein In-Memory.
+          An optional persistence layer (e.g. Redis) if lobbies should ever
+          survive a server restart, currently deliberately purely in-memory.
         </li>
       </ul>
 
       <hr />
       <p class="note">
-        Dieser Report dokumentiert nur — er spiegelt den aktuellen Stand ohne
-        Historie. Nichts davon ist blockierend; die App ist in gutem,
-        auslieferbarem Zustand und kann so abgeschlossen werden.
+        This report only documents, it reflects the current state without
+        history. None of it is blocking; the app is in a good,
+        shippable state and can be closed out as is.
       </p>
     </div>
   </body>
