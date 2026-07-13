@@ -517,7 +517,10 @@ export function Lobby() {
 									<>
 										<span className="min-w-0 truncate text-sm">{cat.name}</span>
 										{isHost && (
-											<div className="flex shrink-0 items-center gap-1">
+											// Same spacing (gap-2) and icon size (h-4) as the edit
+											// form's Accept/Dismiss buttons, so Edit/Delete sit in the
+											// exact same position when a row toggles into edit mode.
+											<div className="flex shrink-0 items-center gap-2">
 												<Button
 													variant="ghost"
 													size="icon"
@@ -525,7 +528,7 @@ export function Lobby() {
 													title="Bearbeiten"
 													onClick={() => startEdit(cat.id, cat.name)}
 												>
-													<Pencil className="h-3.5 w-3.5" />
+													<Pencil className="h-4 w-4" />
 												</Button>
 												<Button
 													variant="ghost"
@@ -534,7 +537,7 @@ export function Lobby() {
 													title="Löschen"
 													onClick={() => deleteCategory(cat.id)}
 												>
-													<Trash2 className="h-3.5 w-3.5" />
+													<Trash2 className="h-4 w-4" />
 												</Button>
 											</div>
 										)}
