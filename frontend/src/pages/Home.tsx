@@ -325,9 +325,10 @@ export function Home() {
 
 				{/* ---- Step: start ---- */}
 				{step === "start" && (
-					// Slightly narrower and centered so the buttons do not take up the
-					// full card width on mobile.
-					<div className="mx-auto max-w-[16rem] space-y-3">
+					// Centered and a touch narrower than the card. Wider than before, and
+					// narrower on mobile than on desktop, while staying comfortably
+					// tappable on both.
+					<div className="mx-auto max-w-[18rem] space-y-3 sm:max-w-[22rem]">
 						<Button
 							className="w-full"
 							size="lg"
