@@ -210,21 +210,19 @@
         (<code>gofmt</code>, <code>go vet</code>,
         <code>go test&nbsp;./...</code> incl. <code>-race</code>) and frontend
         (Biome, Vitest, 20&nbsp;tests, <code>vite&nbsp;build</code> with
-        <code>tsc</code>). The server-authoritative core, the end-to-end
-        Zod validation, the robust connection lifecycle (host grace, reconnect
-        with backoff+jitter, now a <code>localStorage</code> session that
-        survives closing the tab), the hardening (origin check,
-        rate limits/caps/join backoff, CSP/HSTS/COOP, the CSP script hash
-        matches the anti-FOUC snippet exactly) and the a11y are solid. Both
-        roles were played through the
-        <b>complete variant matrix</b> again (commentator&nbsp;on/off,
-        flames on/off, time limit on/off, last letter,
-        letter-in-countdown, solo/multiplayer,
-        leave&nbsp;vs.&nbsp;connection loss, joining in every phase,
-        reconnect as a player <em>and</em> as a waiting spectator), with no
-        finding. <b>Currently no open findings.</b> A detailed
-        overall assessment is in <b>section&nbsp;4</b>; deliberate
-        limitations (documented in the README) are in section&nbsp;3.
+        <code>tsc</code>). The server-authoritative core, the end-to-end Zod
+        validation, the robust connection lifecycle (host grace, reconnect with
+        backoff+jitter, now a <code>localStorage</code> session that survives
+        closing the tab), the hardening (origin check, rate limits/caps/join
+        backoff, CSP/HSTS/COOP, the CSP script hash matches the anti-FOUC
+        snippet exactly) and the a11y are solid. Both roles were played through
+        the <b>complete variant matrix</b> again (commentator&nbsp;on/off,
+        flames on/off, time limit on/off, last letter, letter-in-countdown,
+        solo/multiplayer, leave&nbsp;vs.&nbsp;connection loss, joining in every
+        phase, reconnect as a player <em>and</em> as a waiting spectator), with
+        no finding. <b>Currently no open findings.</b> A detailed overall
+        assessment is in <b>section&nbsp;4</b>; deliberate limitations
+        (documented in the README) are in section&nbsp;3.
       </p>
 
       <div class="summary">
@@ -282,43 +280,43 @@
       <h2 id="good">2. What is already strong</h2>
       <ul class="tight">
         <li>
-          <span class="badge b-ok">plus</span> <b>Connection lifecycle</b>:
-          host grace with a stable deadline ticker (no more second-by-second
+          <span class="badge b-ok">plus</span> <b>Connection lifecycle</b>: host
+          grace with a stable deadline ticker (no more second-by-second
           jump-back), a snapshot-carried countdown, a clean 1001 shutdown and
-          reconnect with backoff+jitter, incl. an expiry test (<code>-race</code>
+          reconnect with backoff+jitter, incl. an expiry test (<code
+            >-race</code
+          >
           green). The session lives in <code>localStorage</code> and survives
           closing the tab: re-entry as the same player (the host keeps its role
           within the grace window), an explicit "leave" is final.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Join anytime</b>: you
-          can join a running lobby in any phase. Mid-game joiners are
-          <code>Pending</code> on the server, spectators with a
-          fill-in overview, cleanly excluded from scoring/ranking/review/buzz
-          (<code>isRoundSpectator</code>), and are activated automatically at the
-          next round start. Covered by integration tests
-          (pending status + activation).
+          <span class="badge b-ok">plus</span> <b>Join anytime</b>: you can join
+          a running lobby in any phase. Mid-game joiners are
+          <code>Pending</code> on the server, spectators with a fill-in
+          overview, cleanly excluded from scoring/ranking/review/buzz
+          (<code>isRoundSpectator</code>), and are activated automatically at
+          the next round start. Covered by integration tests (pending status +
+          activation).
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Accessibility</b>:
-          a <code>&lt;main&gt;</code> landmark, a live region decoupled from the
+          <span class="badge b-ok">plus</span> <b>Accessibility</b>: a
+          <code>&lt;main&gt;</code> landmark, a live region decoupled from the
           second ticker, labels,
           <code>aria-live</code>/<code>aria-invalid</code>, keyboard operation,
           pausable toasts, an AA-capable contrast token.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Frontend robustness</b>:
-          an ErrorBoundary (also around lazy chunks), a stackable 3D toast system
+          <span class="badge b-ok">plus</span> <b>Frontend robustness</b>: an
+          ErrorBoundary (also around lazy chunks), a stackable 3D toast system
           with error/info variants, a join pre-check (<code>checkLobby</code>)
           with navigation locked during the check.
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Tests</b>:
-          Go WS integration tests (<code>-race</code>) <em>and</em> a new
-          frontend Vitest setup, the client mirror of the engine rules
-          (<code>answerValidation</code>) and
-          <code>parseServerEvent</code> (Zod) are covered, both run in
-          CI.
+          <span class="badge b-ok">plus</span> <b>Tests</b>: Go WS integration
+          tests (<code>-race</code>) <em>and</em> a new frontend Vitest setup,
+          the client mirror of the engine rules (<code>answerValidation</code>)
+          and <code>parseServerEvent</code> (Zod) are covered, both run in CI.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Server-authoritative</b> &amp;
@@ -327,48 +325,47 @@
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Hardening</b>: origin check,
-          rate limit + caps + join backoff (also for the pre-check),
-          a lobby reaper, CSP/HSTS-<code>preload</code>/COOP, immutable
-          asset caching, hashed session IDs, no sessionId leak.
+          rate limit + caps + join backoff (also for the pre-check), a lobby
+          reaper, CSP/HSTS-<code>preload</code>/COOP, immutable asset caching,
+          hashed session IDs, no sessionId leak.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Render efficiency</b>: all
           store accesses use fine-grained Zustand selectors (<code
             >useStore(s =&gt; s.field)</code
           >) instead of subscribing to the whole store, so components re-render
-          only for the fields they read. <code>Room</code> hangs
-          only on <code>lobby?.state</code>, for example, so the route tree
-          no longer re-renders on every <code>hostGrace</code> second tick.
-          Timer screens deliberately tick on local state, not on the store.
+          only for the fields they read. <code>Room</code> hangs only on
+          <code>lobby?.state</code>, for example, so the route tree no longer
+          re-renders on every <code>hostGrace</code> second tick. Timer screens
+          deliberately tick on local state, not on the store.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Consistency &amp; CI</b>:
-          uniform sort idioms, TypeScript <code>strict</code>, Biome
-          clean, a gofmt gate, Vitest + WS integration tests in the pipeline.
+          uniform sort idioms, TypeScript <code>strict</code>, Biome clean, a
+          gofmt gate, Vitest + WS integration tests in the pipeline.
         </li>
       </ul>
 
       <!-- ============ DECIDED ============ -->
       <h2 id="decided">3. Deliberately decided (no action needed)</h2>
       <p class="note">
-        The following points, raised in earlier rounds, are chosen
-        deliberately and documented in the README under "Deliberate decisions &amp;
-        known limitations". They are <b>not a problem</b> for the
-        intended use (LAN/party game) and are listed here only for
-        completeness.
+        The following points, raised in earlier rounds, are chosen deliberately
+        and documented in the README under "Deliberate decisions &amp; known
+        limitations". They are <b>not a problem</b> for the intended use
+        (LAN/party game) and are listed here only for completeness.
       </p>
       <ul class="tight">
         <li>
           <b>No host handoff</b>: if the host does not return within 15&nbsp;s,
-          the lobby is closed, deliberately <em>not</em> transferring the
-          host role.
+          the lobby is closed, deliberately <em>not</em> transferring the host
+          role.
         </li>
         <li>
-          <b>Host "end round" is a fallback</b>: a round normally ends
-          through the first buzz or the timeout. The host button
-          "end round" is deliberately de-emphasized (ghost) and only meant for
-          the special case that no one can find anything else, it is
-          <em>not</em> a standard flow.
+          <b>Host "end round" is a fallback</b>: a round normally ends through
+          the first buzz or the timeout. The host button "end round" is
+          deliberately de-emphasized (ghost) and only meant for the special case
+          that no one can find anything else, it is <em>not</em> a standard
+          flow.
         </li>
         <li>
           <b>A single global <code>hub.mu</code></b
@@ -377,20 +374,19 @@
           parallel games.
         </li>
         <li>
-          <b><code>execCommand</code> clipboard fallback</b>: for
-          plain-HTTP LAN, where <code>navigator.clipboard</code> is missing,
-          deprecated but widely supported.
+          <b><code>execCommand</code> clipboard fallback</b>: for plain-HTTP
+          LAN, where <code>navigator.clipboard</code> is missing, deprecated but
+          widely supported.
         </li>
         <li>
           <b>Player-list cache</b>: evaluated and rejected, almost every
-          broadcast follows a
-          <code>connected</code>/<code>score</code> change that
-          would invalidate a cache anyway.
+          broadcast follows a <code>connected</code>/<code>score</code> change
+          that would invalidate a cache anyway.
         </li>
         <li>
-          <b>No persistence layer</b>: state lives in RAM; after a
-          server restart clients are disconnected cleanly and return to the
-          home screen.
+          <b>No persistence layer</b>: state lives in RAM; after a server
+          restart clients are disconnected cleanly and return to the home
+          screen.
         </li>
       </ul>
 
@@ -398,27 +394,27 @@
       <h2 id="final">4. Final project analysis</h2>
       <p>
         <b>Overall verdict: production-ready for the intended use</b>
-        (real-time multiplayer party game on the LAN/browser). Over
-        several review rounds the project has matured into a consistent,
-        well-tested and deliberately hardened state. There are no known
-        correctness, security or a11y defects; the remaining limitations are
-        all deliberate, documented design decisions
-        (section&nbsp;3).
+        (real-time multiplayer party game on the LAN/browser). Over several
+        review rounds the project has matured into a consistent, well-tested and
+        deliberately hardened state. There are no known correctness, security or
+        a11y defects; the remaining limitations are all deliberate, documented
+        design decisions (section&nbsp;3).
       </p>
 
       <h3>Architecture &amp; code quality</h3>
       <p>
-        Clear separation: the Go backend as the <b>single source of truth</b>
-        (engine, state machine, hub/handlers separated), the React SPA as a pure
-        view layer. The state machine per lobby (<code
-          >Lobby -&gt; Countdown -&gt; Playing -&gt; Reviewing -&gt; RoundResult -&gt;
-          GameOver</code
+        Clear separation: the Go backend as the
+        <b>single source of truth</b> (engine, state machine, hub/handlers
+        separated), the React SPA as a pure view layer. The state machine per
+        lobby (<code
+          >Lobby -&gt; Countdown -&gt; Playing -&gt; Reviewing -&gt; RoundResult
+          -&gt; GameOver</code
         >) is cleanly encapsulated; timers are idempotent via
-        <code>roundID</code>+state, so late callbacks on aborted rounds
-        fizzle out without effect. The client-side answer validation mirrors the
-        engine rules and is guarded against drift by Vitest. The code is
-        commented throughout (every non-obvious decision with a
-        rationale) and stylistically homogeneous.
+        <code>roundID</code>+state, so late callbacks on aborted rounds fizzle
+        out without effect. The client-side answer validation mirrors the engine
+        rules and is guarded against drift by Vitest. The code is commented
+        throughout (every non-obvious decision with a rationale) and
+        stylistically homogeneous.
       </p>
 
       <h3>Concurrency</h3>
@@ -427,50 +423,48 @@
         to the sockets happen <em>after</em> unlocking (coder/websocket
         serializes <code>Conn.Write</code> internally). Reconnect races are
         defused via identity guards (only the currently bound connection cleans
-        up). <code>go test -race</code> is green, incl. the end-to-end
-        WebSocket tests.
+        up). <code>go test -race</code> is green, incl. the end-to-end WebSocket
+        tests.
       </p>
 
       <h3>Tests &amp; CI</h3>
       <p>
-        Backend: engine unit tests, benchmarks and protocol-level
-        WS integration tests (among others a full round cycle, host-grace expiry,
-        mid-game join&nbsp;-&gt;&nbsp;pending&nbsp;-&gt;&nbsp;activation).
-        Frontend: the Zod parser and the engine-rule mirror. The GitLab CI runs
-        on
+        Backend: engine unit tests, benchmarks and protocol-level WS integration
+        tests (among others a full round cycle, host-grace expiry, mid-game
+        join&nbsp;-&gt;&nbsp;pending&nbsp;-&gt;&nbsp;activation). Frontend: the
+        Zod parser and the engine-rule mirror. The GitLab CI runs on
         <code>oven/bun</code> without Node; the Bun runtime quirk (zod inlined
         in <code>vite.config.ts</code>) is deliberately solved and documented.
-        <em>Gap (not critical):</em> there are no render tests for the
-        React components/screens, the UI is guarded via typecheck, lint and
-        manual variant runs.
+        <em>Gap (not critical):</em> there are no render tests for the React
+        components/screens, the UI is guarded via typecheck, lint and manual
+        variant runs.
       </p>
 
       <h3>Security</h3>
       <p>
-        Server-authoritative with end-to-end input validation;
-        a WS origin check against CSWSH (IP parsing instead of a glob),
-        a per-connection rate limit, resource caps, a join backoff against
-        code enumeration, an abandoned-lobby reaper. A strict CSP (script hash
-        instead of <code>unsafe-inline</code>), HSTS/COOP/nosniff, hashed
-        session IDs in logs, no <code>sessionId</code> leak to other clients.
-        Appropriate for a game without accounts/persistence and without
-        personal data.
+        Server-authoritative with end-to-end input validation; a WS origin check
+        against CSWSH (IP parsing instead of a glob), a per-connection rate
+        limit, resource caps, a join backoff against code enumeration, an
+        abandoned-lobby reaper. A strict CSP (script hash instead of
+        <code>unsafe-inline</code>), HSTS/COOP/nosniff, hashed session IDs in
+        logs, no <code>sessionId</code> leak to other clients. Appropriate for a
+        game without accounts/persistence and without personal data.
       </p>
 
       <h3>UX &amp; a11y</h3>
       <p>
-        Both roles are guided throughout (inline field errors,
-        confirmations for destructive actions, connection feedback,
-        the commentator beamer view, QR/deep-link joining, "join
-        anytime"). A11y: a <code>&lt;main&gt;</code> landmark, a focus trap in
-        the modal, variant-dependent live regions, keyboard operation, pausable
-        toasts, AA contrast. Responsive and with a light/dark theme.
+        Both roles are guided throughout (inline field errors, confirmations for
+        destructive actions, connection feedback, the commentator beamer view,
+        QR/deep-link joining, "join anytime"). A11y: a
+        <code>&lt;main&gt;</code> landmark, a focus trap in the modal,
+        variant-dependent live regions, keyboard operation, pausable toasts, AA
+        contrast. Responsive and with a light/dark theme.
       </p>
 
       <h3>Optional next steps (non-blocking)</h3>
       <p class="note">
-        Only ideas in case the project is picked up again later,
-        none of it is needed for a close-out:
+        Only ideas in case the project is picked up again later, none of it is
+        needed for a close-out:
       </p>
       <ul class="tight">
         <li>
@@ -486,8 +480,8 @@
       <hr />
       <p class="note">
         This report only documents, it reflects the current state without
-        history. None of it is blocking; the app is in a good,
-        shippable state and can be closed out as is.
+        history. None of it is blocking; the app is in a good, shippable state
+        and can be closed out as is.
       </p>
     </div>
   </body>
