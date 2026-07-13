@@ -219,3 +219,9 @@ den vorgesehenen Einsatz (LAN-/Party-Spiel):
 - **Kein Persistenz-Layer**: Der gesamte Zustand liegt im RAM. Nach einem
   Server-Neustart sind Lobbys weg; Clients werden sauber getrennt und kehren zur
   Startseite zurück.
+
+## License
+
+This project is licensed under the terms of the GNU General Public License,
+version 3 or (at your option) any later version (`GPL-3.0-or-later`). See the
+[`LICENSE`](LICENSE) file for the full license text.
