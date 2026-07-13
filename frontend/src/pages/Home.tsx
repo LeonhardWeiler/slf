@@ -76,6 +76,10 @@ export function Home() {
 	const [checking, setChecking] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
 	const [connected, setConnected] = useState(ws.status);
+	// Debounced offline flag: only turns true after the connection has actually
+	// been down for a moment, so a fast (re)connect right after a page reload
+	// never flashes the "no connection" banner and shifts the layout.
+	const [showOffline, setShowOffline] = useState(false);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	// The code whose checkLobby reply we're currently awaiting (to ignore stale
@@ -88,6 +92,18 @@ export function Home() {
 
 	// Track live connection status so the user sees when the server is down.
 	useEffect(() => ws.onStatusChange(setConnected), []);
+
+	// Delay surfacing the offline banner: a genuinely-down server still shows it
+	// (after ~1.2s), but a connection that establishes right after a reload never
+	// flashes it. Reconnecting clears it immediately.
+	useEffect(() => {
+		if (connected) {
+			setShowOffline(false);
+			return;
+		}
+		const t = setTimeout(() => setShowOffline(true), 1200);
+		return () => clearTimeout(t);
+	}, [connected]);
 
 	// Handle checkLobby replies and kick off the initial check for a deep link.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: register once on mount
@@ -293,7 +309,10 @@ export function Home() {
 					</h1>
 				</div>
 
-				{!connected && (
+				{/* The banner is deferred on the start screen (the connectivity check
+				    only matters once the user actually creates/joins) and elsewhere is
+				    debounced so a fast (re)connect after a reload never flashes it. */}
+				{step !== "start" && showOffline && (
 					<div className="flex items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 dark:text-amber-300">
 						<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
 						Keine Verbindung zum Server…
@@ -308,7 +327,6 @@ export function Home() {
 						<Button
 							className="w-full"
 							size="lg"
-							disabled={!connected}
 							onClick={() => goTo("createName")}
 						>
 							<Plus className="h-4 w-4" />
@@ -318,7 +336,6 @@ export function Home() {
 							variant="outline"
 							className="w-full"
 							size="lg"
-							disabled={!connected}
 							onClick={() => goTo("joinCode")}
 						>
 							<LogIn className="h-4 w-4" />
