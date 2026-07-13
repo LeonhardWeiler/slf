@@ -341,7 +341,14 @@ export function Home() {
 							variant="outline"
 							className="w-full"
 							size="lg"
-							onClick={() => goTo("joinCode")}
+							onClick={() => {
+								// Start a fresh join each time this is opened from the start
+								// screen: a code left over from a previous, abandoned attempt
+								// must not reappear.
+								setCode("");
+								setJoinError(null);
+								goTo("joinCode");
+							}}
 						>
 							<LogIn className="h-4 w-4" />
 							Lobby beitreten
