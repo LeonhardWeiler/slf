@@ -71,6 +71,17 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby) {
 		hub.mu.Unlock()
 		return
 	}
+	// Don't start a new round on an empty lobby (everyone left or disconnected):
+	// there would be no one to answer and the round would be a dead end. Fall back
+	// to the Lobby state so the lobby stays usable and players who (re)join later
+	// can start fresh.
+	if !hasRoundParticipant(lobby) {
+		lobby.Game = nil
+		setLobbyState(lobby, game.StateLobby)
+		hub.mu.Unlock()
+		hub.broadcastLobbyState(lobby)
+		return
+	}
 	letter, remaining := game.PickRandomLetter(g.RemainingLetters)
 	if letter == "" {
 		hub.mu.Unlock()

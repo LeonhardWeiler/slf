@@ -80,6 +80,24 @@ func isRoundSpectator(lobby *game.Lobby, p *game.Player) bool {
 	return isSpectatorHost(lobby, p) || p.Pending
 }
 
+// hasRoundParticipant reports whether at least one player would actually play a
+// new round right now: connected, not left, and - unless the host plays - not the
+// host. Used to avoid starting a round on an empty lobby (everyone disconnected or
+// left) while keeping the lobby usable for players who join later. Caller must
+// hold hub.mu.
+func hasRoundParticipant(lobby *game.Lobby) bool {
+	for _, p := range lobby.Players {
+		if p.Left || !p.Connected {
+			continue
+		}
+		if !lobby.Settings.HostPlays && p.IsHost {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
 // buildCommentatorState summarises, per playing (non-host, non-left) player,
 // which categories they have filled - never the values. Caller must hold hub.mu.
 func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {

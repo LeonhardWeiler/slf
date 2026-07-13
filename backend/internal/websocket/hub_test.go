@@ -49,3 +49,51 @@ func TestReapAbandoned(t *testing.T) {
 		t.Fatal("EmptySince should be cleared while a client is connected")
 	}
 }
+
+func TestHasRoundParticipant(t *testing.T) {
+	// A connected, non-host player counts as a participant.
+	playing := &game.Lobby{
+		Settings: game.Settings{HostPlays: true},
+		Players: map[string]*game.Player{
+			"h": {ID: "h", IsHost: true, Connected: true},
+			"p": {ID: "p", Connected: true},
+		},
+	}
+	if !hasRoundParticipant(playing) {
+		t.Error("a connected player should count as a participant")
+	}
+
+	// Everyone disconnected -> no participant (round must not start).
+	gone := &game.Lobby{
+		Settings: game.Settings{HostPlays: true},
+		Players: map[string]*game.Player{
+			"h": {ID: "h", IsHost: true, Connected: false},
+			"p": {ID: "p", Connected: false},
+		},
+	}
+	if hasRoundParticipant(gone) {
+		t.Error("an all-disconnected lobby has no participant")
+	}
+
+	// A left player does not count even while still connected.
+	left := &game.Lobby{
+		Settings: game.Settings{HostPlays: true},
+		Players: map[string]*game.Player{
+			"p": {ID: "p", Connected: true, Left: true},
+		},
+	}
+	if hasRoundParticipant(left) {
+		t.Error("a player who left is not a participant")
+	}
+
+	// With a commentator host, the connected host alone is not a participant.
+	commentatorOnly := &game.Lobby{
+		Settings: game.Settings{HostPlays: false},
+		Players: map[string]*game.Player{
+			"h": {ID: "h", IsHost: true, Connected: true},
+		},
+	}
+	if hasRoundParticipant(commentatorOnly) {
+		t.Error("a commentator host alone should not count as a participant")
+	}
+}
