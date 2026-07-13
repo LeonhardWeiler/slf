@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SLF - Performance Report</title>
+    <style>
+      :root {
+        --bg: #0f1115;
+        --panel: #171a21;
+        --panel2: #1d212a;
+        --text: #e6e8ee;
+        --muted: #9aa3b2;
+        --border: #2a2f3a;
+        --accent: #7aa2ff;
+        --ok: #4fd08a;
+        --warn: #ffcc4d;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          15px/1.55 -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 32px 20px 80px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 21px;
+        margin: 36px 0 12px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+      }
+      h3 {
+        font-size: 16px;
+        margin: 20px 0 6px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      code {
+        background: #0b0d11;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      a {
+        color: var(--accent);
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .lead {
+        color: var(--muted);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin: 12px 0;
+      }
+      .card h3 {
+        margin-top: 0;
+      }
+      .rec {
+        background: var(--panel2);
+        border-left: 3px solid var(--accent);
+        border-radius: 0 6px 6px 0;
+        padding: 8px 12px;
+        margin-top: 8px;
+      }
+      .rec b {
+        color: var(--accent);
+      }
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 999px;
+        color: #0b0d11;
+        background: var(--ok);
+      }
+      .badge.warn {
+        background: var(--warn);
+      }
+      ul.tight {
+        margin: 6px 0;
+        padding-left: 20px;
+      }
+      ul.tight li {
+        margin: 4px 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 10px 0;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 6px 10px;
+        text-align: left;
+      }
+      th {
+        background: var(--panel2);
+      }
+      td.num {
+        text-align: right;
+        font-family: ui-monospace, monospace;
+        white-space: nowrap;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      .note {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 26px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Stadt&nbsp;Land&nbsp;Fluss - Performance Report</h1>
+      <div class="meta">
+        Frontend performance audit, produced alongside the UI/UX &amp; bugfix
+        pass (TODO&nbsp;items&nbsp;1-17) &middot; branch <code>master</code>
+      </div>
+
+      <p class="lead">
+        This report captures the frontend performance picture: measured bundle
+        sizes from <code>vite build</code>, a static analysis of the render /
+        re-render behaviour and the animation/transition budget, plus the
+        concrete improvements made during this pass and a short list of
+        non-blocking optimization ideas. Overall the app is
+        <b>lightweight and render-efficient</b>; there are no performance
+        regressions from the changes in this pass, and a few things got faster.
+      </p>
+
+      <!-- ============ BUNDLE ============ -->
+      <h2>1. Bundle &amp; loading</h2>
+      <p>
+        Production build output (gzip in parentheses). The start screen loads
+        only the main chunk + CSS; the in-game view and the QR features are
+        code-split and fetched on demand.
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Chunk</th>
+              <th>When loaded</th>
+              <th>Raw</th>
+              <th>Gzip</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>index</code> (app core + Home)</td>
+              <td>initial</td>
+              <td class="num">401.7 kB</td>
+              <td class="num">124.1 kB</td>
+            </tr>
+            <tr>
+              <td><code>index.css</code></td>
+              <td>initial</td>
+              <td class="num">42.3 kB</td>
+              <td class="num">7.9 kB</td>
+            </tr>
+            <tr>
+              <td><code>Room</code> (lobby + in-game screens)</td>
+              <td>on entering a lobby</td>
+              <td class="num">57.5 kB</td>
+              <td class="num">16.9 kB</td>
+            </tr>
+            <tr>
+              <td><code>QrCode</code> (generator)</td>
+              <td>host reveals QR</td>
+              <td class="num">23.8 kB</td>
+              <td class="num">9.0 kB</td>
+            </tr>
+            <tr>
+              <td><code>QrScanner</code> + worker</td>
+              <td>user opens scanner</td>
+              <td class="num">61.5 kB</td>
+              <td class="num">16.8 kB</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3><span class="badge">good</span> Code-splitting already in place</h3>
+        <p>
+          <code>Room</code> (the whole lobby/game view), the QR
+          <em>generator</em> and the QR <em>scanner</em> (with its sizeable
+          worker) are lazy <code>import()</code>s. A first-time visitor on the
+          start screen never downloads any in-game or camera code, keeping the
+          initial paint lean. <code>zod</code> is deliberately inlined for the
+          Bun test runtime but stays in the main chunk at runtime (it validates
+          every server message, needed from the first connect).
+        </p>
+      </div>
+      <p class="note">
+        Observation: the <code>124&nbsp;kB</code> gzip initial JS is dominated
+        by React&nbsp;19 + react-dom, TanStack Router, Zod&nbsp;v4 and Base UI -
+        all core to the app. This is a reasonable budget for an interactive SPA;
+        the biggest single lever would be trimming Zod or the router, neither of
+        which is worth the complexity here.
+      </p>
+
+      <!-- ============ RENDERS ============ -->
+      <h2>2. Renders &amp; re-renders</h2>
+      <div class="card">
+        <h3>
+          <span class="badge">good</span> Fine-grained store subscriptions
+        </h3>
+        <p>
+          Every component reads Zustand through a narrow selector
+          (<code>useStore(s =&gt; s.field)</code>); a repo-wide check found
+          <b>no bare store subscriptions</b>. Notably <code>Room</code> only
+          hangs on <code>lobby?.state</code>, so the per-second
+          <code>hostGrace</code> countdown does not re-render the routed tree.
+          <code>useIsHost</code> centralises the host lookup as a derived
+          selector.
+        </p>
+      </div>
+      <div class="card">
+        <h3>
+          <span class="badge">good</span> Timers tick on local state
+        </h3>
+        <p>
+          The countdown and stopwatch in <code>GameScreen</code> run on local
+          <code>useState</code> intervals, not on the store, so a per-second
+          tick updates just the digit and never cascades through the lobby
+          state. Live regions are decoupled from the second ticker.
+        </p>
+      </div>
+      <div class="card">
+        <h3>
+          <span class="badge">good</span> Debounced answer sync
+        </h3>
+        <p>
+          Keystrokes are batched into at most one <code>answerUpdate</code>
+          per&nbsp;~250&nbsp;ms per category (with an immediate flush before a
+          buzz and on unmount), instead of one message per keystroke - fewer
+          renders on the commentator board and far less socket traffic.
+        </p>
+      </div>
+      <div class="card">
+        <h3>
+          <span class="badge">good</span> Player-list presence is change-driven
+        </h3>
+        <p>
+          <code>usePlayerPresence</code> reacts only to added/removed player ids
+          (for the fade-out), not to field updates or reorders, so live
+          name/connection updates don't retrigger its effect.
+        </p>
+      </div>
+
+      <!-- ============ ANIMATIONS ============ -->
+      <h2>3. Animations &amp; transitions</h2>
+      <p>
+        The app uses short, one-shot CSS animations for feedback (fade, scale,
+        pop, highlight) and cheap color/opacity transitions. During this pass
+        the durations were trimmed so motion confirms an action without ever
+        making the user wait on it (TODO&nbsp;item&nbsp;11).
+      </p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Effect</th>
+              <th>Before</th>
+              <th>After</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>animate-fade-in</code></td>
+              <td class="num">0.25 s</td>
+              <td class="num">0.15 s</td>
+            </tr>
+            <tr>
+              <td><code>animate-fade-out</code></td>
+              <td class="num">0.20 s</td>
+              <td class="num">0.12 s</td>
+            </tr>
+            <tr>
+              <td><code>animate-scale-in</code></td>
+              <td class="num">0.18 s</td>
+              <td class="num">0.12 s</td>
+            </tr>
+            <tr>
+              <td><code>animate-scale-out</code></td>
+              <td class="num">0.16 s</td>
+              <td class="num">0.10 s</td>
+            </tr>
+            <tr>
+              <td><code>animate-pop</code></td>
+              <td class="num">0.30 s</td>
+              <td class="num">0.20 s</td>
+            </tr>
+            <tr>
+              <td><code>animate-highlight</code></td>
+              <td class="num">1.00 s</td>
+              <td class="num">0.60 s</td>
+            </tr>
+            <tr>
+              <td>player-dot color transition</td>
+              <td class="num">500 ms</td>
+              <td class="num">200 ms</td>
+            </tr>
+            <tr>
+              <td>fill-progress bar width</td>
+              <td class="num">300 ms</td>
+              <td class="num">200 ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">
+        The JS timeouts that gate the QR-popup close and the player-exit
+        animation were matched to the new durations (120&nbsp;ms and
+        140&nbsp;ms). All animations are transform/opacity/color based (no
+        layout-thrashing properties) and are fully disabled under
+        <code>prefers-reduced-motion: reduce</code>.
+      </p>
+
+      <!-- ============ IMPLEMENTED ============ -->
+      <h2>4. Improvements implemented in this pass</h2>
+      <ul class="tight">
+        <li>
+          <b>Snappier motion</b>: shortened the shared animation durations and
+          two long transitions (see section&nbsp;3), for a faster perceived
+          response across the whole UI.
+        </li>
+        <li>
+          <b>No banner flash on reload</b>: the "no connection" banner is now
+          deferred on the start screen and debounced (~1.2&nbsp;s) elsewhere, so
+          a fast (re)connect after a reload no longer flashes the banner and
+          triggers a layout shift.
+        </li>
+        <li>
+          <b>Less layout shift</b>: constraining that banner to the button width
+          keeps the start screen stable when it does appear.
+        </li>
+      </ul>
+
+      <!-- ============ SUGGESTIONS ============ -->
+      <h2>5. Optimization ideas (non-blocking)</h2>
+      <div class="card">
+        <h3><span class="badge warn">optional</span> Preload the Room chunk</h3>
+        <p>
+          The lobby/game code is lazy-loaded when a player enters a lobby. On a
+          slow link that shows a brief blank (<code>Suspense fallback={null}</code>).
+          Preloading the <code>Room</code> chunk on hover/focus of the
+          Create/Join buttons (a warm <code>import()</code>) would hide that
+          latency without enlarging the initial bundle.
+        </p>
+      </div>
+      <div class="card">
+        <h3>
+          <span class="badge warn">optional</span> Keep lucide imports named
+        </h3>
+        <p>
+          Icons are imported by name from <code>lucide-react</code>, which
+          tree-shakes to only the used icons. Keep it that way (avoid
+          <code>import * as</code>) so the icon cost stays proportional to what
+          is actually rendered.
+        </p>
+      </div>
+      <div class="card">
+        <h3>
+          <span class="badge warn">optional</span> Defer Zod on the start screen
+        </h3>
+        <p>
+          Zod sits in the initial chunk because it validates the first server
+          messages. If the start screen ever needs to get even leaner, the
+          schema module could be split so only the connect path pulls it in.
+          Low priority - the current budget is fine.
+        </p>
+      </div>
+
+      <hr />
+      <p class="note">
+        Method: bundle numbers from <code>vite build</code>; render/animation
+        findings from static analysis of the store selectors, effect
+        dependencies and CSS. No runtime profiling harness is part of the repo;
+        the app's scale (party-game lobbies) keeps per-frame work well within
+        budget. Nothing here is blocking.
+      </p>
+    </div>
+  </body>
+</html>
