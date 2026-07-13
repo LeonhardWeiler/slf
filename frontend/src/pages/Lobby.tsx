@@ -533,7 +533,9 @@ export function Lobby() {
 												<Button
 													variant="ghost"
 													size="icon"
-													className="h-7 w-7 shrink-0 text-destructive"
+													// Stays red at all times: the ghost hover/active would
+													// otherwise recolor it to the accent foreground.
+													className="h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
 													title="Löschen"
 													onClick={() => deleteCategory(cat.id)}
 												>
