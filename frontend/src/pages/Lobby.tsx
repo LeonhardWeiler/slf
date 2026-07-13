@@ -524,22 +524,24 @@ export function Lobby() {
 												<Button
 													variant="ghost"
 													size="icon"
-													className="h-7 w-7 shrink-0"
+													className="group h-7 w-7 shrink-0"
 													title="Bearbeiten"
 													onClick={() => startEdit(cat.id, cat.name)}
 												>
-													<Pencil className="h-4 w-4" />
+													{/* Subtle tilt on hover, a stronger one on press - a bit
+													    of tactile feedback without slowing anything down. */}
+													<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
 												</Button>
 												<Button
 													variant="ghost"
 													size="icon"
 													// Stays red at all times: the ghost hover/active would
 													// otherwise recolor it to the accent foreground.
-													className="h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
+													className="group h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
 													title="Löschen"
 													onClick={() => deleteCategory(cat.id)}
 												>
-													<Trash2 className="h-4 w-4" />
+													<Trash2 className="h-4 w-4 transition-transform group-hover:-rotate-6 group-active:-rotate-12" />
 												</Button>
 											</div>
 										)}
