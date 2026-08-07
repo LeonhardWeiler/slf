@@ -67,6 +67,26 @@ func flamedFor(round *game.Round, catID string) map[string]bool {
 	return out
 }
 
+// ---- round participation ----
+//
+// "Is this player in the round?" has three different answers depending on what
+// is being asked, and these predicates are the only place the distinction is
+// made. Anything that needs to filter players must call one of them rather than
+// re-deriving the rule from Left/Pending/Connected - that drift is what let a
+// departed player's answers reach scoring while review filtered them out.
+//
+//	isRoundSpectator  - watches instead of playing this round (commentator host
+//	                    or a pending mid-game joiner). Never submits, buzzes,
+//	                    is scored, ranked or reviewed.
+//	playsThisRound    - the player's answers count *this* round: not left, not a
+//	                    spectator. The filter for review, scoring, the
+//	                    commentator board and the empty-round check.
+//	canPlayNextRound  - could play a round starting *now*: connected, not left,
+//	                    not a commentator host. Gates starting a round.
+//
+// The standings are the deliberate exception: buildRoundResult excludes only
+// spectators, because a player who left is kept in the ranking on purpose.
+
 // isSpectatorHost reports whether the player is a non-playing (commentator) host.
 func isSpectatorHost(lobby *game.Lobby, p *game.Player) bool {
 	return !lobby.Settings.HostPlays && p.IsHost
@@ -74,38 +94,44 @@ func isSpectatorHost(lobby *game.Lobby, p *game.Player) bool {
 
 // isRoundSpectator reports whether the player does not participate in the current
 // round and therefore watches instead of playing: a commentator host, or a
-// mid-game joiner still pending (waiting to play from the next round). Such a
-// player never submits answers, buzzes, is scored, ranked or reviewed.
+// mid-game joiner still pending (waiting to play from the next round).
 func isRoundSpectator(lobby *game.Lobby, p *game.Player) bool {
 	return isSpectatorHost(lobby, p) || p.Pending
 }
 
-// hasRoundParticipant reports whether at least one player would actually play a
-// new round right now: connected, not left, and - unless the host plays - not the
-// host. Used to avoid starting a round on an empty lobby (everyone disconnected or
-// left) while keeping the lobby usable for players who join later. Caller must
-// hold hub.mu.
+// playsThisRound reports whether the player's answers count in the current round.
+// Takes a possibly-nil player so callers can pass a raw map lookup: an answer
+// whose player is gone from the lobby is not in the round either.
+func playsThisRound(lobby *game.Lobby, p *game.Player) bool {
+	return p != nil && !p.Left && !isRoundSpectator(lobby, p)
+}
+
+// canPlayNextRound reports whether the player would actually play a round
+// starting right now. Pending is deliberately *not* checked: beginCountdown
+// clears it as the round starts, so a waiting mid-game joiner does count.
+func canPlayNextRound(lobby *game.Lobby, p *game.Player) bool {
+	return p != nil && !p.Left && p.Connected && !isSpectatorHost(lobby, p)
+}
+
+// hasRoundParticipant reports whether at least one player could play a round
+// starting now. Shared by handleStartGame (so the host gets a real error) and
+// beginCountdown (so an empty lobby falls back instead of starting a dead
+// round) - the two must not disagree. Caller must hold hub.mu.
 func hasRoundParticipant(lobby *game.Lobby) bool {
 	for _, p := range lobby.Players {
-		if p.Left || !p.Connected {
-			continue
+		if canPlayNextRound(lobby, p) {
+			return true
 		}
-		if !lobby.Settings.HostPlays && p.IsHost {
-			continue
-		}
-		return true
 	}
 	return false
 }
 
-// hasActiveSubmission reports whether at least one active (non-left, non-spectator)
-// player submitted a non-empty answer this round. Players who already left the game
-// are ignored (they linger only for the standings). Caller must hold hub.mu.
+// hasActiveSubmission reports whether at least one player who counts this round
+// submitted a non-empty answer. Caller must hold hub.mu.
 func hasActiveSubmission(lobby *game.Lobby) bool {
 	r := lobby.Game.Round
 	for pid, byCat := range r.Answers {
-		pl, ok := lobby.Players[pid]
-		if !ok || pl.Left || isRoundSpectator(lobby, pl) {
+		if !playsThisRound(lobby, lobby.Players[pid]) {
 			continue
 		}
 		for _, ans := range byCat {
@@ -123,7 +149,7 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	r := lobby.Game.Round
 	players := make([]game.CommentatorPlayer, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
-		if isRoundSpectator(lobby, p) || p.Left {
+		if !playsThisRound(lobby, p) {
 			continue
 		}
 		filled := make([]string, 0, len(lobby.Categories))
@@ -156,6 +182,8 @@ func (hub *Hub) spectatorClients(lobby *game.Lobby) []*Client {
 	}
 	var out []*Client
 	for _, p := range lobby.Players {
+		// The complement of playsThisRound, minus the players who left: watching
+		// requires being a spectator, and a departed player watches nothing.
 		if p.Left || !isRoundSpectator(lobby, p) {
 			continue
 		}
@@ -233,10 +261,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 
 	perCat := map[string]*game.Answer{}
 	for pid, byCat := range r.Answers {
-		// Skip players who left the game (kept only for the standings) and any
-		// round spectator (commentator host or pending mid-game joiner) that must
-		// never have answers in play.
-		if pl, ok := lobby.Players[pid]; ok && (pl.Left || isRoundSpectator(lobby, pl)) {
+		if !playsThisRound(lobby, lobby.Players[pid]) {
 			continue
 		}
 		if a, ok := byCat[cat.ID]; ok {
@@ -274,9 +299,9 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
 func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
-	// Round spectators - a commentator host (HostPlays=false) and mid-game joiners
-	// still pending - do not participate, so they are left out of both the
-	// per-round scores and the ranking.
+	// The deliberate exception to playsThisRound: only spectators (commentator
+	// host, pending joiners) are dropped here. A player who *left* stays in the
+	// scores and the ranking on purpose - the standings are where they linger.
 	ranked := make(map[string]*game.Player, len(lobby.Players))
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
 	for pid, pl := range lobby.Players {
