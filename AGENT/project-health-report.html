@@ -205,10 +205,10 @@
       </div>
 
       <p class="lead">
-        <b>Fresh full scan</b> of the current code. All quality gates are green:
-        backend <code>gofmt</code>, <code>go vet</code>,
+        <b>Snapshot after the fix pass.</b> All quality gates are green: backend
+        <code>gofmt</code>, <code>go vet</code>,
         <code>go test&nbsp;./...</code> incl. <code>-race</code>; frontend
-        Biome, <code>bun&nbsp;test</code> (21&nbsp;tests) and
+        Biome, <code>bun&nbsp;test</code> (26&nbsp;tests) and
         <code>vite&nbsp;build</code> with <code>tsc</code>. The
         server-authoritative core, end-to-end Zod validation, the connection
         lifecycle (host grace, reconnect with backoff+jitter,
@@ -218,18 +218,16 @@
         hold up under re-inspection.
       </p>
       <p class="lead">
-        This pass went deeper than reading, though, and
-        <b>8&nbsp;findings came out of it</b> - the previous report's "no open
-        findings" no longer reflects the code. The most serious
-        (<code>GAME-1</code>) is a <b>scoring defect</b>: answers from a player
-        who left mid-game can still be counted, while the host's review screen
-        filters them out - reproduced end-to-end, not inferred. Two medium
-        findings are UX dead ends (a destructive action offered to players who
-        may not perform it; a start button that silently does nothing). The rest
-        are low-severity hygiene items across the rule mirror, concurrency,
-        a11y and render cost. Details in <b>section&nbsp;1</b>, the overall
-        assessment in <b>section&nbsp;4</b>, and the deliberate limitations
-        (documented in the README) in section&nbsp;3.
+        The scoring defect that headlined the previous snapshot is closed on all
+        three of its layers, and the seam behind it is gone too: round
+        participation is now decided by one documented predicate set rather than
+        four ad-hoc derivations, so review and scoring can no longer disagree
+        about who is in the round. The two UX dead ends, the rule-mirror drift
+        (verified against the Go engine afterwards), the unsynchronised session
+        field, both a11y gaps and the per-keystroke schema rebuild are all
+        resolved. <b>Currently no open findings.</b> The overall assessment is
+        in <b>section&nbsp;4</b>; deliberate limitations (documented in the
+        README) are in section&nbsp;3.
       </p>
 
       <div class="summary">
@@ -238,15 +236,15 @@
           <div class="l">Critical</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--high)">1</div>
+          <div class="n" style="color: var(--high)">0</div>
           <div class="l">High</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">2</div>
+          <div class="n" style="color: var(--med)">0</div>
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">5</div>
+          <div class="n" style="color: var(--low)">0</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
@@ -278,336 +276,12 @@
       <!-- ============ OPEN ============ -->
       <h2 id="open">1. Open findings</h2>
       <p class="note">
-        Sorted most severe first. Every finding names the exact place and was
-        checked against the running code, not against an earlier report.
+        <b>No open findings.</b> Every finding from the previous snapshot was
+        implemented and removed here rather than ticked off - this report is a
+        snapshot, not a history. All gates (<code>gofmt</code>,
+        <code>go vet</code>, <code>go test ./... -race</code>, Biome,
+        <code>bun test</code>, <code>vite build</code>) are green.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-high">high</span> A departed player's answers
-          still count towards scoring <span class="id">GAME-1</span>
-        </h3>
-        <div class="loc">
-          <code>backend/internal/websocket/game_handlers.go:483</code>
-          (<code>scoreAndFinishRound</code>) ·
-          <code>backend/internal/websocket/handlers.go:387</code>
-          (<code>handleLeaveLobby</code>) ·
-          <code>backend/internal/websocket/handlers.go:308</code>
-          (<code>handleReconnect</code>)
-        </div>
-        <p>
-          Three gaps line up into one scoring defect. <b>First</b>, a mid-game
-          <code>leaveLobby</code> marks the player <code>Left</code> and drops
-          them from <code>hub.clients</code>, but - unlike the pre-game branch
-          two lines above and unlike <code>handleKickPlayer</code> - it does
-          <em>not</em> delete <code>hub.sessions[sessionID]</code>. The session
-          stays valid. <b>Second</b>, <code>handleReconnect</code> has no
-          <code>Left</code> guard: it happily sets
-          <code>player.Connected = true</code> again, and
-          <code>isRoundSpectator</code> (which gates
-          <code>answerUpdate</code>/<code>inputSync</code>) does not consider
-          <code>Left</code> either - so the returning player can write answers
-          into the live round. <b>Third</b>, and this is the part that bites,
-          <code>scoreAndFinishRound</code> filters only on
-          <code>isRoundSpectator</code>, while
-          <code>buildReviewState</code> (<code>game_util.go:239</code>) and
-          <code>hasActiveSubmission</code> (<code>game_util.go:108</code>)
-          <em>do</em> filter <code>pl.Left</code>. The review screen and the
-          scoring therefore disagree about who is in the round.
-        </p>
-        <p>
-          Reproduced end-to-end against the real WebSocket handler: after Bob
-          leaves mid-round and reconnects with his old sessionId, his injected
-          answer <b>never appears in the host's review</b> (1 answer shown, the
-          host's own) but <b>is scored</b> - the host drops from the expected
-          60 to <b>45&nbsp;points</b> because his unique answer is silently
-          demoted to a shared one, and Bob is credited <b>5&nbsp;points</b>
-          despite having left. The host cannot see or invalidate the answer that
-          changed the result.
-        </p>
-        <p class="note">
-          Not reachable from the stock frontend, which clears the stored
-          sessionId on an explicit leave - it takes a client that kept the id.
-          But the whole architecture rests on the server not trusting the
-          client, and a future frontend change could open the path by accident.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> fix all three layers. Delete the session on a
-          mid-game leave (mirroring <code>handleKickPlayer</code>); reject a
-          <code>reconnect</code> for a player with <code>Left == true</code>;
-          and add the <code>pl.Left</code> filter to
-          <code>scoreAndFinishRound</code> so its view of the round matches
-          <code>buildReviewState</code>. A regression test in
-          <code>integration_test.go</code> along the reproduction above is
-          cheap - the harness already has everything it needs.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">medium</span> Non-hosts are offered the
-          "remove player" action in the standings
-          <span class="id">UX-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/RoundResultScreen.tsx:129-138</code>
-        </div>
-        <p>
-          In the between-rounds standings each player's <em>name</em> is a
-          button that opens the "<code>X entfernen?</code>" confirmation. The
-          condition is only
-          <code>r.playerId !== myPlayerId &amp;&amp; !hasLeft(r.playerId)</code>
-          - there is <b>no <code>isHost</code> gate</b>, even though the
-          component computes <code>isHost</code> and uses it a few lines below
-          for the button bar. So every ordinary player sees other names render
-          as clickable (<code>hover:line-through cursor-pointer</code>), can
-          open the destructive dialog, confirm it, and is then answered by the
-          server with <code>NOT_HOST</code> → a
-          "Aktion nicht erlaubt" error toast. The lobby's player list
-          (<code>Lobby.tsx:449</code>) gets this right with
-          <code>isHost &amp;&amp; !leaving &amp;&amp; …</code>.
-        </p>
-        <p>
-          Secondary point, this time for the host too: the destructive trigger
-          is an otherwise unlabelled player name whose only affordance is a
-          hover strikethrough. There is no icon, no accessible description of
-          what activating it does.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> gate the button on <code>isHost</code>, and
-          give the host the same explicit control the lobby list uses (an
-          <code>X</code> icon button with a <code>title</code>) instead of
-          overloading the name.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">medium</span> "Spiel starten" silently does
-          nothing when no participant is connected
-          <span class="id">UX-2</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/Lobby.tsx:326-329</code> ·
-          <code>backend/internal/websocket/game_handlers.go:34-46</code> ·
-          <code>backend/internal/websocket/game_handlers.go:78</code>
-        </div>
-        <p>
-          Both the client's <code>canStart</code> and the server's commentator
-          check count players <em>without looking at
-          <code>connected</code></em>: the client filters
-          <code>activePlayers</code> on <code>!p.left</code> only, the server
-          counts every non-host player in <code>lobby.Players</code>. But
-          <code>beginCountdown</code> then applies the stricter
-          <code>hasRoundParticipant</code> (connected, not left, and not a
-          commentator host), finds nobody, resets
-          <code>lobby.Game = nil</code>, falls back to
-          <code>StateLobby</code> and broadcasts an unchanged lobby.
-        </p>
-        <p>
-          Concretely: commentator mode is on and the one co-player closes their
-          tab. Their row still shows in the list (greyed dot), the start button
-          stays enabled, the host clicks it - and <b>nothing at all
-          happens</b>. No round, no error, no explanation. The state machine
-          shortcut itself is deliberate and documented; the missing feedback is
-          not.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> count only <code>connected</code> players in
-          <code>canStart</code> and in the server's start check (so the button
-          disables with its existing hint text), and/or have the
-          <code>beginCountdown</code> fallback send an explanatory error to the
-          host instead of returning silently.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> The client rule mirror diverges
-          from the engine on non-ASCII input
-          <span class="id">RULE-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/lib/answerValidation.ts:11,22</code> vs.
-          <code>backend/internal/game/engine.go:59,72</code>
-        </div>
-        <p>
-          <code>CLAUDE.md</code> declares the mirror an explicit invariant
-          ("keep both in sync … the tests cover this"). Two JS-vs-Go semantics
-          differences break it:
-        </p>
-        <ul class="tight">
-          <li>
-            <b>Length.</b> The mirror checks <code>n.length</code> - UTF-16 code
-            units - while the engine counts runes. Interestingly
-            <code>normalize</code> already uses <code>[...v]</code> for the
-            first character, so the file is inconsistent with itself.
-          </li>
-          <li>
-            <b>Case mapping.</b> JS <code>toUpperCase()</code> applies Unicode
-            special casing (<code>ß</code>&nbsp;→&nbsp;<code>SS</code>); Go's
-            per-rune <code>strings.ToUpper</code> leaves <code>ß</code> alone.
-          </li>
-        </ul>
-        <p>
-          Both verified by running the two implementations side by side.
-          <code>"ßeta"</code> on letter&nbsp;S: the mirror normalises to
-          <code>"SSeta"</code> and calls it <b>valid</b>, the engine keeps
-          <code>"ßeta"</code> and calls it <b>invalid</b> - the buzz button
-          lights up and the server answers
-          <code>buzzRejected: invalidAnswers</code>, a dead end with no
-          explanation. In the other direction <code>"A"</code>&nbsp;+&nbsp;15
-          emoji is 16&nbsp;runes (engine: valid) but
-          <code>.length&nbsp;31</code> (mirror: invalid), so a field is marked
-          red that the server would have accepted.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> count <code>[...n].length</code> and make the
-          first-rune uppercase rune-safe (or compare the leading rune
-          case-insensitively instead of upper-casing the whole string). Add the
-          two cases above to <code>answerValidation.test.ts</code> - the
-          current suite has no non-ASCII length or casing case, which is why the
-          drift went unnoticed.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span>
-          <code>Client.sessionID</code> is written from foreign goroutines
-          without synchronisation <span class="id">CONC-1</span>
-        </h3>
-        <div class="loc">
-          <code>backend/internal/websocket/hub.go:337</code>
-          (<code>closeLobby</code>) ·
-          <code>backend/internal/websocket/handlers.go:667</code>
-          (<code>handleKickPlayer</code>) · read in
-          <code>lookupLocked</code>, written in
-          <code>registerSession</code>&nbsp;(<code>hub.go:161</code>) and
-          <code>handleReconnect</code>&nbsp;(<code>handlers.go:347</code>)
-        </div>
-        <p>
-          Both <code>closeLobby</code> and <code>handleKickPlayer</code> assign
-          <code>c.sessionID = ""</code> on <em>other</em> clients
-          <b>after</b> releasing <code>h.mu</code>. Each victim's own read loop
-          meanwhile reads that same field under <code>h.mu</code> (every handler
-          starts with <code>lookupLocked(c.sessionID)</code>) and writes it in
-          <code>registerSession</code>/<code>handleReconnect</code>. No single
-          lock covers both sides, so the field is formally unsynchronised;
-          a torn read of the string header (pointer from one value, length from
-          another) would take the whole process down, not just one lobby.
-        </p>
-        <p class="note">
-          Honest caveat: <code>go test -race</code> does <b>not</b> currently
-          flag it. Probes were written for both the kick and the close path and
-          run under <code>-race</code> up to ten times without a report - the
-          websocket write that immediately follows each assignment happens to
-          establish the ordering. That is incidental library behaviour, not a
-          guarantee, which is why this is reported as latent rather than
-          observed.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> move the assignment inside the
-          <code>h.mu</code> section that already collects the targets, so the
-          field is covered by the same lock its readers use. A comment noting
-          that <code>sessionID</code> is hub-mutex-guarded would keep the next
-          change honest.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> Inline form errors are neither
-          associated nor announced <span class="id">A11Y-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/Home.tsx:471-473, 542-544</code> ·
-          <code>frontend/src/components/ConfirmDialog.tsx:71-110</code>
-        </div>
-        <p>
-          The code and join-name inputs correctly set
-          <code>aria-invalid</code>, but the error paragraph beneath them has no
-          <code>id</code> and the input no <code>aria-describedby</code>, and
-          the paragraph carries neither <code>role="alert"</code> nor
-          <code>aria-live</code>. A screen-reader user is told the field is
-          invalid but never <em>why</em> - and "Diese Lobby gibt es nicht." is
-          exactly the information they need.
-        </p>
-        <p>
-          In the same area: <code>ConfirmDialog</code> traps Tab and focuses the
-          confirm button on open (both good), but does not restore focus to the
-          element that opened it on close, so a keyboard user is dropped back to
-          <code>&lt;body&gt;</code> after every kick/delete/leave dialog.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> give the error paragraph an <code>id</code>,
-          point <code>aria-describedby</code> at it while it is shown, and add
-          <code>role="alert"</code>. In the dialog, capture
-          <code>document.activeElement</code> on mount and refocus it in the
-          cleanup.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> Positive <code>tabIndex</code>
-          overrides the document tab order <span class="id">A11Y-2</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/GameScreen.tsx:451, 464</code>
-        </div>
-        <p>
-          With flames enabled the answer inputs get
-          <code>tabIndex={idx + 1}</code> and the flame buttons
-          <code>tabIndex={categories.length + idx + 1}</code>, to make Tab walk
-          all inputs before all flames. The side effect is bigger than the
-          intent: any positive tabindex jumps ahead of <em>every</em>
-          <code>tabindex="0"</code> element in the document, so the header's
-          copy-code and "Verlassen" buttons, the theme toggle and "Runde
-          beenden" are all pushed behind the category grid - and the tab order
-          changes structurally depending on whether flames are on.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> achieve the grouping through DOM order (render
-          the inputs and the flame buttons as two passes / two columns) and keep
-          every control at the natural <code>tabindex="0"</code>.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> A fresh Zod schema is built on
-          every validation call <span class="id">PERF-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/lib/answerValidation.ts:17</code>
-          (<code>answerSchema</code>), called from
-          <code>GameScreen.tsx:325, 416</code> and
-          <code>validateAnswers</code>
-        </div>
-        <p>
-          <code>answerSchema(letter, lastLetter)</code> constructs a new
-          <code>z.string().transform().refine().refine()</code> chain on every
-          invocation, and the render path calls it about
-          <code>2n + 1</code> times per render (once per category for
-          <code>isAnswerDone</code>, once for <code>showInvalid</code>, plus
-          <code>validateAnswers</code>) - on every keystroke, since the answer
-          state lives in the component. The letter and mode are constant for a
-          whole round, so all of that construction is repeated work.
-        </p>
-        <p class="note">
-          Small in absolute terms at party-game category counts, which is why
-          this is <em>low</em> - it is listed as avoidable per-keystroke work,
-          not as a measured problem. The existing performance report does not
-          cover it.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> memoise the schema by
-          <code>(letter, lastLetter)</code> in a module-level cache, or drop Zod
-          on this path entirely - the two rules are a length check and a
-          prefix/suffix check, both one-liners.
-        </div>
-      </div>
 
       <!-- ============ GOOD ============ -->
       <h2 id="good">2. What is already strong</h2>
@@ -639,8 +313,10 @@
           situation once and hides the ticking digits), a focus trap plus
           Escape in the modal, <code>aria-pressed</code> on the letter and flame
           toggles, keyboard operation throughout, toasts that pause on
-          hover/focus. Two gaps found this round - unannounced field errors and
-          positive tabindex - are <code>A11Y-1</code>/<code>A11Y-2</code>.
+          hover/focus. Inline field errors are linked via
+          <code>aria-describedby</code> and announced as alerts, the modal
+          returns focus to whatever opened it, and every control sits at the
+          natural <code>tabindex="0"</code> so Tab follows the visible order.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Frontend robustness</b>: an
@@ -652,11 +328,12 @@
           <span class="badge b-ok">plus</span> <b>Tests</b>: Go WS integration
           tests at the protocol level (<code>-race</code> green, ~15&nbsp;s)
           <em>and</em> a frontend suite on the native <code>bun test</code>
-          runner (21&nbsp;tests) covering the client mirror of the engine rules
-          (<code>answerValidation</code>) and <code>parseServerEvent</code>
-          (Zod). Both run in CI. The Go harness in particular is good enough
-          that reproducing <code>GAME-1</code> end-to-end took a single test
-          function on the existing helpers.
+          runner (26&nbsp;tests) covering the client mirror of the engine rules
+          (<code>answerValidation</code>, now including the non-ASCII casing and
+          code-point-length cases) and <code>parseServerEvent</code> (Zod). Both
+          run in CI. The Go harness is good enough that pinning the
+          leave-then-reconnect scoring path took a single test function on the
+          existing helpers.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Server-authoritative</b> &amp;
@@ -744,15 +421,13 @@
       <!-- ============ FINAL ANALYSIS ============ -->
       <h2 id="final">4. Final project analysis</h2>
       <p>
-        <b>Overall verdict: still shippable for the intended use</b> (real-time
-        multiplayer party game on the LAN/browser), with
-        <b>one scoring defect worth fixing before the next session</b>. The
-        architecture, hardening and test discipline are genuinely good and hold
-        up under scrutiny. What changed relative to the previous report is not
-        the code but the depth of the check: probing the leave/reconnect path
-        against the real handler surfaced <code>GAME-1</code>, and walking the
-        screens as a non-host surfaced <code>UX-1</code>. Neither was visible
-        from reading the happy path.
+        <b>Overall verdict: production-ready for the intended use</b> (real-time
+        multiplayer party game on the LAN/browser). The architecture, hardening
+        and test discipline were already good; the fix pass closed the one
+        defect that could change a game's outcome, removed the structural seam
+        that produced it, and tightened the edges around it. There are no known
+        correctness, security or a11y defects left - the remaining limitations
+        are all deliberate, documented design decisions (section&nbsp;3).
       </p>
 
       <h3>Architecture &amp; code quality</h3>
@@ -769,16 +444,16 @@
         decision with a rationale) and stylistically homogeneous.
       </p>
       <p>
-        The one structural weakness this pass exposes is that
-        <b>"who is in the round" is decided in four separate places</b> -
-        <code>isRoundSpectator</code>, <code>hasRoundParticipant</code>,
-        <code>hasActiveSubmission</code> and the inline filters in
-        <code>buildReviewState</code>/<code>scoreAndFinishRound</code> - each
-        with a slightly different notion of <code>Left</code> and
-        <code>Connected</code>. <code>GAME-1</code> is exactly the seam between
-        two of them, and <code>UX-2</code> is the seam between two others.
-        Consolidating that into one predicate (or a small set of named,
-        documented ones) would remove a whole class of future findings.
+        Round participation used to be derived ad hoc in four separate places,
+        each with a slightly different notion of <code>Left</code>,
+        <code>Pending</code> and <code>Connected</code> - which is what let
+        review and scoring disagree about who counted. It now goes through three
+        named, documented predicates
+        (<code>isRoundSpectator</code>&nbsp;/&nbsp;<code>playsThisRound</code>
+        &nbsp;/&nbsp;<code>canPlayNextRound</code>) that state why they differ,
+        with the standings marked as the one deliberate exception. Every
+        filtering path calls one of them, so that class of drift is closed off
+        rather than patched on both sides.
       </p>
 
       <h3>Concurrency</h3>
@@ -788,10 +463,11 @@
         serializes <code>Conn.Write</code> internally). Reconnect races are
         defused via identity guards (only the currently bound connection cleans
         up). <code>go test ./... -race</code> is green, incl. the end-to-end
-        WebSocket tests. The one exception to the discipline is
-        <code>Client.sessionID</code>, which is assigned across goroutines
-        outside the mutex (<code>CONC-1</code>) - latent rather than observed,
-        but it is the only field in the package that escapes the lock.
+        WebSocket tests. <code>Client.sessionID</code> - assigned across
+        goroutines by <code>closeLobby</code> and <code>handleKickPlayer</code>,
+        and previously the only field escaping the lock - is now written and
+        read under <code>hub.mu</code> throughout, with the invariant recorded
+        on the field itself.
       </p>
 
       <h3>Tests &amp; CI</h3>
@@ -805,14 +481,13 @@
         config is test-free again.
       </p>
       <p>
-        <em>Gaps.</em> There are no render tests for the React
-        components/screens; the UI is guarded only by typecheck, lint and manual
-        variant runs - which is precisely why <code>UX-1</code> (a missing
-        <code>isHost</code> gate) survived. And the mirror suite that is
-        supposed to enforce the engine-rule invariant contains no non-ASCII
-        case, which is why <code>RULE-1</code> went unnoticed. Both suggest the
-        same thing: the tests cover the paths that were thought through, not the
-        edges.
+        <em>Remaining gap.</em> There are still no render tests for the React
+        components/screens; the UI is guarded by typecheck, lint and manual
+        variant runs. That is what let a missing <code>isHost</code> gate
+        survive in the standings, and it is the one area where a cheap safety
+        net is still missing. The mirror suite, by contrast, now covers the
+        non-ASCII casing and code-point-length edges that its invariant depends
+        on.
       </p>
 
       <h3>Security</h3>
@@ -828,12 +503,10 @@
         game without accounts/persistence and without personal data.
       </p>
       <p>
-        The one place where the server does <em>not</em> live up to its own
-        "never trust the client" rule is session invalidation on a mid-game
-        leave (<code>GAME-1</code>): it relies on the frontend clearing
-        <code>localStorage</code> rather than dropping the session itself. The
-        kick path next to it does it correctly, so this reads as an oversight,
-        not a policy.
+        Session invalidation is now symmetric across every exit: leaving
+        mid-game drops the session server-side just as a kick does, and a
+        replayed id for a departed player is refused rather than relying on the
+        frontend having cleared <code>localStorage</code>.
       </p>
 
       <h3>UX &amp; a11y</h3>
@@ -847,58 +520,39 @@
         availability before asking for a name, and discards stale replies.
       </p>
       <p>
-        Walking the flows as a <em>non-host</em> is where it thins out. The
-        round-result screen offers an action that only the host may perform
-        (<code>UX-1</code>), and the one genuine dead end found this round -
-        clicking start with nobody connected (<code>UX-2</code>) - produces no
-        feedback whatsoever. A11y is solid on structure (landmark, focus trap,
-        deliberate live-region design, <code>aria-pressed</code> toggles) but
-        has two concrete gaps in <code>A11Y-1</code>/<code>A11Y-2</code>.
-        Responsive, light/dark theme, and animations fully disabled under
+        The non-host view holds up now too: destructive actions are only
+        offered to whoever may perform them, and starting a round without a
+        connected participant explains itself instead of doing nothing. A11y is
+        solid on structure (landmark, focus trap with focus return, deliberate
+        live-region design, <code>aria-pressed</code> toggles) and on forms
+        (errors linked and announced), with tab order following the visible
+        order. Responsive, light/dark theme, and animations fully disabled under
         <code>prefers-reduced-motion</code>.
       </p>
 
-      <h3>Suggested order of work</h3>
+      <h3>Optional next steps (non-blocking)</h3>
       <p class="note">
-        If the findings are picked up, this order gets the most out of the
-        least effort:
+        Nothing here is needed; these are the two ideas worth keeping on file if
+        the project is picked up again:
       </p>
       <ul class="tight">
         <li>
-          <b>1. <code>GAME-1</code></b> - the only finding that changes game
-          outcomes. Fix the three layers together and pin it with a regression
-          test; the reproduction is already written out in section&nbsp;1.
+          Lightweight render/interaction tests for the core screens (e.g.
+          Testing Library) as a complement to the logic tests. This is the one
+          remaining blind spot - a missing host gate in the standings was
+          invisible to typecheck, lint and the existing suite alike.
         </li>
         <li>
-          <b>2. <code>UX-1</code> and <code>UX-2</code></b> - both are small,
-          visible to every player, and independent of each other.
-        </li>
-        <li>
-          <b>3. The consolidation</b> described under "Architecture": one
-          documented predicate for round participation. Doing it right after
-          <code>GAME-1</code>/<code>UX-2</code> means fixing the seam rather
-          than patching both sides of it.
-        </li>
-        <li>
-          <b>4. The remaining low findings</b> - <code>RULE-1</code>,
-          <code>CONC-1</code>, <code>A11Y-1</code>, <code>A11Y-2</code>,
-          <code>PERF-1</code> - in any order; each is self-contained and none
-          blocks play.
+          An optional persistence layer (e.g. Redis) if lobbies should ever
+          survive a server restart; currently purely in-memory by design.
         </li>
       </ul>
-      <p class="note">
-        Beyond the findings, two standing ideas: lightweight render/interaction
-        tests for the core screens (which would have caught
-        <code>UX-1</code>), and an optional persistence layer if lobbies should
-        ever survive a server restart - currently in-memory by design.
-      </p>
 
       <hr />
       <p class="note">
         This report only documents, it reflects the current state without
-        history. Nothing here blocks playing the game today;
-        <code>GAME-1</code> is the one finding worth resolving before it is used
-        competitively, since it can silently change who wins.
+        history. Nothing here is blocking; the app is in a good, shippable state
+        and can be closed out as is.
       </p>
     </div>
   </body>
