@@ -22,6 +22,20 @@ describe("normalize", () => {
 		expect(normalize("über")).toBe("Über");
 		expect(normalize("élan")).toBe("Élan");
 	});
+
+	// rule-1: JS case mapping expands "ß" to "SS" where Go's per-rune
+	// unicode.ToUpper leaves it alone. The mirror must follow Go, or it accepts
+	// answers the engine rejects.
+	it("does not expand characters the engine leaves alone", () => {
+		expect(normalize("ßeta")).toBe("ßeta");
+		expect(normalize("ﬁnale")).toBe("ﬁnale");
+	});
+
+	// The rune count must survive normalization (Go maps rune by rune).
+	it("keeps the code-point count stable", () => {
+		const emoji = `A${"\u{1F388}".repeat(5)}`;
+		expect([...normalize(emoji)].length).toBe([...emoji].length);
+	});
 });
 
 describe("isFieldInvalid", () => {
@@ -52,6 +66,27 @@ describe("isFieldInvalid", () => {
 		expect(isFieldInvalid("A", "A")).toBe(true);
 		expect(isFieldInvalid("A", "A", true)).toBe(true); // last-letter mode too
 		expect(isFieldInvalid("Ab", "A")).toBe(false); // two chars is enough
+	});
+
+	// rule-1: the length bound counts code points, like the engine's
+	// len([]rune(n)) - not UTF-16 units, which would double every astral char.
+	it("measures length in code points, not UTF-16 units", () => {
+		const surrogate = "\u{1F388}"; // 1 code point, 2 UTF-16 units
+		expect(isFieldInvalid(`A${surrogate.repeat(15)}`, "A")).toBe(false); // 16
+		expect(isFieldInvalid(`A${surrogate.repeat(29)}`, "A")).toBe(false); // 30
+		expect(isFieldInvalid(`A${surrogate.repeat(30)}`, "A")).toBe(true); // 31
+	});
+
+	// rule-1: "ßeta" normalizes to "SSeta" under JS case rules, which would make
+	// it pass for letter S - the engine keeps "ßeta" and rejects it.
+	it("does not let expanding case mappings fake the round letter", () => {
+		expect(isFieldInvalid("ßeta", "S")).toBe(true);
+	});
+
+	// The last-letter check must look at the last *code point*.
+	it("matches the last code point in last-letter mode", () => {
+		expect(isFieldInvalid(`Ab${"\u{1F388}"}`, "B", true)).toBe(true);
+		expect(isFieldInvalid("Abb", "B", true)).toBe(false);
 	});
 });
 

@@ -1,6 +1,27 @@
 import { z } from "zod";
 import type { Category } from "@/types/events";
 
+// Go's strings.ToUpper/ToLower map rune by rune via unicode.ToUpper/ToLower, so
+// the rune count never changes. JS toUpperCase/toLowerCase apply *full* Unicode
+// case mapping, which can turn one code point into several ("ß" -> "SS",
+// "İ" -> "i̇"). Exactly where they expand, Go's simple mapping has no
+// single-rune equivalent and leaves the character alone - so we leave it alone
+// too. Without this the mirror accepted "ßeta" for letter S (normalised to
+// "SSeta") while the engine rejected it, and the buzz button lit up for an
+// answer the server refused.
+function mapCase(ch: string, upper: boolean): string {
+	const mapped = upper ? ch.toUpperCase() : ch.toLowerCase();
+	return [...mapped].length === 1 ? mapped : ch;
+}
+
+function upperRunes(s: string): string {
+	return [...s].map((c) => mapCase(c, true)).join("");
+}
+
+function lowerRunes(s: string): string {
+	return [...s].map((c) => mapCase(c, false)).join("");
+}
+
 // Mirror of the backend's game.Normalize (engine.go): trim, uppercase the first
 // rune, lowercase the rest. Kept in sync so client-side validation matches the
 // server's authoritative rules.
@@ -8,23 +29,36 @@ export function normalize(value: string): string {
 	const v = value.trim();
 	if (v === "") return "";
 	const chars = [...v];
-	return chars[0].toUpperCase() + chars.slice(1).join("").toLowerCase();
+	return mapCase(chars[0], true) + lowerRunes(chars.slice(1).join(""));
 }
 
 // Zod schema for a single answer given the current letter. Mirrors
 // engine.IsRuleValid: non-empty, 2-30 chars, starts with the round letter - or,
 // in last-letter mode, ends with it. A single character is too short.
 function answerSchema(letter: string, lastLetter: boolean) {
-	const upper = letter.toUpperCase();
+	const upper = upperRunes(letter);
 	return z
 		.string()
 		.transform(normalize)
-		.refine((n) => n.length >= 2 && n.length <= 30, {
-			message: "2-30 Zeichen",
-		})
+		// Counted in code points, like the engine's len([]rune(n)) - `.length`
+		// would count UTF-16 units and reject answers the server accepts.
 		.refine(
-			(n) =>
-				lastLetter ? n.slice(-1).toUpperCase() === upper : n.startsWith(upper),
+			(n) => {
+				const count = [...n].length;
+				return count >= 2 && count <= 30;
+			},
+			{ message: "2-30 Zeichen" },
+		)
+		.refine(
+			(n) => {
+				const runes = [...n];
+				// Zod runs every refinement, so this one also sees a value the length
+				// check already rejected - including the empty string.
+				if (runes.length === 0) return false;
+				return lastLetter
+					? mapCase(runes[runes.length - 1], true) === upper
+					: upperRunes(n).startsWith(upper);
+			},
 			{
 				message: lastLetter
 					? `muss mit ${upper} enden`
