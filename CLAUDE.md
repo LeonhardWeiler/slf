@@ -50,7 +50,10 @@ CSS imports).
   server; every incoming message is validated with Zod (`frontend/src/lib/serverEvents.ts`).
 - `frontend/src/lib/answerValidation.ts` **mirrors** the backend engine rules
   (`backend/internal/game/engine.go`); keep both in sync when changing either one
-  (`bun test` covers this).
+  (`bun test` covers this). Mind the JS/Go semantics gap: Go maps case rune by
+  rune and counts runes, JS `toUpperCase()` expands (`ß` -> `SS`) and `.length`
+  counts UTF-16 units. Use the file's `mapCase`/`upperRunes` helpers and
+  `[...s].length`, never the raw JS methods.
 
 ## Architecture (brief)
 
@@ -64,11 +67,25 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
 - Backend: `cmd/server` (entry point + security headers/SPA serving),
   `internal/game` (engine/state), `internal/websocket` (hub, handlers).
 - `sessionId` lives in `localStorage` (per browser, survives closing the tab ->
-  auto-reconnect as the same player; an explicit "leave" clears it).
+  auto-reconnect as the same player). An explicit "leave" clears it **and** the
+  server drops the session, so leaving is final on both sides - a replayed id
+  for a player marked `Left` is refused.
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
-  next round start (`beginCountdown`). On the server, `isRoundSpectator`
-  (commentator host **or** pending) encapsulates the exclusion.
+  next round start (`beginCountdown`).
+- **Round participation** is decided only by the predicates in
+  `internal/websocket/game_util.go` - never re-derive it from
+  `Left`/`Pending`/`Connected` at a call site, that drift is what once let a
+  departed player's answers be scored while review filtered them out:
+  - `isRoundSpectator` - watches instead of playing (commentator host or
+    pending joiner)
+  - `playsThisRound` - answers count this round (review, scoring, commentator
+    board, empty-round check)
+  - `canPlayNextRound` - could play a round starting now (gates `startGame`
+    and `beginCountdown`)
+
+  The standings (`buildRoundResult`) are the documented exception: they drop
+  only spectators, because a player who left stays in the ranking.
 
 ## AGENT/
 

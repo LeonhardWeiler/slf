@@ -55,8 +55,9 @@ in RAM.
   exists. A host keeps its role within the 15-second grace window. Trade-off
   (deliberate): all tabs of the same browser share one identity; a second tab
   connects into the same session instead of becoming its own player. An explicit
-  **leave** clears the stored `sessionId` and is therefore a final exit; only a
-  tab close/connection drop remains re-joinable.
+  **leave** is a final exit: the client clears the stored `sessionId` and the
+  server invalidates the session, so a replayed id cannot bring the player back.
+  Only a tab close/connection drop remains re-joinable.
 
 ### Scoring (per category)
 
