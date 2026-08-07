@@ -25,24 +25,23 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
 		return
 	}
-	if len(lobby.Players) < 1 || len(lobby.Categories) < 1 {
+	if len(lobby.Categories) < 1 {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Mindestens 1 Spieler und 1 Kategorie nötig")
+		hub.sendError(c, CodeValidationError, "Mindestens 1 Kategorie nötig")
 		return
 	}
-	// A commentator host does not play, so at least one other player is needed.
-	if !lobby.Settings.HostPlays {
-		playing := 0
-		for _, p := range lobby.Players {
-			if !p.IsHost {
-				playing++
-			}
+	// Guard with the same predicate beginCountdown uses, so the two can't
+	// disagree: counting players who are merely present (but disconnected, or the
+	// commentator host) let the start succeed here and then fall back to Lobby
+	// there - the host clicked and nothing happened, with no explanation.
+	if !hasRoundParticipant(lobby) {
+		msg := "Mindestens ein verbundener Spieler nötig"
+		if !lobby.Settings.HostPlays {
+			msg = "Als Kommentator brauchst du mindestens einen verbundenen Mitspieler"
 		}
-		if playing < 1 {
-			hub.mu.Unlock()
-			hub.sendError(c, CodeValidationError, "Als Kommentator brauchst du mindestens einen Mitspieler")
-			return
-		}
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, msg)
+		return
 	}
 	letters := game.AlphabetExcluding(lobby.Settings.ExcludedLetters)
 	if len(letters) < 1 {

@@ -321,11 +321,14 @@ export function Lobby() {
 		setPoppedLetter(letter);
 	}
 
-	// A commentator host (hostPlays=false) doesn't count as a player, so at least
-	// one other player is required to start.
-	const playingCount = lobby.settings.hostPlays
-		? activePlayers.length
-		: activePlayers.filter((p) => !p.isHost).length;
+	// Who would actually play a round right now: connected, not left, and - with a
+	// commentator host (hostPlays=false) - not the host. Mirrors the server's
+	// hasRoundParticipant. Counting merely-present players let the button stay
+	// enabled while the server had nobody to start a round for, so the click did
+	// nothing at all.
+	const playingCount = activePlayers.filter(
+		(p) => p.connected && (!p.isHost || lobby.settings.hostPlays),
+	).length;
 	const canStart = isHost && playingCount >= 1 && lobby.categories.length >= 1;
 
 	return (
@@ -830,8 +833,8 @@ export function Lobby() {
 								}`}
 							>
 								{!lobby.settings.hostPlays && playingCount < 1
-									? "Als Kommentator brauchst du mindestens einen Mitspieler."
-									: "Mindestens 1 Spieler und 1 Kategorie nötig."}
+									? "Als Kommentator brauchst du mindestens einen verbundenen Mitspieler."
+									: "Mindestens 1 verbundener Spieler und 1 Kategorie nötig."}
 							</p>
 						)}
 					</div>

@@ -113,9 +113,10 @@ type lobbyStateDTO struct {
 	LobbyCode string `json:"lobbyCode"`
 	State     string `json:"state"`
 	Players   []struct {
-		ID     string `json:"id"`
-		Name   string `json:"name"`
-		IsHost bool   `json:"isHost"`
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		IsHost    bool   `json:"isHost"`
+		Connected bool   `json:"connected"`
 	} `json:"players"`
 	Categories []struct {
 		ID   string `json:"id"`
@@ -741,5 +742,55 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 			t.Fatalf("host scored %d, expected %d (a departed answer must not demote a unique answer)",
 				s.RoundPoints, want)
 		}
+	}
+}
+
+// ux-2: starting with a commentator host and no *connected* co-player used to
+// pass the start check and then silently fall back to Lobby in beginCountdown -
+// the host clicked and nothing happened. The host must get a real error now.
+func TestStartWithoutConnectedParticipantErrors(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.waitFor("lobbyState")
+
+	// Commentator mode: the host does not play, so Bob is the only participant.
+	host.send("updateSettings", map[string]any{"hostPlays": false})
+	host.readLobby()
+
+	// Bob drops his connection - he stays in the lobby but is not connected.
+	guest.conn.Close(websocket.StatusNormalClosure, "bye")
+	deadline := time.Now().Add(3 * time.Second)
+	for {
+		if time.Now().After(deadline) {
+			t.Fatal("expected Bob to show as disconnected")
+		}
+		ls := host.readLobby()
+		connected := false
+		for _, p := range ls.Players {
+			if p.Name == "Bob" && p.Connected {
+				connected = true
+			}
+		}
+		if !connected {
+			break
+		}
+	}
+
+	host.send("startGame", map[string]any{})
+	var e struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}
+	json.Unmarshal(host.waitFor("error"), &e)
+	if e.Code != string(CodeValidationError) {
+		t.Fatalf("expected %s, got %q (%s)", CodeValidationError, e.Code, e.Message)
 	}
 }
