@@ -147,13 +147,13 @@ several tabs/devices on the same network (the join link/QR code points to
 # Backend: format check, vet, tests (incl. WS integration tests)
 cd backend && gofmt -l . && go vet ./... && go test ./...
 
-# Frontend: Biome lint, unit tests (Vitest), typecheck + production build
+# Frontend: Biome lint, unit tests (bun test), typecheck + production build
 cd frontend && bun run lint && bun run test && bun run build
 ```
 
 The same steps run in CI (`.gitlab-ci.yml`): `gofmt` gate + `go vet`
 
-- `go test` for the backend, Biome lint + Vitest + build for the frontend.
+- `go test` for the backend, Biome lint + `bun test` + build for the frontend.
 
 ## Deployment with Docker
 

@@ -10,7 +10,7 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
   blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`),
   Zustand, TanStack Router (code-based, `src/router.tsx`), Zod.
 - **Package manager: Bun** (not npm/yarn; `npx` is **not** available).
-- Lint: Biome. Frontend tests: Vitest. Backend tests: `go test`.
+- Lint: Biome. Frontend tests: `bun test`. Backend tests: `go test`.
 
 ## Commands
 
@@ -25,17 +25,22 @@ go test ./...         # for concurrency: go test ./... -race
 # Frontend (in frontend/)
 bun install
 bun run lint          # Biome
-bun run test          # Vitest
+bun run test          # bun test (native runner)
 bun run build         # tsc -b && vite build (typechecks + builds)
 bun dev               # dev server
 ```
 
 Make the relevant checks green before every commit. There is no `npx`; use
 `bun run <script>` or the binaries in `frontend/node_modules/.bin/`.
-The CI (`.gitlab-ci.yml`) runs on `oven/bun` **without node**, so Vitest runs there
-under the Bun runtime. That is why `zod` is inlined in `frontend/vite.config.ts`
-(`test.server.deps.inline`); otherwise the zod import fails. You can check this
-locally with `bun --bun run test` (forces the Bun runtime).
+Tests run on the **native `bun test`** runner, not Vitest — `vite.config.ts`
+is therefore build-only and holds no test config. Test files import
+`describe/expect/it` from `bun:test`; the `@/*` alias comes from tsconfig
+`paths`, which bun reads natively. Ambient test types come from `@types/bun`
+(listed in tsconfig `types`, which is explicit and thus opt-in).
+Consequence for new tests: there is no Vite transform pipeline, so plain
+logic tests are frictionless, while React component tests would need a
+happy-dom preload and cannot rely on Vite-only features (`import.meta.env`,
+CSS imports).
 
 ## Conventions
 
@@ -45,7 +50,7 @@ locally with `bun --bun run test` (forces the Bun runtime).
   server; every incoming message is validated with Zod (`frontend/src/lib/serverEvents.ts`).
 - `frontend/src/lib/answerValidation.ts` **mirrors** the backend engine rules
   (`backend/internal/game/engine.go`); keep both in sync when changing either one
-  (Vitest covers this).
+  (`bun test` covers this).
 
 ## Architecture (brief)
 
