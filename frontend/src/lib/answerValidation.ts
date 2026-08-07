@@ -35,7 +35,25 @@ export function normalize(value: string): string {
 // Zod schema for a single answer given the current letter. Mirrors
 // engine.IsRuleValid: non-empty, 2-30 chars, starts with the round letter - or,
 // in last-letter mode, ends with it. A single character is too short.
+// The schema depends only on the round letter and the mode, both constant for a
+// whole round - but the render path asks for it roughly 2n+1 times per render
+// (per category for the done tick and the invalid border, plus validateAnswers)
+// and re-renders on every keystroke. Building the chain each time was pure
+// repeated work, so schemas are cached per (letter, mode). At most 52 entries
+// ever, so the cache needs no eviction.
+const schemaCache = new Map<string, ReturnType<typeof buildAnswerSchema>>();
+
 function answerSchema(letter: string, lastLetter: boolean) {
+	const key = `${lastLetter ? "L" : "F"}:${letter}`;
+	let schema = schemaCache.get(key);
+	if (!schema) {
+		schema = buildAnswerSchema(letter, lastLetter);
+		schemaCache.set(key, schema);
+	}
+	return schema;
+}
+
+function buildAnswerSchema(letter: string, lastLetter: boolean) {
 	const upper = upperRunes(letter);
 	return z
 		.string()
