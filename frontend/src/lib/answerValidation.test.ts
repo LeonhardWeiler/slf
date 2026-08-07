@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "bun:test";
 import type { Category } from "@/types/events";
 import { isFieldInvalid, normalize, validateAnswers } from "./answerValidation";
 
