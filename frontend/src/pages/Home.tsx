@@ -458,6 +458,9 @@ export function Home() {
 											);
 										}}
 										aria-invalid={joinError != null}
+										// Without the description link the field announces only
+										// "invalid" - never *why*, which is the part that helps.
+										aria-describedby={joinError ? "code-error" : undefined}
 										disabled={checking}
 										placeholder="ASKZF6"
 										autoCapitalize="characters"
@@ -469,7 +472,13 @@ export function Home() {
 										className="font-mono uppercase tracking-widest"
 									/>
 									{joinError && (
-										<p className="text-sm text-destructive">{joinError}</p>
+										<p
+											id="code-error"
+											role="alert"
+											className="text-sm text-destructive"
+										>
+											{joinError}
+										</p>
 									)}
 								</div>
 
@@ -536,11 +545,18 @@ export function Home() {
 										placeholder="Name eingeben…"
 										maxLength={20}
 										aria-invalid={joinError != null}
+										aria-describedby={joinError ? "join-name-error" : undefined}
 										autoFocus
 										autoComplete="off"
 									/>
 									{joinError && (
-										<p className="text-sm text-destructive">{joinError}</p>
+										<p
+											id="join-name-error"
+											role="alert"
+											className="text-sm text-destructive"
+										>
+											{joinError}
+										</p>
 									)}
 								</div>
 								<div className="flex gap-2">

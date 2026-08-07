@@ -67,8 +67,11 @@ function ConfirmDialogView({
 	// Focus the confirm button on open, lock body scroll so the page behind can't
 	// move while the dialog is up, mark a dialog as open (so global screen
 	// shortcuts pause, UX-1), trap Tab focus inside the dialog (A11Y-1) and let
-	// Escape cancel.
+	// Escape cancel. On close, focus goes back where it came from - otherwise a
+	// keyboard user is dropped to <body> after every kick/delete/leave dialog and
+	// has to tab in from the top again.
 	useEffect(() => {
+		const returnFocusTo = document.activeElement as HTMLElement | null;
 		confirmRef.current?.focus();
 		openDialogs++;
 		const prevOverflow = document.body.style.overflow;
@@ -106,6 +109,10 @@ function ConfirmDialogView({
 			window.removeEventListener("keydown", onKey);
 			document.body.style.overflow = prevOverflow;
 			openDialogs--;
+			// Only if the trigger is still around: a dialog that removed its own
+			// trigger (kicking the player whose row opened it) leaves a detached
+			// node, and focusing that would be worse than doing nothing.
+			if (returnFocusTo?.isConnected) returnFocusTo.focus();
 		};
 	}, [onCancel]);
 
