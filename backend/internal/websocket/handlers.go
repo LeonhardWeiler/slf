@@ -346,14 +346,13 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	// then a no-op thanks to the identity guard.
 	old := hub.clients[sessionID]
 	hub.clients[sessionID] = c
+	c.sessionID = sessionID
 	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
 
 	if old != nil && old != c {
 		_ = old.conn.Close(websocket.StatusNormalClosure, "replaced by reconnect")
 	}
-
-	c.sessionID = sessionID
 
 	c.send("sessionCreated", game.SessionCreatedPayload{
 		SessionID: sessionID,
@@ -410,9 +409,9 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		delete(hub.clients, sessionID)
 	}
 	reviewing := lobby.State == game.StateReviewing
+	c.sessionID = ""
 	hub.mu.Unlock()
 
-	c.sessionID = ""
 	hub.broadcastLobbyState(lobby)
 	// While reviewing, the left player's answers must disappear there too.
 	if reviewing {
@@ -655,6 +654,12 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	targetSession := target.SessionID
 	targetClient := hub.clients[targetSession]
+	if targetClient != nil {
+		// Runs on the host's goroutine, so clearing the victim's sessionID has to
+		// happen under hub.mu - the victim's own read loop reads it under the same
+		// lock on every message.
+		targetClient.sessionID = ""
+	}
 	if lobby.State == game.StateLobby {
 		// Pre-game: remove the player entirely.
 		delete(lobby.Players, p.PlayerID)
@@ -678,7 +683,6 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Unlock()
 
 	if targetClient != nil {
-		targetClient.sessionID = ""
 		targetClient.send("playerKicked", map[string]string{"playerId": p.PlayerID})
 	}
 	hub.broadcastLobbyState(lobby)

@@ -97,8 +97,13 @@ func originAllowed(r *http.Request) bool {
 }
 
 type Client struct {
-	conn      *websocket.Conn
-	hub       *Hub
+	conn *websocket.Conn
+	hub  *Hub
+	// sessionID is guarded by Hub.mu. It is not only touched by this client's own
+	// read loop: closeLobby and handleKickPlayer clear it on *other* clients, so
+	// every read and write has to happen under the hub mutex the handlers already
+	// hold. Assigning it after unlocking left it formally unsynchronised, ordered
+	// only by whatever the following socket write happened to do.
 	sessionID string
 
 	// Rate-limit state, only ever touched from this client's single read loop,

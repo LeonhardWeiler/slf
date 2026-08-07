@@ -157,8 +157,8 @@ func (h *Hub) registerSession(c *Client, session *game.Session) {
 	}
 	h.clients[session.ID] = c
 	h.sessions[session.ID] = session
-	h.mu.Unlock()
 	c.sessionID = session.ID
+	h.mu.Unlock()
 }
 
 func (h *Hub) onDisconnect(c *Client) {
@@ -321,6 +321,9 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	var targets []*Client
 	for _, p := range lobby.Players {
 		if c, ok := h.clients[p.SessionID]; ok {
+			// Cleared here rather than in the write loop below: this runs on some
+			// other player's goroutine (or a timer's), so it must stay under h.mu.
+			c.sessionID = ""
 			targets = append(targets, c)
 		}
 		delete(h.sessions, p.SessionID)
@@ -334,7 +337,6 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	h.mu.Unlock()
 
 	for _, c := range targets {
-		c.sessionID = ""
 		_ = c.writeRaw(msg)
 	}
 }
@@ -390,10 +392,21 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	writeAll(targets, msg)
 }
 
+// sessionIDOf reads a client's session id under h.mu, for the few paths that
+// need it outside a handler's own critical section. Caller must NOT hold h.mu.
+func (h *Hub) sessionIDOf(c *Client) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return c.sessionID
+}
+
+// sendError reports a failure to one client. Always called after the caller
+// released h.mu, so the (rare) critical-path log takes the lock itself rather
+// than reading sessionID unguarded.
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
 	severity := severityOf(code)
 	if severity == "critical" {
-		slog.Error("critical error", "code", string(code), "session", hashSession(c.sessionID), "message", message)
+		slog.Error("critical error", "code", string(code), "session", hashSession(h.sessionIDOf(c)), "message", message)
 	}
 	c.send("error", errorPayload{Code: code, Message: message, Severity: severity})
 }
