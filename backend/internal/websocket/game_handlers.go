@@ -487,8 +487,10 @@ func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 		perCat := map[string]*game.Answer{}
 		for pid, byCat := range round.Answers {
 			// Defense-in-depth: never score a round spectator (commentator host or
-			// pending joiner), even if a crafted client slipped answers into the round.
-			if pl, ok := lobby.Players[pid]; ok && isRoundSpectator(lobby, pl) {
+			// pending joiner) or a player who left, even if a crafted client slipped
+			// answers into the round. This must match buildReviewState's filter - an
+			// answer the host cannot see in review must not influence the result.
+			if pl, ok := lobby.Players[pid]; ok && (pl.Left || isRoundSpectator(lobby, pl)) {
 				continue
 			}
 			if ans, ok := byCat[cat.ID]; ok {

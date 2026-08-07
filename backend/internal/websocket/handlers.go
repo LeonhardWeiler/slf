@@ -330,6 +330,15 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden")
 		return
 	}
+	// A player who left (or was kicked) mid-game lingers only for the standings
+	// and must not be revived by a replayed sessionId. Their session is already
+	// deleted on both paths, so this is defence in depth against a future path
+	// that forgets to.
+	if player.Left {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeSessionNotFound, "Session nicht mehr gültig")
+		return
+	}
 	player.Connected = true
 
 	// Replace any existing connection for this session with the new one. The old
@@ -393,6 +402,11 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 			delete(lobby.Game.Round.Answers, player.ID)
 			delete(lobby.Game.Round.Flames, player.ID)
 		}
+		// Invalidate the session too (mirroring handleKickPlayer): leaving is a
+		// final exit, so the id must not stay usable. Without this a client that
+		// kept the id could reconnect as a departed player and inject answers that
+		// review filters out but scoring still counts.
+		delete(hub.sessions, sessionID)
 		delete(hub.clients, sessionID)
 	}
 	reviewing := lobby.State == game.StateReviewing

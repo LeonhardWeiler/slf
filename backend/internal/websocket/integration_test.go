@@ -661,3 +661,85 @@ func TestKickMidGameMarksPlayerLeft(t *testing.T) {
 		}
 	}
 }
+
+// game-1: leaving mid-game is a final exit. The session must be invalidated so
+// a client that kept the id cannot reconnect as a departed player - and the
+// departed player's answers must never reach scoring, because review filters
+// them out and the host could otherwise not see what changed the result.
+func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	cats := host.lastLobby.Categories
+
+	// Force the drawn letter to "A" so the submitted answers are rule-valid.
+	excluded := []string{}
+	for r := 'B'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.readLobby()
+
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+		PlayerID  string `json:"playerId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.sessionID = sc.SessionID
+	bobID := sc.PlayerID
+	guest.waitFor("lobbyState")
+
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State string `json:"state"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+
+	// Bob leaves mid-round.
+	guest.send("leaveLobby", map[string]any{})
+	host.readLobby()
+
+	// A fresh socket replaying Bob's old sessionId must be rejected.
+	back := dial(t, srv)
+	back.sessionID = guest.sessionID
+	back.send("reconnect", map[string]any{})
+	var errPayload struct {
+		Code string `json:"code"`
+	}
+	json.Unmarshal(back.waitFor("error"), &errPayload)
+	if errPayload.Code != string(CodeSessionNotFound) {
+		t.Fatalf("expected %s after a mid-game leave, got %q", CodeSessionNotFound, errPayload.Code)
+	}
+
+	// Even if answers had slipped in, they must not affect the result: Alice is
+	// the only participant, so every category is hers alone -> 20 points each.
+	back.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen"})
+	for _, cat := range cats {
+		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen"})
+	}
+	host.send("buzz", map[string]any{})
+	host.waitFor("reviewState")
+	host.send("finishReview", map[string]any{})
+
+	var rr struct {
+		Scores []struct {
+			PlayerID    string `json:"playerId"`
+			RoundPoints int    `json:"roundPoints"`
+		} `json:"scores"`
+	}
+	json.Unmarshal(host.waitFor("roundResult"), &rr)
+	want := 20 * len(cats)
+	for _, s := range rr.Scores {
+		if s.PlayerID == bobID && s.RoundPoints != 0 {
+			t.Fatalf("departed player scored %d points, expected 0", s.RoundPoints)
+		}
+		if s.PlayerID != bobID && s.RoundPoints != want {
+			t.Fatalf("host scored %d, expected %d (a departed answer must not demote a unique answer)",
+				s.RoundPoints, want)
+		}
+	}
+}
