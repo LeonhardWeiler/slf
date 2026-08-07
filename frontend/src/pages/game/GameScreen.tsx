@@ -446,9 +446,6 @@ export function GameScreen() {
 														showInvalid &&
 															"border-destructive focus-visible:ring-destructive",
 													)}
-													// With flames on, Tab walks all inputs first (1..n), then
-													// all flame buttons (n+1..2n), instead of input->flame.
-													tabIndex={flamesEnabled ? idx + 1 : undefined}
 												/>
 												{/* Check pops in once the field holds a valid answer. */}
 												{done && (
@@ -461,7 +458,6 @@ export function GameScreen() {
 													variant="outline"
 													size="icon"
 													aria-pressed={isFlamed}
-													tabIndex={categories.length + idx + 1}
 													title={
 														isFlamed
 															? "Flamme entfernen"
