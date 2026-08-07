@@ -126,9 +126,18 @@ export function RoundResultScreen() {
 											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
 										)}
 										<span className="text-sm font-medium">
-											{r.playerId !== myPlayerId && !hasLeft(r.playerId) ? (
+											{/* Only the host may remove a player, so only the host gets
+											    the clickable name. Rendering it for everyone offered a
+											    destructive action the server rejects with NOT_HOST. */}
+											{isHost &&
+											r.playerId !== myPlayerId &&
+											!hasLeft(r.playerId) ? (
 												<button
 													type="button"
+													// The name itself is the trigger, so name it: without this
+													// the accessible name is just the player and nothing says
+													// what activating it does.
+													title={`${playerName(r.playerId)} entfernen`}
 													className="font-medium hover:line-through cursor-pointer bg-transparent border-0 p-0 inline"
 													onClick={() =>
 														handleKick(r.playerId, playerName(r.playerId))
