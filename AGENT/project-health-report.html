@@ -205,29 +205,29 @@
       </div>
 
       <p class="lead">
-        <b>Snapshot after the fix pass.</b> All quality gates are green: backend
-        <code>gofmt</code>, <code>go vet</code>,
-        <code>go test&nbsp;./...</code> incl. <code>-race</code>; frontend
-        Biome, <code>bun&nbsp;test</code> (26&nbsp;tests) and
-        <code>vite&nbsp;build</code> with <code>tsc</code>. The
-        server-authoritative core, end-to-end Zod validation, the connection
-        lifecycle (host grace, reconnect with backoff+jitter,
-        <code>localStorage</code> session surviving a tab close) and the
-        hardening (origin check, rate limits/caps/join backoff, CSP/HSTS/COOP -
-        the CSP script hash still matches the anti-FOUC snippet exactly) all
-        hold up under re-inspection.
+        <b>Fresh full scan, with the central flows walked on a running
+        server.</b> The declared gates are green: backend <code>gofmt</code>,
+        <code>go vet</code>, <code>go test&nbsp;./...</code> incl.
+        <code>-race</code>; frontend Biome <em>lint</em>,
+        <code>bun&nbsp;test</code> (26&nbsp;tests) and
+        <code>vite&nbsp;build</code> with <code>tsc</code>. A live protocol
+        walkthrough (create → join → start → buzz → review → result → next round
+        → game over → return to lobby → host leaves, plus mid-game join, kick,
+        leave and replayed sessions) behaved exactly as documented in every step
+        but one - see <b>UX-1</b>.
       </p>
       <p class="lead">
-        The scoring defect that headlined the previous snapshot is closed on all
-        three of its layers, and the seam behind it is gone too: round
-        participation is now decided by one documented predicate set rather than
-        four ad-hoc derivations, so review and scoring can no longer disagree
-        about who is in the round. The two UX dead ends, the rule-mirror drift
-        (verified against the Go engine afterwards), the unsynchronised session
-        field, both a11y gaps and the per-keystroke schema rebuild are all
-        resolved. <b>Currently no open findings.</b> The overall assessment is
-        in <b>section&nbsp;4</b>; deliberate limitations (documented in the
-        README) are in section&nbsp;3.
+        The core is unchanged and still strong: server-authoritative rules, the
+        one documented predicate set for round participation, end-to-end Zod
+        validation, the connection lifecycle and the CSP script hash (recomputed
+        from <code>index.html</code> this round, still matching
+        <code>main.go</code> exactly). What this pass turned up instead sits at
+        the edges: the one resource path that is <em>not</em> throttled, a modal
+        that never got the focus handling its sibling has, a name that stays
+        reserved by the player who left, and a format gate that exists for Go
+        but not for TypeScript. <b>10 open findings, none critical or high.</b>
+        The overall assessment is in <b>section&nbsp;4</b>; deliberate
+        limitations (documented in the README) are in section&nbsp;3.
       </p>
 
       <div class="summary">
@@ -240,15 +240,15 @@
           <div class="l">High</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">0</div>
+          <div class="n" style="color: var(--med)">3</div>
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">0</div>
+          <div class="n" style="color: var(--low)">6</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--info)">0</div>
+          <div class="n" style="color: var(--info)">1</div>
           <div class="l">Info</div>
         </div>
       </div>
@@ -276,12 +276,355 @@
       <!-- ============ OPEN ============ -->
       <h2 id="open">1. Open findings</h2>
       <p class="note">
-        <b>No open findings.</b> Every finding from the previous snapshot was
-        implemented and removed here rather than ticked off - this report is a
-        snapshot, not a history. All gates (<code>gofmt</code>,
-        <code>go vet</code>, <code>go test ./... -race</code>, Biome,
-        <code>bun test</code>, <code>vite build</code>) are green.
+        Sorted from most to least urgent. Nothing here is critical or high: the
+        game plays correctly end to end, and none of these can change a game's
+        outcome.
       </p>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-med">medium</span> Lobby creation is the only
+          unthrottled resource path <span class="id">SEC-1</span>
+        </h3>
+        <div class="loc">
+          <code>backend/internal/websocket/handlers.go</code> -
+          <code>handleCreateLobby</code>; cf. <code>client.go</code>
+          (<code>joinBackoff</code>) and <code>hub.go</code>
+          (<code>maxLobbies</code>)
+        </div>
+        <p>
+          Every other resource path is guarded: joins have a growing backoff
+          after 5 failures, messages a per-connection token bucket (40/s),
+          players and categories hard caps.
+          <code>createLobby</code> has nothing of the sort - only the global
+          <code>maxLobbies&nbsp;=&nbsp;10000</code>. Measured against the running
+          server: a <em>single</em> socket created <b>300 lobbies in 8.5&nbsp;s
+          with zero pushback</b> (self-throttled to stay under the message
+          limit; the token bucket is the only ceiling). At the full message rate
+          the global cap is reachable in roughly four minutes from one
+          connection, and from then on every legitimate
+          <code>createLobby</code> is refused with "Server ausgelastet". It does
+          heal itself - the janitor reaps lobbies with no connected player - but
+          only after <code>EmptySince</code> is set on a 2-minute pass plus the
+          10-minute TTL, so the denial window is ~12 minutes per wave.
+        </p>
+        <p class="note">
+          Only reachable by whoever can open a WebSocket, so on a closed LAN this
+          is theoretical. It matters for the public-deployment shape the project
+          already supports (Docker image, HSTS with <code>preload</code>,
+          <code>WS_ALLOWED_ORIGINS</code> for a real domain).
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> give creation the same treatment joining
+          already has - a per-connection quota or growing backoff
+          (<code>c.createdLobbies</code> alongside <code>c.joinFails</code>), so
+          one client cannot walk the global cap on its own.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-med">medium</span> The QR modal is
+          <code>aria-modal</code> without any of the focus handling
+          <span class="id">A11Y-1</span>
+        </h3>
+        <div class="loc">
+          <code>frontend/src/pages/Lobby.tsx</code> (QR popup) - compare
+          <code>frontend/src/components/ConfirmDialog.tsx</code>
+        </div>
+        <p>
+          The "QR anzeigen" popup declares
+          <code>role="dialog" aria-modal="true"</code> and does lock body scroll
+          and close on Escape/backdrop - but unlike
+          <code>ConfirmDialog</code> it never moves focus into the dialog, never
+          traps Tab inside it, and never returns focus to the trigger on close.
+          A keyboard or screen-reader user opening the QR code keeps focus on the
+          button <em>behind</em> a surface that claims to be modal, tabs straight
+          into the visually obscured page, and after closing is left wherever
+          they ended up. <code>ConfirmDialog</code> solves all three in ~20 lines
+          it already has; the QR dialog simply never got them.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> reuse the pattern from
+          <code>ConfirmDialog</code> (focus the close button on open, cycle Tab
+          within the panel, restore <code>document.activeElement</code> on
+          unmount) - or lift that dialog chrome into one shared component so a
+          third modal cannot repeat this.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-med">medium</span> Leaving mid-game keeps your own
+          name reserved against you <span class="id">UX-1</span>
+        </h3>
+        <div class="loc">
+          <code>backend/internal/websocket/handlers.go</code> -
+          <code>handleJoinLobby</code> (name-uniqueness loop);
+          <code>game_handlers.go</code> - <code>resetForNewGame</code>
+        </div>
+        <p>
+          The uniqueness check scans <em>all</em> <code>lobby.Players</code>,
+          including players marked <code>Left</code> - and those are only dropped
+          at the next <code>resetForNewGame</code> (a new game or a return to the
+          lobby). Verified live: after "Verlassen" mid-game, rejoining the same
+          lobby as the same person is rejected with
+          <code>NAME_NOT_UNIQUE</code> / "Name bereits vergeben". The same
+          applies after a kick.
+        </p>
+        <p>
+          The failure is opaque from the player's side: the join screen shows no
+          player list, and in the lobby their row is already gone
+          (<code>players.filter(p =&gt; !p.left)</code>), so the name they can
+          see nobody using is refused with no explanation. Their only way back in
+          is to invent a different name - and then they sit in the standings
+          twice, once as their departed self. For a party game where a mistaken
+          tap on "Verlassen" is the most likely way to leave, this is the
+          roughest edge the walkthrough found.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> exclude <code>Left</code> players from the
+          uniqueness check (the departed row keeps its name in the standings,
+          which is what it is there for), or - if a clash must stay
+          impossible - say so: "Dieser Name gehört noch zu einem Spieler, der
+          das Spiel verlassen hat."
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> Biome's formatter is enabled but
+          never enforced - and the tree has drifted
+          <span class="id">CI-1</span>
+        </h3>
+        <div class="loc">
+          <code>frontend/package.json</code> (<code>lint</code> script),
+          <code>frontend/biome.json</code>, <code>.gitlab-ci.yml</code>
+        </div>
+        <p>
+          <code>biome.json</code> enables the formatter, but nothing ever checks
+          it: <code>bun run lint</code> is <code>biome lint src</code> - lint
+          only, <code>src</code> only - and CI runs exactly that script.
+          <code>biome format .</code> currently reports <b>8 unformatted
+          files</b>, four of them under <code>src/</code>:
+          <code>answerValidation.ts</code>, <code>serverEvents.ts</code>,
+          <code>Lobby.tsx</code> and <code>index.css</code> - i.e. files touched
+          in the last fix pass and never reformatted. The remaining four are
+          <code>biome.json</code> itself, <code>package.json</code>,
+          <code>tsconfig.json</code> and <code>vite.config.ts</code>.
+        </p>
+        <p class="note">
+          The asymmetry is the actual point: the backend has a hard
+          <code>gofmt</code> gate that fails the pipeline on a single stray file,
+          while the frontend has no counterpart at all - so formatting drift is
+          invisible until someone runs the formatter by hand.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> switch the script to
+          <code>biome check .</code> (lint + format, whole project) or add a
+          <code>biome format --check .</code> step next to it in CI, then run the
+          formatter once to clear the current drift.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> Live regions that appear together
+          with their content <span class="id">A11Y-2</span>
+        </h3>
+        <div class="loc">
+          <code>frontend/src/components/Toaster.tsx</code>,
+          <code>ConnectionBadge.tsx</code>, <code>QrScanner.tsx</code>
+        </div>
+        <p>
+          <code>Toaster</code> returns <code>null</code> while the queue is
+          empty, so its <code>aria-live</code> container enters the DOM at the
+          same moment as the first toast. Screen readers generally announce
+          <em>changes inside an already-present</em> live region; a region
+          inserted together with its text is commonly missed. The same shape
+          applies to <code>ConnectionBadge</code> (<code>role="status"</code>,
+          rendered only while disconnected), so "Verbindung getrennt" can pass
+          silently. The QR scanner's camera error is a plain
+          <code>&lt;p&gt;</code> with no live semantics at all.
+        </p>
+        <p class="note">
+          <code>HostGraceBanner</code> is <em>not</em> affected: it uses
+          <code>role="alert"</code>, which is announced on insertion - the
+          deliberate split between the static alert text and the
+          <code>aria-hidden</code> ticking digits still works as designed.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> always render the live-region wrapper (empty)
+          and only swap its children - for the toaster, move the
+          <code>aria-live</code> div above the
+          <code>toasts.length === 0</code> early return. Give the scanner error
+          <code>role="alert"</code>.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> A briefly disconnected player is
+          announced as having left <span class="id">UX-2</span>
+        </h3>
+        <div class="loc">
+          <code>frontend/src/pages/game/RoundResultScreen.tsx</code> and
+          <code>GameOverScreen.tsx</code> - <code>hasLeft()</code>
+        </div>
+        <p>
+          <code>hasLeft(id)</code> is <code>p.left || !p.connected</code>, so a
+          three-second connection drop labels that player "(verlassen)" in the
+          standings for everyone - while the lobby list shows the very same
+          player with a neutral pulsing "reconnecting" dot. Two screens tell
+          different stories about one state, and the wrong one is the more
+          public.
+        </p>
+        <p>
+          The same predicate also gates the host's kick affordance in the
+          standings, so a player who drops out for a moment silently becomes
+          unremovable - the one moment a host is most likely to want to remove
+          them.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> render the two states distinctly - "(verlassen)"
+          only for <code>p.left</code>, and something reversible
+          (greyed name, the lobby's pulsing dot) for
+          <code>!p.connected</code> - and gate the kick action on
+          <code>p.left</code> alone.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> The round-start precondition is
+          checked in a different critical section than the transition
+          <span class="id">CONC-1</span>
+        </h3>
+        <div class="loc">
+          <code>backend/internal/websocket/game_handlers.go</code> -
+          <code>handleStartGame</code>, <code>handleStartNextRound</code>,
+          <code>beginCountdown</code>
+        </div>
+        <p>
+          <code>beginCountdown</code> performs its whole mutation under one lock,
+          but its callers verify the precondition
+          (<code>State == Lobby/GameOver</code>, resp.
+          <code>State == RoundResult</code>) in an <em>earlier</em> critical
+          section and release the lock before calling it. Between the two,
+          nothing holds: <code>beginCountdown</code> re-checks only
+          <code>lobby.Game != nil</code>, whereas its siblings
+          <code>beginPlaying</code> and <code>endRound</code> deliberately
+          re-verify <code>roundID</code> <em>and</em> state.
+        </p>
+        <p>
+          Two live sockets on one session can therefore both pass the check and
+          start two rounds, silently consuming an extra letter. That is not
+          exotic by design: all tabs of a browser share one
+          <code>sessionId</code> (documented), and a connection replaced by
+          <code>handleReconnect</code> stays usable until its socket actually
+          closes - <code>lookupLocked</code> never checks that the caller is
+          still the client bound to the session.
+        </p>
+        <p class="note">
+          <b>Not reproduced:</b> eight attempts with two sockets firing
+          <code>startGame</code> simultaneously consumed exactly one letter every
+          time. This is a hardening item about a structural gap, not an observed
+          defect - which is why it sits at low.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> pass the expected state into
+          <code>beginCountdown</code> and re-check it under the same lock that
+          performs the transition (mirroring the <code>roundID</code>+state guard
+          in <code>beginPlaying</code>). Optionally have
+          <code>lookupLocked</code> also assert
+          <code>hub.clients[sessionID] == c</code>, so a superseded socket stops
+          acting for the session.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> <code>CHANGELOG.md</code> stops
+          before the entire fix pass <span class="id">DOC-1</span>
+        </h3>
+        <div class="loc"><code>CHANGELOG.md</code>, <code>frontend/package.json</code></div>
+        <p>
+          The last entry is <code>0.9.2</code> (2026-07-13), but 14 commits have
+          landed since - including changes a changelog exists for: a departed
+          player's answers no longer reach scoring, leaving now invalidates the
+          session server-side, starting a game requires a connected participant,
+          the client rule mirror became rune-safe, and the frontend test runner
+          moved from Vitest to <code>bun test</code>. None of it is recorded, and
+          <code>package.json</code> still says <code>0.9.2</code>.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> add a <code>0.9.3</code> section (Fixed /
+          Changed) covering the fix pass and bump the frontend version with it -
+          the format is already established, only the entries are missing.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-low">low</span> No render tests for the React
+          screens <span class="id">TEST-1</span>
+        </h3>
+        <div class="loc">
+          <code>frontend/src/</code> - only
+          <code>answerValidation.test.ts</code> and
+          <code>serverEvents.test.ts</code> exist
+        </div>
+        <p>
+          The logic layer is well covered (26 frontend tests, plus protocol-level
+          Go integration tests), but no test ever renders a component. Everything
+          that lives in JSX - conditional host affordances, disabled states,
+          focus behaviour, which screen a phase maps to - is guarded only by
+          typecheck, lint and manual runs. That is exactly the blind spot a
+          previous pass fell into (a missing <code>isHost</code> gate on a
+          destructive action in the standings), and two of this round's findings
+          (A11Y-1, UX-2) live in the same layer.
+        </p>
+        <p class="note">
+          Cost is the honest caveat: <code>bun test</code> runs without a Vite
+          transform, so component tests need a happy-dom preload and cannot use
+          Vite-only features (<code>import.meta.env</code>, CSS imports) - as
+          <code>CLAUDE.md</code> already spells out.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> add a happy-dom preload plus Testing Library and
+          cover the few highest-value cases: host vs. non-host affordances per
+          screen, the buzz gate, and <code>Room</code>'s state → screen mapping.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>
+          <span class="badge b-info">info</span> <code>llms.txt</code> describes
+          a setting that does not exist <span class="id">DOC-2</span>
+        </h3>
+        <div class="loc"><code>frontend/public/llms.txt</code></div>
+        <p>
+          The flow section says "Set the categories and <em>number of rounds</em>,
+          then play rounds that share a letter". There is no round-count
+          setting - a game runs until the alphabet is used up or the host ends
+          it - and rounds do not share a letter, each round <em>has</em> one. The
+          actual settings (time limit, commentator mode, flames, last-letter
+          mode, disabled letters) go unmentioned.
+        </p>
+        <p class="note">
+          <code>CLAUDE.md</code> itself was re-checked against the code this
+          round and is accurate: commands, the predicate set in
+          <code>game_util.go</code>, the state machine incl. both shortcuts, the
+          <code>answerValidation</code>&nbsp;↔&nbsp;<code>engine.go</code> mirror
+          and the <code>bun test</code> specifics all still match. Only
+          <code>cmd/loadtest</code> is missing from its backend layout list.
+        </p>
+        <div class="rec">
+          <b>Recommendation:</b> correct the two sentences and name the real
+          settings; optionally add <code>cmd/loadtest</code> to the backend
+          layout in <code>CLAUDE.md</code>.
+        </div>
+      </div>
 
       <!-- ============ GOOD ============ -->
       <h2 id="good">2. What is already strong</h2>
@@ -310,13 +653,16 @@
           <span class="badge b-ok">plus</span> <b>Accessibility basics</b>: a
           <code>&lt;main&gt;</code> landmark, live regions deliberately
           decoupled from the second ticker (the host-grace banner announces the
-          situation once and hides the ticking digits), a focus trap plus
-          Escape in the modal, <code>aria-pressed</code> on the letter and flame
-          toggles, keyboard operation throughout, toasts that pause on
-          hover/focus. Inline field errors are linked via
-          <code>aria-describedby</code> and announced as alerts, the modal
-          returns focus to whatever opened it, and every control sits at the
-          natural <code>tabindex="0"</code> so Tab follows the visible order.
+          situation once via <code>role="alert"</code> and hides the ticking
+          digits), <code>aria-pressed</code> on the letter and flame toggles,
+          keyboard operation throughout, toasts that pause on hover/focus.
+          Inline field errors are linked via <code>aria-describedby</code> and
+          announced as alerts, and every control sits at the natural
+          <code>tabindex="0"</code> so Tab follows the visible order. The
+          confirm dialog is the model implementation - focus on open, Tab
+          trapped inside, Escape, and focus returned to the trigger (guarded
+          against a trigger the dialog itself removed); A11Y-1 is about the QR
+          popup never adopting it.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Frontend robustness</b>: an
@@ -341,10 +687,16 @@
           <code>checkLobby</code> events).
         </li>
         <li>
-          <span class="badge b-ok">plus</span> <b>Hardening</b>: origin check,
-          rate limit + caps + join backoff (also for the pre-check), a lobby
-          reaper, CSP/HSTS-<code>preload</code>/COOP, immutable asset caching,
-          hashed session IDs, no sessionId leak.
+          <span class="badge b-ok">plus</span> <b>Hardening</b>: origin check
+          via <code>net.ParseIP</code> (no glob a look-alike host could slip
+          through), a per-connection token bucket, resource caps, the join
+          backoff (which the <code>checkLobby</code> pre-check deliberately
+          shares, so it cannot become an unthrottled enumeration oracle), a
+          lobby reaper, CSP/HSTS-<code>preload</code>/COOP, immutable asset
+          caching, hashed session IDs, no sessionId leak. The CSP script hash
+          was recomputed from <code>index.html</code> this round and still
+          matches <code>main.go</code> byte for byte. Lobby creation is the one
+          path outside this net (SEC-1).
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Render efficiency</b>: all
@@ -358,9 +710,13 @@
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Consistency &amp; CI</b>:
-          uniform sort idioms, TypeScript <code>strict</code>, Biome clean, a
-          <code>gofmt</code> gate, <code>bun test</code> + WS integration tests
-          in the pipeline, and a Nix flake that pins the whole toolchain.
+          uniform sort idioms, TypeScript <code>strict</code>, Biome
+          <em>lint</em> clean over <code>src</code>, a hard <code>gofmt</code>
+          gate, <code>go vet</code>, <code>bun test</code> + WS integration tests
+          in the pipeline, a multi-stage image that runs as a non-root user, and
+          a Nix flake that pins the whole toolchain (Go 1.26, Bun 1.3) - the
+          scan reproduced every gate through it. Formatting is the gap
+          (CI-1).
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Commentary that earns its
@@ -422,12 +778,24 @@
       <h2 id="final">4. Final project analysis</h2>
       <p>
         <b>Overall verdict: production-ready for the intended use</b> (real-time
-        multiplayer party game on the LAN/browser). The architecture, hardening
-        and test discipline were already good; the fix pass closed the one
-        defect that could change a game's outcome, removed the structural seam
-        that produced it, and tightened the edges around it. There are no known
-        correctness, security or a11y defects left - the remaining limitations
-        are all deliberate, documented design decisions (section&nbsp;3).
+        multiplayer party game on the LAN/browser). The game plays correctly end
+        to end - a full protocol walkthrough against a running server confirmed
+        every documented behaviour, including the awkward ones: mid-game joins
+        landing as pending spectators, a kicked or departed player's replayed
+        session being refused, the empty round skipping review, and
+        <code>returnToLobby</code> zeroing every score. None of the ten open
+        findings can change a game's outcome.
+      </p>
+      <p>
+        What is left is a consistent pattern rather than a set of unrelated
+        slips: <em>a good mechanism exists, and one place did not adopt it.</em>
+        Joining has a backoff, creating does not (SEC-1). The confirm dialog has
+        focus management, the QR dialog does not (A11Y-1). The backend has a
+        format gate, the frontend does not (CI-1). <code>beginPlaying</code> and
+        <code>endRound</code> re-verify their state under the lock,
+        <code>beginCountdown</code> does not (CONC-1). That is a cheap class of
+        problem to close, because in each case the answer is already written
+        somewhere else in this codebase.
       </p>
 
       <h3>Architecture &amp; code quality</h3>
@@ -481,13 +849,13 @@
         config is test-free again.
       </p>
       <p>
-        <em>Remaining gap.</em> There are still no render tests for the React
-        components/screens; the UI is guarded by typecheck, lint and manual
-        variant runs. That is what let a missing <code>isHost</code> gate
-        survive in the standings, and it is the one area where a cheap safety
-        net is still missing. The mirror suite, by contrast, now covers the
-        non-ASCII casing and code-point-length edges that its invariant depends
-        on.
+        <em>Remaining gap (TEST-1).</em> There are still no render tests for the
+        React components/screens; the UI is guarded by typecheck, lint and
+        manual variant runs. Two of this round's findings (A11Y-1, UX-2) sit in
+        exactly that layer, as did the missing <code>isHost</code> gate a
+        previous pass had to catch by reading. The mirror suite, by contrast,
+        covers the non-ASCII casing and code-point-length edges its invariant
+        depends on.
       </p>
 
       <h3>Security</h3>
@@ -503,10 +871,19 @@
         game without accounts/persistence and without personal data.
       </p>
       <p>
-        Session invalidation is now symmetric across every exit: leaving
-        mid-game drops the session server-side just as a kick does, and a
-        replayed id for a departed player is refused rather than relying on the
-        frontend having cleared <code>localStorage</code>.
+        Session invalidation is symmetric across every exit: leaving mid-game
+        drops the session server-side just as a kick does, and a replayed id for
+        a departed player is refused rather than relying on the frontend having
+        cleared <code>localStorage</code> - confirmed live against the running
+        server this round.
+      </p>
+      <p>
+        The one hole in that net is lobby creation (SEC-1): every other resource
+        path is throttled or capped per connection, creation only by the global
+        <code>maxLobbies</code>, so a single socket can walk the whole cap and
+        deny lobby creation to everyone until the reaper catches up. Not a
+        concern on a closed LAN; worth closing before any public deployment,
+        which the project is otherwise already set up for.
       </p>
 
       <h3>UX &amp; a11y</h3>
@@ -520,28 +897,30 @@
         availability before asking for a name, and discards stale replies.
       </p>
       <p>
-        The non-host view holds up now too: destructive actions are only
-        offered to whoever may perform them, and starting a round without a
-        connected participant explains itself instead of doing nothing. A11y is
-        solid on structure (landmark, focus trap with focus return, deliberate
-        live-region design, <code>aria-pressed</code> toggles) and on forms
-        (errors linked and announced), with tab order following the visible
-        order. Responsive, light/dark theme, and animations fully disabled under
-        <code>prefers-reduced-motion</code>.
+        The non-host view holds up too: destructive actions are only offered to
+        whoever may perform them, and starting a round without a connected
+        participant explains itself instead of doing nothing. A11y is solid on
+        structure (landmark, <code>aria-pressed</code> toggles, the confirm
+        dialog's full focus handling, the deliberate alert/ticker split in the
+        host-grace banner) and on forms (errors linked and announced), with tab
+        order following the visible order. Responsive, light/dark theme, and
+        animations fully disabled under <code>prefers-reduced-motion</code>.
+      </p>
+      <p>
+        Where it slips is the second instance of a pattern: the QR modal never
+        got the dialog behaviour (A11Y-1), and the live regions that appear
+        <em>with</em> their content may not be announced at all (A11Y-2). On the
+        UX side the walkthrough surfaced one real dead end - your own name stays
+        reserved after you leave (UX-1) - and one screen that reports a
+        two-second connection drop as "verlassen" (UX-2).
       </p>
 
       <h3>Optional next steps (non-blocking)</h3>
       <p class="note">
-        Nothing here is needed; these are the two ideas worth keeping on file if
-        the project is picked up again:
+        Not findings, just the idea worth keeping on file if the project is
+        picked up again:
       </p>
       <ul class="tight">
-        <li>
-          Lightweight render/interaction tests for the core screens (e.g.
-          Testing Library) as a complement to the logic tests. This is the one
-          remaining blind spot - a missing host gate in the standings was
-          invisible to typecheck, lint and the existing suite alike.
-        </li>
         <li>
           An optional persistence layer (e.g. Redis) if lobbies should ever
           survive a server restart; currently purely in-memory by design.
@@ -551,8 +930,9 @@
       <hr />
       <p class="note">
         This report only documents, it reflects the current state without
-        history. Nothing here is blocking; the app is in a good, shippable state
-        and can be closed out as is.
+        history. Nothing here blocks shipping: the app plays correctly end to
+        end, and all ten findings are edge hardening, accessibility polish and
+        documentation upkeep.
       </p>
     </div>
   </body>
