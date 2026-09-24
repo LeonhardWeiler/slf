@@ -44,8 +44,6 @@ CSS imports).
 
 ## Conventions
 
-- **Commit directly to `master`** (solo project); do not branch without being asked.
-- One commit per logical change, with a meaningful message.
 - The server is the single source of truth: rules/scoring/state live only on the
   server; every incoming message is validated with Zod (`frontend/src/lib/serverEvents.ts`).
 - `frontend/src/lib/answerValidation.ts` **mirrors** the backend engine rules
@@ -86,8 +84,3 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
 
   The standings (`buildRoundResult`) are the documented exception: they drop
   only spectators, because a player who left stays in the ranking.
-
-## AGENT/
-
-`project-health-report.html` = running health report, `TODO.md` = work list.
-Maintained through the `/review-and-update-report` and `/implement-todo` skills.
