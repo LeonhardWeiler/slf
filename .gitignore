@@ -15,3 +15,6 @@ tmp/
 
 # Editor / OS
 .DS_Store
+
+# nix build
+result
