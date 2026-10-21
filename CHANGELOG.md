@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Version numbers were reconstructed from the Git history; the project has not been
 formally released yet, so all versions are in the `0.x` range.
 
+## [0.10.0] - 2026-10-21
+
+### Added
+
+- Solo mode: alone in a lobby, the review is one screen with a yes/no per answer and live round points, there is no scoreboard between rounds and the game ends with the total.
+- Nix package and deploy to https://slf.coprime.tech on every push to `master`.
+
+### Changed
+
+- A deploy lets running games finish first and keeps idle lobbies across the restart; clients load the new build on reconnect.
+
 ## [0.9.2] - 2026-07-13
 
 ### Added
