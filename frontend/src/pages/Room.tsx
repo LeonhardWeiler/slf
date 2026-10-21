@@ -3,6 +3,7 @@ import { useLobbyStore } from "@/store/lobby";
 import { Lobby } from "./Lobby";
 import { GameScreen } from "./game/GameScreen";
 import { ReviewScreen } from "./game/ReviewScreen";
+import { SoloReviewScreen } from "./game/SoloReviewScreen";
 import { RoundResultScreen } from "./game/RoundResultScreen";
 import { GameOverScreen } from "./game/GameOverScreen";
 
@@ -13,21 +14,22 @@ export function Room() {
 	// from re-rendering on every other lobby-store change (the child screens read
 	// the full lobby themselves).
 	const state = useLobbyStore((s) => s.lobby?.state);
+	const solo = useLobbyStore((s) => s.lobby?.solo ?? false);
 
 	if (!state) {
 		return <Navigate to="/" replace />;
 	}
 
-	return renderScreen(state);
+	return renderScreen(state, solo);
 }
 
-function renderScreen(state: string) {
+function renderScreen(state: string, solo: boolean) {
 	switch (state) {
 		case "Countdown":
 		case "Playing":
 			return <GameScreen />;
 		case "Reviewing":
-			return <ReviewScreen />;
+			return solo ? <SoloReviewScreen /> : <ReviewScreen />;
 		case "RoundResult":
 			return <RoundResultScreen />;
 		case "GameOver":

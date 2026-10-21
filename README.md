@@ -12,6 +12,10 @@ in RAM.
   letters, remove players, end the running round
 - **Round flow**: countdown -> answers -> buzzing -> review -> result
 - **Live review** by the host, including merging identical answers
+- **Solo**: alone in a lobby, the review is one screen with every category and
+  a yes/no per answer, the round points update live in a sticky bar, and there
+  is no scoreboard between rounds; the game ends with your total. As soon as
+  someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
   - **Commentator host**: the host does not play and instead sees a live
     overview of which categories each player has filled in
@@ -156,6 +160,23 @@ The same steps run in CI (`.gitlab-ci.yml`): `gofmt` gate + `go vet`
 
 - `go test` for the backend, Biome lint + `bun test` + build for the frontend.
 
+## Deployment on the server
+
+Live at https://slf.coprime.tech. A push to `master` runs
+`.github/workflows/deploy.yml`: it runs `nix build` (which runs all tests) and
+triggers the deploy pipeline of the server config, which pulls the newest
+`master` and switches the server. The flake's `packages.default` holds the
+binary in `bin/slf` and the frontend in `share/slf`.
+
+The server reloads the service with `SIGHUP`: it refuses new games, waits until
+no lobby is mid-game (at most 1 h), saves the idle lobbies and exits; systemd
+starts the new version, which restores them. On reconnect, clients reload the
+page if `index.html` points to a new build.
+
+After changing `frontend/bun.lock` or `backend/go.sum`, `nix build` fails with
+`hash mismatch` and prints `got: sha256-…`. Put that value into `outputHash`
+or `vendorHash` in `flake.nix`.
+
 ## Deployment with Docker
 
 Backend and frontend sit in **one** image (multi-stage build): the frontend is
@@ -179,6 +200,7 @@ must be set in GitLab under **Settings -> CI/CD -> Variables**.
 | `STATIC_DIR`         | -                           | Directory with the built frontend; empty = only `/ws` (dev)                                                                                                                                      |
 | `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                           |
 | `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                 |
+| `STATE_DIRECTORY`    | -                           | Directory for `lobbies.json`; idle lobbies survive a restart. Empty = nothing is saved                                                                                                          |
 | `LOG_FILE`           | -                           | additionally log to a file (in Docker on the `slf-logs` volume)                                                                                                                                  |
 | `WS_ALLOWED_ORIGINS` | Same-origin + localhost/LAN | Additionally allowed WebSocket origins (comma-separated). By default same-origin as well as localhost/private LAN IPs are allowed; set this to allow the frontend from a **different** domain    |
 
@@ -216,9 +238,11 @@ the intended use (LAN/party game):
 - **No host handoff**: if a disconnected host does not return within the 15 s,
   the lobby is closed (no transfer of the host role), kept deliberately simple
   for a party game.
-- **No persistence layer**: the entire state lives in RAM. After a server
-  restart the lobbies are gone; clients are disconnected cleanly and return to
-  the home screen.
+- **No persistence layer**: the entire state lives in RAM. On a restart only
+  idle lobbies (in the lobby or on the final screen) are saved to
+  `$STATE_DIRECTORY/lobbies.json` and restored, so their players reconnect into
+  them. A running game is lost on a hard stop; `SIGHUP` avoids that (see
+  Deployment).
 
 ## License
 

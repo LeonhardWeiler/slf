@@ -42,6 +42,8 @@ export interface LobbyStatePayload {
 	// Seconds until the lobby closes because the host is disconnected; null/absent
 	// when the host is present.
 	hostGraceSeconds?: number | null;
+	// A single player is in the lobby: one-screen review, no scoreboard.
+	solo: boolean;
 }
 
 export interface SessionCreatedPayload {
@@ -107,6 +109,15 @@ export interface ReviewStatePayload {
 	answers: ReviewAnswer[];
 	// playerId of whoever buzzed to end the round; empty on timeout / host-ended.
 	buzzedBy?: string;
+	// Every category with the solo player's answer; null unless solo.
+	solo: SoloRow[] | null;
+}
+
+export interface SoloRow {
+	categoryId: string;
+	value: string;
+	valid: boolean;
+	points: number;
 }
 
 export interface ScoreEntry {
@@ -214,7 +225,10 @@ export type ClientEvent =
 	| { type: "buzz"; payload: Record<string, never> }
 	| { type: "endRound"; payload: Record<string, never> }
 	| { type: "setFlame"; payload: { categoryId: string } }
-	| { type: "setAnswerValidity"; payload: { answerId: string; valid: boolean } }
+	| {
+			type: "setAnswerValidity";
+			payload: { answerId: string; valid: boolean; categoryId?: string };
+	  }
 	| {
 			type: "mergeAnswers";
 			payload: { targetAnswerId: string; sourceAnswerId: string };

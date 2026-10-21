@@ -30,57 +30,72 @@ export function GameOverScreen() {
 			<div className="mx-auto w-full max-w-5xl space-y-4">
 				<RoomHeader title="Spiel beendet" />
 
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">Endstand</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						{ranking.map((r, i) => (
-							<div
-								key={r.playerId}
-								// Final standings ease in top-to-bottom (backwards fill keeps
-								// them hidden through the stagger delay).
-								style={{
-									animationDelay: `${i * 70}ms`,
-									animationFillMode: "backwards",
-								}}
-								className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
-									r.rank === 1
-										? "bg-amber-500/15 border border-amber-500/40"
-										: "bg-muted/50"
-								}`}
-							>
-								<div className="flex items-center gap-3">
-									<span className="text-sm font-bold text-muted-foreground w-5">
-										{r.rank}.
-									</span>
-									{r.rank === 1 && (
-										<Trophy className="h-4 w-4 text-amber-500" />
-									)}
-									<span className="text-sm font-medium">
-										{playerName(r.playerId)}
-										{r.playerId === myPlayerId && (
-											<span className="text-xs text-muted-foreground">
-												{" "}
-												(du)
-											</span>
+				{lobby.solo ? (
+					<Card>
+						<CardContent className="pt-6 text-center">
+							<p className="text-sm text-muted-foreground">Du hast</p>
+							<CountUp
+								value={
+									lobby.players.find((p) => p.id === myPlayerId)?.score ?? 0
+								}
+								className="block text-6xl font-black tabular-nums"
+							/>
+							<p className="text-sm text-muted-foreground">Punkte gemacht</p>
+						</CardContent>
+					</Card>
+				) : (
+					<Card>
+						<CardHeader className="pb-3">
+							<CardTitle className="text-base">Endstand</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-2">
+							{ranking.map((r, i) => (
+								<div
+									key={r.playerId}
+									// Final standings ease in top-to-bottom (backwards fill keeps
+									// them hidden through the stagger delay).
+									style={{
+										animationDelay: `${i * 70}ms`,
+										animationFillMode: "backwards",
+									}}
+									className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
+										r.rank === 1
+											? "bg-amber-500/15 border border-amber-500/40"
+											: "bg-muted/50"
+									}`}
+								>
+									<div className="flex items-center gap-3">
+										<span className="text-sm font-bold text-muted-foreground w-5">
+											{r.rank}.
+										</span>
+										{r.rank === 1 && (
+											<Trophy className="h-4 w-4 text-amber-500" />
 										)}
-										{hasLeft(r.playerId) && (
-											<span className="text-xs text-muted-foreground">
-												{" "}
-												(verlassen)
-											</span>
-										)}
-									</span>
+										<span className="text-sm font-medium">
+											{playerName(r.playerId)}
+											{r.playerId === myPlayerId && (
+												<span className="text-xs text-muted-foreground">
+													{" "}
+													(du)
+												</span>
+											)}
+											{hasLeft(r.playerId) && (
+												<span className="text-xs text-muted-foreground">
+													{" "}
+													(verlassen)
+												</span>
+											)}
+										</span>
+									</div>
+									<CountUp
+										value={r.score}
+										className="text-sm font-bold tabular-nums"
+									/>
 								</div>
-								<CountUp
-									value={r.score}
-									className="text-sm font-bold tabular-nums"
-								/>
-							</div>
-						))}
-					</CardContent>
-				</Card>
+							))}
+						</CardContent>
+					</Card>
+				)}
 
 				{isHost ? (
 					<Button

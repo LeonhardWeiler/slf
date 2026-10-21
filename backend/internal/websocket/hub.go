@@ -41,6 +41,8 @@ type Hub struct {
 	hostGrace map[string]*time.Timer
 	// hostGraceDuration is how long the grace lasts; overridable in tests.
 	hostGraceDuration time.Duration
+	// draining refuses new games while the server waits to restart for an update.
+	draining bool
 }
 
 func NewHub() *Hub {
@@ -385,6 +387,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		Settings:         lobby.Settings,
 		State:            lobby.State,
 		HostGraceSeconds: graceSecondsLeft(lobby),
+		Solo:             soloPlayer(lobby) != nil,
 	}
 	msg, targets := h.prepareBroadcast(lobby, "lobbyState", payload)
 	h.mu.Unlock()

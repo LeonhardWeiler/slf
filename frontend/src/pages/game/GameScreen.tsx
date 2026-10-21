@@ -91,7 +91,8 @@ export function GameScreen() {
 	const isSpectator =
 		(isHost && lobby?.settings.hostPlays === false) || isPending;
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
-	const flamesEnabled = lobby?.settings.flamesEnabled ?? false;
+	const flamesEnabled =
+		(lobby?.settings.flamesEnabled ?? false) && !lobby?.solo;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
 	// Categories the player has blurred at least once - a field only shows a red

@@ -20,9 +20,14 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel starten")
 		return
 	}
-	if lobby.State != game.StateLobby && lobby.State != game.StateGameOver {
+	if !idle(lobby) {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
+		return
+	}
+	if hub.draining {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeInvalidState, "Gleich kommt ein Update. Bitte in ein paar Minuten nochmal starten.")
 		return
 	}
 	if len(lobby.Categories) < 1 {
@@ -233,8 +238,8 @@ func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	// A round spectator (commentator host or pending joiner) does not play, so
-	// cannot flame.
-	if isRoundSpectator(lobby, player) {
+	// cannot flame. A solo answer is always the only one, so a flame is no bet.
+	if isRoundSpectator(lobby, player) || soloPlayer(lobby) != nil {
 		return
 	}
 	if p.CategoryID == "" {
@@ -327,8 +332,9 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
 		}
 	}
 	// No active player submitted an answer (players who already left are ignored):
-	// skip the review screen entirely and go directly to the scoreboard.
-	if !hasActiveSubmission(lobby) {
+	// skip the review screen entirely and go directly to the scoreboard. A solo
+	// player has no scoreboard and sees the round in review instead.
+	if !hasActiveSubmission(lobby) && soloPlayer(lobby) == nil {
 		result := hub.scoreAndFinishRound(lobby)
 		hub.mu.Unlock()
 		hub.broadcastLobbyState(lobby)
@@ -370,11 +376,16 @@ func handleSetAnswerValidity(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
 		AnswerID string `json:"answerId"`
 		Valid    bool   `json:"valid"`
+		// CategoryID is optional; the solo review rates every category at once.
+		CategoryID string `json:"categoryId"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return
 	}
 	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, catID string) bool {
+		if p.CategoryID != "" {
+			catID = p.CategoryID
+		}
 		if ans := answerFor(lobby.Game.Round, p.AnswerID, catID); ans != nil {
 			ans.Valid = p.Valid
 			return true
@@ -469,8 +480,13 @@ func handleFinishReview(hub *Hub, c *Client) {
 		return
 	}
 	result := hub.scoreAndFinishRound(lobby)
+	solo := soloPlayer(lobby) != nil
 	hub.mu.Unlock()
 
+	if solo {
+		hub.nextRound(lobby)
+		return
+	}
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastTo(lobby, "roundResult", result)
 }
@@ -483,19 +499,7 @@ func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 	round := lobby.Game.Round
 	roundPoints := map[string]int{}
 	for _, cat := range lobby.Categories {
-		perCat := map[string]*game.Answer{}
-		for pid, byCat := range round.Answers {
-			// Same filter buildReviewState uses: an answer the host cannot see in
-			// review must never be able to influence the result.
-			if !playsThisRound(lobby, lobby.Players[pid]) {
-				continue
-			}
-			if ans, ok := byCat[cat.ID]; ok {
-				perCat[pid] = ans
-			}
-		}
-		game.ScoreCategory(perCat, flamedFor(round, cat.ID))
-		for pid, ans := range perCat {
+		for pid, ans := range scoredCategory(lobby, cat.ID) {
 			roundPoints[pid] += ans.Points
 		}
 	}
@@ -518,6 +522,13 @@ func handleStartNextRound(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
+	hub.mu.Unlock()
+	hub.nextRound(lobby)
+}
+
+// nextRound starts the next round, or ends the game once every letter is used.
+func (hub *Hub) nextRound(lobby *game.Lobby) {
+	hub.mu.Lock()
 	noLetters := lobby.Game == nil || len(lobby.Game.RemainingLetters) == 0
 	hub.mu.Unlock()
 
@@ -539,6 +550,10 @@ func handleEndGame(hub *Hub, c *Client) {
 	if lobby.State == game.StateLobby || lobby.State == game.StateGameOver {
 		hub.mu.Unlock()
 		return
+	}
+	// The round under review is already played, so it counts.
+	if lobby.State == game.StateReviewing && lobby.Game != nil && lobby.Game.Round != nil {
+		hub.scoreAndFinishRound(lobby)
 	}
 	hub.mu.Unlock()
 	hub.endGame(lobby, "HostEnded")

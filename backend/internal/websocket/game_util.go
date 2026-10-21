@@ -113,6 +113,26 @@ func canPlayNextRound(lobby *game.Lobby, p *game.Player) bool {
 	return p != nil && !p.Left && p.Connected && !isSpectatorHost(lobby, p)
 }
 
+// soloPlayer returns the only player of a lobby that has exactly one member
+// who has not left and who plays, or nil. A pending joiner or a second member
+// ends solo, so the game is normal again as soon as someone else joins.
+func soloPlayer(lobby *game.Lobby) *game.Player {
+	var solo *game.Player
+	for _, p := range lobby.Players {
+		if p.Left {
+			continue
+		}
+		if solo != nil {
+			return nil
+		}
+		solo = p
+	}
+	if solo == nil || isRoundSpectator(lobby, solo) {
+		return nil
+	}
+	return solo
+}
+
 // hasRoundParticipant reports whether at least one player could play a round
 // starting now. Shared by handleStartGame (so the host gets a real error) and
 // beginCountdown (so an empty lobby falls back instead of starting a dead
@@ -259,17 +279,20 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	}
 	cat := lobby.Categories[idx]
 
-	perCat := map[string]*game.Answer{}
-	for pid, byCat := range r.Answers {
-		if !playsThisRound(lobby, lobby.Players[pid]) {
-			continue
-		}
-		if a, ok := byCat[cat.ID]; ok {
-			perCat[pid] = a
+	var solo []game.SoloRow
+	if p := soloPlayer(lobby); p != nil {
+		solo = make([]game.SoloRow, 0, len(lobby.Categories))
+		for _, c := range lobby.Categories {
+			row := game.SoloRow{CategoryID: c.ID}
+			if a := scoredCategory(lobby, c.ID)[p.ID]; a != nil {
+				row.Value, row.Valid, row.Points = a.Value, a.Valid, a.Points
+			}
+			solo = append(solo, row)
 		}
 	}
+
+	perCat := scoredCategory(lobby, cat.ID)
 	flamed := flamedFor(r, cat.ID)
-	game.ScoreCategory(perCat, flamed) // sets Points for the preview
 
 	answers := make([]game.ReviewAnswer, 0, len(perCat))
 	for pid, a := range perCat {
@@ -293,7 +316,26 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		CategoryCount: len(lobby.Categories),
 		Answers:       answers,
 		BuzzedBy:      r.BuzzedBy,
+		Solo:          solo,
 	}
+}
+
+// scoredCategory returns the answers of a category that count this round, with
+// Points set. Review and scoring both use it, so an answer the host cannot see
+// in review can never influence the result. Caller must hold hub.mu.
+func scoredCategory(lobby *game.Lobby, catID string) map[string]*game.Answer {
+	r := lobby.Game.Round
+	perCat := map[string]*game.Answer{}
+	for pid, byCat := range r.Answers {
+		if !playsThisRound(lobby, lobby.Players[pid]) {
+			continue
+		}
+		if a, ok := byCat[catID]; ok {
+			perCat[pid] = a
+		}
+	}
+	game.ScoreCategory(perCat, flamedFor(r, catID))
+	return perCat
 }
 
 // buildRoundResult assembles per-player round points, totals and the ranking.

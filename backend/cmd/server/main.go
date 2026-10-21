@@ -20,6 +20,14 @@ func main() {
 	setupLogging()
 
 	hub := websocket.NewHub()
+	// STATE_DIRECTORY (set by systemd) keeps idle lobbies across a restart.
+	stateFile := ""
+	if dir := os.Getenv("STATE_DIRECTORY"); dir != "" {
+		stateFile = filepath.Join(dir, "lobbies.json")
+		if err := hub.Load(stateFile); err != nil {
+			log.Printf("Restoring lobbies failed: %v", err)
+		}
+	}
 	hub.StartJanitor() // reap abandoned lobbies
 
 	mux := http.NewServeMux()
@@ -53,10 +61,12 @@ func main() {
 		IdleTimeout:       120 * time.Second,
 	}
 
-	// Stop accepting new connections on SIGINT/SIGTERM (e.g. `docker stop`) and
-	// shut down cleanly instead of being killed mid-request.
+	// SIGINT/SIGTERM stop now. SIGHUP (systemd reload on deploy) first lets
+	// running games finish, at most for an hour.
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	hup := make(chan os.Signal, 1)
+	signal.Notify(hup, syscall.SIGHUP)
 
 	go func() {
 		log.Printf("Server listening on %s", addr)
@@ -65,9 +75,21 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+	case <-hup:
+		log.Println("Draining…")
+		drainCtx, cancel := context.WithTimeout(ctx, time.Hour)
+		hub.Drain(drainCtx)
+		cancel()
+	}
 	stop() // a second signal now terminates immediately
 	log.Println("Shutting down…")
+	if stateFile != "" {
+		if err := hub.Save(stateFile); err != nil {
+			log.Printf("Saving lobbies failed: %v", err)
+		}
+	}
 
 	// Cleanly close all live WebSockets (1001) so clients reconnect gracefully
 	// instead of seeing a hard drop when the process exits.

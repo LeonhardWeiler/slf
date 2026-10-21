@@ -139,6 +139,9 @@ type LobbyStatePayload struct {
 	// host is disconnected; nil when the host is present. Lets late/reconnecting
 	// clients render the shared countdown too.
 	HostGraceSeconds *int `json:"hostGraceSeconds"`
+	// Solo is true while a single player is in the lobby: review shows the whole
+	// round on one screen and the scoreboard between rounds is skipped.
+	Solo bool `json:"solo"`
 }
 
 type SessionCreatedPayload struct {
@@ -182,6 +185,16 @@ type ReviewStatePayload struct {
 	// BuzzedBy is the playerID who buzzed to end the round; empty on timeout or a
 	// host-ended round.
 	BuzzedBy string `json:"buzzedBy"`
+	// Solo holds every category of the round with the player's answer; nil
+	// unless the lobby is solo.
+	Solo []SoloRow `json:"solo"`
+}
+
+type SoloRow struct {
+	CategoryID string `json:"categoryId"`
+	Value      string `json:"value"`
+	Valid      bool   `json:"valid"`
+	Points     int    `json:"points"`
 }
 
 type ScoreEntry struct {

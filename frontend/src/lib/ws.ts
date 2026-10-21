@@ -20,6 +20,7 @@ class WSClient {
 	private outbox: ClientEvent[] = [];
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private reconnectAttempts = 0;
+	private opened = false;
 	private url: string;
 	// Optimistic connection status: starts `true` so the UI doesn't flash a
 	// "disconnected" state during the ~200ms initial handshake (a cold load would
@@ -83,6 +84,8 @@ class WSClient {
 
 			socket.onopen = () => {
 				this.connecting = null;
+				if (this.opened) void reloadIfUpdated();
+				this.opened = true;
 				this.reconnectAttempts = 0; // reset backoff after a successful connect
 				this.notifyStatus(true);
 				this.flush();
@@ -204,3 +207,14 @@ const wsUrl = import.meta.env.DEV
 	: `${wsProto}//${window.location.host}/ws`;
 
 export const ws = new WSClient(wsUrl);
+
+// A reconnect may follow a deploy: load the new build if index.html changed.
+async function reloadIfUpdated() {
+	const src = document
+		.querySelector("script[type=module][src]")
+		?.getAttribute("src");
+	const html = await fetch("/", { cache: "no-store" })
+		.then((r) => r.text())
+		.catch(() => "");
+	if (src && html && !html.includes(src)) location.reload();
+}

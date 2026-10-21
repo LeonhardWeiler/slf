@@ -51,6 +51,7 @@ const lobbyStatePayload = z.object({
 	// Seconds until the lobby closes because the host is gone; null/absent when
 	// the host is present. Lets late joiners see the shared countdown too.
 	hostGraceSeconds: z.number().nullish(),
+	solo: z.boolean().optional().default(false),
 });
 
 const sessionCreatedPayload = z.object({
@@ -89,6 +90,17 @@ const reviewStatePayload = z.object({
 	answers: z.array(reviewAnswerSchema),
 	// Optional/lenient: an older server without this field must not drop the event.
 	buzzedBy: z.string().optional(),
+	solo: z
+		.array(
+			z.object({
+				categoryId: z.string(),
+				value: z.string(),
+				valid: z.boolean(),
+				points: z.number(),
+			}),
+		)
+		.nullish()
+		.default(null),
 });
 
 const commentatorStatePayload = z.object({

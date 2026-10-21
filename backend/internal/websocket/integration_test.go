@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -112,6 +113,7 @@ func (c *testConn) createLobby(name string) string {
 type lobbyStateDTO struct {
 	LobbyCode string `json:"lobbyCode"`
 	State     string `json:"state"`
+	Solo      bool   `json:"solo"`
 	Players   []struct {
 		ID        string `json:"id"`
 		Name      string `json:"name"`
@@ -346,7 +348,10 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 func TestEmptyRoundSkipsReview(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
-	host.createLobby("Alice")
+	code := host.createLobby("Alice")
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("sessionCreated")
 
 	// Force letter A so the round starts deterministically.
 	excluded := []string{}
@@ -726,21 +731,23 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 	host.waitFor("reviewState")
 	host.send("finishReview", map[string]any{})
 
+	// Alice is now alone, so the solo flow skips the scoreboard; with letter A
+	// used up the game ends and the final ranking carries the totals.
 	var rr struct {
-		Scores []struct {
-			PlayerID    string `json:"playerId"`
-			RoundPoints int    `json:"roundPoints"`
-		} `json:"scores"`
+		Ranking []struct {
+			PlayerID string `json:"playerId"`
+			Score    int    `json:"score"`
+		} `json:"ranking"`
 	}
 	json.Unmarshal(host.waitFor("roundResult"), &rr)
 	want := 20 * len(cats)
-	for _, s := range rr.Scores {
-		if s.PlayerID == bobID && s.RoundPoints != 0 {
-			t.Fatalf("departed player scored %d points, expected 0", s.RoundPoints)
+	for _, s := range rr.Ranking {
+		if s.PlayerID == bobID && s.Score != 0 {
+			t.Fatalf("departed player scored %d points, expected 0", s.Score)
 		}
-		if s.PlayerID != bobID && s.RoundPoints != want {
+		if s.PlayerID != bobID && s.Score != want {
 			t.Fatalf("host scored %d, expected %d (a departed answer must not demote a unique answer)",
-				s.RoundPoints, want)
+				s.Score, want)
 		}
 	}
 }
@@ -792,5 +799,82 @@ func TestStartWithoutConnectedParticipantErrors(t *testing.T) {
 	json.Unmarshal(host.waitFor("error"), &e)
 	if e.Code != string(CodeValidationError) {
 		t.Fatalf("expected %s, got %q (%s)", CodeValidationError, e.Code, e.Message)
+	}
+}
+
+func TestSoloRoundSkipsScoreboard(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	if !host.lastLobby.Solo {
+		t.Fatal("a lone player should be solo")
+	}
+	cats := host.lastLobby.Categories
+
+	excluded := []string{}
+	for r := 'C'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.readLobby()
+
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State  string `json:"state"`
+		Letter string `json:"letter"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test"})
+	host.send("endRound", map[string]any{})
+
+	type soloRow struct {
+		CategoryID string `json:"categoryId"`
+		Valid      bool   `json:"valid"`
+		Points     int    `json:"points"`
+	}
+	var rs struct {
+		Solo []soloRow `json:"solo"`
+	}
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 {
+		t.Fatalf("unexpected solo rows %+v", rs.Solo)
+	}
+
+	host.send("setAnswerValidity", map[string]any{"answerId": host.lastLobby.Players[0].ID, "categoryId": cats[0].ID, "valid": false})
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if rs.Solo[0].Valid || rs.Solo[0].Points != 0 {
+		t.Fatalf("expected the answer to be rejected, got %+v", rs.Solo[0])
+	}
+
+	host.send("finishReview", map[string]any{})
+	if raw := host.waitFor("gameState"); !strings.Contains(string(raw), `"Countdown"`) {
+		t.Fatalf("expected the next countdown, got %s", raw)
+	}
+}
+
+func TestDrainThenRestoreKeepsLobby(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	hub.Drain(context.Background())
+	host.send("startGame", map[string]any{})
+	host.waitFor("error")
+
+	path := filepath.Join(t.TempDir(), "lobbies.json")
+	if err := hub.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	srv2, hub2 := newServerHub(t)
+	if err := hub2.Load(path); err != nil {
+		t.Fatal(err)
+	}
+	back := dial(t, srv2)
+	back.sessionID = host.sessionID
+	back.send("reconnect", map[string]any{})
+	if ls := back.readLobby(); ls.LobbyCode != code {
+		t.Fatalf("expected lobby %s after restore, got %q", code, ls.LobbyCode)
 	}
 }
