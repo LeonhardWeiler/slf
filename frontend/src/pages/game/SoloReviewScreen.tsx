@@ -6,7 +6,8 @@ import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
-import { useConfirm, isConfirmDialogOpen } from "@/components/ConfirmDialog";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { isModalOpen } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -19,7 +20,7 @@ export function SoloReviewScreen() {
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
-			if (isTypingTarget(document.activeElement) || isConfirmDialogOpen())
+			if (isTypingTarget(document.activeElement) || isModalOpen())
 				return;
 			if (e.repeat) return;
 			if (e.key === "Enter") ws.send({ type: "finishReview", payload: {} });

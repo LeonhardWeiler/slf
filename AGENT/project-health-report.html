@@ -222,10 +222,9 @@
         validation, the connection lifecycle and the CSP script hash (recomputed
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
-        the edges: a modal
-        that never got the focus handling its sibling has, and a format gate that
+        the edges: a format gate that
         exists for Go
-        but not for TypeScript. <b>8 open findings, none critical or high.</b>
+        but not for TypeScript. <b>7 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -240,7 +239,7 @@
           <div class="l">High</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">2</div>
+          <div class="n" style="color: var(--med)">1</div>
           <div class="l">Medium</div>
         </div>
         <div class="stat">
@@ -280,37 +279,6 @@
         game plays correctly end to end, and none of these can change a game's
         outcome.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">medium</span> The QR modal is
-          <code>aria-modal</code> without any of the focus handling
-          <span class="id">A11Y-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/Lobby.tsx</code> (QR popup) - compare
-          <code>frontend/src/components/ConfirmDialog.tsx</code>
-        </div>
-        <p>
-          The "QR anzeigen" popup declares
-          <code>role="dialog" aria-modal="true"</code> and does lock body scroll
-          and close on Escape/backdrop - but unlike
-          <code>ConfirmDialog</code> it never moves focus into the dialog, never
-          traps Tab inside it, and never returns focus to the trigger on close.
-          A keyboard or screen-reader user opening the QR code keeps focus on the
-          button <em>behind</em> a surface that claims to be modal, tabs straight
-          into the visually obscured page, and after closing is left wherever
-          they ended up. <code>ConfirmDialog</code> solves all three in ~20 lines
-          it already has; the QR dialog simply never got them.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> reuse the pattern from
-          <code>ConfirmDialog</code> (focus the close button on open, cycle Tab
-          within the panel, restore <code>document.activeElement</code> on
-          unmount) - or lift that dialog chrome into one shared component so a
-          third modal cannot repeat this.
-        </div>
-      </div>
 
       <div class="card">
         <h3>
@@ -502,8 +470,8 @@
           focus behaviour, which screen a phase maps to - is guarded only by
           typecheck, lint and manual runs. That is exactly the blind spot a
           previous pass fell into (a missing <code>isHost</code> gate on a
-          destructive action in the standings), and two of this round's findings
-          (A11Y-1, UX-2) live in the same layer.
+          destructive action in the standings), and UX-2 from this round
+          lives in the same layer.
         </p>
         <p class="note">
           Cost is the honest caveat: <code>bun test</code> runs without a Vite
@@ -582,8 +550,8 @@
           <code>tabindex="0"</code> so Tab follows the visible order. The
           confirm dialog is the model implementation - focus on open, Tab
           trapped inside, Escape, and focus returned to the trigger (guarded
-          against a trigger the dialog itself removed); A11Y-1 is about the QR
-          popup never adopting it.
+          against a trigger the dialog itself removed), shared with the QR popup
+          through one <code>Modal</code> shell.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Frontend robustness</b>: an
@@ -710,8 +678,7 @@
       <p>
         What is left is a consistent pattern rather than a set of unrelated
         slips: <em>a good mechanism exists, and one place did not adopt it.</em>
-        The confirm dialog has
-        focus management, the QR dialog does not (A11Y-1). The backend has a
+        The backend has a
         format gate, the frontend does not (CI-1). <code>beginPlaying</code> and
         <code>endRound</code> re-verify their state under the lock,
         <code>beginCountdown</code> does not (CONC-1). That is a cheap class of
@@ -772,7 +739,7 @@
       <p>
         <em>Remaining gap (TEST-1).</em> There are still no render tests for the
         React components/screens; the UI is guarded by typecheck, lint and
-        manual variant runs. Two of this round's findings (A11Y-1, UX-2) sit in
+        manual variant runs. UX-2 from this round sits in
         exactly that layer, as did the missing <code>isHost</code> gate a
         previous pass had to catch by reading. The mirror suite, by contrast,
         covers the non-ASCII casing and code-point-length edges its invariant
@@ -820,8 +787,7 @@
         animations fully disabled under <code>prefers-reduced-motion</code>.
       </p>
       <p>
-        Where it slips is the second instance of a pattern: the QR modal never
-        got the dialog behaviour (A11Y-1), and the live regions that appear
+        Where it slips: the live regions that appear
         <em>with</em> their content may not be announced at all (A11Y-2). On the
         UX side one screen reports a
         two-second connection drop as "verlassen" (UX-2).
