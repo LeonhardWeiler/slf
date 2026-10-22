@@ -433,3 +433,23 @@ describe("last-letter mode", () => {
 		expect(screen.getByText("endet auf S")).toBeDefined();
 	});
 });
+
+describe("GameScreen countdown", () => {
+	it("puts a shown letter big above a small count", () => {
+		setup("guest", "Countdown");
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Countdown",
+			letter: "K",
+			usedLetters: ["K"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: 3,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		expect(screen.getByText("K").className).toContain("text-9xl");
+		expect(screen.getByText("3").className).toContain("text-4xl");
+	});
+});

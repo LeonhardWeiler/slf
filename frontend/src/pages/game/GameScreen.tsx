@@ -283,26 +283,32 @@ export function GameScreen() {
 		const display =
 			countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
 		const isGo = countdown === 0;
+		const letter = game?.letter;
 		return (
 			<div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
-				<div className="flex h-48 w-48 items-center justify-center">
+				{letter && <RoundLetter letter={letter} className="text-9xl" />}
+				<div
+					className={cn(
+						"flex items-center justify-center",
+						letter ? "h-16" : "h-48 w-48",
+					)}
+				>
 					{/* Just the digits scale down and swap each tick - no progress ring. */}
 					<div
 						key={display}
 						aria-live="assertive"
 						aria-atomic="true"
-						className={`text-8xl font-bold tabular-nums min-h-[1em] ${
+						className={cn(
+							"font-bold tabular-nums min-h-[1em]",
+							letter ? "text-4xl" : "text-8xl",
 							isGo
 								? "animate-countdown-go text-primary"
-								: "animate-countdown-pop"
-						}`}
+								: "animate-countdown-pop",
+						)}
 					>
 						{display}
 					</div>
 				</div>
-				{game?.letter && (
-					<RoundLetter letter={game.letter} className="text-6xl" />
-				)}
 			</div>
 		);
 	}
