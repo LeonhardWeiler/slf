@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { Check, X } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { cn, isTypingTarget } from "@/lib/utils";
+import { cn, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -20,7 +19,12 @@ export function SoloReviewScreen() {
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
-			if (isTypingTarget(document.activeElement) || isModalOpen()) return;
+			if (
+				e.defaultPrevented ||
+				isTypingTarget(document.activeElement) ||
+				isModalOpen()
+			)
+				return;
 			if (e.repeat) return;
 			if (e.key === "Enter") ws.send({ type: "finishReview", payload: {} });
 		}
@@ -96,11 +100,18 @@ export function SoloReviewScreen() {
 				<Card>
 					<CardContent className="pt-6 space-y-2">
 						{rows.map((r) => (
+							// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
 							<div
 								key={r.categoryId}
+								role={r.value ? "switch" : undefined}
+								aria-checked={r.value ? r.valid : undefined}
+								{...(r.value
+									? pressProps(() => setValid(r.categoryId, !r.valid))
+									: {})}
 								className={cn(
 									"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
 									r.valid ? "bg-green-500/10" : "bg-muted/50",
+									r.value && "cursor-pointer",
 								)}
 							>
 								<div className="min-w-0">
@@ -118,38 +129,14 @@ export function SoloReviewScreen() {
 										{r.value || "-"}
 									</p>
 								</div>
-								<div className="flex items-center gap-2 shrink-0">
-									<span
-										className={cn(
-											"text-lg font-bold tabular-nums w-8 text-right",
-											!r.valid && "text-muted-foreground",
-										)}
-									>
-										{r.points}
-									</span>
-									{r.value && (
-										<>
-											<Button
-												variant={r.valid ? "default" : "outline"}
-												size="sm"
-												aria-pressed={r.valid}
-												onClick={() => setValid(r.categoryId, true)}
-											>
-												<Check className="h-4 w-4" />
-												Ja
-											</Button>
-											<Button
-												variant={r.valid ? "outline" : "destructive"}
-												size="sm"
-												aria-pressed={!r.valid}
-												onClick={() => setValid(r.categoryId, false)}
-											>
-												<X className="h-4 w-4" />
-												Nein
-											</Button>
-										</>
+								<span
+									className={cn(
+										"text-lg font-bold tabular-nums w-8 text-right shrink-0",
+										!r.valid && "text-muted-foreground",
 									)}
-								</div>
+								>
+									{r.points}
+								</span>
 							</div>
 						))}
 					</CardContent>

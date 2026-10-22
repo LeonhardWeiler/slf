@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import type { KeyboardEvent } from "react";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -17,4 +18,17 @@ export function isTypingTarget(el: Element | null): boolean {
 		tag === "SELECT" ||
 		(el as HTMLElement).isContentEditable
 	);
+}
+
+// Click plus Enter/Space for an element that acts as a button or switch.
+export function pressProps(onPress: () => void) {
+	return {
+		tabIndex: 0,
+		onClick: onPress,
+		onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
+			if (e.key !== "Enter" && e.key !== " ") return;
+			e.preventDefault();
+			onPress();
+		},
+	};
 }

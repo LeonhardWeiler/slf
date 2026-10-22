@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { ws } from "@/lib/ws";
 import {
-	Check,
 	X,
 	ChevronLeft,
 	ChevronRight,
@@ -10,7 +9,7 @@ import {
 	Flame,
 	Bell,
 } from "lucide-react";
-import { cn, isTypingTarget } from "@/lib/utils";
+import { cn, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -43,7 +42,7 @@ export function ReviewScreen() {
 	useEffect(() => {
 		if (!isHost) return;
 		function onKey(e: KeyboardEvent) {
-			if (isTypingTarget(document.activeElement)) return;
+			if (e.defaultPrevented || isTypingTarget(document.activeElement)) return;
 			// Ignore auto-repeat: holding Enter/arrow would fire the action many
 			// times. The first finishReview/nextCategory advances the server state,
 			// so the repeats hit an invalid state -> spurious "Aktion nicht erlaubt".
@@ -141,23 +140,18 @@ export function ReviewScreen() {
 							const merged = a.mergedInto !== "";
 							const isAnchor = mergeAnchor === a.answerId;
 							const clickable = mergeMode && !isAnchor && !merged;
+							const toggles = isHost && !mergeMode && a.value !== "";
 							return (
-								// biome-ignore lint/a11y/noStaticElementInteractions: interactive only in merge mode, where it gets role=button + keyboard handling
+								// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
 								<div
 									key={a.answerId}
-									role={clickable ? "button" : undefined}
-									tabIndex={clickable ? 0 : undefined}
-									onClick={clickable ? () => mergeInto(a.answerId) : undefined}
-									onKeyDown={
-										clickable
-											? (e) => {
-													if (e.key === "Enter" || e.key === " ") {
-														e.preventDefault();
-														mergeInto(a.answerId);
-													}
-												}
-											: undefined
-									}
+									role={clickable ? "button" : toggles ? "switch" : undefined}
+									aria-checked={toggles ? a.valid : undefined}
+									{...(clickable
+										? pressProps(() => mergeInto(a.answerId))
+										: toggles
+											? pressProps(() => setValid(a.answerId, !a.valid))
+											: {})}
 									className={cn(
 										"rounded-md px-3 py-2.5 transition-colors",
 										isAnchor
@@ -165,6 +159,7 @@ export function ReviewScreen() {
 											: a.valid
 												? "bg-green-500/10"
 												: "bg-muted/50",
+										toggles && "cursor-pointer",
 										clickable &&
 											"cursor-pointer ring-1 ring-primary/40 hover:ring-2 hover:ring-primary active:ring-2 active:ring-primary",
 									)}
@@ -209,35 +204,6 @@ export function ReviewScreen() {
 											>
 												{a.pointsPreview}
 											</span>
-											{isHost && (
-												// Action semantics: valid -> X (click to reject),
-												// invalid -> check (click to accept).
-												<Button
-													variant="outline"
-													size="icon"
-													className={cn(
-														"h-8 w-8",
-														a.valid
-															? "text-destructive hover:text-destructive"
-															: "text-green-600 dark:text-green-500 hover:text-green-600",
-													)}
-													title={
-														a.valid
-															? "Als ungültig markieren"
-															: "Als gültig akzeptieren"
-													}
-													onClick={(e) => {
-														e.stopPropagation();
-														setValid(a.answerId, !a.valid);
-													}}
-												>
-													{a.valid ? (
-														<X className="h-4 w-4" />
-													) : (
-														<Check className="h-4 w-4" />
-													)}
-												</Button>
-											)}
 										</div>
 									</div>
 

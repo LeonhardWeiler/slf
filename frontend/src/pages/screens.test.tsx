@@ -172,3 +172,60 @@ describe("Lobby", () => {
 		expect(screen.queryByText("Einstellungen")).toBeNull();
 	});
 });
+
+describe("review validity", () => {
+	it("toggles a multiplayer answer by tapping its row", () => {
+		setup("host", "Reviewing");
+		useGameStore.getState().setReview({
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			answers: [
+				{
+					answerId: "guest",
+					playerId: "guest",
+					value: "Berlin",
+					valid: true,
+					mergedInto: "",
+					pointsPreview: 20,
+					flamed: false,
+				},
+			],
+			solo: null,
+		});
+		render(<ReviewScreen />);
+		const row = screen.getByRole("switch");
+		expect(row.getAttribute("aria-checked")).toBe("true");
+		fireEvent.click(row);
+		expect(send).toHaveBeenCalledWith({
+			type: "setAnswerValidity",
+			payload: { answerId: "guest", valid: false },
+		});
+	});
+
+	it("toggles a solo answer by tapping its row", () => {
+		setup("guest", "Reviewing");
+		useGameStore.getState().setReview({
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			answers: [],
+			solo: [
+				{ categoryId: "c1", value: "Bonn", valid: false, points: 0 },
+				{ categoryId: "c2", value: "", valid: false, points: 0 },
+			],
+		});
+		render(<SoloReviewScreen />);
+		const rows = screen.getAllByRole("switch");
+		expect(rows.length).toBe(1);
+		fireEvent.keyDown(rows[0], { key: " " });
+		expect(send).toHaveBeenCalledWith({
+			type: "setAnswerValidity",
+			payload: { answerId: "guest", valid: true, categoryId: "c1" },
+		});
+	});
+});
