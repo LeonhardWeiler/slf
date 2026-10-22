@@ -151,3 +151,24 @@ describe("GameScreen", () => {
 		expect(buzz().textContent).toBe("Gesendet…");
 	});
 });
+
+describe("Lobby", () => {
+	it("shows a guest only the settings that differ from the default", () => {
+		setup("guest", "Lobby");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: {
+				...lobby,
+				settings: {
+					...lobby.settings,
+					timeLimit: 60,
+					flamesEnabled: true,
+					excludedLetters: ["Y", "Q"],
+				},
+			},
+		});
+		render(<Lobby />);
+		expect(screen.getByText("60 s · Flammen · ohne Q Y")).toBeDefined();
+		expect(screen.queryByText("Einstellungen")).toBeNull();
+	});
+});

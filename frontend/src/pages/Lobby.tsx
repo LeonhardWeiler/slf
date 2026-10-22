@@ -311,6 +311,18 @@ export function Lobby() {
 		(p) => p.connected && (!p.isHost || lobby.settings.hostPlays),
 	).length;
 	const canStart = isHost && playingCount >= 1 && lobby.categories.length >= 1;
+	const s = lobby.settings;
+	const settingsSummary = [
+		s.timeLimit !== null && `${s.timeLimit} s`,
+		!s.hostPlays && "Kommentator",
+		s.flamesEnabled && "Flammen",
+		s.lastLetterMode && "Letzter Buchstabe",
+		s.showLetterDuringCountdown && "Buchstabe im Countdown",
+		s.excludedLetters.length > 0 &&
+			`ohne ${[...s.excludedLetters].sort().join(" ")}`,
+	]
+		.filter(Boolean)
+		.join(" · ");
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
@@ -566,22 +578,22 @@ export function Lobby() {
 				</Card>
 
 				{/* Settings */}
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">Einstellungen</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						{/* Time limit */}
-						<div className="space-y-2">
-							<InfoHint
-								trigger="Zeitlimit pro Runde"
-								label="Was bedeutet das Zeitlimit?"
-							>
-								Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
-								Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
-								Host sie beendet.
-							</InfoHint>
-							{isHost ? (
+				{isHost ? (
+					<Card>
+						<CardHeader className="pb-3">
+							<CardTitle className="text-base">Einstellungen</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							{/* Time limit */}
+							<div className="space-y-2">
+								<InfoHint
+									trigger="Zeitlimit pro Runde"
+									label="Was bedeutet das Zeitlimit?"
+								>
+									Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
+									Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
+									Host sie beendet.
+								</InfoHint>
 								<div className="flex flex-wrap gap-2">
 									{TIME_OPTIONS.map((opt) => {
 										const active = lobby.settings.timeLimit === opt.value;
@@ -604,26 +616,18 @@ export function Lobby() {
 										);
 									})}
 								</div>
-							) : (
-								<p className="text-sm text-muted-foreground">
-									{lobby.settings.timeLimit === null
-										? "Unbegrenzt"
-										: `${lobby.settings.timeLimit} Sek.`}
-								</p>
-							)}
-						</div>
+							</div>
 
-						{/* Commentator mode - on = host doesn't play, only comments (the
+							{/* Commentator mode - on = host doesn't play, only comments (the
                 switch is the inverse of the hostPlays flag it drives). */}
-						<div className="flex items-center justify-between gap-3">
-							<InfoHint
-								trigger="Kommentator"
-								label="Was bedeutet „Kommentator“?"
-							>
-								Der Host spielt nicht mit, sondern ist nur Kommentator und sieht
-								bei sich, welche Kategorien schon ausgefüllt wurden.
-							</InfoHint>
-							{isHost ? (
+							<div className="flex items-center justify-between gap-3">
+								<InfoHint
+									trigger="Kommentator"
+									label="Was bedeutet „Kommentator“?"
+								>
+									Der Host spielt nicht mit, sondern ist nur Kommentator und
+									sieht bei sich, welche Kategorien schon ausgefüllt wurden.
+								</InfoHint>
 								<Switch
 									checked={!lobby.settings.hostPlays}
 									onCheckedChange={(v: boolean) =>
@@ -631,20 +635,14 @@ export function Lobby() {
 									}
 									aria-label="Kommentator"
 								/>
-							) : (
-								<span className="text-sm text-muted-foreground shrink-0">
-									{lobby.settings.hostPlays ? "Nein" : "Ja"}
-								</span>
-							)}
-						</div>
+							</div>
 
-						{/* Flames spice */}
-						<div className="flex items-center justify-between gap-3">
-							<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
-								Wette pro Runde auf eine Kategorie, dass deine Antwort
-								einzigartig ist: richtig +5, falsch 0 Punkte.
-							</InfoHint>
-							{isHost ? (
+							{/* Flames spice */}
+							<div className="flex items-center justify-between gap-3">
+								<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
+									Wette pro Runde auf eine Kategorie, dass deine Antwort
+									einzigartig ist: richtig +5, falsch 0 Punkte.
+								</InfoHint>
 								<Switch
 									checked={lobby.settings.flamesEnabled}
 									onCheckedChange={(v: boolean) =>
@@ -652,23 +650,17 @@ export function Lobby() {
 									}
 									aria-label="Flammen aktivieren"
 								/>
-							) : (
-								<span className="text-sm text-muted-foreground shrink-0">
-									{lobby.settings.flamesEnabled ? "Ja" : "Nein"}
-								</span>
-							)}
-						</div>
+							</div>
 
-						{/* Last-letter spice */}
-						<div className="flex items-center justify-between gap-3">
-							<InfoHint
-								trigger="Letzter Buchstabe"
-								label="Was bedeutet „Letzter Buchstabe“?"
-							>
-								Antworten müssen mit dem Buchstaben <em>enden</em> statt
-								beginnen.
-							</InfoHint>
-							{isHost ? (
+							{/* Last-letter spice */}
+							<div className="flex items-center justify-between gap-3">
+								<InfoHint
+									trigger="Letzter Buchstabe"
+									label="Was bedeutet „Letzter Buchstabe“?"
+								>
+									Antworten müssen mit dem Buchstaben <em>enden</em> statt
+									beginnen.
+								</InfoHint>
 								<Switch
 									checked={lobby.settings.lastLetterMode}
 									onCheckedChange={(v: boolean) =>
@@ -676,22 +668,17 @@ export function Lobby() {
 									}
 									aria-label="Letzter Buchstabe"
 								/>
-							) : (
-								<span className="text-sm text-muted-foreground shrink-0">
-									{lobby.settings.lastLetterMode ? "Ja" : "Nein"}
-								</span>
-							)}
-						</div>
+							</div>
 
-						{/* Show letter during countdown */}
-						<div className="flex items-center justify-between gap-3">
-							<InfoHint
-								trigger="Buchstabe während Countdown"
-								label="Was bedeutet „Buchstabe während Countdown“?"
-							>
-								Zeigt den kommenden Buchstaben schon während des Countdowns an.
-							</InfoHint>
-							{isHost ? (
+							{/* Show letter during countdown */}
+							<div className="flex items-center justify-between gap-3">
+								<InfoHint
+									trigger="Buchstabe während Countdown"
+									label="Was bedeutet „Buchstabe während Countdown“?"
+								>
+									Zeigt den kommenden Buchstaben schon während des Countdowns
+									an.
+								</InfoHint>
 								<Switch
 									checked={lobby.settings.showLetterDuringCountdown}
 									onCheckedChange={(v: boolean) =>
@@ -699,94 +686,90 @@ export function Lobby() {
 									}
 									aria-label="Buchstabe während Countdown"
 								/>
-							) : (
-								<span className="text-sm text-muted-foreground">
-									{lobby.settings.showLetterDuringCountdown ? "Ja" : "Nein"}
-								</span>
-							)}
-						</div>
+							</div>
 
-						{/* Letter selection */}
-						<div className="space-y-2">
-							{/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
+							{/* Letter selection */}
+							<div className="space-y-2">
+								{/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
                   the same height whether or not the button is shown - no layout
                   shift when a letter is toggled. The "Buchstaben" label sits left
                   (like the other setting titles); "Alle aktivieren" + the count
                   stay flush right. */}
-							<div className="flex min-h-7 items-center justify-between gap-2">
-								<p className="text-sm font-medium">Buchstaben</p>
-								<div className="flex items-center gap-2">
-									{isHost && lobby.settings.excludedLetters.length > 0 && (
-										<Button
-											variant="ghost"
-											size="sm"
-											className="h-7 text-xs"
-											onClick={() => {
-												updateSettings({ excludedLetters: [] });
-												setStaggerLetters(true);
-												// Long enough for the last letter's delayed pop to finish.
-												setTimeout(
-													() => setStaggerLetters(false),
-													26 * 18 + 350,
-												);
-											}}
-										>
-											Alle aktivieren
-										</Button>
-									)}
-									<span className="text-xs text-muted-foreground tabular-nums">
-										{26 - lobby.settings.excludedLetters.length} von 26 aktiv
-									</span>
+								<div className="flex min-h-7 items-center justify-between gap-2">
+									<p className="text-sm font-medium">Buchstaben</p>
+									<div className="flex items-center gap-2">
+										{lobby.settings.excludedLetters.length > 0 && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-7 text-xs"
+												onClick={() => {
+													updateSettings({ excludedLetters: [] });
+													setStaggerLetters(true);
+													// Long enough for the last letter's delayed pop to finish.
+													setTimeout(
+														() => setStaggerLetters(false),
+														26 * 18 + 350,
+													);
+												}}
+											>
+												Alle aktivieren
+											</Button>
+										)}
+										<span className="text-xs text-muted-foreground tabular-nums">
+											{26 - lobby.settings.excludedLetters.length} von 26 aktiv
+										</span>
+									</div>
+								</div>
+								<div className="flex flex-wrap gap-1.5">
+									{ALPHABET.map((letter, idx) => {
+										const excluded =
+											lobby.settings.excludedLetters.includes(letter);
+										const popping = poppedLetter === letter || staggerLetters;
+										return (
+											<button
+												key={letter}
+												type="button"
+												onClick={() => toggleLetter(letter)}
+												onAnimationEnd={() =>
+													setPoppedLetter((l) => (l === letter ? null : l))
+												}
+												aria-pressed={!excluded}
+												title={
+													excluded
+														? `${letter} aktivieren`
+														: `${letter} deaktivieren`
+												}
+												style={
+													staggerLetters
+														? { animationDelay: `${idx * 18}ms` }
+														: undefined
+												}
+												className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
+													popping ? "animate-pop" : ""
+												} ${
+													// Active fill contrasts with the background, so no border
+													// edge; only the excluded (muted) state keeps a border.
+													excluded
+														? "bg-muted text-muted-foreground/40 border-border line-through"
+														: "bg-primary text-primary-foreground border-transparent"
+												}`}
+											>
+												{letter}
+											</button>
+										);
+									})}
 								</div>
 							</div>
-							{!isHost && (
-								<p className="text-xs text-muted-foreground">
-									Aktive Buchstaben für dieses Spiel.
-								</p>
-							)}
-							<div className="flex flex-wrap gap-1.5">
-								{ALPHABET.map((letter, idx) => {
-									const excluded =
-										lobby.settings.excludedLetters.includes(letter);
-									const popping = poppedLetter === letter || staggerLetters;
-									return (
-										<button
-											key={letter}
-											type="button"
-											disabled={!isHost}
-											onClick={() => toggleLetter(letter)}
-											onAnimationEnd={() =>
-												setPoppedLetter((l) => (l === letter ? null : l))
-											}
-											aria-pressed={!excluded}
-											title={
-												excluded
-													? `${letter} aktivieren`
-													: `${letter} deaktivieren`
-											}
-											style={
-												staggerLetters
-													? { animationDelay: `${idx * 18}ms` }
-													: undefined
-											}
-											className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
-												popping ? "animate-pop" : ""
-											} ${isHost ? "cursor-pointer" : "cursor-default"} ${
-												// Active fill contrasts with the background, so no border
-												// edge; only the excluded (muted) state keeps a border.
-												excluded
-													? "bg-muted text-muted-foreground/40 border-border line-through"
-													: "bg-primary text-primary-foreground border-transparent"
-											}`}
-										>
-											{letter}
-										</button>
-									);
-								})}
-							</div>
-						</div>
-					</CardContent>
-				</Card>
+						</CardContent>
+					</Card>
+				) : (
+					settingsSummary && (
+						<p className="text-center text-sm text-muted-foreground">
+							{settingsSummary}
+						</p>
+					)
+				)}
 
 				{/* Start Game (Host only) */}
 				{isHost ? (
@@ -824,7 +807,7 @@ export function Lobby() {
 						)}
 					</div>
 				) : (
-					<p className="text-center text-sm text-muted-foreground">
+					<p className="sticky bottom-0 bg-background/90 py-3 text-center text-sm text-muted-foreground backdrop-blur">
 						Warte auf den Host…
 					</p>
 				)}
