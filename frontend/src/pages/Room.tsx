@@ -1,4 +1,4 @@
-import { Navigate } from "@tanstack/react-router";
+import { Navigate } from "@/lib/nav";
 import { useLobbyStore } from "@/store/lobby";
 import { Lobby } from "./Lobby";
 import { GameScreen } from "./game/GameScreen";
@@ -17,7 +17,7 @@ export function Room() {
 	const solo = useLobbyStore((s) => s.lobby?.solo ?? false);
 
 	if (!state) {
-		return <Navigate to="/" replace />;
+		return <Navigate to="/" />;
 	}
 
 	return renderScreen(state, solo);

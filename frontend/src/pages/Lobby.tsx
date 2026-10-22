@@ -6,7 +6,7 @@ import {
 	lazy,
 	Suspense,
 } from "react";
-import { useNavigate, Navigate } from "@tanstack/react-router";
+import { Navigate, navigate } from "@/lib/nav";
 import type { Player } from "@/types/events";
 import {
 	Plus,
@@ -100,7 +100,6 @@ function usePlayerPresence(
 }
 
 export function Lobby() {
-	const navigate = useNavigate();
 	const lobby = useLobbyStore((s) => s.lobby);
 	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
 	const reset = useLobbyStore((s) => s.reset);
@@ -214,7 +213,7 @@ export function Lobby() {
 	}, [lobby?.categories]);
 
 	if (!lobby) {
-		return <Navigate to="/" replace />;
+		return <Navigate to="/" />;
 	}
 
 	async function handleLeave() {
@@ -241,7 +240,7 @@ export function Lobby() {
 		ws.send({ type: "leaveLobby", payload: {} });
 		markForcedLeave();
 		reset();
-		void navigate({ to: "/" });
+		navigate("/");
 	}
 
 	function handleAddCategory(e: React.FormEvent) {
@@ -474,8 +473,8 @@ export function Lobby() {
 											{isHost && !leaving && player.id !== myPlayerId && (
 												<Button
 													variant="ghost"
-													size="icon"
-													className="h-7 w-7 text-destructive"
+													size="icon-xs"
+													className="text-destructive"
 													title={`${player.name} entfernen`}
 													onClick={() => kickPlayer(player.id, player.name)}
 												>
@@ -524,16 +523,15 @@ export function Lobby() {
 													autoFocus
 													// Seamless inline edit: no border/extra padding so the text
 													// stays exactly where the name span sat (no horizontal jump).
-													className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+													className="h-8! border-0! px-0! shadow-none! focus-visible:ring-0!"
 												/>
-												<Button type="submit" size="icon" className="h-7 w-7">
+												<Button type="submit" size="icon-xs">
 													<Check className="h-4 w-4" />
 												</Button>
 												<Button
 													type="button"
 													variant="ghost"
-													size="icon"
-													className="h-7 w-7"
+													size="icon-xs"
 													onClick={() => setEditingId(null)}
 												>
 													<X className="h-4 w-4" />
@@ -551,8 +549,8 @@ export function Lobby() {
 													<div className="flex shrink-0 items-center gap-2">
 														<Button
 															variant="ghost"
-															size="icon"
-															className="group h-7 w-7 shrink-0"
+															size="icon-xs"
+															className="group shrink-0"
 															title="Bearbeiten"
 															onClick={() => startEdit(cat.id, cat.name)}
 														>
@@ -561,11 +559,9 @@ export function Lobby() {
 															<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
 														</Button>
 														<Button
-															variant="ghost"
-															size="icon"
-															// Stays red at all times: the ghost hover/active would
-															// otherwise recolor it to the accent foreground.
-															className="group h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
+															variant="ghost-destructive"
+															size="icon-xs"
+															className="group shrink-0"
 															title="Löschen"
 															onClick={() => deleteCategory(cat.id)}
 														>
@@ -594,12 +590,11 @@ export function Lobby() {
 											onChange={(e) => setNewCategory(e.target.value)}
 											placeholder="Neue Kategorie…"
 											maxLength={30}
-											className="h-8"
+											className="h-8!"
 										/>
 										<Button
 											type="submit"
-											size="icon"
-											className="h-8 w-8"
+											size="icon-sm"
 											disabled={!newCategory.trim()}
 										>
 											<Plus className="h-4 w-4" />
@@ -733,8 +728,7 @@ export function Lobby() {
 										{lobby.settings.excludedLetters.length > 0 && (
 											<Button
 												variant="ghost"
-												size="sm"
-												className="h-7 text-xs"
+												size="xs"
 												onClick={() => {
 													updateSettings({ excludedLetters: [] });
 													setStaggerLetters(true);

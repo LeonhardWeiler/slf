@@ -1,11 +1,5 @@
 import { useEffect, useRef, lazy, Suspense } from "react";
-import {
-	createRootRoute,
-	createRoute,
-	createRouter,
-	Navigate,
-	Outlet,
-} from "@tanstack/react-router";
+import { joinCode, Navigate, navigate, usePath } from "@/lib/nav";
 import { ws } from "@/lib/ws";
 import type { LobbyStatePayload } from "@/types/events";
 import { getSessionId } from "@/lib/session";
@@ -23,7 +17,7 @@ const Room = lazy(() =>
 	import("@/pages/Room").then((m) => ({ default: m.Room })),
 );
 
-function RootLayout() {
+export function Router() {
 	// Individual selectors instead of destructuring the whole store: otherwise
 	// the root layout (and with it the entire routed tree) re-renders on every
 	// unrelated lobby-store change - e.g. the per-second hostGrace countdown.
@@ -102,7 +96,7 @@ function RootLayout() {
 				reset();
 				// The lobby lives at /join/:code; back to the start screen since the
 				// stored session is gone (otherwise we'd land on that code's join flow).
-				void router.navigate({ to: "/" });
+				navigate("/");
 				useToastStore
 					.getState()
 					.addToast("Verbindung zum Spiel verloren - bitte neu beitreten.");
@@ -126,7 +120,7 @@ function RootLayout() {
 				markForcedLeave();
 				reset();
 				// Leave the lobby's /join/:code URL for the start screen.
-				void router.navigate({ to: "/" });
+				navigate("/");
 				useToastStore.getState().addToast("Du wurdest aus der Lobby entfernt.");
 			}
 		});
@@ -144,7 +138,7 @@ function RootLayout() {
 				return;
 			}
 			markForcedLeave();
-			void router.navigate({ to: "/" });
+			navigate("/");
 			useToastStore
 				.getState()
 				.addToast(
@@ -188,52 +182,25 @@ function RootLayout() {
 			{/* Single <main> landmark around the routed content (the fixed overlay
           above stay outside it) so assistive tech can jump to the main content. */}
 			<main>
-				<Outlet />
+				<Routes />
 			</main>
 		</>
 	);
 }
 
-const rootRoute = createRootRoute({
-	component: RootLayout,
-	// Any unknown path bounces back to the start screen (mirrors the former
-	// react-router catch-all `*` route).
-	notFoundComponent: () => <Navigate to="/" replace />,
-});
-
-// `/` renders the Home join/create flow (Home reads the optional `code` param
-// for a deep link).
-const indexRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: "/",
-	component: Home,
-});
-
-// The active lobby *lives* at `/join/$code` so the address bar always equals the
-// shareable join link. The same path serves the join flow for anyone not yet in
-// a lobby, so we branch on the store: in a lobby -> Room, otherwise -> Home.
-function JoinRoute() {
+// `/` renders the Home join/create flow. The active lobby *lives* at
+// `/join/:code` so the address bar always equals the shareable join link. The
+// same path serves the join flow (Home reads the code as a deep link) for
+// anyone not yet in a lobby. Any other path bounces back to `/`.
+function Routes() {
+	const path = usePath();
 	const inLobby = useLobbyStore((s) => s.lobby != null);
-	if (!inLobby) return <Home />;
+	if (path === "/") return <Home key="index" />;
+	if (joinCode(path) === null) return <Navigate to="/" />;
+	if (!inLobby) return <Home key="join" />;
 	return (
 		<Suspense fallback={null}>
 			<Room />
 		</Suspense>
 	);
-}
-
-const joinRoute = createRoute({
-	getParentRoute: () => rootRoute,
-	path: "/join/$code",
-	component: JoinRoute,
-});
-
-const routeTree = rootRoute.addChildren([indexRoute, joinRoute]);
-
-export const router = createRouter({ routeTree });
-
-declare module "@tanstack/react-router" {
-	interface Register {
-		router: typeof router;
-	}
 }

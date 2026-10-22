@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { navigate } from "@/lib/nav";
 import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
@@ -13,7 +13,6 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
 export function RoomHeader({ title }: { title: string }) {
-	const navigate = useNavigate();
 	const reset = useLobbyStore((s) => s.reset);
 	const lobby = useLobbyStore((s) => s.lobby);
 	const setSelfLeaving = useLobbyStore((s) => s.setSelfLeaving);
@@ -62,7 +61,7 @@ export function RoomHeader({ title }: { title: string }) {
 		useGameStore.getState().resetGame();
 		markForcedLeave();
 		reset();
-		void navigate({ to: "/" });
+		navigate("/");
 	}
 
 	return (

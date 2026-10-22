@@ -449,11 +449,7 @@ export function GameScreen() {
 													autoComplete="off"
 													autoFocus={idx === 0}
 													aria-invalid={showInvalid || undefined}
-													className={cn(
-														done && "pr-9",
-														showInvalid &&
-															"border-destructive focus-visible:ring-destructive",
-													)}
+													className={cn(done && "pr-9")}
 												/>
 												{/* Check pops in once the field holds a valid answer. */}
 												{done && (
@@ -473,11 +469,7 @@ export function GameScreen() {
 															: "Flamme setzen: Wette, dass du die einzige Antwort hast (+5 / 0)"
 													}
 													onClick={() => toggleFlame(cat.id)}
-													className={cn(
-														"shrink-0",
-														isFlamed &&
-															"border-orange-500 text-orange-500 bg-orange-500/10 hover:text-orange-500",
-													)}
+													className="shrink-0 aria-pressed:border-orange-500 aria-pressed:text-orange-500 aria-pressed:bg-orange-500/10 aria-pressed:hover:text-orange-500"
 												>
 													<Flame
 														className={cn(

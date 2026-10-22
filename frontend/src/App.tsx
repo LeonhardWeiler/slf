@@ -1,11 +1,10 @@
-import { RouterProvider } from "@tanstack/react-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { router } from "@/router";
+import { Router } from "@/router";
 
 export function App() {
 	return (
 		<ErrorBoundary>
-			<RouterProvider router={router} />
+			<Router />
 		</ErrorBoundary>
 	);
 }

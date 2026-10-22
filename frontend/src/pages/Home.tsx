@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
-import { useParams, Navigate } from "@tanstack/react-router";
+import { joinCode, Navigate, usePath } from "@/lib/nav";
 import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
@@ -40,8 +40,8 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 const preloadRoom = () => import("@/pages/Room");
 
 export function Home() {
-	// Loose params: Home renders on both `/` (no param) and `/join/$code`.
-	const params = useParams({ strict: false });
+	// Home renders on both `/` (no code) and `/join/:code`.
+	const path = usePath();
 	const lobby = useLobbyStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
 	// Counter of error toasts: a new *error* (validation or server error) means the
@@ -60,7 +60,7 @@ export function Home() {
 
 	const deepLinkCode = skipDeepLink
 		? ""
-		: (params.code ?? "")
+		: (joinCode(path) ?? "")
 				.toUpperCase()
 				.replace(/[^A-Z0-9]/g, "")
 				.slice(0, 6);
@@ -186,13 +186,7 @@ export function Home() {
 	// navigate to the lobby's own /join/:code URL (so the address bar equals the
 	// shareable join link). The redirect unmounts this screen.
 	if (lobby) {
-		return (
-			<Navigate
-				to="/join/$code"
-				params={{ code: lobby.lobbyCode.toUpperCase() }}
-				replace
-			/>
-		);
+		return <Navigate to={`/join/${lobby.lobbyCode.toUpperCase()}`} />;
 	}
 
 	// Forward navigation pushes a real history entry (same URL) so the browser's

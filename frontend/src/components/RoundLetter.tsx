@@ -11,7 +11,7 @@ export function RoundLetter({
 	const lastLetter = useLobbyStore((s) => s.lobby?.settings.lastLetterMode);
 	return (
 		<div className="flex items-baseline gap-3">
-			<span className={cn("font-black leading-none", className)}>{letter}</span>
+			<span className={cn("font-black", className)}>{letter}</span>
 			{lastLetter && (
 				<span className="text-muted-foreground">endet auf {letter}</span>
 			)}

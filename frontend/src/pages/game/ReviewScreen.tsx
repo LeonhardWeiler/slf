@@ -243,8 +243,7 @@ export function ReviewScreen() {
 												{merged ? (
 													<Button
 														variant="ghost"
-														size="sm"
-														className="h-7 text-xs"
+														size="xs"
 														onClick={(e) => {
 															e.stopPropagation();
 															unmerge(a.answerId);
@@ -257,8 +256,7 @@ export function ReviewScreen() {
 													<>
 														<Button
 															variant="outline"
-															size="sm"
-															className="h-7 text-xs"
+															size="xs"
 															onClick={(e) => {
 																e.stopPropagation();
 																setMergeAnchor(null);
@@ -274,8 +272,7 @@ export function ReviewScreen() {
 												) : (
 													<Button
 														variant="ghost"
-														size="sm"
-														className="h-7 text-xs"
+														size="xs"
 														onClick={(e) => {
 															e.stopPropagation();
 															setMergeAnchor(a.answerId);

@@ -21,9 +21,10 @@ mock.module("@/lib/ws", () => ({
 		off: () => {},
 	},
 }));
-mock.module("@tanstack/react-router", () => ({
-	useNavigate: () => () => {},
-	useParams: () => ({ code: "abc123" }),
+mock.module("@/lib/nav", () => ({
+	navigate: () => {},
+	usePath: () => "/join/abc123",
+	joinCode: () => "abc123",
 	Navigate: () => null,
 }));
 

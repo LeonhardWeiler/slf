@@ -1,10 +1,6 @@
-import { clsx, type ClassValue } from "clsx";
 import type { KeyboardEvent } from "react";
-import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
-}
+export { clsx as cn } from "clsx";
 
 // True if the element is a text-entry target (input/textarea/select or a
 // contenteditable). Used by global keyboard handlers to avoid hijacking keys
