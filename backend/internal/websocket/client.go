@@ -179,8 +179,9 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: true,
-		CompressionMode:    websocket.CompressionNoContextTakeover,
+		InsecureSkipVerify:   true,
+		CompressionMode:      websocket.CompressionNoContextTakeover,
+		CompressionThreshold: 1024,
 	})
 	if err != nil {
 		return
