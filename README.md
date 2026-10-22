@@ -86,7 +86,7 @@ answer the category counts **0**.
   server; incoming events are validated (backend + Zod).
 - **WebSocket origin check** against cross-site hijacking (same-origin +
   localhost/LAN allowed, otherwise 403; `WS_ALLOWED_ORIGINS` as an override).
-- **Rate limiting** per connection, join backoff and caps for lobbies, players
+- **Rate limiting** per connection, backoff for joins and lobby creation, caps for lobbies, players
   and categories; orphaned lobbies are cleaned up automatically.
 - **Security headers** (CSP, HSTS with `preload`, COOP, and more) for the served
   SPA; content-hashed assets are cached `immutable`, `index.html`/`robots.txt`
