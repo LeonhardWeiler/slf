@@ -114,7 +114,7 @@ export function RoundResultScreen() {
 										animationFillMode: "backwards",
 									}}
 									className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
-										r.rank === 1
+										r.rank === 1 && r.score > 0
 											? "bg-amber-500/15 border border-amber-500/40"
 											: "bg-muted/50"
 									}`}
@@ -123,7 +123,7 @@ export function RoundResultScreen() {
 										<span className="text-sm font-bold text-muted-foreground w-5">
 											{r.rank}.
 										</span>
-										{r.rank === 1 && (
+										{r.rank === 1 && r.score > 0 && (
 											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
 										)}
 										<span className="text-sm font-medium">

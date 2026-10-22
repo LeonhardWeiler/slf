@@ -102,6 +102,23 @@ describe("RoundResultScreen", () => {
 		expect(screen.queryByText("Niemand hat etwas eingetragen.")).toBeNull();
 	});
 
+	it("gives a trophy only to a leader with points", () => {
+		setup("guest", "RoundResult");
+		const { container, unmount } = render(<RoundResultScreen />);
+		expect(container.querySelectorAll(".lucide-trophy").length).toBe(1);
+		unmount();
+		const result = useGameStore.getState().result!;
+		useGameStore.getState().setResult({
+			...result,
+			ranking: [
+				{ playerId: "host", rank: 1, score: 0 },
+				{ playerId: "guest", rank: 1, score: 0 },
+			],
+		});
+		const again = render(<RoundResultScreen />);
+		expect(again.container.querySelectorAll(".lucide-trophy").length).toBe(0);
+	});
+
 	it("explains an empty round", () => {
 		setup("guest", "RoundResult");
 		const result = useGameStore.getState().result!;
