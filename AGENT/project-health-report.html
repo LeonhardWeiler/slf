@@ -222,10 +222,10 @@
         validation, the connection lifecycle and the CSP script hash (recomputed
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
-        the edges: the one resource path that is <em>not</em> throttled, a modal
+        the edges: a modal
         that never got the focus handling its sibling has, a name that stays
         reserved by the player who left, and a format gate that exists for Go
-        but not for TypeScript. <b>10 open findings, none critical or high.</b>
+        but not for TypeScript. <b>9 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -240,7 +240,7 @@
           <div class="l">High</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">3</div>
+          <div class="n" style="color: var(--med)">2</div>
           <div class="l">Medium</div>
         </div>
         <div class="stat">
@@ -280,47 +280,6 @@
         game plays correctly end to end, and none of these can change a game's
         outcome.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">medium</span> Lobby creation is the only
-          unthrottled resource path <span class="id">SEC-1</span>
-        </h3>
-        <div class="loc">
-          <code>backend/internal/websocket/handlers.go</code> -
-          <code>handleCreateLobby</code>; cf. <code>client.go</code>
-          (<code>joinBackoff</code>) and <code>hub.go</code>
-          (<code>maxLobbies</code>)
-        </div>
-        <p>
-          Every other resource path is guarded: joins have a growing backoff
-          after 5 failures, messages a per-connection token bucket (40/s),
-          players and categories hard caps.
-          <code>createLobby</code> has nothing of the sort - only the global
-          <code>maxLobbies&nbsp;=&nbsp;10000</code>. Measured against the running
-          server: a <em>single</em> socket created <b>300 lobbies in 8.5&nbsp;s
-          with zero pushback</b> (self-throttled to stay under the message
-          limit; the token bucket is the only ceiling). At the full message rate
-          the global cap is reachable in roughly four minutes from one
-          connection, and from then on every legitimate
-          <code>createLobby</code> is refused with "Server ausgelastet". It does
-          heal itself - the janitor reaps lobbies with no connected player - but
-          only after <code>EmptySince</code> is set on a 2-minute pass plus the
-          10-minute TTL, so the denial window is ~12 minutes per wave.
-        </p>
-        <p class="note">
-          Only reachable by whoever can open a WebSocket, so on a closed LAN this
-          is theoretical. It matters for the public-deployment shape the project
-          already supports (Docker image, HSTS with <code>preload</code>,
-          <code>WS_ALLOWED_ORIGINS</code> for a real domain).
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> give creation the same treatment joining
-          already has - a per-connection quota or growing backoff
-          (<code>c.createdLobbies</code> alongside <code>c.joinFails</code>), so
-          one client cannot walk the global cap on its own.
-        </div>
-      </div>
 
       <div class="card">
         <h3>
@@ -695,8 +654,8 @@
           lobby reaper, CSP/HSTS-<code>preload</code>/COOP, immutable asset
           caching, hashed session IDs, no sessionId leak. The CSP script hash
           was recomputed from <code>index.html</code> this round and still
-          matches <code>main.go</code> byte for byte. Lobby creation is the one
-          path outside this net (SEC-1).
+          matches <code>main.go</code> byte for byte. Lobby creation shares the
+          backoff, so one socket cannot walk the global cap.
         </li>
         <li>
           <span class="badge b-ok">plus</span> <b>Render efficiency</b>: all
@@ -783,13 +742,13 @@
         every documented behaviour, including the awkward ones: mid-game joins
         landing as pending spectators, a kicked or departed player's replayed
         session being refused, the empty round skipping review, and
-        <code>returnToLobby</code> zeroing every score. None of the ten open
+        <code>returnToLobby</code> zeroing every score. None of the open
         findings can change a game's outcome.
       </p>
       <p>
         What is left is a consistent pattern rather than a set of unrelated
         slips: <em>a good mechanism exists, and one place did not adopt it.</em>
-        Joining has a backoff, creating does not (SEC-1). The confirm dialog has
+        The confirm dialog has
         focus management, the QR dialog does not (A11Y-1). The backend has a
         format gate, the frontend does not (CI-1). <code>beginPlaying</code> and
         <code>endRound</code> re-verify their state under the lock,
@@ -876,14 +835,6 @@
         a departed player is refused rather than relying on the frontend having
         cleared <code>localStorage</code> - confirmed live against the running
         server this round.
-      </p>
-      <p>
-        The one hole in that net is lobby creation (SEC-1): every other resource
-        path is throttled or capped per connection, creation only by the global
-        <code>maxLobbies</code>, so a single socket can walk the whole cap and
-        deny lobby creation to everyone until the reaper catches up. Not a
-        concern on a closed LAN; worth closing before any public deployment,
-        which the project is otherwise already set up for.
       </p>
 
       <h3>UX &amp; a11y</h3>

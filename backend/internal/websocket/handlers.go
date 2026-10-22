@@ -83,6 +83,13 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
+	if wait := backoff(c.createdLobbies); wait > 0 && time.Since(c.lastCreateAt) < wait {
+		c.lastCreateAt = time.Now()
+		hub.sendError(c, CodeValidationError, "Zu viele neue Lobbys - bitte kurz warten")
+		return
+	}
+	c.lastCreateAt = time.Now()
+
 	playerID := generateID()
 	sessionID := generateID()
 
@@ -128,6 +135,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		CreatedAt: time.Now(),
 	}
 	hub.rooms.Create(lobby)
+	c.createdLobbies++
 	hub.mu.Unlock()
 
 	session := &game.Session{
@@ -166,7 +174,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 
 	// Throttle repeated failed joins (code guessing) with a growing backoff.
-	if wait := c.joinBackoff(); wait > 0 && time.Since(c.lastJoinAt) < wait {
+	if wait := backoff(c.joinFails); wait > 0 && time.Since(c.lastJoinAt) < wait {
 		c.lastJoinAt = time.Now()
 		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche - bitte kurz warten")
 		return
@@ -269,7 +277,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		}{LobbyCode: p.LobbyCode, Available: available, Reason: reason})
 	}
 
-	if wait := c.joinBackoff(); wait > 0 && time.Since(c.lastJoinAt) < wait {
+	if wait := backoff(c.joinFails); wait > 0 && time.Since(c.lastJoinAt) < wait {
 		c.lastJoinAt = time.Now()
 		respond(false, "throttled")
 		return

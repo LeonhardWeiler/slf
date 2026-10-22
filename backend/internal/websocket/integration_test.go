@@ -164,6 +164,22 @@ func TestCreateAndJoinLobby(t *testing.T) {
 	}
 }
 
+func TestCreateLobbyBacksOff(t *testing.T) {
+	srv := newServer(t)
+	c := dial(t, srv)
+	for range backoffFree {
+		c.createLobby("Alice")
+	}
+	c.send("createLobby", map[string]any{"playerName": "Alice"})
+	var e struct {
+		Message string `json:"message"`
+	}
+	json.Unmarshal(c.waitFor("error"), &e)
+	if !strings.Contains(e.Message, "Zu viele") {
+		t.Fatalf("expected throttling, got %q", e.Message)
+	}
+}
+
 func TestJoinUnknownLobbyErrors(t *testing.T) {
 	srv := newServer(t)
 	c := dial(t, srv)
