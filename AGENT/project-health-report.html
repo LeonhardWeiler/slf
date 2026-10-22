@@ -223,7 +223,7 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges, mostly in the UI layer.
-        <b>4 open findings, none critical or high.</b>
+        <b>3 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -242,7 +242,7 @@
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">2</div>
+          <div class="n" style="color: var(--low)">1</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
@@ -278,54 +278,6 @@
         game plays correctly end to end, and none of these can change a game's
         outcome.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> The round-start precondition is
-          checked in a different critical section than the transition
-          <span class="id">CONC-1</span>
-        </h3>
-        <div class="loc">
-          <code>backend/internal/websocket/game_handlers.go</code> -
-          <code>handleStartGame</code>, <code>handleStartNextRound</code>,
-          <code>beginCountdown</code>
-        </div>
-        <p>
-          <code>beginCountdown</code> performs its whole mutation under one lock,
-          but its callers verify the precondition
-          (<code>State == Lobby/GameOver</code>, resp.
-          <code>State == RoundResult</code>) in an <em>earlier</em> critical
-          section and release the lock before calling it. Between the two,
-          nothing holds: <code>beginCountdown</code> re-checks only
-          <code>lobby.Game != nil</code>, whereas its siblings
-          <code>beginPlaying</code> and <code>endRound</code> deliberately
-          re-verify <code>roundID</code> <em>and</em> state.
-        </p>
-        <p>
-          Two live sockets on one session can therefore both pass the check and
-          start two rounds, silently consuming an extra letter. That is not
-          exotic by design: all tabs of a browser share one
-          <code>sessionId</code> (documented), and a connection replaced by
-          <code>handleReconnect</code> stays usable until its socket actually
-          closes - <code>lookupLocked</code> never checks that the caller is
-          still the client bound to the session.
-        </p>
-        <p class="note">
-          <b>Not reproduced:</b> eight attempts with two sockets firing
-          <code>startGame</code> simultaneously consumed exactly one letter every
-          time. This is a hardening item about a structural gap, not an observed
-          defect - which is why it sits at low.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> pass the expected state into
-          <code>beginCountdown</code> and re-check it under the same lock that
-          performs the transition (mirroring the <code>roundID</code>+state guard
-          in <code>beginPlaying</code>). Optionally have
-          <code>lookupLocked</code> also assert
-          <code>hub.clients[sessionID] == c</code>, so a superseded socket stops
-          acting for the session.
-        </div>
-      </div>
 
       <div class="card">
         <h3>
@@ -570,13 +522,11 @@
         findings can change a game's outcome.
       </p>
       <p>
-        What is left is a consistent pattern rather than a set of unrelated
-        slips: <em>a good mechanism exists, and one place did not adopt it.</em>
-        <code>beginPlaying</code> and
-        <code>endRound</code> re-verify their state under the lock,
-        <code>beginCountdown</code> does not (CONC-1). That is a cheap class of
-        problem to close, because in each case the answer is already written
-        somewhere else in this codebase.
+        The pattern this scan found - <em>a good mechanism exists, and one
+        place did not adopt it</em> - is closed: lobby creation shares the
+        backoff, the QR popup the modal shell, the frontend the format gate,
+        and <code>beginCountdown</code> re-verifies its state under the lock
+        like <code>beginPlaying</code> and <code>endRound</code>.
       </p>
 
       <h3>Architecture &amp; code quality</h3>

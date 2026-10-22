@@ -54,6 +54,7 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv sein")
 		return
 	}
+	from := lobby.State
 	hub.resetForNewGame(lobby)
 	lobby.Game = &game.Game{
 		RemainingLetters: letters,
@@ -63,15 +64,17 @@ func handleStartGame(hub *Hub, c *Client) {
 		"lobby", lobby.Code, "players", len(lobby.Players), "letters", len(letters))
 	hub.mu.Unlock()
 
-	hub.beginCountdown(lobby)
+	hub.beginCountdown(lobby, from)
 }
 
 // beginCountdown starts a new round in the Countdown state and schedules the
-// transition into Playing.
-func (hub *Hub) beginCountdown(lobby *game.Lobby) {
+// transition into Playing. The caller checked its precondition under an earlier
+// lock; from is the state it saw, re-checked here so 2 concurrent starts (2
+// sockets on one session) cannot both begin a round.
+func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 	hub.mu.Lock()
 	g := lobby.Game
-	if g == nil {
+	if g == nil || lobby.State != from {
 		hub.mu.Unlock()
 		return
 	}
@@ -536,7 +539,7 @@ func (hub *Hub) nextRound(lobby *game.Lobby) {
 		hub.endGame(lobby, "AlphabetFinished")
 		return
 	}
-	hub.beginCountdown(lobby)
+	hub.beginCountdown(lobby, game.StateRoundResult)
 }
 
 func handleEndGame(hub *Hub, c *Client) {

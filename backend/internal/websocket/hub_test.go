@@ -97,3 +97,22 @@ func TestHasRoundParticipant(t *testing.T) {
 		t.Error("a commentator host alone should not count as a participant")
 	}
 }
+
+func TestBeginCountdownRechecksState(t *testing.T) {
+	h := NewHub()
+	lobby := &game.Lobby{
+		Code:     "123456",
+		State:    game.StateLobby,
+		Settings: game.Settings{HostPlays: true},
+		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}},
+		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
+	}
+	h.rooms.Create(lobby)
+
+	h.beginCountdown(lobby, game.StateLobby)
+	first := lobby.Game.Round
+	h.beginCountdown(lobby, game.StateLobby)
+	if lobby.Game.Round != first || len(lobby.Game.UsedLetters) != 1 {
+		t.Fatal("a second start from a stale state began another round")
+	}
+}
