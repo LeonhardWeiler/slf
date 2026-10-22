@@ -41,6 +41,8 @@ type Hub struct {
 	hostGrace map[string]*time.Timer
 	// hostGraceDuration is how long the grace lasts; overridable in tests.
 	hostGraceDuration time.Duration
+	// pingInterval spaces the server heartbeat; overridable in tests.
+	pingInterval time.Duration
 	// draining refuses new games while the server waits to restart for an update.
 	draining bool
 }
@@ -53,6 +55,7 @@ func NewHub() *Hub {
 		rooms:             NewRoomManager(),
 		hostGrace:         make(map[string]*time.Timer),
 		hostGraceDuration: hostGraceSeconds * time.Second,
+		pingInterval:      pingInterval,
 	}
 }
 
@@ -320,27 +323,20 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 		t.Stop()
 		delete(h.hostGrace, lobby.Code)
 	}
-	var targets []*Client
+	msg, _ := json.Marshal(OutboundMessage{
+		Type:    "lobbyClosed",
+		Payload: map[string]string{"reason": reason},
+	})
 	for _, p := range lobby.Players {
 		if c, ok := h.clients[p.SessionID]; ok {
-			// Cleared here rather than in the write loop below: this runs on some
-			// other player's goroutine (or a timer's), so it must stay under h.mu.
 			c.sessionID = ""
-			targets = append(targets, c)
+			c.enqueue("lobbyClosed", msg)
 		}
 		delete(h.sessions, p.SessionID)
 		delete(h.clients, p.SessionID)
 	}
 	h.rooms.Delete(lobby.Code)
-	msg, _ := json.Marshal(OutboundMessage{
-		Type:    "lobbyClosed",
-		Payload: map[string]string{"reason": reason},
-	})
 	h.mu.Unlock()
-
-	for _, c := range targets {
-		_ = c.writeRaw(msg)
-	}
 }
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
@@ -389,10 +385,8 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		HostGraceSeconds: graceSecondsLeft(lobby),
 		Solo:             soloPlayer(lobby) != nil,
 	}
-	msg, targets := h.prepareBroadcast(lobby, "lobbyState", payload)
+	h.broadcastLocked(lobby, "lobbyState", payload)
 	h.mu.Unlock()
-
-	writeAll(targets, msg)
 }
 
 // sessionIDOf reads a client's session id under h.mu, for the few paths that

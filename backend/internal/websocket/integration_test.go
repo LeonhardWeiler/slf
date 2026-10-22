@@ -529,11 +529,12 @@ func TestReconnectRestoresLobby(t *testing.T) {
 // A socket that stops answering pings (half-open) is closed and treated as a
 // normal disconnect.
 func TestUnansweredPingDisconnects(t *testing.T) {
-	old := pingInterval
-	pingInterval = 50 * time.Millisecond
-	t.Cleanup(func() { pingInterval = old })
-
-	srv := newServer(t)
+	hub := NewHub()
+	hub.pingInterval = 50 * time.Millisecond
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWS(hub, w, r)
+	}))
+	t.Cleanup(srv.Close)
 	host := dial(t, srv)
 	code := host.createLobby("Alice")
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -14,16 +15,25 @@ import (
 	"github.com/coder/websocket"
 )
 
-// writeTimeout bounds a single message write. Without it a slow or dead client
-// (TCP backpressure) would stall the whole broadcast loop for everyone. Sized
-// for a full lobby state over EDGE (radio wake-up, retransmits), so a slow but
-// live phone is not kicked into a reconnect loop.
+// writeTimeout bounds a single write of a client's writer goroutine. Sized for
+// a full lobby state over EDGE (radio wake-up, retransmits), so a slow but live
+// phone is not kicked into a reconnect loop.
 const writeTimeout = 15 * time.Second
+
+// sendQueueSize caps the messages waiting for one client. A client that falls
+// this far behind is closed; it reconnects and gets a fresh snapshot.
+const sendQueueSize = 64
+
+// snapshots are message types that carry a full state, so only the newest
+// queued one of each has to reach the client.
+var snapshots = map[string]bool{
+	"lobbyState": true, "gameState": true, "reviewState": true, "commentatorState": true,
+}
 
 // pingInterval spaces the heartbeat; a ping unanswered for as long closes the
 // connection, so a half-open socket (mobile NAT drop) reaches onDisconnect and
 // the client its reconnect path.
-var pingInterval = 25 * time.Second
+const pingInterval = 25 * time.Second
 
 // maxMessageBytes caps a single inbound WebSocket message (64 KiB).
 const maxMessageBytes = 1 << 16
@@ -115,6 +125,12 @@ type Client struct {
 	// only by whatever the following socket write happened to do.
 	sessionID string
 
+	// Outbound messages, written in order by writeLoop. Enqueueing never blocks,
+	// so a broadcast under hub.mu does no I/O.
+	qmu   sync.Mutex
+	queue []outMsg
+	wake  chan struct{}
+
 	// Rate-limit state, only ever touched from this client's single read loop,
 	// so it needs no synchronisation.
 	rlTokens float64
@@ -174,14 +190,15 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// ample for the largest client message (an inputSync of all answers).
 	conn.SetReadLimit(maxMessageBytes)
 
-	c := &Client{conn: conn, hub: hub}
+	c := &Client{conn: conn, hub: hub, wake: make(chan struct{}, 1)}
 	hub.addPending(c)
 	defer hub.onDisconnect(c)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	go c.writeLoop(ctx)
 	go func() {
-		t := time.NewTicker(pingInterval)
+		t := time.NewTicker(hub.pingInterval)
 		defer t.Stop()
 		for {
 			select {
@@ -189,7 +206,7 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 				return
 			case <-t.C:
 			}
-			pctx, pcancel := context.WithTimeout(ctx, pingInterval)
+			pctx, pcancel := context.WithTimeout(ctx, hub.pingInterval)
 			err := conn.Ping(pctx)
 			pcancel()
 			if err != nil {
@@ -223,17 +240,14 @@ func (c *Client) read() {
 	}
 }
 
-func (c *Client) send(msgType string, payload any) error {
-	return c.sendV(msgType, payload, 0)
+func (c *Client) send(msgType string, payload any) {
+	c.sendV(msgType, payload, 0)
 }
 
 // sendV sends a message tagged with a specific stateVersion (SRS 9.15.2).
-func (c *Client) sendV(msgType string, payload any, version int) error {
-	b, err := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: version})
-	if err != nil {
-		return err
-	}
-	return c.writeRaw(b)
+func (c *Client) sendV(msgType string, payload any, version int) {
+	b, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: version})
+	c.enqueue(msgType, b)
 }
 
 // closeGoingAway sends a clean 1001 close so the client knows the server is
@@ -243,15 +257,53 @@ func (c *Client) closeGoingAway() {
 	_ = c.conn.Close(websocket.StatusGoingAway, "server shutdown")
 }
 
-func (c *Client) writeRaw(b []byte) error {
-	ctx, cancel := context.WithTimeout(context.Background(), writeTimeout)
-	defer cancel()
-	err := c.conn.Write(ctx, websocket.MessageText, b)
-	if err != nil {
-		// A failed/timed-out write leaves the connection unusable - close it so
-		// the read loop unblocks and onDisconnect cleans up, instead of letting a
-		// stuck client block future broadcasts.
-		_ = c.conn.Close(websocket.StatusInternalError, "write failed")
+type outMsg struct {
+	typ string
+	b   []byte
+}
+
+// enqueue hands a marshalled message to writeLoop without blocking. A queued
+// snapshot of the same type is superseded. A full queue closes the client.
+func (c *Client) enqueue(typ string, b []byte) {
+	c.qmu.Lock()
+	if snapshots[typ] {
+		c.queue = slices.DeleteFunc(c.queue, func(m outMsg) bool { return m.typ == typ })
 	}
-	return err
+	full := len(c.queue) >= sendQueueSize
+	if !full {
+		c.queue = append(c.queue, outMsg{typ, b})
+	}
+	c.qmu.Unlock()
+	if full {
+		_ = c.conn.CloseNow()
+		return
+	}
+	select {
+	case c.wake <- struct{}{}:
+	default:
+	}
+}
+
+// writeLoop writes queued messages in order until ctx ends or a write fails.
+func (c *Client) writeLoop(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.wake:
+		}
+		c.qmu.Lock()
+		q := c.queue
+		c.queue = nil
+		c.qmu.Unlock()
+		for _, m := range q {
+			wctx, cancel := context.WithTimeout(ctx, writeTimeout)
+			err := c.conn.Write(wctx, websocket.MessageText, m.b)
+			cancel()
+			if err != nil {
+				_ = c.conn.CloseNow()
+				return
+			}
+		}
+	}
 }

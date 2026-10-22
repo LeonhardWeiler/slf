@@ -225,7 +225,7 @@ func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
 	}
 	hub.mu.Unlock()
 	for _, cl := range viewers {
-		_ = cl.send("commentatorState", payload)
+		cl.send("commentatorState", payload)
 	}
 }
 
@@ -370,60 +370,41 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 
 // ---- broadcasts ----
 
-// prepareBroadcast bumps the lobby version, marshals the message and collects
-// the current recipients - all in one step. Caller must hold hub.mu; the actual
-// writes happen after unlocking via writeAll.
-func (hub *Hub) prepareBroadcast(lobby *game.Lobby, msgType string, payload any) ([]byte, []*Client) {
+// broadcastLocked bumps the lobby version, marshals the message and queues it
+// for every connected player. Caller must hold hub.mu; queueing does no I/O, and
+// doing it under the lock keeps every client's messages in version order.
+func (hub *Hub) broadcastLocked(lobby *game.Lobby, msgType string, payload any) {
 	lobby.Version++
 	msg, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: lobby.Version})
-	targets := make([]*Client, 0, len(lobby.Players))
 	for _, p := range lobby.Players {
 		if cl, ok := hub.clients[p.SessionID]; ok {
-			targets = append(targets, cl)
+			cl.enqueue(msgType, msg)
 		}
-	}
-	return msg, targets
-}
-
-// writeAll sends msg to every target. Writes happen after hub.mu is released, so
-// two goroutines (e.g. a timer-driven broadcast and a handler-driven one) can
-// write to the same client concurrently - this is safe because coder/websocket
-// serialises Conn.Write internally with its own mutex. Do not add a shared
-// buffer here without accounting for that.
-func writeAll(targets []*Client, msg []byte) {
-	for _, cl := range targets {
-		_ = cl.writeRaw(msg)
 	}
 }
 
 func (hub *Hub) broadcastTo(lobby *game.Lobby, msgType string, payload any) {
 	hub.mu.Lock()
-	msg, targets := hub.prepareBroadcast(lobby, msgType, payload)
-	hub.mu.Unlock()
-	writeAll(targets, msg)
+	defer hub.mu.Unlock()
+	hub.broadcastLocked(lobby, msgType, payload)
 }
 
 func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
 	hub.mu.Lock()
+	defer hub.mu.Unlock()
 	if lobby.Game == nil || lobby.Game.Round == nil {
-		hub.mu.Unlock()
 		return
 	}
-	// Build payload, bump version and collect targets under a single lock.
-	msg, targets := hub.prepareBroadcast(lobby, "gameState", buildGameState(lobby))
-	hub.mu.Unlock()
-	writeAll(targets, msg)
+	hub.broadcastLocked(lobby, "gameState", buildGameState(lobby))
 }
 
 func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 	hub.mu.Lock()
+	defer hub.mu.Unlock()
 	if lobby.Game == nil || lobby.Game.Round == nil || len(lobby.Categories) == 0 {
-		hub.mu.Unlock()
 		return
 	}
-	msg, targets := hub.prepareBroadcast(lobby, "reviewState", buildReviewState(lobby))
-	hub.mu.Unlock()
-	writeAll(targets, msg)
+	hub.broadcastLocked(lobby, "reviewState", buildReviewState(lobby))
 }
 
 func (hub *Hub) sendBuzzRejected(c *Client, reason string) {

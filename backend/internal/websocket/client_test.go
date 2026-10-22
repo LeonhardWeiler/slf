@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"net/http/httptest"
+	"slices"
 	"testing"
 )
 
@@ -34,5 +35,21 @@ func TestOriginAllowed(t *testing.T) {
 					r.Host, tc.origin, got, tc.want)
 			}
 		})
+	}
+}
+
+// A newer snapshot supersedes a queued one of its type and moves behind the
+// messages queued since; other messages keep their order.
+func TestEnqueueCoalescesSnapshots(t *testing.T) {
+	c := &Client{wake: make(chan struct{}, 1)}
+	for _, typ := range []string{"lobbyState", "roundResult", "gameState", "lobbyState", "error"} {
+		c.enqueue(typ, []byte(typ))
+	}
+	var got []string
+	for _, m := range c.queue {
+		got = append(got, m.typ)
+	}
+	if want := []string{"roundResult", "gameState", "lobbyState", "error"}; !slices.Equal(got, want) {
+		t.Fatalf("queue %v, want %v", got, want)
 	}
 }

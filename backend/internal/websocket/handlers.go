@@ -270,7 +270,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 
 	// Echoes the queried code back so the client can correlate the async reply.
 	respond := func(available bool, reason string) {
-		_ = c.send("lobbyCheck", struct {
+		c.send("lobbyCheck", struct {
 			LobbyCode string `json:"lobbyCode"`
 			Available bool   `json:"available"`
 			Reason    string `json:"reason,omitempty"`
