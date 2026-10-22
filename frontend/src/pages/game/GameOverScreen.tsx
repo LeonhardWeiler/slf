@@ -2,6 +2,7 @@ import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
+import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,8 @@ export function GameOverScreen() {
 
 	if (!lobby) return null;
 
-	const playerName = (id: string) =>
-		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	// "(verlassen)" also applies to disconnected players (already greyed out
-	// in the commentator view), so the final and live views stay consistent.
-	const hasLeft = (id: string) => {
-		const p = lobby.players.find((pl) => pl.id === id);
-		return p ? p.left || !p.connected : false;
-	};
+	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
+	const playerName = (id: string) => playerOf(id)?.name ?? "?";
 	const ranking = result?.ranking ?? [];
 
 	return (
@@ -79,12 +74,7 @@ export function GameOverScreen() {
 													(du)
 												</span>
 											)}
-											{hasLeft(r.playerId) && (
-												<span className="text-xs text-muted-foreground">
-													{" "}
-													(verlassen)
-												</span>
-											)}
+											<PlayerStatus player={playerOf(r.playerId)} />
 										</span>
 									</div>
 									<CountUp

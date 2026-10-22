@@ -4,6 +4,7 @@ import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { isTypingTarget } from "@/lib/utils";
+import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { LetterOverview } from "@/components/LetterOverview";
 import { CountUp } from "@/components/CountUp";
@@ -76,15 +77,8 @@ export function RoundResultScreen() {
 		);
 	}
 
-	const playerName = (id: string) =>
-		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	// "(verlassen)" also applies to disconnected players: whoever lost their
-	// connection is already greyed out in the commentator view, so the final
-	// table should show that consistently (not only on an explicit leave).
-	const hasLeft = (id: string) => {
-		const p = lobby.players.find((pl) => pl.id === id);
-		return p ? p.left || !p.connected : false;
-	};
+	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
+	const playerName = (id: string) => playerOf(id)?.name ?? "?";
 	const roundPointsOf = (id: string) =>
 		result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
@@ -132,7 +126,7 @@ export function RoundResultScreen() {
 											    destructive action the server rejects with NOT_HOST. */}
 											{isHost &&
 											r.playerId !== myPlayerId &&
-											!hasLeft(r.playerId) ? (
+											!playerOf(r.playerId)?.left ? (
 												<button
 													type="button"
 													// The name itself is the trigger, so name it: without this
@@ -156,12 +150,7 @@ export function RoundResultScreen() {
 												</span>
 											)}
 
-											{hasLeft(r.playerId) && (
-												<span className="text-xs text-muted-foreground">
-													{" "}
-													(verlassen)
-												</span>
-											)}
+											<PlayerStatus player={playerOf(r.playerId)} />
 										</span>
 									</div>
 									<div className="flex items-center gap-3">

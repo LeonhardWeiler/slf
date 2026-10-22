@@ -223,7 +223,7 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges, mostly in the UI layer.
-        <b>6 open findings, none critical or high.</b>
+        <b>5 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -242,7 +242,7 @@
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">4</div>
+          <div class="n" style="color: var(--low)">3</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
@@ -311,38 +311,6 @@
           <code>aria-live</code> div above the
           <code>toasts.length === 0</code> early return. Give the scanner error
           <code>role="alert"</code>.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> A briefly disconnected player is
-          announced as having left <span class="id">UX-2</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/pages/game/RoundResultScreen.tsx</code> and
-          <code>GameOverScreen.tsx</code> - <code>hasLeft()</code>
-        </div>
-        <p>
-          <code>hasLeft(id)</code> is <code>p.left || !p.connected</code>, so a
-          three-second connection drop labels that player "(verlassen)" in the
-          standings for everyone - while the lobby list shows the very same
-          player with a neutral pulsing "reconnecting" dot. Two screens tell
-          different stories about one state, and the wrong one is the more
-          public.
-        </p>
-        <p>
-          The same predicate also gates the host's kick affordance in the
-          standings, so a player who drops out for a moment silently becomes
-          unremovable - the one moment a host is most likely to want to remove
-          them.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> render the two states distinctly - "(verlassen)"
-          only for <code>p.left</code>, and something reversible
-          (greyed name, the lobby's pulsing dot) for
-          <code>!p.connected</code> - and gate the kick action on
-          <code>p.left</code> alone.
         </div>
       </div>
 
@@ -433,8 +401,7 @@
           focus behaviour, which screen a phase maps to - is guarded only by
           typecheck, lint and manual runs. That is exactly the blind spot a
           previous pass fell into (a missing <code>isHost</code> gate on a
-          destructive action in the standings), and UX-2 from this round
-          lives in the same layer.
+          destructive action in the standings).
         </p>
         <p class="note">
           Cost is the honest caveat: <code>bun test</code> runs without a Vite
@@ -700,8 +667,8 @@
       <p>
         <em>Remaining gap (TEST-1).</em> There are still no render tests for the
         React components/screens; the UI is guarded by typecheck, lint and
-        manual variant runs. UX-2 from this round sits in
-        exactly that layer, as did the missing <code>isHost</code> gate a
+        manual variant runs. That is the layer where
+        the missing <code>isHost</code> gate sat, which a
         previous pass had to catch by reading. The mirror suite, by contrast,
         covers the non-ASCII casing and code-point-length edges its invariant
         depends on.
@@ -749,9 +716,7 @@
       </p>
       <p>
         Where it slips: the live regions that appear
-        <em>with</em> their content may not be announced at all (A11Y-2). On the
-        UX side one screen reports a
-        two-second connection drop as "verlassen" (UX-2).
+        <em>with</em> their content may not be announced at all (A11Y-2).
       </p>
 
       <h3>Optional next steps (non-blocking)</h3>
