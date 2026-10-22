@@ -504,6 +504,22 @@ func TestReconnectRestoresLobby(t *testing.T) {
 	}
 }
 
+// A socket that stops answering pings (half-open) is closed and treated as a
+// normal disconnect.
+func TestUnansweredPingDisconnects(t *testing.T) {
+	old := pingInterval
+	pingInterval = 50 * time.Millisecond
+	t.Cleanup(func() { pingInterval = old })
+
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("hostDisconnected")
+}
+
 // sr-1: when the host drops, everyone is told (hostDisconnected); a host
 // reconnect within the grace window cancels it (hostReconnected).
 func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {

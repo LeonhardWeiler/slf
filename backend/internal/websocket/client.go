@@ -20,6 +20,11 @@ import (
 // live phone is not kicked into a reconnect loop.
 const writeTimeout = 15 * time.Second
 
+// pingInterval spaces the heartbeat; a ping unanswered for as long closes the
+// connection, so a half-open socket (mobile NAT drop) reaches onDisconnect and
+// the client its reconnect path.
+var pingInterval = 25 * time.Second
+
 // maxMessageBytes caps a single inbound WebSocket message (64 KiB).
 const maxMessageBytes = 1 << 16
 
@@ -172,6 +177,27 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	c := &Client{conn: conn, hub: hub}
 	hub.addPending(c)
 	defer hub.onDisconnect(c)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		t := time.NewTicker(pingInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+			pctx, pcancel := context.WithTimeout(ctx, pingInterval)
+			err := conn.Ping(pctx)
+			pcancel()
+			if err != nil {
+				_ = conn.Close(websocket.StatusGoingAway, "ping timeout")
+				return
+			}
+		}
+	}()
 
 	c.read()
 }
