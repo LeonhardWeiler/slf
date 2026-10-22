@@ -65,10 +65,6 @@
             # Git
             git
 
-            # Docker
-            docker
-            docker-compose
-
             # Compiler / Build Tools
             gcc
             gnumake

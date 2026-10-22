@@ -41,7 +41,7 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	// When STATIC_DIR is set (production / single-image Docker), the Go server
+	// When STATIC_DIR is set (production), the Go server
 	// also serves the built frontend and falls back to index.html so client-side
 	// routes (/ and /join/:code, where the active lobby also lives) resolve. In
 	// dev this is empty and the frontend is served by Vite instead.
@@ -106,7 +106,7 @@ func main() {
 // setupLogging configures the global slog logger from the environment
 // (SRS 12.9). LOG_LEVEL: debug|info|warn|error (default info). LOG_FORMAT:
 // text|json (default text). LOG_FILE: if set, logs are appended to that file in
-// addition to stdout - in Docker this path lives on a volume (see compose).
+// addition to stdout.
 func setupLogging() {
 	level := slog.LevelInfo
 	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {

@@ -26,8 +26,8 @@ komprimiert nicht. Beim Kaltstart gehen dadurch 445 KB statt ~133 KB über die
 Leitung - bei EDGE (~12,5 KB/s) sind das **36 s statt 10 s** bis zum ersten
 Bild.
 
-- Assets zur Buildzeit vorkomprimieren (`.br` + `.gz` im Dockerfile, Stage 1
-  nach `bun run build`) statt on-the-fly - dann kann die maximale
+- Assets zur Buildzeit vorkomprimieren (`.br` + `.gz` in der Frontend-Derivation
+  in `flake.nix` nach `bun run build`) statt on-the-fly - dann kann die maximale
   Brotli-Stufe gefahren werden, ohne CPU pro Request zu zahlen.
 - `spaHandler` erweitern: bei passendem `Accept-Encoding` die vorkomprimierte
   Variante ausliefern, sonst das Original.

@@ -106,10 +106,8 @@ frontend/
   src/store/         Zustand stores (lobby, game)
   src/lib/           WebSocket client, theme, session, validation
   src/types/         Shared event/payload types
-Dockerfile           Multi-stage build -> one image (frontend + Go server)
-docker-compose.yml   Starts the published image
-.gitlab-ci.yml       CI: tests + image build/push to Docker Hub
-flake.nix            Nix dev shell (Go, Bun, air, ...)
+flake.nix            Nix package and dev shell (Go, Bun, air, ...)
+.github/workflows/   CI: nix build + deploy
 ```
 
 ## Getting started
@@ -156,9 +154,7 @@ cd backend && gofmt -l . && go vet ./... && go test ./...
 cd frontend && bun run lint && bun run test && bun run build
 ```
 
-The same steps run in CI (`.gitlab-ci.yml`): `gofmt` gate + `go vet`
-
-- `go test` for the backend, Biome lint + `bun test` + build for the frontend.
+`nix build` runs the same checks.
 
 ## Deployment on the server
 
@@ -177,22 +173,6 @@ After changing `frontend/bun.lock` or `backend/go.sum`, `nix build` fails with
 `hash mismatch` and prints `got: sha256-…`. Put that value into `outputHash`
 or `vendorHash` in `flake.nix`.
 
-## Deployment with Docker
-
-Backend and frontend sit in **one** image (multi-stage build): the frontend is
-built and served by the Go server as static files together with `/ws` on port
-`8080`.
-
-```bash
-docker compose up -d        # pulls weilerleonhard/slf:latest -> http://localhost:8080
-docker compose up --build   # build locally instead (enable the build: line in compose)
-```
-
-The GitLab CI builds the image after every commit on `master` and pushes it to
-`weilerleonhard/slf` (tags `latest` + commit SHA). For that, the variables
-`DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (Docker Hub access token, "masked")
-must be set in GitLab under **Settings -> CI/CD -> Variables**.
-
 ### Configuration (environment variables)
 
 | Variable             | Default                     | Meaning                                                                                                                                                                                           |
@@ -201,7 +181,7 @@ must be set in GitLab under **Settings -> CI/CD -> Variables**.
 | `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                           |
 | `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                 |
 | `STATE_DIRECTORY`    | -                           | Directory for `lobbies.json`; idle lobbies survive a restart. Empty = nothing is saved                                                                                                          |
-| `LOG_FILE`           | -                           | additionally log to a file (in Docker on the `slf-logs` volume)                                                                                                                                  |
+| `LOG_FILE`           | -                           | additionally log to a file                                                                                                                                                                        |
 | `WS_ALLOWED_ORIGINS` | Same-origin + localhost/LAN | Additionally allowed WebSocket origins (comma-separated). By default same-origin as well as localhost/private LAN IPs are allowed; set this to allow the frontend from a **different** domain    |
 
 ## Performance
