@@ -37,10 +37,13 @@ is therefore build-only and holds no test config. Test files import
 `describe/expect/it` from `bun:test`; the `@/*` alias comes from tsconfig
 `paths`, which bun reads natively. Ambient test types come from `@types/bun`
 (listed in tsconfig `types`, which is explicit and thus opt-in).
-Consequence for new tests: there is no Vite transform pipeline, so plain
-logic tests are frictionless, while React component tests would need a
-happy-dom preload and cannot rely on Vite-only features (`import.meta.env`,
-CSS imports).
+There is no Vite transform pipeline, so tests cannot rely on Vite-only
+features (`import.meta.env`, CSS imports). `bunfig.toml` preloads
+`src/test/setup.ts`, which registers happy-dom globals, so component tests
+render with `@testing-library/react`. Screens need a `ThemeProvider` wrapper
+and `mock.module` for `@/lib/ws` and `@tanstack/react-router`, imported
+after the mock (see `src/pages/screens.test.tsx`). Adding a dependency changes
+the `nodeModules` `outputHash` in `flake.nix`.
 
 ## Conventions
 
