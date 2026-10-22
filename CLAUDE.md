@@ -64,7 +64,10 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   `Playing -> RoundResult` directly; and `beginCountdown` falls back to `Lobby`
   instead of starting a round when the lobby has **no connected participant**.
 - Messages: JSON over `/ws`, client->server `{type, payload, sessionId}`,
-  server->client `{type, payload, stateVersion}`.
+  server->client `{type, payload, stateVersion}`. A client gets one full
+  `lobbyState` per session (and per `reconnect`), then `lobbyPatch` (only
+  changed players + `removed`, merged by `applyLobbyPatch`); the commentator
+  board likewise gets `commentatorState` once, then `commentatorUpdate` rows.
 - Backend: `cmd/server` (entry point + security headers/SPA serving),
   `cmd/loadtest` (WebSocket load generator),
   `internal/game` (engine/state), `internal/websocket` (hub, handlers).

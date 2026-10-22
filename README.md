@@ -200,7 +200,7 @@ go run ./cmd/loadtest -players 500     # connects 500 players, measures broadcas
 
 The tool spreads the players across many lobbies, has all hosts trigger a state
 change at the same time and measures, per client, the time until the resulting
-`lobbyState` broadcast (avg/p50/p95/p99/max).
+`lobbyState`/`lobbyPatch` broadcast (avg/p50/p95/p99/max).
 
 ## Deliberate decisions & known limitations
 
