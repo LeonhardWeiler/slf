@@ -349,6 +349,11 @@ export function GameScreen() {
 							: "Runde läuft"
 					}
 				/>
+				{isPending && (
+					<p className="text-center text-sm text-muted-foreground">
+						Du spielst ab der nächsten Runde mit.
+					</p>
+				)}
 
 				{/* Letter & time without a surrounding card/border; the values sit
             freely on the background (like the borderless switch). */}

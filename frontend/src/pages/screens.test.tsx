@@ -453,3 +453,34 @@ describe("GameScreen countdown", () => {
 		expect(screen.getByText("3").className).toContain("text-4xl");
 	});
 });
+
+describe("GameScreen pending joiner", () => {
+	it("tells a mid-game joiner when they play", () => {
+		setup("guest", "Playing");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: {
+				...lobby,
+				players: [
+					player("host", true),
+					{ ...player("guest", false), pending: true },
+				],
+			},
+		});
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		expect(
+			screen.getByText("Du spielst ab der nächsten Runde mit."),
+		).toBeDefined();
+	});
+});
