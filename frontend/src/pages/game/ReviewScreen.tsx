@@ -14,6 +14,7 @@ import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
+import { RoundLetter } from "@/components/RoundLetter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -119,7 +120,7 @@ export function ReviewScreen() {
 				<Card>
 					<CardContent className="pt-6 flex items-center justify-between">
 						<div className="flex items-center gap-3">
-							<span className="text-4xl font-black">{review.letter}</span>
+							<RoundLetter letter={review.letter} className="text-4xl" />
 							<div>
 								<p className="text-xs text-muted-foreground uppercase tracking-widest">
 									Kategorie {review.categoryIndex + 1}/{review.categoryCount}

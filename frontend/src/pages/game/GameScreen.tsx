@@ -10,6 +10,7 @@ import {
 	LENGTH_ISSUE,
 } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
+import { RoundLetter } from "@/components/RoundLetter";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
@@ -300,9 +301,7 @@ export function GameScreen() {
 					</div>
 				</div>
 				{game?.letter && (
-					<div className="text-center">
-						<p className="text-6xl font-black">{game.letter}</p>
-					</div>
+					<RoundLetter letter={game.letter} className="text-6xl" />
 				)}
 			</div>
 		);
@@ -348,16 +347,7 @@ export function GameScreen() {
 				{/* Letter & time without a surrounding card/border; the values sit
             freely on the background (like the borderless switch). */}
 				<div className="flex items-center justify-between px-1">
-					<div>
-						{/* "Buchstabe" is self-explanatory and omitted; only the non-obvious
-                "am Ende" mode stays as a hint. */}
-						{lastLetterMode && (
-							<p className="text-xs text-muted-foreground uppercase tracking-widest">
-								am Ende
-							</p>
-						)}
-						<p className="text-6xl font-black leading-none">{game.letter}</p>
-					</div>
+					<RoundLetter letter={game.letter} className="text-6xl" />
 					{timeLeft !== null && (
 						<p
 							className={cn(

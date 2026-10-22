@@ -407,3 +407,29 @@ describe("GameScreen flames", () => {
 		expect(screen.queryByText(hint)).toBeNull();
 	});
 });
+
+describe("last-letter mode", () => {
+	it("says the answer ends on the letter", () => {
+		setup("guest", "Playing");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: {
+				...lobby,
+				settings: { ...lobby.settings, lastLetterMode: true },
+			},
+		});
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "S",
+			usedLetters: ["S"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		expect(screen.getByText("endet auf S")).toBeDefined();
+	});
+});

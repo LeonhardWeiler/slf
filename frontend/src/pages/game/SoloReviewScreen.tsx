@@ -5,6 +5,7 @@ import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
+import { RoundLetter } from "@/components/RoundLetter";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
@@ -75,7 +76,7 @@ export function SoloReviewScreen() {
 				<RoomHeader title="Auswertung" />
 
 				<div className="sticky top-0 z-10 -mx-1 flex items-center justify-between rounded-lg border bg-background/90 px-4 py-3 shadow-sm backdrop-blur">
-					<p className="text-4xl font-black leading-none">{review.letter}</p>
+					<RoundLetter letter={review.letter} className="text-4xl" />
 					<div className="flex items-end gap-6 text-right">
 						<div>
 							<p className="text-xs text-muted-foreground uppercase tracking-widest">
