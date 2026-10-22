@@ -56,8 +56,11 @@ func TestSpaHandlerPrecompressed(t *testing.T) {
 }
 
 func TestSpaHandlerCaching(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("index"), 0o644); err != nil {
+	real, dir := t.TempDir(), filepath.Join(t.TempDir(), "link")
+	if err := os.WriteFile(filepath.Join(real, "index.html"), []byte("index"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, dir); err != nil {
 		t.Fatal(err)
 	}
 	h := spaHandler(dir)

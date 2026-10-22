@@ -174,6 +174,9 @@ func securityHeaders(h http.Header) {
 // a content-hash ETag and no Last-Modified: the Nix store pins all mtimes to
 // 1970, so a date never changes across deploys.
 func spaHandler(dir string) http.Handler {
+	if d, err := filepath.EvalSymlinks(dir); err == nil {
+		dir = d
+	}
 	etags := map[string]string{}
 	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
