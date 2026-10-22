@@ -357,6 +357,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	old := hub.clients[sessionID]
 	hub.clients[sessionID] = c
 	c.sessionID = sessionID
+	c.lobbyBase = ""
 	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
 

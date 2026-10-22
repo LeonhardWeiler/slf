@@ -206,7 +206,7 @@ func (c *client) readLoop(ctx context.Context) {
 		if !c.read(ctx, &m) {
 			return
 		}
-		if m.Type == "lobbyState" && c.armed.CompareAndSwap(true, false) {
+		if (m.Type == "lobbyState" || m.Type == "lobbyPatch") && c.armed.CompareAndSwap(true, false) {
 			d := time.Duration(time.Now().UnixNano() - startNanos.Load())
 			results <- d
 		}

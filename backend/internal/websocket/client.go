@@ -124,6 +124,10 @@ type Client struct {
 	// hold. Assigning it after unlocking left it formally unsynchronised, ordered
 	// only by whatever the following socket write happened to do.
 	sessionID string
+	// lobbyBase is the sessionID under which this client got its last full
+	// lobbyState; while it matches, lobby changes go out as lobbyPatch.
+	// Guarded by Hub.mu.
+	lobbyBase string
 
 	// Outbound messages, written in order by writeLoop. Enqueueing never blocks,
 	// so a broadcast under hub.mu does no I/O.

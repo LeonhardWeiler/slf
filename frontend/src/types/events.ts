@@ -32,6 +32,12 @@ export interface Settings {
 	flamesEnabled: boolean;
 }
 
+// A lobbyState whose players are only the changed ones; removed lists the
+// ids of players that are gone.
+export interface LobbyPatchPayload extends LobbyStatePayload {
+	removed: string[];
+}
+
 export interface LobbyStatePayload {
 	lobbyCode: string;
 	hostId: string;
@@ -185,6 +191,7 @@ export interface LobbyCheckPayload {
 
 export type ServerEvent =
 	| { type: "lobbyState"; payload: LobbyStatePayload }
+	| { type: "lobbyPatch"; payload: LobbyPatchPayload }
 	| { type: "sessionCreated"; payload: SessionCreatedPayload }
 	| { type: "lobbyCheck"; payload: LobbyCheckPayload }
 	| { type: "playerKicked"; payload: { playerId: string } }

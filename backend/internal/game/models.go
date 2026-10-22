@@ -64,6 +64,9 @@ type Lobby struct {
 	// is included in the lobby state so late/reconnecting clients also see the
 	// shared countdown.
 	HostGraceUntil time.Time `json:"-"`
+	// SentPlayers is the player list of the last lobbyState broadcast, the
+	// base of the next lobbyPatch.
+	SentPlayers []LobbyPlayer `json:"-"`
 }
 
 // Answer is a single player's entry for one category in a round.
@@ -144,6 +147,13 @@ type LobbyStatePayload struct {
 	// Solo is true while a single player is in the lobby: review shows the whole
 	// round on one screen and the scoreboard between rounds is skipped.
 	Solo bool `json:"solo"`
+}
+
+// LobbyPatchPayload is a lobbyState whose Players holds only the players that
+// changed since the previous broadcast; Removed lists the ones that are gone.
+type LobbyPatchPayload struct {
+	LobbyStatePayload
+	Removed []string `json:"removed"`
 }
 
 type SessionCreatedPayload struct {

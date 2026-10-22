@@ -153,6 +153,10 @@ const errorPayload = z.object({
 const serverEventSchema = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("lobbyState"), payload: lobbyStatePayload }),
 	z.object({
+		type: z.literal("lobbyPatch"),
+		payload: z.extend(lobbyStatePayload, { removed: z.array(z.string()) }),
+	}),
+	z.object({
 		type: z.literal("sessionCreated"),
 		payload: sessionCreatedPayload,
 	}),

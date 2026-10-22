@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { LobbyStatePayload } from "@/types/events";
+import type { LobbyPatchPayload, LobbyStatePayload } from "@/types/events";
 import { setSessionId, clearSessionId } from "@/lib/session";
 
 interface LobbyStore {
@@ -32,6 +32,24 @@ export function useIsHost(): boolean {
 	return useLobbyStore(
 		(s) => s.lobby?.players.find((p) => p.id === s.myPlayerId)?.isHost ?? false,
 	);
+}
+
+// applyLobbyPatch merges a lobbyPatch into the current lobby, sorted like the
+// server sorts. Null when there is no lobby of that code to patch.
+export function applyLobbyPatch(
+	lobby: LobbyStatePayload | null,
+	{ removed, ...patch }: LobbyPatchPayload,
+): LobbyStatePayload | null {
+	if (lobby?.lobbyCode !== patch.lobbyCode) return null;
+	const byId = new Map(lobby.players.map((p) => [p.id, p]));
+	for (const p of patch.players) byId.set(p.id, p);
+	for (const id of removed) byId.delete(id);
+	const cmp = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
+	const players = [...byId.values()].sort(
+		(a, b) =>
+			cmp(a.name.toLowerCase(), b.name.toLowerCase()) || cmp(a.id, b.id),
+	);
+	return { ...patch, players };
 }
 
 export const useLobbyStore = create<LobbyStore>((set) => ({

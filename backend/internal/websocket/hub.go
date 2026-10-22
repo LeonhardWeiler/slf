@@ -385,8 +385,46 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		HostGraceSeconds: graceSecondsLeft(lobby),
 		Solo:             soloPlayer(lobby) != nil,
 	}
-	h.broadcastLocked(lobby, "lobbyState", payload)
+	lobby.Version++
+	full, _ := json.Marshal(OutboundMessage{Type: "lobbyState", Payload: payload, StateVersion: lobby.Version})
+	var patch []byte
+	if lobby.SentPlayers != nil {
+		patch, _ = json.Marshal(OutboundMessage{Type: "lobbyPatch", Payload: lobbyPatch(lobby.SentPlayers, payload), StateVersion: lobby.Version})
+	}
+	lobby.SentPlayers = players
+	for _, p := range lobby.Players {
+		cl, ok := h.clients[p.SessionID]
+		if !ok {
+			continue
+		}
+		if patch != nil && cl.lobbyBase == cl.sessionID {
+			cl.enqueue("lobbyPatch", patch)
+		} else {
+			cl.enqueue("lobbyState", full)
+		}
+		cl.lobbyBase = cl.sessionID
+	}
 	h.mu.Unlock()
+}
+
+// lobbyPatch reduces next to the players that differ from prev.
+func lobbyPatch(prev []game.LobbyPlayer, next game.LobbyStatePayload) game.LobbyPatchPayload {
+	old := make(map[string]game.LobbyPlayer, len(prev))
+	for _, p := range prev {
+		old[p.ID] = p
+	}
+	patch := game.LobbyPatchPayload{LobbyStatePayload: next, Removed: []string{}}
+	patch.Players = []game.LobbyPlayer{}
+	for _, p := range next.Players {
+		if o, ok := old[p.ID]; !ok || o != p {
+			patch.Players = append(patch.Players, p)
+		}
+		delete(old, p.ID)
+	}
+	for id := range old {
+		patch.Removed = append(patch.Removed, id)
+	}
+	return patch
 }
 
 // sessionIDOf reads a client's session id under h.mu, for the few paths that

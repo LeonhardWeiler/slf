@@ -24,6 +24,7 @@ type testConn struct {
 	conn      *websocket.Conn
 	sessionID string
 	lastLobby lobbyStateDTO
+	lobby     map[string]any // merged from lobbyState and lobbyPatch
 }
 
 func newServer(t *testing.T) *httptest.Server {
@@ -93,10 +94,50 @@ func (c *testConn) waitFor(msgType string) json.RawMessage {
 		if err := json.Unmarshal(raw, &m); err != nil {
 			continue
 		}
+		if m.Type == "lobbyState" || m.Type == "lobbyPatch" {
+			m.Payload = c.mergeLobby(m.Type, m.Payload)
+			m.Type = "lobbyState"
+		}
 		if m.Type == msgType {
 			return m.Payload
 		}
 	}
+}
+
+// mergeLobby applies a lobbyState or lobbyPatch like the frontend does and
+// returns the resulting full lobby state.
+func (c *testConn) mergeLobby(typ string, raw json.RawMessage) json.RawMessage {
+	var next map[string]any
+	json.Unmarshal(raw, &next)
+	if typ == "lobbyPatch" {
+		byID := map[string]any{}
+		var order []string
+		add := func(ps any) {
+			for _, p := range ps.([]any) {
+				id := p.(map[string]any)["id"].(string)
+				if _, ok := byID[id]; !ok {
+					order = append(order, id)
+				}
+				byID[id] = p
+			}
+		}
+		add(c.lobby["players"])
+		add(next["players"])
+		for _, id := range next["removed"].([]any) {
+			delete(byID, id.(string))
+		}
+		players := []any{}
+		for _, id := range order {
+			if p, ok := byID[id]; ok {
+				players = append(players, p)
+			}
+		}
+		next["players"] = players
+		delete(next, "removed")
+	}
+	c.lobby = next
+	b, _ := json.Marshal(next)
+	return b
 }
 
 // createLobby dials, creates a lobby and returns the connection, the lobby code

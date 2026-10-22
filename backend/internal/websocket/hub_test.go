@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -131,5 +132,20 @@ func TestGameStateSendsAbsoluteDeadline(t *testing.T) {
 	}
 	if d := time.Now().UnixMilli() - p.ServerNow; d < 0 || d > 1000 {
 		t.Fatalf("serverNow off by %d ms", d)
+	}
+}
+
+func TestLobbyPatchKeepsOnlyChangedPlayers(t *testing.T) {
+	prev := []game.LobbyPlayer{{ID: "a", Name: "A"}, {ID: "b", Name: "B"}, {ID: "c", Name: "C"}}
+	next := game.LobbyStatePayload{Players: []game.LobbyPlayer{
+		{ID: "a", Name: "A"}, {ID: "b", Name: "B", Score: 5}, {ID: "d", Name: "D"},
+	}}
+	p := lobbyPatch(prev, next)
+	var ids []string
+	for _, pl := range p.Players {
+		ids = append(ids, pl.ID)
+	}
+	if !slices.Equal(ids, []string{"b", "d"}) || !slices.Equal(p.Removed, []string{"c"}) {
+		t.Fatalf("players %v removed %v, want [b d] [c]", ids, p.Removed)
 	}
 }

@@ -7,9 +7,10 @@ import {
 	Outlet,
 } from "@tanstack/react-router";
 import { ws } from "@/lib/ws";
+import type { LobbyStatePayload } from "@/types/events";
 import { getSessionId } from "@/lib/session";
 import { markForcedLeave } from "@/lib/forcedLeave";
-import { useLobbyStore } from "@/store/lobby";
+import { applyLobbyPatch, useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
@@ -70,12 +71,17 @@ function RootLayout() {
 			setSession(payload.sessionId, payload.playerId);
 		});
 
-		ws.on("lobbyState", (payload) => {
+		const onLobby = (payload: LobbyStatePayload) => {
 			pendingReconnect.current = false;
 			setLobby(payload);
 			// Snapshot also carries the host-grace countdown, so a client that joins or
 			// reconnects mid-grace sees the shared banner too (not just via the event).
 			setHostGrace(payload.hostGraceSeconds ?? null);
+		};
+		ws.on("lobbyState", onLobby);
+		ws.on("lobbyPatch", (payload) => {
+			const lobby = applyLobbyPatch(useLobbyStore.getState().lobby, payload);
+			if (lobby) onLobby(lobby);
 		});
 
 		ws.on("error", (payload) => {
