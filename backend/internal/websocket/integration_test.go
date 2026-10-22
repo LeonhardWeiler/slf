@@ -891,6 +891,8 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test"})
 	// Solo may stop with empty fields.
 	host.send("buzz", map[string]any{})
+	// An answer right after the buzz is still taken (answerGrace).
+	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": gs.Letter + "late"})
 
 	type soloRow struct {
 		CategoryID string `json:"categoryId"`
@@ -905,7 +907,7 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 	if rs.EndReason != "buzz" {
 		t.Fatalf("expected endReason buzz, got %q", rs.EndReason)
 	}
-	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 {
+	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 || !rs.Solo[1].Valid {
 		t.Fatalf("unexpected solo rows %+v", rs.Solo)
 	}
 

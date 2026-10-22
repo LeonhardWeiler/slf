@@ -185,6 +185,15 @@ export function GameScreen() {
 	);
 	const timeLeft = useSecondsLeft(game?.endsAt ?? null);
 
+	// Send the last keystrokes the moment time runs out, not a debounce later.
+	const endsAt = game?.endsAt ?? null;
+	// biome-ignore lint/correctness/useExhaustiveDependencies: re-arm only on endsAt
+	useEffect(() => {
+		if (endsAt === null) return;
+		const id = setTimeout(flushAnswers, Math.max(0, endsAt - Date.now()));
+		return () => clearTimeout(id);
+	}, [endsAt]);
+
 	// Solo needs no gate: the lone player may end their own round at any time.
 	const validation = lobby?.solo
 		? { valid: true }

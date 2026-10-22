@@ -148,7 +148,7 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 
 	if !endsAt.IsZero() {
 		time.AfterFunc(time.Until(endsAt), func() {
-			hub.endRound(lobby, roundID, "timeout")
+			hub.endRound(lobby, roundID, "timeout", "")
 		})
 	}
 }
@@ -291,11 +291,11 @@ func handleBuzz(hub *Hub, c *Client) {
 			}
 		}
 	}
-	round.BuzzedBy = session.PlayerID
+	buzzer := session.PlayerID
 	roundID := round.ID
 	hub.mu.Unlock()
 
-	hub.endRound(lobby, roundID, "buzz")
+	hub.endRound(lobby, roundID, "buzz", buzzer)
 }
 
 // handleEndRound lets the host stop the running round early and move everyone to
@@ -313,24 +313,40 @@ func handleEndRound(hub *Hub, c *Client) {
 	roundID := lobby.Game.Round.ID
 	hub.mu.Unlock()
 
-	hub.endRound(lobby, roundID, "host")
+	hub.endRound(lobby, roundID, "host", "")
 }
 
 // ---- Phase 3: review ----
 
-// endRound finalizes the playing phase. When at least one active player submitted
+// answerGrace is how long a round keeps taking answers after it was ended, so
+// keystrokes still in flight (client debounce + latency) are not lost.
+const answerGrace = 500 * time.Millisecond
+
+// endRound ends the playing phase after answerGrace. Idempotent via the
+// roundID, state and EndReason guard, so a late timer after a buzz is a no-op.
+func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason, buzzer string) {
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	g := lobby.Game
+	if g == nil || g.Round == nil || g.Round.ID != roundID || lobby.State != game.StatePlaying || g.Round.EndReason != "" {
+		return
+	}
+	g.Round.EndReason = reason
+	g.Round.BuzzedBy = buzzer
+	time.AfterFunc(answerGrace, func() { hub.finishPlaying(lobby, roundID) })
+}
+
+// finishPlaying freezes the answers. When at least one active player submitted
 // something it moves into review; when no active (non-left, non-spectator) player
 // submitted anything there is nothing to review, so it scores straight away and
-// jumps to the scoreboard. Idempotent via the roundID + state guard, so a late
-// timer after a buzz is a no-op.
-func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason string) {
+// jumps to the scoreboard.
+func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	hub.mu.Lock()
 	g := lobby.Game
 	if g == nil || g.Round == nil || g.Round.ID != roundID || lobby.State != game.StatePlaying {
 		hub.mu.Unlock()
 		return
 	}
-	g.Round.EndReason = reason
 	// Default validity: rule-conforming answers start valid (SRS 6.4). Done before
 	// the empty-round check so scoring is correct on the direct-to-scoreboard path.
 	for _, byCat := range g.Round.Answers {
