@@ -14,7 +14,6 @@ const payload = (
 	endsAt,
 	serverNow,
 	countdownRemaining: null,
-	elapsed: 0,
 	categoryCount: 1,
 });
 

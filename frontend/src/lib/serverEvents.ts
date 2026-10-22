@@ -68,7 +68,6 @@ const gameStatePayload = z.object({
 	endsAt: z.nullable(z.number()),
 	serverNow: z.number(),
 	countdownRemaining: z.nullable(z.number()),
-	elapsed: z.nullable(z.number()),
 	categoryCount: z.number(),
 });
 

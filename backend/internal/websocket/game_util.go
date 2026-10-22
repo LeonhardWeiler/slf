@@ -256,13 +256,6 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 			endsAt := r.EndsAt.UnixMilli()
 			p.EndsAt = &endsAt
 		}
-		// Elapsed lets a (re)connecting client resume the stopwatch / countdown
-		// from the correct position instead of restarting at 0.
-		elapsed := int(time.Since(r.StartedAt).Seconds())
-		if elapsed < 0 {
-			elapsed = 0
-		}
-		p.Elapsed = &elapsed
 	}
 	return p
 }

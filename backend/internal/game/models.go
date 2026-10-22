@@ -161,7 +161,6 @@ type GameStatePayload struct {
 	EndsAt             *int64   `json:"endsAt"`             // unix ms deadline, null = unlimited
 	ServerNow          int64    `json:"serverNow"`          // unix ms at send time
 	CountdownRemaining *int     `json:"countdownRemaining"` // seconds, null when Playing
-	Elapsed            *int     `json:"elapsed"`            // seconds since playing start, null outside Playing
 	CategoryCount      int      `json:"categoryCount"`
 }
 

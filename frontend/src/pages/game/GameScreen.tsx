@@ -42,19 +42,6 @@ function useSecondsLeft(endsAt: number | null): number | null {
 	return endsAt === null ? null : Math.max(0, Math.ceil((endsAt - now) / 1000));
 }
 
-// Count-up stopwatch starting from `start` seconds, restarting on resetKey.
-function useStopwatch(start: number, resetKey: string): number {
-	const [value, setValue] = useState(start);
-	// resetKey is the intended restart trigger; `start` is re-read each run.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: restart only on resetKey
-	useEffect(() => {
-		setValue(start);
-		const id = setInterval(() => setValue((v) => v + 1), 1000);
-		return () => clearInterval(id);
-	}, [resetKey]);
-	return value;
-}
-
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
 const flameKey = (roundId: string) => `slf:flame:${roundId}`;
 
@@ -186,10 +173,6 @@ export function GameScreen() {
 		`${roundId}:cd:${game?.countdownRemaining ?? ""}`,
 	);
 	const timeLeft = useSecondsLeft(game?.endsAt ?? null);
-	const elapsed = useStopwatch(
-		game?.elapsed ?? 0,
-		`${roundId}:${game?.state ?? ""}:${game?.elapsed ?? ""}`,
-	);
 
 	// Validate once and reuse for both the buzz gate and the disabled-reason text.
 	const validation =
@@ -317,12 +300,11 @@ export function GameScreen() {
 	if (!game) return null;
 
 	const categories = lobby.categories;
-	const hasTimeLimit = lobby.settings.timeLimit !== null;
 	const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
 
 	// ---- Playing phase ----
 	// Red border stays on through 0 and until the round actually ends.
-	const dangerZone = hasTimeLimit && timeLeft !== null && timeLeft <= 5;
+	const dangerZone = timeLeft !== null && timeLeft <= 5;
 
 	// Players actually participating this round (for the fill overview): not left,
 	// not a pending spectator, and - unless the host plays - not the host.
@@ -372,21 +354,16 @@ export function GameScreen() {
 						)}
 						<p className="text-6xl font-black leading-none">{game.letter}</p>
 					</div>
-					<div className="text-right">
-						{hasTimeLimit ? (
-							<p
-								className={`text-3xl font-mono font-bold tabular-nums ${
-									dangerZone ? "text-destructive" : ""
-								}`}
-							>
-								{timeLeft === null ? "-" : `${timeLeft}s`}
-							</p>
-						) : (
-							<p className="text-3xl font-mono font-bold tabular-nums">
-								{formatClock(elapsed)}
-							</p>
-						)}
-					</div>
+					{timeLeft !== null && (
+						<p
+							className={cn(
+								"text-3xl font-mono font-bold tabular-nums",
+								dangerZone && "text-destructive",
+							)}
+						>
+							{formatClock(timeLeft)}
+						</p>
+					)}
 				</div>
 
 				{/* Screen-reader announcement for the final seconds. */}

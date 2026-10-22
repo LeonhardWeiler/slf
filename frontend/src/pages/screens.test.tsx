@@ -122,7 +122,6 @@ describe("GameScreen", () => {
 			endsAt: null,
 			serverNow: Date.now(),
 			countdownRemaining: null,
-			elapsed: 0,
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
@@ -299,5 +298,31 @@ describe("Lobby code card", () => {
 			url: `${window.location.origin}/join/123456`,
 		});
 		Reflect.deleteProperty(navigator, "share");
+	});
+});
+
+describe("GameScreen timer", () => {
+	it("shows a clock only with a time limit", () => {
+		setup("guest", "Playing");
+		const game = {
+			roundId: "r1",
+			state: "Playing" as const,
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		};
+		useGameStore.getState().setGame(game);
+		const { unmount } = render(<GameScreen />);
+		expect(screen.queryByText(/^\d+:\d\d$/)).toBeNull();
+		unmount();
+		useGameStore
+			.getState()
+			.setGame({ ...game, roundId: "r2", endsAt: Date.now() + 51_000 });
+		render(<GameScreen />);
+		expect(screen.getByText(/^0:5\d$/)).toBeDefined();
 	});
 });

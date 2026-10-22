@@ -87,7 +87,6 @@ export interface GameStatePayload {
 	endsAt: number | null;
 	serverNow: number;
 	countdownRemaining: number | null;
-	elapsed: number | null;
 	categoryCount: number;
 }
 
