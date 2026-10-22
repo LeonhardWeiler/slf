@@ -709,6 +709,24 @@ func TestKickMidGameMarksPlayerLeft(t *testing.T) {
 // a client that kept the id cannot reconnect as a departed player - and the
 // departed player's answers must never reach scoring, because review filters
 // them out and the host could otherwise not see what changed the result.
+func TestRejoinWithOwnNameAfterLeaving(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("lobbyState")
+	host.send("startGame", map[string]any{})
+	host.waitFor("gameState")
+
+	guest.send("leaveLobby", map[string]any{})
+	host.readLobby()
+
+	back := dial(t, srv)
+	back.send("joinLobby", map[string]any{"playerName": "bob", "lobbyCode": code})
+	back.waitFor("sessionCreated")
+}
+
 func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)

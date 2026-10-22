@@ -214,7 +214,7 @@
         walkthrough (create → join → start → buzz → review → result → next round
         → game over → return to lobby → host leaves, plus mid-game join, kick,
         leave and replayed sessions) behaved exactly as documented in every step
-        but one - see <b>UX-1</b>.
+        but one (rejoining under your own name after leaving), now fixed.
       </p>
       <p class="lead">
         The core is unchanged and still strong: server-authoritative rules, the
@@ -223,9 +223,9 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges: a modal
-        that never got the focus handling its sibling has, a name that stays
-        reserved by the player who left, and a format gate that exists for Go
-        but not for TypeScript. <b>9 open findings, none critical or high.</b>
+        that never got the focus handling its sibling has, and a format gate that
+        exists for Go
+        but not for TypeScript. <b>8 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -244,7 +244,7 @@
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">6</div>
+          <div class="n" style="color: var(--low)">5</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
@@ -309,44 +309,6 @@
           within the panel, restore <code>document.activeElement</code> on
           unmount) - or lift that dialog chrome into one shared component so a
           third modal cannot repeat this.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-med">medium</span> Leaving mid-game keeps your own
-          name reserved against you <span class="id">UX-1</span>
-        </h3>
-        <div class="loc">
-          <code>backend/internal/websocket/handlers.go</code> -
-          <code>handleJoinLobby</code> (name-uniqueness loop);
-          <code>game_handlers.go</code> - <code>resetForNewGame</code>
-        </div>
-        <p>
-          The uniqueness check scans <em>all</em> <code>lobby.Players</code>,
-          including players marked <code>Left</code> - and those are only dropped
-          at the next <code>resetForNewGame</code> (a new game or a return to the
-          lobby). Verified live: after "Verlassen" mid-game, rejoining the same
-          lobby as the same person is rejected with
-          <code>NAME_NOT_UNIQUE</code> / "Name bereits vergeben". The same
-          applies after a kick.
-        </p>
-        <p>
-          The failure is opaque from the player's side: the join screen shows no
-          player list, and in the lobby their row is already gone
-          (<code>players.filter(p =&gt; !p.left)</code>), so the name they can
-          see nobody using is refused with no explanation. Their only way back in
-          is to invent a different name - and then they sit in the standings
-          twice, once as their departed self. For a party game where a mistaken
-          tap on "Verlassen" is the most likely way to leave, this is the
-          roughest edge the walkthrough found.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> exclude <code>Left</code> players from the
-          uniqueness check (the departed row keeps its name in the standings,
-          which is what it is there for), or - if a clash must stay
-          impossible - say so: "Dieser Name gehört noch zu einem Spieler, der
-          das Spiel verlassen hat."
         </div>
       </div>
 
@@ -861,8 +823,7 @@
         Where it slips is the second instance of a pattern: the QR modal never
         got the dialog behaviour (A11Y-1), and the live regions that appear
         <em>with</em> their content may not be announced at all (A11Y-2). On the
-        UX side the walkthrough surfaced one real dead end - your own name stays
-        reserved after you leave (UX-1) - and one screen that reports a
+        UX side one screen reports a
         two-second connection drop as "verlassen" (UX-2).
       </p>
 

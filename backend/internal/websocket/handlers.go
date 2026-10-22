@@ -204,7 +204,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	for _, pl := range lobby.Players {
-		if strings.EqualFold(pl.Name, name) {
+		if !pl.Left && strings.EqualFold(pl.Name, name) {
 			hub.mu.Unlock()
 			hub.sendError(c, CodeNameNotUnique, "Name bereits vergeben")
 			return
