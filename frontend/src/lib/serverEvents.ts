@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 import type { ServerEvent } from "@/types/events";
 
 // Runtime validation of every incoming server->client message (SRS 9.3, 9.12,
@@ -26,14 +26,14 @@ const playerSchema = z.object({
 	connected: z.boolean(),
 	left: z.boolean(),
 	// Lenient default: tolerate a message from an older server without the field.
-	pending: z.boolean().optional().default(false),
+	pending: z._default(z.optional(z.boolean()), false),
 	score: z.number(),
 });
 
 const categorySchema = z.object({ id: z.string(), name: z.string() });
 
 const settingsSchema = z.object({
-	timeLimit: z.number().nullable(),
+	timeLimit: z.nullable(z.number()),
 	showLetterDuringCountdown: z.boolean(),
 	excludedLetters: z.array(z.string()),
 	hostPlays: z.boolean(),
@@ -50,8 +50,8 @@ const lobbyStatePayload = z.object({
 	state: gameStateEnum,
 	// Seconds until the lobby closes because the host is gone; null/absent when
 	// the host is present. Lets late joiners see the shared countdown too.
-	hostGraceSeconds: z.number().nullish(),
-	solo: z.boolean().optional().default(false),
+	hostGraceSeconds: z.nullish(z.number()),
+	solo: z._default(z.optional(z.boolean()), false),
 });
 
 const sessionCreatedPayload = z.object({
@@ -65,9 +65,9 @@ const gameStatePayload = z.object({
 	letter: z.string(),
 	usedLetters: z.array(z.string()),
 	remainingLetters: z.array(z.string()),
-	timeRemaining: z.number().nullable(),
-	countdownRemaining: z.number().nullable(),
-	elapsed: z.number().nullable(),
+	timeRemaining: z.nullable(z.number()),
+	countdownRemaining: z.nullable(z.number()),
+	elapsed: z.nullable(z.number()),
 	categoryCount: z.number(),
 });
 
@@ -89,18 +89,20 @@ const reviewStatePayload = z.object({
 	categoryCount: z.number(),
 	answers: z.array(reviewAnswerSchema),
 	// Optional/lenient: an older server without this field must not drop the event.
-	buzzedBy: z.string().optional(),
-	solo: z
-		.array(
-			z.object({
-				categoryId: z.string(),
-				value: z.string(),
-				valid: z.boolean(),
-				points: z.number(),
-			}),
-		)
-		.nullish()
-		.default(null),
+	buzzedBy: z.optional(z.string()),
+	solo: z._default(
+		z.nullish(
+			z.array(
+				z.object({
+					categoryId: z.string(),
+					value: z.string(),
+					valid: z.boolean(),
+					points: z.number(),
+				}),
+			),
+		),
+		null,
+	),
 });
 
 const commentatorStatePayload = z.object({
@@ -134,7 +136,7 @@ const roundResultPayload = z.object({
 	remainingLetters: z.array(z.string()),
 	isGameOver: z.boolean(),
 	// Lenient: an unknown reason must not cause a valid result to be dropped.
-	reason: z.string().optional(),
+	reason: z.optional(z.string()),
 });
 
 // Lenient on the string enums (code / reason) so a forward-compatible server
@@ -158,7 +160,7 @@ const serverEventSchema = z.discriminatedUnion("type", [
 			lobbyCode: z.string(),
 			available: z.boolean(),
 			// Lenient: an unknown/forward-compatible reason must not drop the message.
-			reason: z.string().optional(),
+			reason: z.optional(z.string()),
 		}),
 	}),
 	z.object({

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod/mini";
 
 // Disable Zod's JIT-compiled validators (which use `new Function`). Under our
 // strict Content-Security-Policy (`script-src` without `'unsafe-eval'`), Zod's

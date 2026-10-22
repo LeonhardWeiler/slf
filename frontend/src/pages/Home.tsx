@@ -37,6 +37,8 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 	throttled: "Zu viele Versuche - bitte kurz warten.",
 };
 
+const preloadRoom = () => import("@/pages/Room");
+
 export function Home() {
 	// Loose params: Home renders on both `/` (no param) and `/join/$code`.
 	const params = useParams({ strict: false });
@@ -334,6 +336,8 @@ export function Home() {
 						<Button
 							className="w-full"
 							size="lg"
+							onPointerEnter={preloadRoom}
+							onFocus={preloadRoom}
 							onClick={() => goTo("createName")}
 						>
 							<Plus className="h-4 w-4" />
@@ -343,6 +347,8 @@ export function Home() {
 							variant="outline"
 							className="w-full"
 							size="lg"
+							onPointerEnter={preloadRoom}
+							onFocus={preloadRoom}
 							onClick={() => {
 								// Start a fresh join each time this is opened from the start
 								// screen: a code left over from a previous, abandoned attempt
