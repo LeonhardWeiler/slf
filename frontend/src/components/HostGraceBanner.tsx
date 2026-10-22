@@ -46,7 +46,7 @@ export function HostGraceBanner() {
 
 	if (remaining == null) return null;
 	return (
-		<div className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
+		<div className="flex justify-center">
 			{/* The situation is announced once via a static live region; the ticking
           seconds are aria-hidden so screen readers aren't spammed every second. */}
 			<span className="sr-only" role="alert">
@@ -54,7 +54,7 @@ export function HostGraceBanner() {
 			</span>
 			<div
 				aria-hidden="true"
-				className="flex items-center gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-5 py-2.5 text-base font-medium text-amber-800 shadow-lg backdrop-blur dark:text-amber-300"
+				className="flex items-center gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-5 py-2.5 text-base font-medium text-amber-800 dark:text-amber-300"
 			>
 				<AlertTriangle className="h-5 w-5 shrink-0" />
 				<span>

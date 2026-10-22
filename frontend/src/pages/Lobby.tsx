@@ -29,6 +29,7 @@ import { InfoHint } from "@/components/InfoHint";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
+import { HostGraceBanner } from "@/components/HostGraceBanner";
 // The QR generator (qrcode lib) is only needed when the host reveals the code,
 // so load it lazily instead of in the main bundle.
 const QrCode = lazy(() =>
@@ -360,6 +361,7 @@ export function Lobby() {
 						</Button>
 					</div>
 				</div>
+				<HostGraceBanner />
 
 				<div className="grid gap-4 lg:grid-cols-2 lg:items-start">
 					<div className="space-y-4">

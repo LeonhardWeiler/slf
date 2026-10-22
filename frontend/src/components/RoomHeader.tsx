@@ -8,6 +8,7 @@ import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
+import { HostGraceBanner } from "@/components/HostGraceBanner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
@@ -101,6 +102,7 @@ export function RoomHeader({ title }: { title: string }) {
 					</Button>
 				</div>
 			</div>
+			<HostGraceBanner />
 			{dialog}
 		</>
 	);

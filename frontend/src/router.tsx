@@ -13,7 +13,6 @@ import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
-import { HostGraceBanner } from "@/components/HostGraceBanner";
 import { Toaster } from "@/components/Toaster";
 
 // The lobby/game view (Room + all in-game screens) is only needed once the
@@ -176,9 +175,8 @@ function RootLayout() {
 
 	return (
 		<>
-			<HostGraceBanner />
 			<Toaster />
-			{/* Single <main> landmark around the routed content (the fixed overlays
+			{/* Single <main> landmark around the routed content (the fixed overlay
           above stay outside it) so assistive tech can jump to the main content. */}
 			<main>
 				<Outlet />

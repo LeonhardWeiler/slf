@@ -564,3 +564,14 @@ describe("review end reason", () => {
 		expect(screen.getByText("Zeit abgelaufen")).toBeDefined();
 	});
 });
+
+describe("host grace banner", () => {
+	it("sits in the screen flow under the header", () => {
+		setup("guest", "Lobby");
+		useLobbyStore.setState({ hostGrace: 30 });
+		render(<Lobby />);
+		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
+		expect(banner.closest(".fixed")).toBeNull();
+		useLobbyStore.setState({ hostGrace: null });
+	});
+});
