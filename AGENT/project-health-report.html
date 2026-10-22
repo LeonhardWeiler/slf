@@ -1,592 +1,1095 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SLF - Code Review & Findings</title>
-    <style>
-      :root {
-        --bg: #0f1115;
-        --panel: #171a21;
-        --panel2: #1d212a;
-        --text: #e6e8ee;
-        --muted: #9aa3b2;
-        --border: #2a2f3a;
-        --accent: #7aa2ff;
-        --crit: #ff5c6c;
-        --high: #ff8a3d;
-        --med: #ffcc4d;
-        --low: #5cc8ff;
-        --info: #8b93a7;
-        --ok: #4fd08a;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font:
-          15px/1.55 -apple-system,
-          Segoe UI,
-          Roboto,
-          Helvetica,
-          Arial,
-          sans-serif;
-      }
-      .wrap {
-        max-width: 960px;
-        margin: 0 auto;
-        padding: 32px 20px 80px;
-      }
-      h1 {
-        font-size: 28px;
-        margin: 0 0 4px;
-      }
-      h2 {
-        font-size: 21px;
-        margin: 38px 0 12px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid var(--border);
-      }
-      h3 {
-        font-size: 16px;
-        margin: 22px 0 6px;
-      }
-      p {
-        margin: 8px 0;
-      }
-      code {
-        background: #0b0d11;
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        padding: 1px 5px;
-        font-size: 13px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      }
-      a {
-        color: var(--accent);
-      }
-      .lead {
-        color: var(--muted);
-        font-size: 15px;
-      }
-      .meta {
-        color: var(--muted);
-        font-size: 13px;
-        margin-top: 2px;
-      }
-      .toc {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 14px 18px;
-        margin: 20px 0;
-      }
-      .toc ul {
-        margin: 6px 0 0;
-        padding-left: 18px;
-        columns: 2;
-      }
-      .toc a {
-        text-decoration: none;
-      }
-      .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 14px 16px;
-        margin: 12px 0;
-      }
-      .card h3 {
-        margin-top: 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-      }
-      .id {
-        color: var(--muted);
-        font-family: ui-monospace, monospace;
-        font-size: 12px;
-      }
-      .loc {
-        color: var(--muted);
-        font-size: 12.5px;
-        margin: 2px 0 8px;
-      }
-      .rec {
-        background: var(--panel2);
-        border-left: 3px solid var(--accent);
-        border-radius: 0 6px 6px 0;
-        padding: 8px 12px;
-        margin-top: 8px;
-      }
-      .rec b {
-        color: var(--accent);
-      }
-      .badge {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-        text-transform: uppercase;
-        padding: 2px 8px;
-        border-radius: 999px;
-        color: #0b0d11;
-      }
-      .b-crit {
-        background: var(--crit);
-      }
-      .b-high {
-        background: var(--high);
-      }
-      .b-med {
-        background: var(--med);
-      }
-      .b-low {
-        background: var(--low);
-      }
-      .b-info {
-        background: var(--info);
-      }
-      .b-ok {
-        background: var(--ok);
-      }
-      .summary {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 10px;
-        margin: 16px 0;
-      }
-      .stat {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 12px;
-        text-align: center;
-      }
-      .stat .n {
-        font-size: 24px;
-        font-weight: 700;
-      }
-      .stat .l {
-        color: var(--muted);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
-      ul.tight {
-        margin: 6px 0;
-        padding-left: 20px;
-      }
-      ul.tight li {
-        margin: 4px 0;
-      }
-      .note {
-        color: var(--muted);
-        font-size: 13px;
-      }
-      hr {
-        border: none;
-        border-top: 1px solid var(--border);
-        margin: 26px 0;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <h1>Stadt&nbsp;Land&nbsp;Fluss - Code Review &amp; Findings</h1>
-      <div class="meta">
-        Holistic scan (bugs · security · UI/UX · a11y · code quality ·
-        performance · cleanliness) · as of 2026-08-07 · branch
-        <code>master</code>
-      </div>
-
-      <p class="lead">
-        <b>Fresh full scan, with the central flows walked on a running
-        server.</b> The declared gates are green: backend <code>gofmt</code>,
-        <code>go vet</code>, <code>go test&nbsp;./...</code> incl.
-        <code>-race</code>; frontend Biome <em>lint</em>,
-        <code>bun&nbsp;test</code> (26&nbsp;tests) and
-        <code>vite&nbsp;build</code> with <code>tsc</code>. A live protocol
-        walkthrough (create → join → start → buzz → review → result → next round
-        → game over → return to lobby → host leaves, plus mid-game join, kick,
-        leave and replayed sessions) behaved exactly as documented in every step
-        but one (rejoining under your own name after leaving), now fixed.
-      </p>
-      <p class="lead">
-        The core is unchanged and still strong: server-authoritative rules, the
-        one documented predicate set for round participation, end-to-end Zod
-        validation, the connection lifecycle and the CSP script hash (recomputed
-        from <code>index.html</code> this round, still matching
-        <code>main.go</code> exactly). What this pass turned up instead sits at
-        the edges, mostly in the UI layer.
-        <b>1 open finding, none critical or high.</b>
-        The overall assessment is in <b>section&nbsp;4</b>; deliberate
-        limitations (documented in the README) are in section&nbsp;3.
-      </p>
-
-      <div class="summary">
-        <div class="stat">
-          <div class="n" style="color: var(--crit)">0</div>
-          <div class="l">Critical</div>
-        </div>
-        <div class="stat">
-          <div class="n" style="color: var(--high)">0</div>
-          <div class="l">High</div>
-        </div>
-        <div class="stat">
-          <div class="n" style="color: var(--med)">0</div>
-          <div class="l">Medium</div>
-        </div>
-        <div class="stat">
-          <div class="n" style="color: var(--low)">1</div>
-          <div class="l">Low</div>
-        </div>
-        <div class="stat">
-          <div class="n" style="color: var(--info)">0</div>
-          <div class="l">Info</div>
-        </div>
-      </div>
-
-      <div class="toc">
-        <b>Contents</b>
-        <ul>
-          <li><a href="#open">1. Open findings</a></li>
-          <li><a href="#good">2. What is already strong</a></li>
-          <li>
-            <a href="#decided">3. Deliberately decided (no action needed)</a>
-          </li>
-          <li><a href="#final">4. Final project analysis</a></li>
-        </ul>
-      </div>
-      <p class="note">
-        Legend:
-        <span class="badge b-crit">critical</span>
-        <span class="badge b-high">high</span>
-        <span class="badge b-med">medium</span>
-        <span class="badge b-low">low</span>
-        <span class="badge b-info">info</span>
-      </p>
-
-      <!-- ============ OPEN ============ -->
-      <h2 id="open">1. Open findings</h2>
-      <p class="note">
-        Sorted from most to least urgent. Nothing here is critical or high: the
-        game plays correctly end to end, and none of these can change a game's
-        outcome.
-      </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> <code>CHANGELOG.md</code> stops
-          before the entire fix pass <span class="id">DOC-1</span>
-        </h3>
-        <div class="loc"><code>CHANGELOG.md</code>, <code>frontend/package.json</code></div>
-        <p>
-          The last entry is <code>0.9.2</code> (2026-07-13), but 14 commits have
-          landed since - including changes a changelog exists for: a departed
-          player's answers no longer reach scoring, leaving now invalidates the
-          session server-side, starting a game requires a connected participant,
-          the client rule mirror became rune-safe, and the frontend test runner
-          moved from Vitest to <code>bun test</code>. None of it is recorded, and
-          <code>package.json</code> still says <code>0.9.2</code>.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> add a <code>0.9.3</code> section (Fixed /
-          Changed) covering the fix pass and bump the frontend version with it -
-          the format is already established, only the entries are missing.
-        </div>
-      </div>
-
-      <!-- ============ GOOD ============ -->
-      <h2 id="good">2. What is already strong</h2>
-      <ul class="tight">
-        <li>
-          <span class="badge b-ok">plus</span> <b>Connection lifecycle</b>: host
-          grace with a stable deadline ticker (no more second-by-second
-          jump-back), a snapshot-carried countdown, a clean 1001 shutdown and
-          reconnect with backoff+jitter, incl. an expiry test (<code
-            >-race</code
-          >
-          green). The session lives in <code>localStorage</code> and survives
-          closing the tab: re-entry as the same player (the host keeps its role
-          within the grace window), an explicit "leave" is final.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Join anytime</b>: you can join
-          a running lobby in any phase. Mid-game joiners are
-          <code>Pending</code> on the server, spectators with a fill-in
-          overview, cleanly excluded from scoring/ranking/review/buzz
-          (<code>isRoundSpectator</code>), and are activated automatically at
-          the next round start. Covered by integration tests (pending status +
-          activation).
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Accessibility basics</b>: a
-          <code>&lt;main&gt;</code> landmark, live regions deliberately
-          decoupled from the second ticker (the host-grace banner announces the
-          situation once via <code>role="alert"</code> and hides the ticking
-          digits), <code>aria-pressed</code> on the letter and flame toggles,
-          keyboard operation throughout, toasts that pause on hover/focus.
-          Inline field errors are linked via <code>aria-describedby</code> and
-          announced as alerts, and every control sits at the natural
-          <code>tabindex="0"</code> so Tab follows the visible order. The
-          confirm dialog is the model implementation - focus on open, Tab
-          trapped inside, Escape, and focus returned to the trigger (guarded
-          against a trigger the dialog itself removed), shared with the QR popup
-          through one <code>Modal</code> shell.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Frontend robustness</b>: an
-          ErrorBoundary (also around lazy chunks), a stackable 3D toast system
-          with error/info variants, a join pre-check (<code>checkLobby</code>)
-          with navigation locked during the check.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Tests</b>: Go WS integration
-          tests at the protocol level (<code>-race</code> green, ~15&nbsp;s)
-          <em>and</em> a frontend suite on the native <code>bun test</code>
-          runner (37&nbsp;tests) covering the client mirror of the engine rules
-          (<code>answerValidation</code>, now including the non-ASCII casing and
-          code-point-length cases), <code>parseServerEvent</code> (Zod) and
-          render tests on happy-dom + Testing Library (host vs. guest
-          affordances, the buzz gate, Room's state → screen mapping, the modal
-          shell). Both
-          run in CI. The Go harness is good enough that pinning the
-          leave-then-reconnect scoring path took a single test function on the
-          existing helpers.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Server-authoritative</b> &amp;
-          end-to-end Zod validation of all incoming events (incl. host and
-          <code>checkLobby</code> events).
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Hardening</b>: origin check
-          via <code>net.ParseIP</code> (no glob a look-alike host could slip
-          through), a per-connection token bucket, resource caps, the join
-          backoff (which the <code>checkLobby</code> pre-check deliberately
-          shares, so it cannot become an unthrottled enumeration oracle), a
-          lobby reaper, CSP/HSTS-<code>preload</code>/COOP, immutable asset
-          caching, hashed session IDs, no sessionId leak. The CSP script hash
-          was recomputed from <code>index.html</code> this round and still
-          matches <code>main.go</code> byte for byte. Lobby creation shares the
-          backoff, so one socket cannot walk the global cap.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Render efficiency</b>: all
-          store accesses use fine-grained Zustand selectors (<code
-            >useStore(s =&gt; s.field)</code
-          >) instead of subscribing to the whole store, so components re-render
-          only for the fields they read. <code>Room</code> hangs only on
-          <code>lobby?.state</code>, for example, so the route tree no longer
-          re-renders on every <code>hostGrace</code> second tick. Timer screens
-          deliberately tick on local state, not on the store.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Consistency &amp; CI</b>:
-          uniform sort idioms, TypeScript <code>strict</code>, Biome
-          <code>biome ci</code> (lint + format), a hard <code>gofmt</code>
-          gate, <code>go vet</code>, <code>bun test</code> + WS integration tests
-          in the <code>nix build</code>, and
-          a Nix flake that pins the whole toolchain (Go 1.26, Bun 1.3) - the
-          scan reproduced every gate through it.
-        </li>
-        <li>
-          <span class="badge b-ok">plus</span> <b>Commentary that earns its
-          keep</b>: nearly every non-obvious decision carries its rationale
-          (why the write happens after the unlock, why <code>EmptySince</code>
-          is owned solely by the janitor, why the clipboard fallback exists).
-          That is what made this scan able to separate deliberate choices from
-          oversights - several things that look wrong at first glance turned out
-          to be documented and correct.
-        </li>
-      </ul>
-
-      <!-- ============ DECIDED ============ -->
-      <h2 id="decided">3. Deliberately decided (no action needed)</h2>
-      <p class="note">
-        The following points are chosen deliberately and documented in the
-        README under "Deliberate decisions &amp; known limitations". Each was
-        re-checked against the code this round and still holds. They are
-        <b>not a problem</b> for the intended use (LAN/party game) and are
-        listed here so they are not re-raised as findings.
-      </p>
-      <ul class="tight">
-        <li>
-          <b>No host handoff</b>: if the host does not return within 15&nbsp;s,
-          the lobby is closed, deliberately <em>not</em> transferring the host
-          role.
-        </li>
-        <li>
-          <b>Host "end round" is a fallback</b>: a round normally ends through
-          the first buzz or the timeout. The host button "end round" is
-          deliberately de-emphasized (ghost) and only meant for the special case
-          that no one can find anything else, it is <em>not</em> a standard
-          flow.
-        </li>
-        <li>
-          <b>A single global <code>hub.mu</code></b
-          >: serializes all lobbies; at 500 players
-          avg&nbsp;&lt;&nbsp;5&nbsp;ms. Sharding is only needed with very many
-          parallel games.
-        </li>
-        <li>
-          <b><code>execCommand</code> clipboard fallback</b>: for plain-HTTP
-          LAN, where <code>navigator.clipboard</code> is missing, deprecated but
-          widely supported.
-        </li>
-        <li>
-          <b>Player-list cache</b>: evaluated and rejected, almost every
-          broadcast follows a <code>connected</code>/<code>score</code> change
-          that would invalidate a cache anyway.
-        </li>
-        <li>
-          <b>No persistence layer</b>: state lives in RAM; after a server
-          restart clients are disconnected cleanly and return to the home
-          screen.
-        </li>
-      </ul>
-
-      <!-- ============ FINAL ANALYSIS ============ -->
-      <h2 id="final">4. Final project analysis</h2>
-      <p>
-        <b>Overall verdict: production-ready for the intended use</b> (real-time
-        multiplayer party game on the LAN/browser). The game plays correctly end
-        to end - a full protocol walkthrough against a running server confirmed
-        every documented behaviour, including the awkward ones: mid-game joins
-        landing as pending spectators, a kicked or departed player's replayed
-        session being refused, the empty round skipping review, and
-        <code>returnToLobby</code> zeroing every score. None of the open
-        findings can change a game's outcome.
-      </p>
-      <p>
-        The pattern this scan found - <em>a good mechanism exists, and one
-        place did not adopt it</em> - is closed: lobby creation shares the
-        backoff, the QR popup the modal shell, the frontend the format gate,
-        and <code>beginCountdown</code> re-verifies its state under the lock
-        like <code>beginPlaying</code> and <code>endRound</code>.
-      </p>
-
-      <h3>Architecture &amp; code quality</h3>
-      <p>
-        Clear separation: the Go backend as the
-        <b>single source of truth</b> (engine, state machine, hub/handlers
-        separated), the React SPA as a pure view layer. The state machine per
-        lobby (<code
-          >Lobby -&gt; Countdown -&gt; Playing -&gt; Reviewing -&gt; RoundResult
-          -&gt; GameOver</code
-        >) is cleanly encapsulated; timers are idempotent via
-        <code>roundID</code>+state, so late callbacks on aborted rounds fizzle
-        out without effect. The code is commented throughout (every non-obvious
-        decision with a rationale) and stylistically homogeneous.
-      </p>
-      <p>
-        Round participation used to be derived ad hoc in four separate places,
-        each with a slightly different notion of <code>Left</code>,
-        <code>Pending</code> and <code>Connected</code> - which is what let
-        review and scoring disagree about who counted. It now goes through three
-        named, documented predicates
-        (<code>isRoundSpectator</code>&nbsp;/&nbsp;<code>playsThisRound</code>
-        &nbsp;/&nbsp;<code>canPlayNextRound</code>) that state why they differ,
-        with the standings marked as the one deliberate exception. Every
-        filtering path calls one of them, so that class of drift is closed off
-        rather than patched on both sides.
-      </p>
-
-      <h3>Concurrency</h3>
-      <p>
-        A single global <code>hub.mu</code> serializes all lobby state; writes
-        to the sockets happen <em>after</em> unlocking (coder/websocket
-        serializes <code>Conn.Write</code> internally). Reconnect races are
-        defused via identity guards (only the currently bound connection cleans
-        up). <code>go test ./... -race</code> is green, incl. the end-to-end
-        WebSocket tests. <code>Client.sessionID</code> - assigned across
-        goroutines by <code>closeLobby</code> and <code>handleKickPlayer</code>,
-        and previously the only field escaping the lock - is now written and
-        read under <code>hub.mu</code> throughout, with the invariant recorded
-        on the field itself.
-      </p>
-
-      <h3>Tests &amp; CI</h3>
-      <p>
-        Backend: engine unit tests, benchmarks and protocol-level WS integration
-        tests (among others a full round cycle, host-grace expiry, mid-game
-        join&nbsp;-&gt;&nbsp;pending&nbsp;-&gt;&nbsp;activation). Frontend: the
-        Zod parser and the engine-rule mirror, now on the native
-        <code>bun test</code> runner - which also retired the zod-inlining
-        workaround <code>vite.config.ts</code> needed under Vitest, so the build
-        config is test-free again.
-      </p>
-      <p>
-        Render tests now cover the JSX layer where the missing
-        <code>isHost</code> gate once sat; a test removing that gate or the
-        buzz pending state fails.
-      </p>
-
-      <h3>Security</h3>
-      <p>
-        Server-authoritative with end-to-end input validation; a WS origin check
-        against CSWSH (IP parsing instead of a glob), a per-connection rate
-        limit, resource caps, a join backoff against code enumeration, an
-        abandoned-lobby reaper. A strict CSP (script hash instead of
-        <code>unsafe-inline</code>), HSTS/COOP/nosniff, hashed session IDs in
-        logs, no <code>sessionId</code> leak to other clients. The CSP script
-        hash was recomputed from <code>index.html</code> this round and still
-        matches the value in <code>main.go</code> exactly. Appropriate for a
-        game without accounts/persistence and without personal data.
-      </p>
-      <p>
-        Session invalidation is symmetric across every exit: leaving mid-game
-        drops the session server-side just as a kick does, and a replayed id for
-        a departed player is refused rather than relying on the frontend having
-        cleared <code>localStorage</code> - confirmed live against the running
-        server this round.
-      </p>
-
-      <h3>UX &amp; a11y</h3>
-      <p>
-        The host role is guided very well: inline field errors, confirmations on
-        every destructive action, connection feedback, the commentator beamer
-        view, QR/deep-link joining, "join anytime", and a start button that
-        deliberately stays focusable while disabled so a click can shake the
-        explanatory hint. The join flow is unusually careful - it seeds browser
-        history so the back gesture walks the steps, pre-checks lobby
-        availability before asking for a name, and discards stale replies.
-      </p>
-      <p>
-        The non-host view holds up too: destructive actions are only offered to
-        whoever may perform them, and starting a round without a connected
-        participant explains itself instead of doing nothing. A11y is solid on
-        structure (landmark, <code>aria-pressed</code> toggles, the confirm
-        dialog's full focus handling, the deliberate alert/ticker split in the
-        host-grace banner) and on forms (errors linked and announced), with tab
-        order following the visible order. Responsive, light/dark theme, and
-        animations fully disabled under <code>prefers-reduced-motion</code>.
-      </p>
-
-      <h3>Optional next steps (non-blocking)</h3>
-      <p class="note">
-        Not findings, just the idea worth keeping on file if the project is
-        picked up again:
-      </p>
-      <ul class="tight">
-        <li>
-          An optional persistence layer (e.g. Redis) if lobbies should ever
-          survive a server restart; currently purely in-memory by design.
-        </li>
-      </ul>
-
-      <hr />
-      <p class="note">
-        This report only documents, it reflects the current state without
-        history. Nothing here blocks shipping: the app plays correctly end to
-        end, and all ten findings are edge hardening, accessibility polish and
-        documentation upkeep.
-      </p>
-    </div>
-  </body>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Ausführlicher Audit von Stadt Land Fluss: Repository, Live-Server, Sicherheit, Zuverlässigkeit, Performance, UI/UX, Tests und Betrieb. Stand 22. Oktober 2026.">
+<title>SLF · Project Health Report · 22.10.2026</title>
+<style>
+:root{color-scheme:light dark;--bg:#fafbfc;--fg:#17202d;--muted:#4b586b;--panel:#fff;--line:#d5dce7;--link:#124d9b;--soft:#eef3f9;--p1:#a62521;--p2:#76520a;--p3:#18518b}*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:16px}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,sans-serif}.wrap{max-width:1120px;margin:auto;padding:32px 22px 72px}h1{font-size:clamp(26px,5vw,40px);line-height:1.18;letter-spacing:-.035em;margin:0 0 12px}h2{font-size:25px;line-height:1.3;margin:46px 0 16px;border-bottom:1px solid var(--line);padding-bottom:10px}h3{font-size:19px;line-height:1.4;margin:0 0 8px}p{margin:10px 0}.meta,.subtle{color:var(--muted);font-size:14px}.lead{font-size:18px;max-width:90ch}a{color:var(--link);text-underline-offset:3px}code{background:var(--soft);padding:2px 5px;border-radius:4px;font-size:.9em;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--soft);padding:16px;border-radius:8px;font-size:13px;line-height:1.6}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:24px 0}.stat,.panel{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:16px}.stat strong{display:block;font-size:30px;line-height:1.2}.stat span{font-size:13px;color:var(--muted)}nav ul{display:flex;gap:10px 22px;flex-wrap:wrap;list-style:none;padding:0}.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:11px 12px;border-bottom:1px solid var(--line)}th{background:var(--soft)}td:first-child{min-width:135px}ul,ol{padding-left:24px}li{margin:6px 0}.finding{border:1px solid var(--line);border-radius:10px;padding:22px;background:var(--panel);margin:18px 0;scroll-margin-top:16px}.finding p{max-width:100ch}.finding .meta{margin:4px 0 15px}.tag{display:inline-block;border:1px solid currentColor;border-radius:5px;padding:1px 6px;font-size:12px;vertical-align:2px}.P1{color:var(--p1)}.P2{color:var(--p2)}.P3{color:var(--p3)}.id{font:13px ui-monospace,monospace;color:var(--muted)}.accept{border-left:3px solid var(--line);padding-left:13px;font-size:14px}.filters{display:flex;flex-wrap:wrap;gap:12px}.filters label{display:flex;flex-direction:column;font-size:13px;gap:4px}.filters input,.filters select{font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);padding:9px;border-radius:6px;max-width:100%}.filters input{width:280px}button{font:inherit;color:var(--fg);background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--link);outline-offset:3px}[hidden]{display:none!important}.note{border-left:4px solid var(--link);padding:4px 16px;background:var(--soft);margin:20px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}details{margin:18px 0}summary{cursor:pointer;font-weight:650}footer{margin-top:40px;border-top:1px solid var(--line);padding-top:16px}@media(prefers-color-scheme:dark){:root{--bg:#11151c;--fg:#e9edf4;--muted:#adb9ca;--panel:#19202a;--line:#374354;--link:#98bfff;--soft:#202b3a;--p1:#ffaaa2;--p2:#eac67f;--p3:#9fc9ff}}@media(max-width:600px){.wrap{padding:22px 14px 48px}.finding{padding:17px}th,td{padding:9px 8px}h2{font-size:22px}.filters label,.filters input{width:100%}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}@media print{body{background:white;color:black;font-size:10pt}.wrap{max-width:none;padding:0}.filters,nav,button{display:none}.finding[hidden]{display:block!important}.finding{break-inside:avoid;padding:12px}h2{break-after:avoid}a{color:inherit}pre{font-size:9pt}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<header>
+<p class="meta">PROJECT REPORT · STADT LAND FLUSS · 22. OKTOBER 2026</p>
+<h1>Solider Spielkern.<br>Offene Risiken an Transport und Betrieb.</h1>
+<p class="lead">Tiefer Audit des Go-/React-Repositories und des tatsächlich laufenden NixOS-Servers. Die normale Spiel- und Laststrecke ist schnell. Die wichtigsten Fehler treten bei Deployments, verspäteten Eingaben, Wiederverbindungen und langsamen Clients auf. Dazu kommen ein veralteter Go-Build und ein Proxy-Verbindungslimit unter dem dokumentierten Ziel.</p>
+<p class="meta">Quellbasis: <code>8741dd68959c004ddf4c801c0166ab4dbb25bcad</code> (master, v0.10.0). 95 versionierte Dateien, 71 Go-/TS-/TSX-Dateien mit rund 11.250 Zeilen einschließlich Tests. Prüfzeitraum: 22.10.2026, Europe/Vienna. Stichtag, keine kontinuierliche Überwachung.</p>
+</header>
+<div class="stats">
+<div class="stat">
+<strong>0</strong>
+<span>bestätigte kritische Gesamtrisiken</span>
+</div>
+<div class="stat">
+<strong>7</strong>
+<span>P1 · vor nächstem verlässlichen Release</span>
+</div>
+<div class="stat">
+<strong>25</strong>
+<span>P2 · gezielt einplanen</span>
+</div>
+<div class="stat">
+<strong>10</strong>
+<span>P3 · Optimierung / Pflege</span>
+</div>
+<div class="stat">
+<strong>42</strong>
+<span>offene, gruppierte Findings</span>
+</div>
+</div>
+<p>Prioritäten bewerten die <b>Auswirkung in diesem Projekt</b>. Eine Scanner-Einstufung „critical“ wird nicht ungeprüft zum kritischen App-Befund. P1 umfasst belegte schwerwiegende Verfügbarkeits-/Datenprobleme und den notwendigen Toolchain-Patch; P2 umfasst relevante Robustheits-, Bedienungs- und Härtungsarbeit; P3 ist nachrangig. Codeableitungen und noch offene Verifikation sind ausdrücklich gekennzeichnet.</p>
+<nav aria-label="Inhalt">
+<ul>
+<li>
+<a href="#scope">Prüfumfang</a>
+</li>
+<li>
+<a href="#server">Live-Server</a>
+</li>
+<li>
+<a href="#validation">Tests &amp; Messungen</a>
+</li>
+<li>
+<a href="#coverage">Themenmatrix</a>
+</li>
+<li>
+<a href="#findings">Findings</a>
+</li>
+<li>
+<a href="#positive">Stärken</a>
+</li>
+<li>
+<a href="#decisions">Bewusste Grenzen</a>
+</li>
+<li>
+<a href="#roadmap">Reihenfolge</a>
+</li>
+<li>
+<a href="#history">Abgleich &amp; Grenzen</a>
+</li>
+</ul>
+</nav>
+<section id="scope">
+<h2>Prüfumfang und Methodik</h2>
+<p>Gelesen wurden der Anwendungseinstieg, sämtliche Backend-Produktionsmodule, Domainmodell und Scoring, Session-/Socket-Lifecycle, Persistenz, Broadcasts, alle Frontend-Screens, Stores, Protokollvalidierung, UI-Primitives, Styles, Tests, Flakes, Deploymentworkflow, README, Changelog und Agentdokumentation. Ergänzend: angrenzende <code>waentw/server-config/configuration.nix</code>, deren Flake und GitLab-Deploydefinition.</p>
+<p>Live read-only per SSH geprüft: Betriebssystem, Ressourcen, aktive systemd-Unit samt effektiven Schutzoptionen, laufender Paketpfad, Listening-Sockets, IPv4-/IPv6-Firewall, nginx-Konfiguration und Worker, Journal-Warnungen, fehlgeschlagene Dienste, Timer, State-Verzeichnis, Zugriffslog-Dateien und TCP-Einstellungen. Keine Systemkonfiguration, Dienste oder produktiven Deployments wurden verändert. HTTP-Header, Origin-Ablehnung und moderate WSS-Last wurden direkt gegen die eigene Anwendung geprüft.</p>
+<p>Browser: Live-Home, Erstellung, Lobby, Solo-Spiel, Auswertung und Light/Dark; lokal aktueller Build mit zwei Spielern, Spielen und Multiplayerbewertung, plus axe-core auf Home, Lobby, Playing und Review. Kleine sowie große Viewports wurden angefordert; die Preview lieferte wegen Zoom/Hostabgleich teilweise abweichende CSS-Maße (z. B. 350 statt angeforderter 320 px). Gemessene Maße wurden respektiert. Reale iOS-/Android-Geräte sind damit nicht ersetzt.</p>
+<div class="note">
+<p>
+<b>Drei Stände auseinanderhalten:</b> Der Live-Server startet <code>/nix/store/rp2g2j3vmc0gkifzy4bmjmbrkx89pbh3-slf-0.10.0/bin/slf</code>; live wurde <code>index-B9n0T5HE.js</code> geladen. Sauberer HEAD baut <code>index-DLxCzAlk.js</code> und <code>Room-CNt8g0k0.js</code>. Daneben existieren bereits vor dem Audit uncommittete Änderungen in <code>Lobby.tsx</code> und <code>screens.test.tsx</code>. Diese wurden nicht angefasst. Verhalten des alten Live-Frontends wird nicht automatisch dem neueren HEAD angelastet.</p>
+</div>
+</section>
+<section id="server">
+<h2>Der tatsächlich laufende Server</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Aspekt</th>
+<th>Festgestellt</th>
+<th>Einordnung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>NixOS 26.05, Build 26.05.20261020.cd4ea8d; 2 vCPU; rund 3,9 GiB RAM.</td>
+<td>Deklarativ verwalteter, zum Prüfdatum aktueller OS-Build. Der eingebettete Go-Stand des SLF-Pakets ist davon unabhängig.</td>
+</tr>
+<tr>
+<td>Ressourcen</td>
+<td>Uptime etwa 3 Tage; Load 0,00. Rund 3.148 MiB verfügbar, zram-Swap unbenutzt. Root-Dateisystem 79 GiB, 11 % belegt.</td>
+<td>Keine akute CPU-/RAM-/Diskknappheit in dieser Momentaufnahme; CPU-/Memory-/I/O-Pressure im Messfenster 0,00.</td>
+</tr>
+<tr>
+<td>SLF-Dienst</td>
+<td>Aktiv seit 09:21:57 CEST; NRestarts=0; cgroup initial 9,36 MB, Peak 25,38 MB; MemoryMax=256 MiB; LimitNOFILE=524288.</td>
+<td>Leerlaufverbrauch klein. Nach den 50 Live-Testspielern weiterhin keine Restarts/failed units; cgroup etwa 8,75 MB. RSS und cgroup-Speicher sind unterschiedliche Messgrößen.</td>
+</tr>
+<tr>
+<td>Proxy</td>
+<td>nginx 1.30.6, ein Worker, implizit 512 Slots; HTTP/2, TLS 1.2/1.3 konfiguriert; WS-Upstream HTTP/1.1, proxy_read_timeout 1 h.</td>
+<td>Verbindungsbudget ist der konkrete Kapazitätsengpass. BBR aktiv; keine QUIC-Konfiguration.</td>
+</tr>
+<tr>
+<td>TLS</td>
+<td>Öffentliche TLS-1.3-Verbindung erfolgreich verifiziert; Zertifikat CN slf.coprime.tech, gültig 21.10.2026 bis 19.01.2027; HTTP→HTTPS 301.</td>
+<td>ACME-Erneuerungstimer vorhanden, keine gemeldeten Unitfehler. Kein umfassender externer Cipher-/Revocation-Scan.</td>
+</tr>
+<tr>
+<td>Netzgrenzen</td>
+<td>Öffentlich durch Firewall erlaubt: TCP 80/443 und Tailscale-UDP. SSH nur per Tailnet vorgesehen; Dienste 3000 und PostgreSQL auf Loopback. SLF hört auf *:8080.</td>
+<td>8080 wird öffentlich gefiltert. Tailnet hat eigene frühe Accept-Regeln; dafür sind zusätzlich ACLs relevant. Keine öffentliche 8080-Freigabe behauptet.</td>
+</tr>
+<tr>
+<td>Härtung</td>
+<td>DynamicUser, NoNewPrivileges, strict ProtectSystem, PrivateTmp; CapEff=0; systemd security score 8.2.</td>
+<td>Gute Grundlage mit zusätzlichem Sandbox-Potenzial. Score ist kein Exploitnachweis.</td>
+</tr>
+<tr>
+<td>Betrieb</td>
+<td>OnFailure-Notifier, Journal, logrotate, ACME-, GC- und nixpkgs-age-Timer vorhanden. Keine SLF-/Kernel-Warnungen im geprüften 24-h-Fenster.</td>
+<td>Kein Nachweis für langfristige Fehlerfreiheit. Externe Verfügbarkeits-/Spielablaufüberwachung nicht belegt.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="validation">
+<h2>Ausgeführte Prüfungen und Messwerte</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Prüfung</th>
+<th>Ergebnis</th>
+<th>Gültigkeitsbereich</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend</td>
+<td>gofmt ohne Befund, go vet erfolgreich; go test -race -coverprofile erfolgreich.</td>
+<td>Aktuelles Backend; einschließlich WebSocket-Integrationstests. Domain 88,0 %, WS 68,2 %, Server 32,6 %. Gesamt 62,2 % wird durch das ungetestete Lasttestprogramm mit beeinflusst.</td>
+</tr>
+<tr>
+<td>Frontend · sauberer HEAD</td>
+<td>Biome erfolgreich; 41/41 Tests; TypeScript + Vite erfolgreich.</td>
+<td>Isolierte git-archive-Kopie, vorhandene identische Dependencies. Build: Main 351,87 / gzip 111,68 kB; Room 60,50 / 17,66 kB.</td>
+</tr>
+<tr>
+<td>Nix · sauberer HEAD</td>
+<td>nix build --no-link auf frischer Archivkopie erfolgreich.</td>
+<td>Incl. deklarierten Buildchecks. Ein erster selbst vorbereiteter Testordner enthielt einen node_modules-Symlink und scheiterte daran; nach frischem Export korrekt bestanden. Kein Repositoryfehler aus diesem Hilfsordner abgeleitet.</td>
+</tr>
+<tr>
+<td>Vorhandener Arbeitsstand</td>
+<td>41 pass / 1 fail; Lint und Build rot: doppeltes onClick in Lobby.tsx, TS17001; neuer Share-Test schlägt fehl.</td>
+<td>Snapshot der schon vorliegenden uncommitteten UI-6-Arbeit. Kein Fehler des sauberen HEAD. Nicht repariert, um laufende fremde Arbeit nicht zu verändern.</td>
+</tr>
+<tr>
+<td>Go-Sicherheitsprüfung</td>
+<td>govulncheck v1.9.0: Quelle 17, ausgeliefertes Binary 13 Standardbibliothek-Symboltreffer.</td>
+<td>Quelle umfasst auch das Lasttestprogramm. Treffer ≠ automatisch extern ausnutzbar. Binary- und Quellscan separat ausgewertet; relevante ServeFile-Route bestätigt.</td>
+</tr>
+<tr>
+<td>Frontend-Audit</td>
+<td>12 Advisories / 5 Pakete: 1 critical, 6 high, 4 moderate, 1 low.</td>
+<td>Lockfile, transitive und Build-Abhängigkeiten eingeschlossen. Keine ungeprüfte Übertragung der Advisory-Schwere auf Produktion.</td>
+</tr>
+<tr>
+<td>Browser / axe-core</td>
+<td>Home: 0 Regelverstöße; Playing: 0; Lobby: button-name; Multiplayer-Review: nested-interactive, zwei Zeilen.</td>
+<td>WCAG2 A/AA + WCAG2.1 AA Tags, ausgewählte Zustände des lokalen aktuellen Builds. Keine vollständige WCAG-Zertifizierung; kein echter Screenreader-/Kameratest.</td>
+</tr>
+<tr>
+<td>CSP / HTTP</td>
+<td>Theme-Script-Hash stimmt exakt mit CSP überein. Fremder Origin erhält 403. HTTPS-, Sicherheits- und Immutable-Asset-Header vorhanden.</td>
+<td>Zusätzlich die Fehler bei Cachevalidator, fehlendem Asset und br;q=0 direkt reproduziert.</td>
+</tr>
+<tr>
+<td>Protokollproben</td>
+<td>Gast-Hostaktion abgewiesen (NOT_HOST); Hidden-Letter-Leak, späte Antwortablehnung, 60.005-Zeichen-Rohwert, alte Antwort in neuer Runde und verwaiste Wiederbindung bestätigt.</td>
+<td>Isolierter lokaler Server. Korrupter Snapshot wird nach fehlerhaftem Load gelöscht: gesonderte Probe in temporärer Repo-Kopie.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 style="margin-top:26px">Normalfall: korrelierter Broadcast-Roundtrip</h3>
+<p>Eigener begrenzter WSS-Test: jede Iteration setzt einen eindeutigen timeLimit-Wert; gemessen wird nur die dazu passende lobbyState-Antwort. Alle Hosts werden nacheinander in einer kurzen Schleife angestoßen; die gemessene Dauer enthält auch diese Client-Sendezeit. Zehn Iterationen, keine beobachteten Antworttimeouts. Alle Testlobbys danach explizit geschlossen.</p>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Umgebung</th>
+<th>Spieler / Lobbys</th>
+<th>Proben</th>
+<th>Ø</th>
+<th>p50</th>
+<th>p95</th>
+<th>p99</th>
+<th>Max.</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lokaler Go-Server, direkt WS</td>
+<td>500 / 20 × 25</td>
+<td>5.000</td>
+<td>7,19 ms</td>
+<td>7,32</td>
+<td>12,23</td>
+<td>13,49</td>
+<td>14,76</td>
+</tr>
+<tr>
+<td>Live über nginx + TLS/WSS</td>
+<td>50 / 5 × 10</td>
+<td>500</td>
+<td>22,65 ms</td>
+<td>22,00</td>
+<td>27,57</td>
+<td>28,02</td>
+<td>35,53</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="subtle">Keine Gleichsetzung dieser beiden Umgebungen: andere CPU, Netzwerk und Proxy. Lokal Ryzen 7 6800H, live 2-vCPU-VM. Kein Langzeit-/Spielphasen-/Slow-Reader-Test; keine verifizierte Live-Kapazität von 500 Spielern. Ein Mittelwert über gesunde Verbindungen entkräftet REL-02 nicht.</p>
+<p>Domainbenchmarks lokal: ScoreCategory mit 5 Antworten etwa 2,27 µs / 480 B / 21 Allokationen, mit 100 etwa 87,7 µs / 30,9 kB / 357 Allokationen; ComputeRanking mit 500 Spielern etwa 106,8 µs. Der fachliche Rechenkern ist für Partyrunden sehr klein; vor einer Optimierung des Scorings sind Transport, Speichergrenzen und Proxy zu reparieren.</p>
+</section>
+<section id="coverage">
+<h2>Themenmatrix</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Bewertung</th>
+<th>Wesentliche Bezüge</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Architektur &amp; Einfachheit</td>
+<td>Passender modularer Monolith; globale Mutex als solche vertretbar. Komplexität liegt im Nachrichten-/Reconnect-Lifecycle und Frontend-Zwischenzuständen.</td>
+<td>REL-02/03, STATE-01, CODE-01</td>
+</tr>
+<tr>
+<td>Spielregeln &amp; Fairness</td>
+<td>Serverautorität, zentrale Teilnahmeprädikate und Union-Find-Scoring gut. Cutoff, Rundenzuordnung und versteckter Countdown undicht.</td>
+<td>DATA-02, STATE-02/03</td>
+</tr>
+<tr>
+<td>Security &amp; Supply Chain</td>
+<td>Starke Basiskontrollen, aber veraltete Toolchain, Advisory-Lock und zu grobe Ressourcenbudgets.</td>
+<td>SEC-01 bis SEC-05, DATA-01</td>
+</tr>
+<tr>
+<td>Zuverlässigkeit &amp; Offline</td>
+<td>Automatischer Reconnect vorhanden, Session-ready-/Outbox-Vertrag unvollständig. Deploy-Caching konkret fehlerhaft.</td>
+<td>REL-01 bis REL-04, UX-04</td>
+</tr>
+<tr>
+<td>Daten &amp; Recovery</td>
+<td>Kein DB-Zwang; idle-only Persistenz passt zum erklärten Produkt. Snapshot-Atomarität und Aufnahme-/Shutdown-Grenzen fehlen.</td>
+<td>OPS-02/03, CODE-02</td>
+</tr>
+<tr>
+<td>Performance &amp; Skalierung</td>
+<td>Normalfall schnell. Kapazität am Proxy, langsame Empfänger und Snapshot-Fan-out sind relevanter als Scoring oder Binärprotokoll.</td>
+<td>OPS-01, REL-02, PERF-01 bis 04</td>
+</tr>
+<tr>
+<td>UI/UX &amp; Accessibility</td>
+<td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
+<td>A11Y-01 bis 03, UX-01 bis 06</td>
+</tr>
+<tr>
+<td>Frontend-/Browserkompatibilität</td>
+<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Storage-Fehler, Tastatur und mobile Tastatur brauchen bessere Verträge.</td>
+<td>CODE-02, UX-01, A11Y-03</td>
+</tr>
+<tr>
+<td>Tests &amp; Wartung</td>
+<td>Echte Backend-Integrationstests und reproduzierbare Buildgates. Browser-/Netz-/Cache-Grenzen noch nicht automatisiert.</td>
+<td>TEST-01/02, CI-01</td>
+</tr>
+<tr>
+<td>Deployment &amp; Reproduzierbarkeit</td>
+<td>Gepinnte Locks/Hashes, Nix und systemd nützlich. Geprüfte SHA, Readiness und Client-Buildwechsel müssen zusammenpassen.</td>
+<td>CI-02, REL-01, OPS-03</td>
+</tr>
+<tr>
+<td>Observability &amp; Betrieb</td>
+<td>Ressourcen gesund, automatisierte Zertifikate und Fehlernotifikation. Uptime-/WSS-Synthetics und App-Metriken nicht belegt.</td>
+<td>OPS-04, OBS-01</td>
+</tr>
+<tr>
+<td>SEO, Auffindbarkeit &amp; Metadaten</td>
+<td>Titel, Beschreibung, robots.txt, llms.txt und Favicon vorhanden. Für ein Spiel ohne redaktionelle Inhalte kein SSR-/Sitemap-Umbau begründet.</td>
+<td>Kein eigener priorisierter Befund</td>
+</tr>
+<tr>
+<td>Datenschutz &amp; Lizenz</td>
+<td>Keine Analytics-/Tracking-Integration im gelesenen App-Code, Antwortinhalte während Playing nicht öffentlich. GPL-Datei und Paketlizenz vorhanden; Aufbewahrung nicht explizit.</td>
+<td>OBS-01; keine Rechtsprüfung</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="findings">
+<h2>Findings mit Maßnahmen und Abnahme</h2>
+<p>Nach Priorität geordnet. Zusammengehörige Ursachen sind gruppiert; unterschiedliche Scanner-Treffer werden nicht als 29 separate App-Schwachstellen gezählt. Für konkrete Stellen siehe zusätzlich die Quellkarte unterhalb der Findings.</p>
+<form class="filters" onsubmit="return false" aria-label="Findings filtern">
+<label>Suche<input id="search" type="search" placeholder="z. B. Reconnect, nginx, Solo">
+</label>
+<label>Priorität<select id="priority">
+<option value="">Alle</option>
+<option>P1</option>
+<option>P2</option>
+<option>P3</option>
+</select>
+</label>
+<label>Bereich<select id="area">
+<option value="">Alle</option>
+<option>Betrieb</option>
+<option>Datenintegrität</option>
+<option>Datenschutz</option>
+<option>Dokumentation</option>
+<option>Einfachheit</option>
+<option>Entwicklung</option>
+<option>Performance</option>
+<option>Protokoll</option>
+<option>Session</option>
+<option>Sicherheit</option>
+<option>Spielregeln</option>
+<option>UI/UX</option>
+<option>Zuverlässigkeit</option>
+</select>
+</label>
+<label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
+</label>
+</form>
+<p id="filter-count" class="meta" role="status">42 Findings sichtbar.</p>
+<article class="finding" id="SEC-01" data-priority="P1" data-area="Sicherheit">
+<h3>
+<span class="tag P1">P1</span> <span class="id">SEC-01</span> Der ausgelieferte Go-Build enthält bekannte Sicherheitslücken</h3>
+<p class="meta">Sicherheit · Live + Scan · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Das lokale result ist derselbe Nix-Paketpfad wie ExecStart auf dem Server. go version -m identifiziert Go 1.26.4 und coder/websocket 1.8.15. govulncheck meldet im ausgelieferten Binary 13 Symboltreffer aus der Standardbibliothek, im gesamten Backend einschließlich Lasttest 17. Besonders relevant: GO-2026-6609 betrifft http.ServeFile, das spaHandler tatsächlich verwendet. Der SLF-Flake pinnt nixpkgs auf eine Revision vom Juni 2026, obwohl das Server-OS vom Oktober ist.</p>
+<p>
+<b>Auswirkung.</b> Das aktuelle Server-OS repariert keine in ein Go-Binary einkompilierten Bibliotheken. Ein über nginx weitergeleiteter Range-Request erreicht ServeFile. Die HTTP/2- und TLS-Treffer sind dagegen kein Beweis einer extern ausnutzbaren Go-TLS/HTTP2-Lücke: TLS/H2 terminieren hier in nginx, der Upstream ist HTTP/1.1.</p>
+<p>
+<b>Empfohlene Änderung.</b> SLF-eigenen Flake-Lock und Toolchain auf einen aktuell gepatchten Stand aktualisieren, neu bauen und deployen. Der Scan nennt Go 1.26.10 als erforderliche Patchversion für den höchsten gefundenen Fixstand; vor dem Update aktuelle Version prüfen. Danach Binary erneut scannen. Quellen: <a href="https://pkg.go.dev/vuln/GO-2026-6609">Go Range-Advisory</a>, <a href="https://go.dev/doc/devel/release">Go Release History</a>.</p>
+<p class="accept">
+<b>Abnahme.</b> Neues tatsächlich laufendes Binary identifizieren; kein ungeklärter erreichbarer govulncheck-Treffer. Nicht nur go.mod ändern.</p>
+</article>
+<article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
+<h3>
+<span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
+<p class="meta">Betrieb · Live-Konfiguration · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Die aktive nginx.conf enthält events {} und keine worker_processes-Direktive. ps zeigt genau einen Worker. Damit gelten die dokumentierten Defaults: 1 Worker und 512 worker_connections. Ein proxied WebSocket belegt eine Client- und eine Upstream-Verbindung; auch Mineclash und normale HTTP-Verbindungen nutzen denselben Worker.</p>
+<p>
+<b>Auswirkung.</b> 500 gleichzeitige Spieler benötigen bereits etwa 1.000 Verbindungsslots. Die theoretische Obergrenze liegt hier unter 256 proxied WebSockets, mit anderen Verbindungen darunter. Das ist eine Konfigurationsableitung, kein absichtlich ausgelöster Produktionsausfall. Ein hohes LimitNOFILE von 524288 hebt worker_connections nicht an.</p>
+<p>
+<b>Empfohlene Änderung.</b> In server-config nginx worker_processes="auto" und ausreichend worker_connections, beispielsweise 4096, explizit setzen. Danach in einer isolierten Umgebung und anschließend kontrolliert über den vollständigen nginx-Pfad prüfen. <a href="https://nginx.org/en/docs/ngx_core_module.html#worker_connections">nginx-Dokumentation</a>.</p>
+<p class="accept">
+<b>Abnahme.</b> Mindestens 500 WSS-Spieler über den Proxy, gleichzeitig normale HTTP-Anfragen, keine Fehler wegen connection slots; aktive Konfiguration und Workerzahl kontrollieren.</p>
+</article>
+<article class="finding" id="REL-01" data-priority="P1" data-area="Zuverlässigkeit">
+<h3>
+<span class="tag P1">P1</span> <span class="id">REL-01</span> Deploy-Caching kann alte Builds dauerhaft festhalten</h3>
+<p class="meta">Zuverlässigkeit · Live + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Live: / liefert Last-Modified: Thu, 01 Jan 1970 00:00:01 GMT ohne ETag. Eine Anfrage mit diesem If-Modified-Since erhält 304. /assets/audit-nonexistent.js liefert 200 text/html statt 404. Ursache: http.ServeFile übernimmt die feste Nix-Store-mtime; der SPA-Fallback gilt auch unter /assets/. reloadIfUpdated lädt anschließend per location.reload().</p>
+<p>
+<b>Auswirkung.</b> Ein Browser kann nach einem Deploy sein altes index.html weiterverwenden. Noch nicht geladene alte Chunks fehlen dann; statt JavaScript folgt HTML mit MIME-Fehler. Erneutes gewöhnliches Reload muss das Problem nicht beheben.</p>
+<p>
+<b>Empfohlene Änderung.</b> Inhaltsbasierten ETag beim Start berechnen, index.html korrekt revalidieren und unverlässliches Last-Modified vermeiden. /assets/ muss für fehlende Dateien 404 liefern. Für Deploy-Übergänge entweder alte Assets kurz aufbewahren oder einen gezielten, einmaligen Reload bei Chunkfehler anbieten.</p>
+<p class="accept">
+<b>Abnahme.</b> Zwei verschiedene Nix-Builds mit gleicher mtime nacheinander ausliefern: vorhandener Browser wechselt ohne Cache-Löschen auf den neuen Build; fehlender Chunk hat 404 und niemals HTML.</p>
+</article>
+<article class="finding" id="REL-02" data-priority="P1" data-area="Zuverlässigkeit">
+<h3>
+<span class="tag P1">P1</span> <span class="id">REL-02</span> Ein langsamer Client kann Mitspieler und andere Lobbys blockieren</h3>
+<p class="meta">Zuverlässigkeit · Code + historische Messung · Offen</p>
+<p>
+<b>Befund und Beleg.</b> sendCurrentGameStateTo hält hub.mu während c.sendV und damit während Socket-I/O. writeAll schreibt außerdem sequenziell an alle Empfänger, jeweils mit 15 Sekunden Timeout. Auch closeLobby und Shutdown schließen beziehungsweise schreiben sequenziell. Diese Pfade sind im aktuellen Code unverändert. Die 14,99-Sekunden-Messung in TODO ist ein historischer Test; sie wurde in diesem Audit nicht neu erzeugt.</p>
+<p>
+<b>Auswirkung.</b> Ein gestauter Reconnect oder Mid-Game-Join hält den globalen Hub-Lock; normale Aktionen anderer Lobbys warten. Ohne gehaltenen Hub-Lock blockiert ein langsamer Empfänger weiterhin spätere Empfänger desselben Broadcasts. Ein schneller Durchschnittstest erkennt das nicht.</p>
+<p>
+<b>Empfohlene Änderung.</b> Je Client genau eine Writer-Goroutine mit begrenzter Outbound-Queue. Unter dem Hub-Lock nur konsistente Payloads erstellen; Writes und Close außerhalb. Bei voller Queue Verbindung kontrolliert trennen. Nur austauschbare Snapshots zusammenfassen; Steuerereignisse geordnet erhalten. Globale Mutex-Struktur zunächst beibehalten.</p>
+<p class="accept">
+<b>Abnahme.</b> Gezielt nicht lesender Client bei MTU 1500: gesunde Spieler derselben und einer anderen Lobby bleiben reaktionsfähig; Queues, Goroutinen und Shutdown-Dauer bleiben begrenzt.</p>
+</article>
+<article class="finding" id="DATA-01" data-priority="P1" data-area="Datenintegrität">
+<h3>
+<span class="tag P1">P1</span> <span class="id">DATA-01</span> Antwortlänge begrenzt den gespeicherten Rohwert nicht</h3>
+<p class="meta">Datenintegrität · Lokal reproduziert · Offen</p>
+<p>
+<b>Befund und Beleg.</b> storeAnswer prüft die Länge von game.Normalize(value), speichert aber &game.Answer{Value: value}. Lokal reproduziert: 60.000 führende Leerzeichen plus fünf Buchstaben werden angenommen und erscheinen mit storedLength=60005 im reviewState. Der 64-KiB-Read-Limit verhindert diese Nachricht nicht.</p>
+<p>
+<b>Auswirkung.</b> Die behauptete Grenze von 30 Zeichen schützt weder Speicher noch spätere Broadcasts. Viele solche Antworten können den 256-MiB-Service hart stoppen; die Kompression macht Leerzeichen auf dem Transport zusätzlich billig. Auch ohne Speichererschöpfung vervielfachen sich Review-Payloads. Ein tatsächlicher OOM wurde bewusst nicht ausgelöst.</p>
+<p>
+<b>Empfohlene Änderung.</b> Vor Speicherung Rohbytes und Runen begrenzen; mindestens trimmen und nur den begrenzten Wert aufbewahren. Pro Lobby ein realistisches Bytebudget ergänzen. Ablehnung für den Sender erkennbar machen, damit die UI keine erfolgreiche Speicherung suggeriert.</p>
+<p class="accept">
+<b>Abnahme.</b> 60-KB-Whitespace-Wert wird abgelehnt oder auf einen kurzen gespeicherten Wert reduziert. Mehrbyte-Zeichen, führende/folgende Leerzeichen und wiederholtes inputSync prüfen.</p>
+</article>
+<article class="finding" id="DATA-02" data-priority="P1" data-area="Datenintegrität">
+<h3>
+<span class="tag P1">P1</span> <span class="id">DATA-02</span> Letzte Eingaben gehen beim fremden STOPP oder Timeout verloren</h3>
+<p class="meta">Datenintegrität · Lokal + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> GameScreen bündelt answerUpdate bis zu 250 ms. Beim Unmount wird zwar geflusht, handleAnswerUpdate und handleInputSync akzeptieren aber ausschließlich StatePlaying. Lokal bestätigt: ein nach endRound eintreffender neuer Wert wird verworfen; die Bewertung enthält den alten Wert.</p>
+<p>
+<b>Auswirkung.</b> Ein Spieler sieht seine fertige Antwort, erhält dafür aber weniger oder keine Punkte. Das betrifft normale Netzlatenz und schnelles Tippen, nicht nur Angreifer. Der eigene Buzz flusht vorher; STOPP eines anderen Spielers und Timeout bleiben betroffen.</p>
+<p>
+<b>Empfohlene Änderung.</b> Den Rundenschluss als expliziten Protokollschritt gestalten: Rundennummer, bestätigter Eingabestand, klar definierter Cutoff. Bei angekündigtem Ende sofort flushen. Ein kurzes Grace-Fenster ist möglich, muss aber für alle gleich gelten und Review/Scoring erst danach einfrieren; sonst schafft die Reparatur eine nachträgliche Bearbeitungsmöglichkeit.</p>
+<p class="accept">
+<b>Abnahme.</b> Zwei Spieler, fremder Buzz/Timeout zwischen letzter Taste und Debounce: der vereinbarte letzte Stand bleibt erhalten; nach dem festgelegten Cutoff sind Änderungen ausgeschlossen.</p>
+</article>
+<article class="finding" id="REL-03" data-priority="P1" data-area="Zuverlässigkeit">
+<h3>
+<span class="tag P1">P1</span> <span class="id">REL-03</span> Reconnect spielt ausstehende Aktionen vor der Session-Bindung ab</h3>
+<p class="meta">Zuverlässigkeit · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> WSClient.onopen ruft flush() vor resolve() auf. Erst der anschließende connect().then(...) sendet reconnect. Der Server bindet eine Verbindung über c.sessionID; sessionId im Umschlag autorisiert normale Aktionen nicht. Bei Halb-Offen-Verbindungen fehlt außerdem ein Client-Heartbeat. GameScreen lädt/synchronisiert Drafts nur einmal pro roundId.</p>
+<p>
+<b>Auswirkung.</b> Während einer Unterbrechung gepufferte Antworten oder Hostaktionen werden auf der neuen, noch ungebundenen Verbindung abgewiesen oder still verworfen. Nach Wiederverbindung derselben Runde erfolgt kein vollständiger inputSync. Der Server-Heartbeat kann einen defekten Pfad erst nach ungefähr 25–50 Sekunden entdecken.</p>
+<p>
+<b>Empfohlene Änderung.</b> Transport-open und Session-ready als getrennte Zustände führen. Zuerst reconnect, sessionCreated abwarten, dann einen vollständigen Rundensnapshot der lokalen Eingaben synchronisieren und zulässige Aktionen freigeben. Outbox begrenzen und veraltete/phasenfremde Aktionen verwerfen. Heartbeat/Timeout für echte Verbindungsbereitschaft ergänzen.</p>
+<p class="accept">
+<b>Abnahme.</b> Offline tippen, Verbindung erneuern, gleiche Runde fortsetzen: Server und Draft stimmen überein. Keine INVALID_SESSION-Aktionen vor Session-ready; kein später abgespielter Buzz aus einer alten Phase.</p>
+</article>
+<article class="finding" id="SEC-02" data-priority="P2" data-area="Sicherheit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">SEC-02</span> Missbrauchsgrenzen sind pro Verbindung und nicht auf das Speicherbudget abgestimmt</h3>
+<p class="meta">Sicherheit · Code + Konfiguration · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Tokenbucket und Join/Create-Backoff werden mit jedem neuen Client zurückgesetzt. Es gibt keinen globalen Pending-/Connection-Cap und kein Authentifizierungszeitlimit für eine offene WS-Verbindung. 10.000 Lobbys × 200 Spieler × 100 Kategorien stehen einem MemoryMax von 256 MiB gegenüber. Die aktive nginx-Konfiguration enthält keine limit_conn-/limit_req-Regeln.</p>
+<p>
+<b>Auswirkung.</b> Viele frische Verbindungen umgehen den Backoff; schon lange vor den fachlichen Obergrenzen drohen Ressourcenengpässe. Origin-Prüfung schützt diesen Pfad nicht vor nativen Clients. Einen Volumenangriff oder die tatsächliche Speicherkante habe ich nicht gegen Produktion getestet.</p>
+<p>
+<b>Empfohlene Änderung.</b> Gleichzeitige Verbindungen, ungebundene Sockets, Lobby-Erstellung und gespeicherte Bytes begrenzen. Zeitlimit bis create/join/reconnect; pro-IP-Limits behutsam dimensionieren, da viele echte Partyspieler dieselbe NAT-IP teilen. Nur vertrauenswürdige Proxyheader zur IP-Ermittlung nutzen.</p>
+<p class="accept">
+<b>Abnahme.</b> Lokaler Reconnect-/Create-Sturm kann Budgets nicht überschreiten; normale Gruppe hinter einer IP bleibt spielbar.</p>
+</article>
+<article class="finding" id="SEC-03" data-priority="P2" data-area="Sicherheit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">SEC-03</span> Der Frontend-Lock enthält 12 Advisory-Treffer in fünf Paketen</h3>
+<p class="meta">Sicherheit · Dependency-Scan · Offen</p>
+<p>
+<b>Befund und Beleg.</b> bun audit --json meldet 1 critical, 6 high, 4 moderate und 1 low: nanoid 3.3.15, postcss 8.5.16, seroval 1.5.4, source-map-js 1.2.1 und vite 8.1.0. seroval kommt transitiv über @tanstack/router-core. Dessen betroffene Deserialisierung ist vor allem im SSR-Kontext relevant; dieses Projekt betreibt eine statische SPA und einen Go-Server.</p>
+<p>
+<b>Auswirkung.</b> Ein critical-Pakettreffer ist hier kein nachgewiesenes Produktions-RCE. Vite/PostCSS/Source-Map betreffen vor allem Entwicklung und Buildverarbeitung. Trotzdem bleiben vermeidbare bekannte Schwachstellen in der Lieferkette und in eventuell exponierten Entwicklungsservern.</p>
+<p>
+<b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
+<p class="accept">
+<b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
+</article>
+<article class="finding" id="STATE-01" data-priority="P2" data-area="Protokoll">
+<h3>
+<span class="tag P2">P2</span> <span class="id">STATE-01</span> stateVersion wird übertragen, aber nicht zur Konsistenz verwendet</h3>
+<p class="meta">Protokoll · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> prepareBroadcast erhöht die Lobby-Version unter Lock und schreibt erst danach. Verschiedene Goroutinen können Nachrichten in anderer Reihenfolge zum Socket bringen. serverEvents.ts toleriert stateVersion, entfernt es aber bei der Zod-Validierung; WSClient dispatcht ausschließlich payload. Der Client kann weder einen Rücksprung noch eine Lücke erkennen.</p>
+<p>
+<b>Auswirkung.</b> Ein später eintreffender alter Snapshot kann neueren Zustand überschreiben. Conn.Write ist intern threadsicher, garantiert aber keine Reihenfolge nach dem vorherigen Hub-Lock. Go -race erkennt diesen logischen Fehler nicht.</p>
+<p>
+<b>Empfohlene Änderung.</b> Reihenfolge schon beim Enqueue unter dem Hub-Lock festlegen und Versionen bis in die Stores tragen. Dabei zusammengehörige lobbyState/gameState/reviewState-Typen berücksichtigen: ein pauschales globales Verwerfen aller kleineren Versionen kann notwendige Teilzustände ebenfalls verlieren. Bei Inkonsistenz kompletten Snapshot anfordern.</p>
+<p class="accept">
+<b>Abnahme.</b> Künstlich vertauschte Broadcasts erzeugen keinen Phasenrücksprung und keine veraltete Bewertung; Reconnect setzt Versionsbasis sauber zurück.</p>
+</article>
+<article class="finding" id="STATE-02" data-priority="P2" data-area="Protokoll">
+<h3>
+<span class="tag P2">P2</span> <span class="id">STATE-02</span> answerUpdate ist nicht an eine Runde gebunden</h3>
+<p class="meta">Protokoll · Lokal reproduziert · Offen</p>
+<p>
+<b>Befund und Beleg.</b> inputSync enthält roundId und prüft ihn. answerUpdate, buzz und setFlame haben diese Bindung nicht. Lokal reproduziert: ein aus Runde 1 stammender answerUpdate wird während Runde 2 gespeichert; die Bewertung zeigt den alten Wert Zold-round beim neuen Buchstaben V.</p>
+<p>
+<b>Auswirkung.</b> Verzögerte Nachrichten und Reconnect-Outboxes können die neue Runde verschmutzen. Ein bloßer StatePlaying-Check reicht nicht, wenn beide betroffenen Phasen denselben Namen haben.</p>
+<p>
+<b>Empfohlene Änderung.</b> roundId für alle rundenbezogenen Commands verlangen und serverseitig abgleichen. Clients versehen bereits beim Erzeugen einer Aktion die Nachricht damit; beim Reconnect keine nachträgliche Umdeutung auf die aktuelle Runde.</p>
+<p class="accept">
+<b>Abnahme.</b> Alte Antworten, Flames und Buzzes aus vorheriger Runde bleiben wirkungslos; passendes inputSync ersetzt den aktuellen Eingabestand verlässlich.</p>
+</article>
+<article class="finding" id="STATE-03" data-priority="P2" data-area="Spielregeln">
+<h3>
+<span class="tag P2">P2</span> <span class="id">STATE-03</span> Der versteckte Countdown-Buchstabe ist im Protokoll sichtbar</h3>
+<p class="meta">Spielregeln · Lokal reproduziert · Offen</p>
+<p>
+<b>Befund und Beleg.</b> beginCountdown hängt den gezogenen Buchstaben sofort an UsedLetters und entfernt ihn aus RemainingLetters. buildGameState überträgt beide Listen auch bei ShowLetterDuringCountdown=false. Lokal: letter="", aber usedLetters.at(-1)="Z".</p>
+<p>
+<b>Auswirkung.</b> Ein eigener Client kann den Buchstaben mehrere Sekunden vor den anderen sehen. Die UI hält die Information verborgen, die Server-Nachricht nicht.</p>
+<p>
+<b>Empfohlene Änderung.</b> Im versteckten Countdown nur den vorherigen öffentlichen Buchstabenstand senden. Gezogenen Buchstaben und veränderte Restmenge erst mit Playing offenlegen.</p>
+<p class="accept">
+<b>Abnahme.</b> Countdown-Payload enthält bei deaktivierter Anzeige weder den Buchstaben noch eine eindeutige Ableitung aus den Listen.</p>
+</article>
+<article class="finding" id="STATE-04" data-priority="P2" data-area="Session">
+<h3>
+<span class="tag P2">P2</span> <span class="id">STATE-04</span> Mehrfaches Binden eines Sockets hinterlässt inkonsistente Lobby-Identitäten</h3>
+<p class="meta">Session · Lokal + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> createLobby/joinLobby sind auch auf bereits gebundenen Clients erlaubt. registerSession entfernt die alte Clientbindung, markiert den alten Host aber nur offline und startet keine Host-Grace. Lokal bleiben nach drei createLobby-Aufrufen auf einem Socket alle drei Lobbys zunächst beitretbar. handleReconnect benutzt registerSession nicht und räumt eine vorherige Bindung/pending nicht vollständig auf.</p>
+<p>
+<b>Auswirkung.</b> Andere Spieler können in einer Lobby ohne aktiven Host hängen bleiben; Wiederbindung und spätere Disconnects passen nicht mehr zwingend zu den tatsächlichen Mitgliedschaften. Die Janitor-TTL löst eine verwaiste Lobby mit weiterhin verbundenen Gästen nicht.</p>
+<p>
+<b>Empfohlene Änderung.</b> Eine klare Invariante durchsetzen: pro Socket genau eine Session. Erneutes create/join entweder verweigern oder als vollständigen Leave mit Host-Grace ausführen. Reconnect durch dieselbe zentrale Bindungsfunktion führen, alte Einträge und pending bereinigen.</p>
+<p class="accept">
+<b>Abnahme.</b> Create→Create, Join→Join und Reconnect→Reconnect auf demselben Socket lassen keine Phantom-Hosts oder mehrfachen Clientmap-Einträge zurück.</p>
+</article>
+<article class="finding" id="STATE-05" data-priority="P2" data-area="Session">
+<h3>
+<span class="tag P2">P2</span> <span class="id">STATE-05</span> Ausgetretene Spieler verbrauchen bis zum nächsten Spiel weiterhin Plätze</h3>
+<p class="meta">Session · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Join und checkLobby prüfen len(lobby.Players) gegen 200. Während eines laufenden Spiels werden ausgetretene oder gekickte Spieler als Left für die Rangliste behalten; resetForNewGame entfernt sie erst später.</p>
+<p>
+<b>Auswirkung.</b> Wiederholtes Austreten und Beitreten kann eine eigentlich kleine laufende Lobby als voll erscheinen lassen. Die sichtbare aktive Spielerzahl stimmt dann nicht mit der Join-Entscheidung überein.</p>
+<p>
+<b>Empfohlene Änderung.</b> Aktive Mitgliedschaften und historische Ranglisteneinträge getrennt zählen oder die Platzprüfung auf aktive Spieler beziehen, mit eigenem begrenzten Historienbudget.</p>
+<p class="accept">
+<b>Abnahme.</b> Nach vielen Join/Leave-Zyklen können echte neue Mitspieler weiterhin beitreten; alte Punkte bleiben korrekt und der Speicher bleibt begrenzt.</p>
+</article>
+<article class="finding" id="REL-04" data-priority="P2" data-area="Session">
+<h3>
+<span class="tag P2">P2</span> <span class="id">REL-04</span> Zwei Tabs können dieselbe Session ständig gegenseitig verdrängen</h3>
+<p class="meta">Session · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> localStorage teilt absichtlich die Identität. handleReconnect ersetzt und schließt die alte Verbindung. WSClient.onclose startet unabhängig vom Close-Grund immer einen Reconnect. Ein zweiter Tab kann dadurch den ersten verdrängen, dessen Retry wiederum den zweiten verdrängt.</p>
+<p>
+<b>Auswirkung.</b> Die dokumentierte gemeinsame Identität ist sinnvoll, aber ohne Tab-Koordination kann daraus eine laufende Verbindungs- und Toastschleife werden. Es handelt sich um eine Codeableitung; kein anhaltender Zwei-Tab-Stresstest wurde gegen Produktion gefahren.</p>
+<p>
+<b>Empfohlene Änderung.</b> Close-Grund „replaced by reconnect“ explizit behandeln und alten Tab pausieren oder über BroadcastChannel/Web Locks einen aktiven Tab bestimmen. Der inaktive Tab erklärt, wo das Spiel fortgesetzt wird, und bietet bewusstes Übernehmen.</p>
+<p class="accept">
+<b>Abnahme.</b> Zwei Tabs derselben Session bleiben mindestens eine Minute stabil ohne gegenseitige Reconnects; bewusstes Übernehmen funktioniert.</p>
+</article>
+<article class="finding" id="OPS-02" data-priority="P2" data-area="Betrieb">
+<h3>
+<span class="tag P2">P2</span> <span class="id">OPS-02</span> Snapshot-Speicherung ist weder atomar noch fehlertolerant beim Laden</h3>
+<p class="meta">Betrieb · Lokal + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Save überschreibt lobbies.json direkt mit os.WriteFile. Load entfernt die Datei vor json.Unmarshal und validiert die deserialisierten Lobby-Strukturen kaum. Lokal an einer isolierten Kopie bestätigt: beschädigtes JSON liefert einen Fehler und die ursprüngliche Datei ist bereits gelöscht. Vorhandener Restore-Test deckt den erfolgreichen Lobby-Fall ab.</p>
+<p>
+<b>Auswirkung.</b> Abbruch beim Schreiben kann den einzigen Snapshot beschädigen; ein Parsefehler vernichtet zusätzlich das Diagnose-/Recovery-Artefakt. Leere oder strukturell unerwartete Einträge können weitere Fehler auslösen.</p>
+<p>
+<b>Empfohlene Änderung.</b> In temporäre Datei schreiben, synchronisieren und atomar umbenennen. Erst vollständig parsen und validieren, dann übernehmen und Datei entfernen/archivieren. Schema-Version, Größenlimits und aussagekräftige Fehler ergänzen.</p>
+<p class="accept">
+<b>Abnahme.</b> Beschädigter, abgeschnittener oder unbekannt versionierter Snapshot bleibt zur Diagnose erhalten; vorheriger gültiger Snapshot überlebt einen simulierten Schreibabbruch.</p>
+</article>
+<article class="finding" id="OPS-03" data-priority="P2" data-area="Betrieb">
+<h3>
+<span class="tag P2">P2</span> <span class="id">OPS-03</span> Drain und Shutdown haben keinen durchgängigen Bereitschafts- und Zeitvertrag</h3>
+<p class="meta">Betrieb · Code + Live-Unit · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Drain setzt nur h.draining, /healthz antwortet weiterhin immer ok. Neue Lobbys/Joins bleiben möglich, neue Spiele werden erst beim Start zurückgewiesen. Save läuft vor Hub.Shutdown, während HTTP/WS noch Aktionen annehmen können. Shutdown schließt alle Sockets sequenziell; die spätere HTTP-Shutdown-Frist begrenzt diesen Teil nicht.</p>
+<p>
+<b>Auswirkung.</b> Ein Load-Balancer oder Monitor erkennt Drain und festhängende Spiellogik nicht. Mutationen nach Save können beim Neustart fehlen. Einzelne langsam schließende Sockets verlängern den Stop, bis systemd eventuell nach 90 Sekunden beendet.</p>
+<p>
+<b>Empfohlene Änderung.</b> Shutdown-Flag mit expliziter Annahmepolitik für Mutationen, getrennte readiness/liveness und eine gemeinsame Gesamtdeadline einführen. Vor Save Zustand konsistent einfrieren; Close begrenzt parallelisieren beziehungsweise über den Writer-Lifecycle abwickeln. Drain-Status im Client sichtbar machen.</p>
+<p class="accept">
+<b>Abnahme.</b> Reconnect während Deploy, neue Joins, lange Spiele und nicht antwortende Clients testen; keine still akzeptierten Mutationen nach dem Snapshot und Stop innerhalb der definierten Frist.</p>
+</article>
+<article class="finding" id="OPS-04" data-priority="P2" data-area="Betrieb">
+<h3>
+<span class="tag P2">P2</span> <span class="id">OPS-04</span> Prozessfehler werden gemeldet, Anwendungsstillstand und Kapazität nicht</h3>
+<p class="meta">Betrieb · Code + Konfiguration · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Server: OnFailure-Notifier, logrotate und ACME-Timer sind vorhanden; keine fehlgeschlagenen Units. /healthz prüft keinen Hub-Fortschritt. Es fehlen im Repository/der gelesenen Serverkonfiguration externe HTTP/WSS-Synthetics und Messwerte für aktive Lobbys, Pending-Sockets, Queue-/Write-Latenzen oder abgewiesene Nachrichten. Providerseitiges Monitoring wurde nicht eingesehen.</p>
+<p>
+<b>Auswirkung.</b> Ein laufender, aber blockierter Prozess bleibt grün. OOM-/Reconnect-Spitzen und langsame Auslieferung werden erst durch Nutzer sichtbar. Die guten Momentaufnahmen liefern keine Uptime- oder p99-Aussage über Tage.</p>
+<p>
+<b>Empfohlene Änderung.</b> Kleinen externen Create/Join/Action/Leave-Synthetic und strukturierte Anwendungsmetriken einführen, zunächst ohne große Observability-Plattform. Auf Speicherdruck, Restart-Raten, Socketfehler und fehlende Fortschritte alarmieren; Runbook mit Diagnose und Recovery ergänzen.</p>
+<p class="accept">
+<b>Abnahme.</b> Absichtlich blockierter Hub wird als gestörte readiness erkannt; Alarm bei fehlschlagendem WSS-Ablauf; keine Sessiontokens in Metriklabels.</p>
+</article>
+<article class="finding" id="SEC-04" data-priority="P2" data-area="Sicherheit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">SEC-04</span> systemd-Sandbox kann deutlich enger sein</h3>
+<p class="meta">Sicherheit · Live · Offen</p>
+<p>
+<b>Befund und Beleg.</b> DynamicUser, NoNewPrivileges, ProtectSystem=strict, PrivateTmp und RestrictSUIDSGID greifen bereits. systemd-analyze security bewertet die Unit dennoch mit 8.2 EXPOSED. PrivateDevices, ProtectKernelTunables/Modules/ControlGroups, RestrictNamespaces und ein reduziertes CapabilityBoundingSet fehlen. /proc bestätigt CapEff=0.</p>
+<p>
+<b>Auswirkung.</b> Der Score ist ein Härtungsheuristikwert und kein Nachweis vorhandener Root-Rechte oder eines Exploits. Nach einer künftigen Codeausführung wären jedoch mehr Kernel-/Geräte-/Prozessschnittstellen erreichbar als für ein Go-Spiel nötig.</p>
+<p>
+<b>Empfohlene Änderung.</b> Zusätzliche Schutzoptionen schrittweise setzen; CapabilityBoundingSet leeren, Geräte/Kernel/Namespaces schützen und AddressFamilies auf tatsächlich benötigte Familien beschränken. PrivateNetwork nicht blind aktivieren, da es den Dienst abschneiden würde. <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html">systemd.exec</a>.</p>
+<p class="accept">
+<b>Abnahme.</b> WSS, Restore und Reload funktionieren mit engerer Unit; effektive Rechte und Logs prüfen. Score nur als Begleitindikator verwenden.</p>
+</article>
+<article class="finding" id="SEC-05" data-priority="P2" data-area="Sicherheit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">SEC-05</span> Go lauscht hinter nginx auf allen Interfaces</h3>
+<p class="meta">Sicherheit · Live + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> main.go setzt 0.0.0.0:8080; ss zeigt *:8080, einschließlich IPv6-Dualstack. Die öffentliche NixOS-Firewall blockiert 8080 korrekt. Tailscales ts-input akzeptiert jedoch sämtlichen Verkehr vom tailscale0-Interface vor der NixOS-Portliste; tatsächlich erlaubte Peers hängen zusätzlich von Tailnet-ACLs ab.</p>
+<p>
+<b>Auswirkung.</b> Im Tailnet oder nach einer späteren Firewalländerung ist ein direkter HTTP/WS-Pfad ohne nginx möglich. Das ist keine aktuell nachgewiesene öffentliche Portfreigabe. Die Lauscheinstellung schafft aber unnötige Abhängigkeit von externer Filterung.</p>
+<p>
+<b>Empfohlene Änderung.</b> LISTEN_ADDR konfigurierbar machen und in Produktion 127.0.0.1:8080 verwenden; für LAN-Entwicklung weiterhin explizit alle Interfaces zulassen. Tailnet-ACLs und Deploy-Zugänge gesondert prüfen.</p>
+<p class="accept">
+<b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
+</article>
+<article class="finding" id="PERF-01" data-priority="P2" data-area="Performance">
+<h3>
+<span class="tag P2">P2</span> <span class="id">PERF-01</span> Vollständige Snapshots erzeugen vermeidbaren Fan-out</h3>
+<p class="meta">Performance · Code + Messkontext · Offen</p>
+<p>
+<b>Befund und Beleg.</b> broadcastLobbyState enthält sämtliche Spieler, Kategorien und Einstellungen und läuft nach fast jeder Mutation sowie mehreren Phasenwechseln. notifyCommentator baut und sendet bei jedem answerUpdate die komplette Fortschrittsmatrix an alle Zuschauer. Der Aufbau erfolgt unter dem globalen Hub-Lock.</p>
+<p>
+<b>Auswirkung.</b> Bei n Spielern wachsen Gesamtnachrichten einer Beitrittsserie mindestens quadratisch; wegen wachsender Payloadgröße wachsen die kumulierten Bytes noch stärker. Beim Kommentator steigen Matrixarbeit und Übertragungsmenge mit Spielern, Kategorien, Schreibrate und Zuschauerzahl. Kleine Partys sind aktuell schnell.</p>
+<p>
+<b>Empfohlene Änderung.</b> Zuerst Fortschrittsänderungen pro Lobby zusammenfassen, etwa auf 4 Hz, und redundante Phasen-Broadcasts entfernen. Erst bei belegtem Bedarf Deltas einführen; Einstieg/Reconnect behält vollständige Snapshots. Protokollkomplexität nicht ohne Messgewinn erhöhen.</p>
+<p class="accept">
+<b>Abnahme.</b> 20/40/100 Spieler mit Kommentator und späten Zuschauern vergleichen: Byte-/CPU-Raten und p99 sinken, keine fehlenden Zellen nach Reconnect.</p>
+</article>
+<article class="finding" id="A11Y-01" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">A11Y-01</span> Interaktive Bewertungszeilen enthalten weitere interaktive Elemente</h3>
+<p class="meta">UI/UX · Browser + axe · Offen</p>
+<p>
+<b>Befund und Beleg.</b> ReviewScreen gibt der ganzen Antwortzeile role=switch, tabindex und pressProps. Innerhalb liegen fokussierbare Zusammenführen-/Trennen-Buttons. axe-core meldet auf der aktuellen lokalen Multiplayer-Bewertung nested-interactive mit zwei betroffenen Zeilen. Click stopPropagation repariert weder die Semantik noch den geerbten Keydown-Pfad.</p>
+<p>
+<b>Auswirkung.</b> Screenreader und Tastaturbenutzer können die untergeordneten Aktionen unzuverlässig wahrnehmen/bedienen. Das ist eine Regression aus dem ansonsten sinnvollen Umbau auf ganze klickbare Zeilen.</p>
+<p>
+<b>Empfohlene Änderung.</b> Gültigkeitsschalter und Merge-Aktionen als Geschwister strukturieren. Eindeutiger Name und Zustand für den Schalter; Tastaturereignisse dürfen nur die fokussierte Aktion ausführen. Nicht bloß die axe-Regel unterdrücken.</p>
+<p class="accept">
+<b>Abnahme.</b> Kein nested-interactive-Treffer; Tab, Enter und Space schalten genau die gewählte Aktion. Danach mit echtem Screenreader prüfen.</p>
+</article>
+<article class="finding" id="A11Y-02" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">A11Y-02</span> Der Hinzufügen-Button in der Lobby hat keinen zugänglichen Namen</h3>
+<p class="meta">UI/UX · Browser + axe · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Der submit-Button für neue Kategorien enthält nur ein Plus-SVG und weder Text noch aria-label/title. axe-core bestätigt button-name auf button[type=submit]. Biome erkennt diesen komponentenübergreifenden Fehler nicht. Home und die untersuchte Spielrunde hatten in der eingeschränkten axe-Regelauswahl keine Treffer.</p>
+<p>
+<b>Auswirkung.</b> Die Aktion ist für assistive Technik nicht verständlich. axe stuft den einzelnen Regelverstoß critical ein; im Gesamtsystem ist das ein P2-Bedienbarkeitsproblem, kein kritischer Security-Befund.</p>
+<p>
+<b>Empfohlene Änderung.</b> aria-label="Kategorie hinzufügen" oder sichtbaren Text ergänzen. Gleichartige Iconaktionen gezielt prüfen und durch kleine semantische Komponententests absichern.</p>
+<p class="accept">
+<b>Abnahme.</b> Der Button ist unter dem erwarteten Namen per role auffindbar; axe button-name bleibt in der Lobby ohne Treffer.</p>
+</article>
+<article class="finding" id="UX-01" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">UX-01</span> Globale Tastenkürzel können fokussierte Buttons übersteuern</h3>
+<p class="meta">UI/UX · Browser lokal + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> RoundResultScreen und SoloReviewScreen reagieren global auf Enter und ignorieren Textfelder und bereits offene Modals, aber nicht fokussierte Buttons/Links. Lokal im Browser reproduziert: „Spiel beenden“ im Rundenergebnis fokussiert, Enter gedrückt; danach lief die nächste Runde mit neuem Buchstaben. ReviewScreen prüft zusätzlich defaultPrevented; seine untergeordneten Merge-Buttons liegen wiederum in pressProps-Zeilen.</p>
+<p>
+<b>Auswirkung.</b> Enter auf „Spiel beenden“ oder einem Merge-Button kann neben der erwarteten Aktion einen Phasenwechsel oder eine Zeilenaktion auslösen. Ein Modal-Guard allein greift zu spät, wenn das Modal erst als Folge derselben Taste öffnet.</p>
+<p>
+<b>Empfohlene Änderung.</b> Globale Shortcuts nur auf geeigneten nicht interaktiven Zielen ausführen, defaultPrevented beachten und fokussierte native Aktionen gewinnen lassen. In Review getrennte Tastaturpfade für Zeilen und Mergeaktionen.</p>
+<p class="accept">
+<b>Abnahme.</b> Tastaturtest auf jedem fokussierbaren Button: genau eine Aktion, kein ungewollter Start/Review-Abschluss. Den lokal bestätigten Rundenergebnisfall als Regression automatisieren; Merge-/Solofälle zusätzlich prüfen.</p>
+</article>
+<article class="finding" id="UX-02" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">UX-02</span> Solo-Runden benötigen zum Beenden unnötig zwei unterschiedliche Wege</h3>
+<p class="meta">UI/UX · Live + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> GameScreen erzwingt auch solo validateAnswers für „STOPP – Fertig!“. Mit leeren Feldern bleibt er deaktiviert; daneben gibt es „Runde beenden“ mit einem Dialog, dessen Text „für alle“ sagt. Live im Soloablauf sichtbar. Der Backend-Solopfad kann leere Runden dagegen bereits bewerten.</p>
+<p>
+<b>Auswirkung.</b> Einzelspieler können nicht über die erwartete Hauptaktion mit unvollständigen Antworten abschließen und müssen einen scheinbar destruktiven Umweg nehmen.</p>
+<p>
+<b>Empfohlene Änderung.</b> Solo: Hauptaktion beendet auch unvollständige Runden, zusätzlicher Host-Abbruch entfällt. Im Multiplayer bleiben Vollständigkeitsregel und Host-Abbruch getrennt. Servervalidierung muss den Solofall explizit unterstützen.</p>
+<p class="accept">
+<b>Abnahme.</b> Solo mit null/einer/drei Antworten sauber abschließen; Multiplayer-Buzz bleibt streng validiert.</p>
+</article>
+<article class="finding" id="UX-03" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">UX-03</span> Phasenwechsel und Regeln werden nicht überall ausreichend erklärt</h3>
+<p class="meta">UI/UX · Live-Teilablauf + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Nur BuzzedBy wird als Grund des Rundenendes übermittelt; Timeout und Host-Abbruch bleiben ununterscheidbar. Eine leere Multiplayer-Runde überspringt Review ohne Erklärung. Späte Joiner sehen „Gleich dabei“, aber nicht ausdrücklich „ab nächster Runde“. LastLetterMode ist im Spiel klein angedeutet und fehlt im Countdown/Review als klare Regelzeile.</p>
+<p>
+<b>Auswirkung.</b> Spieler können einen normalen Zustandswechsel als Fehler oder ungerechte Bewertung verstehen. Gerade seltene Modi werden erst nach einer falschen Eingabe bemerkt.</p>
+<p>
+<b>Empfohlene Änderung.</b> RoundEndReason als Enum führen, leere Runde erklären, Wartezustand benennen und „beginnt mit/endet auf …“ an allen entscheidenden Phasen konsistent zeigen. Hinweise kurz und situationsbezogen halten.</p>
+<p class="accept">
+<b>Abnahme.</b> Buzz, Timeout, Host-Ende, leere Runde und Mid-Game-Join sind ohne Protokollkenntnis verständlich.</p>
+</article>
+<article class="finding" id="UX-04" data-priority="P2" data-area="UI/UX">
+<h3>
+<span class="tag P2">P2</span> <span class="id">UX-04</span> Verbindungsverlust beeinträchtigt weiter bedienbare Aktionen</h3>
+<p class="meta">UI/UX · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> ConnectionBadge meldet Transportstatus, viele Buttons bleiben aber aktiv. WSClient.status startet optimistisch true; ein dauerhaft hängender initialer WebSocket-Handschlag muss nicht schnell einen Fehler liefern. Outbox-Aktionen können bis zum späteren Reconnect gepuffert werden; Home hat dafür einen 15-Sekunden-Formtimeout, laufende Spiele keinen vergleichbaren Aktionsvertrag.</p>
+<p>
+<b>Auswirkung.</b> Die UI kann eine Handlung scheinbar annehmen, die später in einer anderen Phase ausgeführt oder verworfen wird. Insbesondere Hostaktionen wie Start/Ende benötigen klare Rückmeldung über Serverbestätigung.</p>
+<p>
+<b>Empfohlene Änderung.</b> An Session-ready aus REL-03 koppeln: ungeeignete Aktionen bei Offline sperren, Draft-Tippen erlauben und sichtbar als lokal markieren. Handshake-/Aktionsfristen und bestätigte Zustände statt endloser optimistischer Anzeigen.</p>
+<p class="accept">
+<b>Abnahme.</b> Unterbrochenes WLAN während Spielen und Hostaktionen führt zu verständlicher Anzeige, keiner Aktionswiederholung und keiner verlorenen Bestätigung.</p>
+</article>
+<article class="finding" id="CI-01" data-priority="P2" data-area="Entwicklung">
+<h3>
+<span class="tag P2">P2</span> <span class="id">CI-01</span> Checks laufen erst nach Push auf master</h3>
+<p class="meta">Entwicklung · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> deploy.yml hat ausschließlich on.push.branches=[master]. Kein pull_request-Job, keine Audit-/Dependency-Update-Konfiguration. Nix führt Lint, Tests, Typprüfung und Build aus; -race ist dort kein fester Gate. Repository-/Org-Branch-Protection wurde nicht eingesehen.</p>
+<p>
+<b>Auswirkung.</b> Ein Fehler kann in master gelangen, bevor dieser Workflow ihn erkennt. Sicherheitslücken in gepinnten Inputs bleiben auch bei täglich grünem Build bestehen.</p>
+<p>
+<b>Empfohlene Änderung.</b> Prüfjob auch für Pull Requests, Deploy nur nach erfolgreichem master-Build. Minimal permissions, timeout-minutes und concurrency definieren; regelmäßige Lock-/Vulnerability-Prüfung ergänzen. Race-Tests gezielt in CI statt bei jedem lokalen Berichtlauf.</p>
+<p class="accept">
+<b>Abnahme.</b> Absichtlich fehlerhafter PR erhält vor Merge einen roten Check; Änderungen an Dependencies werden regelmäßig geprüft; Deploy kann nicht aus PR-Kontext triggern.</p>
+</article>
+<article class="finding" id="CI-02" data-priority="P2" data-area="Betrieb">
+<h3>
+<span class="tag P2">P2</span> <span class="id">CI-02</span> Deploy ist nicht an den exakt geprüften SLF-Commit gebunden</h3>
+<p class="meta">Betrieb · Workflow + angrenzende Konfiguration · Offen</p>
+<p>
+<b>Befund und Beleg.</b> GitHub baut den Push-Commit und triggert GitLab nur mit token und ref=main. Der gelesene waentw-Deploy aktualisiert anschließend den slf-Flake-Input auf dessen dann aktuellen Git-Stand. Die Pipeline hat resource_group=server, aber transportiert keine geprüfte SLF-SHA oder den gebauten Store-Pfad. Lokale Serverkonfiguration kann ihrerseits vom aktuell deployten Repo-Stand abweichen.</p>
+<p>
+<b>Auswirkung.</b> Bei dicht aufeinanderfolgenden Pushes kann ein anderer Commit als der ursprüngliche geprüfte ausgerollt werden. Ein Buildfehler im neuen Input verhindert häufig den Deploy, aber die Zuordnung von Testnachweis, Freigabe und tatsächlicher Version bleibt unscharf.</p>
+<p>
+<b>Empfohlene Änderung.</b> SLF-SHA oder Artefaktpfad explizit an den Deploy übergeben und genau diesen Stand pinnen. Buildinfo/Commit im Health-/Versionsendpoint ausgeben. Bestehendes GitLab-resource_group beibehalten; nach Switch echte WSS-Readiness prüfen.</p>
+<p class="accept">
+<b>Abnahme.</b> Zwei konkurrierende Pushes lassen sich eindeutig einem Build und laufenden Commit zuordnen; keine stille Aktualisierung auf einen ungeprüften Zwischenstand.</p>
+</article>
+<article class="finding" id="TEST-01" data-priority="P2" data-area="Entwicklung">
+<h3>
+<span class="tag P2">P2</span> <span class="id">TEST-01</span> Die meisten neuen Risikofälle liegen außerhalb der vorhandenen Tests</h3>
+<p class="meta">Entwicklung · Ausgeführte Tests + Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Backend -race ist grün; Coverage: Game 88,0 %, WebSocket 68,2 %, Server 32,6 %. Es gibt echte WS-Integrationstests und einen erfolgreichen Drain/Restore-Test. Die 41 Frontendtests im sauberen Commit verwenden happy-dom und einen gemockten WS-Client. Neue Nachweise betreffen reales Reconnect-Ordering, Backpressure, Nix-Cachevalidatoren, große Rohwerte und semantische Verschachtelung.</p>
+<p>
+<b>Auswirkung.</b> Grüne Unit-/Race-Tests sind berechtigt, decken aber keine vollständige Browser-/Proxy-/Deploy-Kette ab. Eine hohe Coverage-Prozentzahl allein verhindert die gefundenen Fehler nicht.</p>
+<p>
+<b>Empfohlene Änderung.</b> Gezielte Regressionen für P1-Befunde, eine kleine Browser-Mehrspielerstrecke und einen nginx-basierten Kapazitätstest ergänzen. Kein großer Snapshot-Testteppich: problematische Verträge und Grenzfälle testen. Netzwerkfehler, Wiederbindung und Ablauf nach Restart priorisieren.</p>
+<p class="accept">
+<b>Abnahme.</b> Die konkret reproduzierten Fehler würden jeweils einen vorhandenen Gate rot machen; Tests bleiben isoliert und begrenzt.</p>
+</article>
+<article class="finding" id="CODE-01" data-priority="P2" data-area="Einfachheit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">CODE-01</span> Frontend-Zustand ist auf mehrere nicht atomar aktualisierte Kanäle verteilt</h3>
+<p class="meta">Einfachheit · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Lobbyphase liegt im Lobby-Store, Rundendaten/Review/Ergebnis im Game-Store. Nachrichten kommen separat und haben im Client keine verwendete Version. Room rendert bereits nach lobby.state, bevor der passende neue Payload sicher angekommen ist. Home führt zusätzlich eine eigene Step-History neben TanStack Router; Ereignistypen sind in Go, TypeScript und Zod manuell gespiegelt.</p>
+<p>
+<b>Auswirkung.</b> Mehrere Quellen für zusammengehörigen Zustand erhöhen die Zahl der Zwischenzustände und erschweren Änderungen am Protokoll. Ein weiterer State-Manager oder neue Abstraktionsschicht würde dieses Problem nicht automatisch lösen.</p>
+<p>
+<b>Empfohlene Änderung.</b> Ein expliziter Session-/Room-Reducer kann verbundene Updates, Round-ID und Version gemeinsam übernehmen. Typen/Schema gezielt aus einer Protokolldefinition ableiten oder über Contracttests koppeln. Navigation und lokale Formschritte klar voneinander abgrenzen.</p>
+<p class="accept">
+<b>Abnahme.</b> Jede sichtbare Phase hat passende Daten derselben Runde/Version; absichtlich alte oder unvollständige Nachrichten zeigen einen definierten Ladezustand statt alten Inhalt.</p>
+</article>
+<article class="finding" id="CODE-02" data-priority="P2" data-area="Zuverlässigkeit">
+<h3>
+<span class="tag P2">P2</span> <span class="id">CODE-02</span> Nicht verfügbare oder beschädigte Browser-Speicherung kann die App abbrechen</h3>
+<p class="meta">Zuverlässigkeit · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> theme.tsx und session.ts verwenden localStorage teilweise ohne try/catch. ThemeProvider liegt außerhalb der ErrorBoundary. GameScreen fängt JSON.parse ab, validiert die Struktur des gelesenen Drafts aber nicht; beispielsweise ist gespeichertes null erfolgreich parsebar und später nicht als Record verwendbar. Flame-Lesezugriffe sind ebenfalls ungeschützt.</p>
+<p>
+<b>Auswirkung.</b> Blockierte Speicherung oder beschädigte Daten können eine leere Seite oder wiederholte Renderfehler verursachen. Die defensive Speicherung bei Tastendrücken schützt den Start-/Leseweg nicht vollständig.</p>
+<p>
+<b>Empfohlene Änderung.</b> Kleine sichere Storage-Adapter mit In-Memory-Fallback; gespeicherte Drafts als Record&lt;string,string&gt; validieren und beschädigte Werte verwerfen. ErrorBoundary so platzieren, dass auch Theme-/Sessioninitialisierung einen nutzbaren Fallback hat.</p>
+<p class="accept">
+<b>Abnahme.</b> Storage-Zugriff wirft SecurityError, Draft enthält null/Array/Zahlen: App startet, erklärt begrenzte Reconnect-Fähigkeit und bleibt bedienbar.</p>
+</article>
+<article class="finding" id="PERF-02" data-priority="P3" data-area="Performance">
+<h3>
+<span class="tag P3">P3</span> <span class="id">PERF-02</span> Initiales JavaScript ist für den kleinen Einstieg relativ groß</h3>
+<p class="meta">Performance · Buildmessung · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Sauberer HEAD-Build: Main 351,87 kB roh / 111,68 kB gzip, Room 60,50 / 17,66 kB. QR-Generator, Scanner und Worker sind bereits getrennte Chunks. Hauptkosten liegen in Framework-/Router-/UI-Hilfsabhängigkeiten; die exakten historischen Prozentwerte in TODO wurden hier nicht neu attribuiert.</p>
+<p>
+<b>Auswirkung.</b> Auf langsamem Mobilnetz entstehen mehr Download-, Parse- und Ausführungsarbeit als die zwei Home-Aktionen benötigen. Aktuell kein belegtes Core-Web-Vitals-Versagen und kein Anlass für einen sofortigen Frameworkwechsel.</p>
+<p>
+<b>Empfohlene Änderung.</b> Bundlebudget und Messung auf einem schwachen Gerät einführen. Den Nutzen des großen Routers bei nur wenigen Routen prüfen. tailwind-merge nur entfernen, wenn Klassenkonflikte nachweislich korrekt bleiben. React→Preact wäre ein gesondertes Experiment mit Base-UI-Regressionsprüfung.</p>
+<p class="accept">
+<b>Abnahme.</b> Main-Transfer und Ausführungszeit verbessern sich messbar; Deep Links, Back-Button, Lazy Loading und alle UI-Primitives bleiben korrekt.</p>
+</article>
+<article class="finding" id="PERF-03" data-priority="P3" data-area="Performance">
+<h3>
+<span class="tag P3">P3</span> <span class="id">PERF-03</span> Timer lassen den gesamten Spielscreeen regelmäßig neu rendern</h3>
+<p class="meta">Performance · Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> GameScreen enthält Countdown, 250-ms-Zeitlimit-Ticker, Sekunden-Stopwatch, Formular und Fortschrittsberechnung gemeinsam. Auch eine unbegrenzte Runde startet die Stopwatch. Jede Taste schreibt außerdem synchron den gesamten Draft als JSON in localStorage.</p>
+<p>
+<b>Auswirkung.</b> Bei vielen Kategorien wird dieselbe Formular-/Validierungsarbeit regelmäßig wiederholt, auch wenn nur die Uhr sich ändert. Die Default-Partie mit drei Kategorien ist klein; ein messbarer Engpass auf echten Mobilgeräten ist noch nicht belegt.</p>
+<p>
+<b>Empfohlene Änderung.</b> Timer in kleine Komponenten verschieben, Formularzustand stabil halten und Drafts sinnvoll bündeln. Persistenz beim Hintergrundwechsel/Verlassen sichern. Erst profilen, dann gezielt memo-isieren; keine flächendeckende Memo-Schicht.</p>
+<p class="accept">
+<b>Abnahme.</b> React-Profiler bei vielen Kategorien auf langsamem Gerät: Ticks rendern nicht alle Eingaben, Eingaben bleiben flüssig und Drafts überleben Reload.</p>
+</article>
+<article class="finding" id="PERF-04" data-priority="P3" data-area="Performance">
+<h3>
+<span class="tag P3">P3</span> <span class="id">PERF-04</span> Kompression und Auslieferung haben weitere, nachrangige Reserven</h3>
+<p class="meta">Performance · Code + Live-Konfiguration · Offen</p>
+<p>
+<b>Befund und Beleg.</b> prepareBroadcast marshallt einmal; coder/websocket komprimiert pro Verbindung. nginx proxyt alle SLF-Assets zu Go, obwohl vorab .br/.gz gebaut werden. tcp_slow_start_after_idle steht live auf 1. HTTP/2 läuft, HTTP/3 ist nicht konfiguriert.</p>
+<p>
+<b>Auswirkung.</b> Bei großen Fan-outs entsteht zusätzliche CPU-Arbeit. Der aktuelle moderate Live-Test ist trotzdem schnell. HTTP/3 oder ein WebSocket-Bibliothekswechsel beheben weder verlorene Eingaben noch den globalen I/O-Lock.</p>
+<p>
+<b>Empfohlene Änderung.</b> Nach P1: Kompressionsschwelle und Payloadgrößen messen; Assets optional direkt über nginx ausliefern und dabei CSP/Cachevalidatoren korrekt erhalten. Prepared Compression oder HTTP/3 nur mit nachgewiesenem Gewinn. TCP-Tuning als kontrolliertes Experiment.</p>
+<p class="accept">
+<b>Abnahme.</b> CPU, Bytes und p95/p99 vor/nach Änderung vergleichen; keine schlechtere Latenz für kleine Events und kein Cache-/Header-Rückschritt.</p>
+</article>
+<article class="finding" id="HTTP-01" data-priority="P3" data-area="Protokoll">
+<h3>
+<span class="tag P3">P3</span> <span class="id">HTTP-01</span> Accept-Encoding wird per Teilstringsuche statt nach Qualitätswerten ausgewertet</h3>
+<p class="meta">Protokoll · Live reproduziert · Offen</p>
+<p>
+<b>Befund und Beleg.</b> spaHandler verwendet strings.Contains. Live bestätigt: Accept-Encoding: br;q=0,gzip;q=1 wird mit Content-Encoding: br beantwortet. Die explizite Ablehnung von Brotli wird ignoriert.</p>
+<p>
+<b>Auswirkung.</b> Ein Client oder Proxy kann eine Darstellung erhalten, die er ausdrücklich nicht akzeptiert. Übliche Browser senden meist einfache Listen; deshalb niedrige Priorität.</p>
+<p>
+<b>Empfohlene Änderung.</b> Encoding-Tokens samt q-Werten korrekt parsen oder bewährte Verhandlung nutzen. Cachevalidatoren müssen zur gewählten Representation passen; Vary erhalten.</p>
+<p class="accept">
+<b>Abnahme.</b> br;q=0 wird nie gewählt; Prioritäten, Groß-/Kleinschreibung, Wildcard und identity sind eindeutig getestet.</p>
+</article>
+<article class="finding" id="UX-05" data-priority="P3" data-area="UI/UX">
+<h3>
+<span class="tag P3">P3</span> <span class="id">UX-05</span> Breite Layouts und Statusdarstellung lassen sich weiter vereinfachen</h3>
+<p class="meta">UI/UX · Live älterer Build + aktueller Code · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Die meisten Screens verwenden max-w-5xl mit einer Spalte; die Live-Lobby benötigt mit Standardwerten bereits Scrollen. Im sauberen HEAD sind der feste Startbereich und das eingeklappte Buchstabenraster inzwischen umgesetzt. Spielerliste sortiert serverseitig alphabetisch; offline wird in der Lobby hauptsächlich farblich erkennbar.</p>
+<p>
+<b>Auswirkung.</b> Auf Desktop bleiben breite Zeilen und langer vertikaler Weg; auf Mobilgeräten ist der Zustand einzelner Spieler nicht immer sofort verständlich. Diese Punkte betreffen Übersicht, keine Spielkorrektheit.</p>
+<p>
+<b>Empfohlene Änderung.</b> Desktop-Lobby bei Bedarf zweispaltig, Spiel-/Reviewansichten schmaler. Eigene Person und Host bevorzugen; offline zusätzlich als Text anzeigen. Den bereits korrigierten Sticky-Start nicht erneut als offenen Quellcodefehler führen.</p>
+<p class="accept">
+<b>Abnahme.</b> Desktop und kleine Viewports, lange Namen und viele Kategorien prüfen; Hauptaktion bleibt erreichbar und Status ist ohne Farberkennung verständlich.</p>
+</article>
+<article class="finding" id="UX-06" data-priority="P3" data-area="UI/UX">
+<h3>
+<span class="tag P3">P3</span> <span class="id">UX-06</span> Flammen, Merge-Hinweise und Nullpunkte sind noch nicht selbsterklärend</h3>
+<p class="meta">UI/UX · Code + Live-Teilablauf · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Flammen-Buttons erklären sich vorwiegend über title, der auf Touch nicht verlässlich erscheint. Merge-Hilfe nennt den Spielernamen statt des Antwortwerts; mergeableCount zählt auch ungültige beziehungsweise inhaltlich identische Einzelantworten. Rundenergebnis/GameOver zeigen bei rank===1 auch für null Punkte einen Pokal. Fortschrittsbalken/Zähler und Kommentator-Fertig-Spalte wiederholen andere Signale.</p>
+<p>
+<b>Auswirkung.</b> Seltene Regeln brauchen unnötige Erklärung durch den Host; redundante Anzeigen erschweren das schnelle Erfassen. Der aktuelle HEAD erklärt verlorene Flammen und Regelverstöße in der Bewertung bereits besser.</p>
+<p>
+<b>Empfohlene Änderung.</b> Kurze Touch-erreichbare Erklärung für die Wette, Merge nur bei sinnvollen Kandidaten und Hilfe am gewählten Antwortwert. Pokal bei null Punkten hinterfragen; doppelte Anzeigen anhand des Informationsnutzens reduzieren.</p>
+<p class="accept">
+<b>Abnahme.</b> Neue Spieler verstehen die Modi ohne Hover; Merge-Auswahl eindeutig; leere Partie wirkt nicht wie ein Sieg.</p>
+</article>
+<article class="finding" id="A11Y-03" data-priority="P3" data-area="UI/UX">
+<h3>
+<span class="tag P3">P3</span> <span class="id">A11Y-03</span> Mobile Eingabedarstellung und Overlay-Verhalten benötigen einen echten Gerätetest</h3>
+<p class="meta">UI/UX · Code; Gerätetest offen · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Inputs sind text-sm, typischerweise 14 px; auf iOS kann Fokus damit Autozoom auslösen. HostGraceBanner liegt fixed top-0 über dem Header. Einige sekundäre Copy-/Hilfsziele sind sehr klein. Reduced-Motion-Regeln für eigene Animationen sind vorhanden; die Tailwind-animate-pulse-Umrandung im Zeitnotfall ist darin nicht ausdrücklich enthalten.</p>
+<p>
+<b>Auswirkung.</b> Tastatur, Notch und kleine Touchziele können Bedienung erschweren; das Host-Banner kann Verlassen/Titel verdecken. Eine reine CSS-Viewportänderung simuliert weder iOS-Tastatur noch einen echten Screenreader. Keine pauschale WCAG-Verletzung allein aus 36-px-Buttons ableiten.</p>
+<p>
+<b>Empfohlene Änderung.</b> Inputs auf Mobilgeräten mindestens mit passender lesbarer Schrift gestalten; Host-Banner im Layout reservieren; effektive Touchzielabstände prüfen und Zeitnot-Puls bei reduced motion berücksichtigen.</p>
+<p class="accept">
+<b>Abnahme.</b> iOS Safari und Android mit Bildschirmtastatur, 200%-Zoom und reduced motion praktisch prüfen; Hauptaktionen bleiben sichtbar.</p>
+</article>
+<article class="finding" id="OBS-01" data-priority="P3" data-area="Datenschutz">
+<h3>
+<span class="tag P3">P3</span> <span class="id">OBS-01</span> Logdaten und Drafts brauchen eine explizite Aufbewahrungspolitik</h3>
+<p class="meta">Datenschutz · Code + Live-Logs · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Go loggt Spielernamen, Lobbycodes und Zustandswechsel; Sessiontokens werden korrekt gehasht. nginx führt Accesslogs mit den üblichen Verbindungsdaten und /join/Code-Pfaden. logrotate ist vorhanden, aber eine projektspezifische Retentions-/Zugriffsentscheidung ist nicht dokumentiert. Drafts bleiben bis zum Start einer anderen Runde im lokalen Browser.</p>
+<p>
+<b>Auswirkung.</b> Namen, IP-Adressen und aktive Lobbyeinladungen können länger als nötig rekonstruierbar bleiben. Das ist eine technische Datenminimierungsfrage; keine rechtliche Bewertung oder behauptete externe Weitergabe.</p>
+<p>
+<b>Empfohlene Änderung.</b> Aufbewahrung und Zugriff bewusst festlegen, unnötige Join-URLs/Namen bei Bedarf reduzieren und Drafts bei endgültigem Verlassen/Spielende bereinigen. Für Support nur die tatsächlich erforderlichen Informationen sammeln.</p>
+<p class="accept">
+<b>Abnahme.</b> Dokumentierte Datenliste, Löschfristen und Verantwortlichkeit; nach endgültigem Austritt verbleiben keine benötigtenfalls sensiblen Drafts.</p>
+</article>
+<article class="finding" id="DOC-01" data-priority="P3" data-area="Dokumentation">
+<h3>
+<span class="tag P3">P3</span> <span class="id">DOC-01</span> Report und TODO widersprechen dem aktuellen Implementierungsstand</h3>
+<p class="meta">Dokumentation · Dokumentenvergleich · Offen</p>
+<p>
+<b>Befund und Beleg.</b> Alter Report: Stand 2026-08-07, 26 Frontendtests, ein offener Dokumentationspunkt. Aktueller sauberer Commit: 41 Tests und neue offene Zuverlässigkeits-/Security-Befunde. TODO führt UI-1 bis UI-5 noch als Aufgaben, obwohl sie im Commit implementiert sind. LOADTEST-1 beschreibt ein startNanos-Race, das inzwischen durch atomic.Int64 behoben ist; fehlende Antwortkorrelation bleibt.</p>
+<p>
+<b>Auswirkung.</b> Wiederholte Audits können erledigte Arbeit neu priorisieren und wichtige neue Risiken verdecken. Historische Performancezahlen sind nicht automatisch Messungen des aktuellen Builds.</p>
+<p>
+<b>Empfohlene Änderung.</b> Diesen Report als datierten Befundstand nutzen, TODO später mit verlinkten IDs/Status abgleichen und alte Messungen immer mit Commit, Umgebung und Datum führen. Alten Report archivieren statt seine Aussagen unmarkiert zu übernehmen.</p>
+<p class="accept">
+<b>Abnahme.</b> Jeder noch offene TODO-Punkt entspricht aktuellem Code; Messung, Codeableitung und historische Angabe sind unterscheidbar.</p>
+</article>
+<article class="finding" id="TEST-02" data-priority="P3" data-area="Entwicklung">
+<h3>
+<span class="tag P3">P3</span> <span class="id">TEST-02</span> Der eingebaute Lasttest korreliert Broadcasts nicht mit der ausgelösten Änderung</h3>
+<p class="meta">Entwicklung · Code + eigener Messvergleich · Offen</p>
+<p>
+<b>Befund und Beleg.</b> startNanos ist im aktuellen Code atomar. readLoop misst jedoch den ersten lobbyState nach armed=true, unabhängig davon, ob er zur Messaktion gehört. Außerdem wird armed vor dem neuen Startzeitpunkt gesetzt; ein noch eintreffender Join-Broadcast kann zu einer falschen Probe führen. Setup-Fehlerantworten werden nicht gezielt beendet und Context.Background lässt Vorgänge unbegrenzt warten.</p>
+<p>
+<b>Auswirkung.</b> Die Zahlen können ältere Join-/Phasenereignisse messen. Damit ist der README-Leistungsnachweis schwächer als die Serverleistung selbst. Der separate Audit-Test korrelierte anhand des pro Iteration eindeutigen timeLimit-Werts.</p>
+<p>
+<b>Empfohlene Änderung.</b> Request-ID/erwartete Version oder eindeutiges Setting korrelieren, Startzeit vor dem Arming setzen, jeden Messzyklus begrenzen und Fehlerantworten auswerten. Ausgabe mit Zielendpunkt, Build, Stichprobenzahl und Timeouts versehen.</p>
+<p class="accept">
+<b>Abnahme.</b> Absichtlich verspätete Join-Broadcasts werden nicht als Messantwort gezählt; nicht erreichbarer/voller Server beendet den Test zeitnah mit Fehler.</p>
+</article>
+<details>
+<summary>Quellkarte: zentrale Dateien und Funktionen je Finding</summary>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>IDs</th>
+<th>Code / Konfiguration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SEC-01/03, CI-01</td>
+<td>flake.lock; flake.nix; backend/go.mod; frontend/bun.lock; .github/workflows/deploy.yml</td>
+</tr>
+<tr>
+<td>OPS-01, SEC-04/05, CI-02</td>
+<td>Angrenzendes waentw/server-config/configuration.nix: nginx/slf/firewall; waentw/flake.nix: apps.deploy; waentw/.gitlab-ci.yml; aktive nginx.conf und systemd slf.service</td>
+</tr>
+<tr>
+<td>REL-01, HTTP-01</td>
+<td>backend/cmd/server/main.go: spaHandler; frontend/src/lib/ws.ts: reloadIfUpdated</td>
+</tr>
+<tr>
+<td>REL-02, STATE-01, PERF-01/04</td>
+<td>backend/internal/websocket/game_handlers.go: sendCurrentGameStateTo, beginPlaying; game_util.go: prepareBroadcast, writeAll, notifyCommentator; client.go: writeRaw; hub.go: broadcastLobbyState, Shutdown</td>
+</tr>
+<tr>
+<td>DATA-01/02, STATE-02/03</td>
+<td>game_util.go: storeAnswer, buildGameState; game_handlers.go: beginCountdown, handleAnswerUpdate, handleInputSync, endRound; frontend/src/pages/game/GameScreen.tsx: flushAnswers, loadedRound, pendingAnswers</td>
+</tr>
+<tr>
+<td>REL-03/04, UX-04</td>
+<td>frontend/src/lib/ws.ts: onopen, flush, scheduleReconnect, status; frontend/src/router.tsx: sessionCreated/lobbyState; backend/internal/websocket/handlers.go: handleReconnect</td>
+</tr>
+<tr>
+<td>SEC-02, STATE-04/05</td>
+<td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
+</tr>
+<tr>
+<td>OPS-02/03/04</td>
+<td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
+</tr>
+<tr>
+<td>A11Y-01/02, UX-01/02/03/05/06</td>
+<td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, isTypingTarget; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
+</tr>
+<tr>
+<td>CODE-01/02, PERF-02/03</td>
+<td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/session.ts, theme.tsx, serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
+</tr>
+<tr>
+<td>TEST-01/02, DOC-01, OBS-01</td>
+<td>Backend-/Frontend-Testdateien; backend/cmd/loadtest/main.go; README.md, CHANGELOG.md, AGENT/TODO.md; hub/handlers-Logging; nginx-/logrotate-Konfiguration</td>
+</tr>
+</tbody>
+</table>
+</div>
+</details>
+</section>
+<section id="positive">
+<h2>Was bereits gut gelöst ist</h2>
+<div class="grid">
+<div class="panel">
+<h3>Fachlicher Kern</h3>
+<p>Go ist alleinige Autorität für Regeln, Punkte und Hostrechte. Zentrale Teilnahmeprädikate vermeiden abweichende Regeln für Zuschauer, Ausgetretene und Kommentator. Scoring gruppiert identische und gemergte Antworten sauber; Rankings und Soloflow werden getestet.</p>
+</div>
+<div class="panel">
+<h3>Sicherheitsbasis</h3>
+<p>Kryptografisch erzeugte Session-/Lobby-IDs, getrennte öffentliche Player-DTOs ohne Sessionsecret, invalidierte Leave-/Kick-Sessions, explizites WS-Readlimit, Ratebucket und Originprüfung. React rendert Namen/Antworten als Text; keine gefährliche HTML-Injektion im gelesenen App-Code gefunden.</p>
+</div>
+<div class="panel">
+<h3>Browser und UI</h3>
+<p>Striktes TypeScript, eingehende Zod-Validierung, schlanke Zustand-Stores, konsistente UI-Bausteine und Themes. QR-/Room-Code wird getrennt geladen. Modals haben Fokusführung, Escape, Tab-Trap und Fokus-Rückgabe; viele Labels und Live-Regions sind bewusst umgesetzt.</p>
+</div>
+<div class="panel">
+<h3>Transport und Betrieb</h3>
+<p>Reconnect mit Backoff/Jitter und Wiederanlauf bei Online/Fokus, serverseitige Host-Grace und Ping. TLS, HSTS, CSP mit korrektem Script-Hash, nosniff, Frame-Schutz und Referrer-Policy. Nicht-root-Dienst mit Speichergrenze und automatischem Neustart.</p>
+</div>
+<div class="panel">
+<h3>Entwicklung</h3>
+<p>Nix, Locks und feste Dependency-Hashes machen Builds reproduzierbar. Tests laufen im Paketbuild; echte Backend-WS-Integrationstests und Race-Tests sind erfolgreich. Dokumentierte bewusste Grenzen erleichtern eine pragmatische Weiterentwicklung.</p>
+</div>
+<div class="panel">
+<h3>Ressourceneffizienz</h3>
+<p>Sehr kleiner Serviceverbrauch und schnelle Domainlogik. Der normale 500-Spieler-Test lokal ist deutlich unter dem Latenzziel. Keine Datenbank, kein Microserviceverbund und keine umfangreiche Plattform sind für den derzeitigen Spielumfang nötig.</p>
+</div>
+</div>
+</section>
+<section id="decisions">
+<h2>Bewusste Grenzen, die nicht automatisch repariert werden müssen</h2>
+<ul>
+<li>
+<b>Ein Prozess, RAM-Zustand, keine Datenbank:</b> für das erklärte LAN-/Partyprodukt passend. Harte Abstürze verlieren laufende Spiele; das ist dokumentiert. Atomare Idle-Snapshots sind trotzdem berechtigte Robustheitsarbeit.</li>
+<li>
+<b>Globaler Hub-Mutex:</b> bei gemessener Normallast vertretbar. Das Problem ist blockierendes Netzwerk-I/O darin. Erst dieses entfernen; kein vorschnelles Sharding oder verteilter Zustand.</li>
+<li>
+<b>Host entscheidet über Gültigkeit:</b> zentraler Teil des Spiels, keine automatisch auszubauende Wortdatenbank. Ein Host darf bewusst korrigieren. Regel- und Bedienungsfeedback müssen die Entscheidung verständlich machen.</li>
+<li>
+<b>Keine Hostübergabe:</b> 15 Sekunden Grace und anschließendes Lobbyende sind eine explizite Produktentscheidung. Ob Mobilgeräte länger brauchen, sollte mit echten Geräten untersucht werden, nicht ohne Anlass durch komplexe Hostwahl ersetzt werden.</li>
+<li>
+<b>Identität in localStorage:</b> Reload-/Tab-Schließen-Reconnect ist gewollt. Die Mehrtab-Reconnectschleife ist davon getrennt zu behandeln. Ein Accountsystem oder Cookies sind nicht pauschal erforderlich.</li>
+<li>
+<b>Clipboard-Fallback:</b> execCommand bleibt für HTTP-LAN ein pragmatischer Fallback. QR-Kamera benötigt einen sicheren Kontext; manueller Codepfad ist bereits vorhanden.</li>
+<li>
+<b>JSON, React und heutige UI-Basis:</b> kein begründeter Zwang zu Binärprotokoll, WebSocket-Bibliothekswechsel oder Preact. Einfachheit bedeutet zunächst weniger doppelte Arbeit und klare Zustandsverträge.</li>
+</ul>
+</section>
+<section id="roadmap">
+<h2>Empfohlene Reihenfolge</h2>
+<ol>
+<li>
+<b>Bekannte unmittelbare Risiken schließen:</b> SLF-Toolchain patchen, Rohwertgrenze korrigieren, nginx-Kapazität explizit konfigurieren, ETag/Asset-404 reparieren. Bestehende uncommittete UI-Arbeit separat abschließen.</li>
+<li>
+<b>Nachrichten zuverlässig machen:</b> ein begrenzter Writer pro Client, kein I/O unter Hub-Lock; Session-ready vor Outbox; roundId und definierter Rundenschluss; bestätigtes inputSync. Dafür gezielte Regressionstests.</li>
+<li>
+<b>Zustands- und Recoveryverträge stärken:</b> Versions-/Reihenfolgevertrag, einheitliche Bindung, Mehrtab-Verhalten, atomarer Snapshot, Drain-/Readiness-/Stopdeadline. Dazu kleine WSS-Synthetics.</li>
+<li>
+<b>Bedienbarkeit verbessern:</b> verschachtelte Review-Controls und namenlosen Button reparieren, Tastatur prüfen, Solo-Abschluss und Phasenerklärungen vereinfachen. iOS/Android-/Screenreader-Test nachholen.</li>
+<li>
+<b>Erst danach optimieren:</b> Kommentatorupdates bündeln, redundante Snapshots reduzieren, Bundle-/Renderkosten messen. Größere Architekturumstellungen nur bei belegtem Bedarf.</li>
+</ol>
+<p>Diese Reihenfolge ist keine Aufwandsschätzung und keine Freigabe zum Deploy. Der Audit ändert ausschließlich Reportdokumente; er implementiert oder veröffentlicht keine Produkt-/Serverfixes.</p>
+</section>
+<section id="history">
+<h2>Abgleich mit bisherigen Findings und verbleibende Prüfgrenzen</h2>
+<div class="scroll">
+<table>
+<thead>
+<tr>
+<th>Bisherige ID</th>
+<th>Aktueller Befund</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PERF-1</td>
+<td>Weiter offen und live neu bestätigt → REL-01.</td>
+</tr>
+<tr>
+<td>PERF-2/3</td>
+<td>Im Code bestätigt → REL-02. Die alte MTU-/15-s-Messung bleibt historisch gekennzeichnet.</td>
+</tr>
+<tr>
+<td>PERF-4/5</td>
+<td>Weiter offen → DATA-02 und REL-03; zusätzlicher Outbox-vor-Reconnect-Fehler.</td>
+</tr>
+<tr>
+<td>PERF-6/8</td>
+<td>Weiter relevant, zusammengeführt → PERF-01. Keine neue Behauptung historischer n²-/CPU-Zahlen.</td>
+</tr>
+<tr>
+<td>PERF-7/9/10, NET-1/2</td>
+<td>Nachrangige Optimierungen → PERF-02/03/04; kein Library-/Frameworkwechsel allein auf Basis alter Attribution.</td>
+</tr>
+<tr>
+<td>UI-1 bis UI-5</td>
+<td>Im sauberen HEAD implementiert: Rundenzeile, Gäste-Einstellungskurzfassung, Zeilentoggle, Bewertungsgründe, Sticky-Start/Letter-Fold. Live-UI ist älter. Neuer Folgefehler des Zeilentoggles → A11Y-01.</td>
+</tr>
+<tr>
+<td>UI-6</td>
+<td>Bereits vorhandene uncommittete Arbeit, aktuell doppelter onClick/Testfehler; nicht verändert.</td>
+</tr>
+<tr>
+<td>UI-7 bis UI-23</td>
+<td>In UX-/A11Y-Findings gruppiert. UI-11 ist teilweise bereits umgesetzt (aria-invalid + roter Rand nach Blur); feldnaher Text bleibt fehlend. Keine pauschale Übernahme als vollständig offen.</td>
+</tr>
+<tr>
+<td>LOADTEST-1</td>
+<td>Atomic-Zeitpunkt bereits repariert; Korrelationsproblem bleibt → TEST-02.</td>
+</tr>
+<tr>
+<td>Alter DOC-1</td>
+<td>Neue Dokumentationsbasis in diesem Report; weiter nötiger TODO-Abgleich → DOC-01. <a href="archive/project-health-report-2026-08-07.html">Unveränderten alten Report lesen</a>.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>
+<b>Nicht abschließend verifiziert:</b> Tailnet-ACLs/Providerkonsole, GitHub-Branch-Protection und Secret-Einstellungen, externe Backups, vollständige SBOM/Lizenzprüfung, gesamter Host-CVE-Abgleich gegen den vollständigen Nix-Closure, echter Recovery nach VM-/Disk-Ausfall, Langzeitlast, produktive 500-WSS-Kapazität, absichtlich ausgelöster OOM oder Slow-Reader-Angriff, vollständiger Screenreader-/WCAG-Audit und reale Kamera-/Mobilgeräte. Fehlende Einsicht ist kein Nachweis, dass dort Schutz fehlt.</p>
+<p>Die Preview hatte zeitweise DNS-/Automationsaussetzer, darunter „Preview automation snapshot timed out after 15000ms“ und „No preview automation host is available“. Solche Harnessfehler wurden nicht als Fehler des SLF-Servers gewertet. Aktuelle lokale Browserprüfungen konnten danach fortgesetzt werden; der vollständige Live-Ende-/Mehrtab-Durchgang blieb offen.</p>
+<p>Die Sicherheitsscans und Belege sind vom Prüfdatum abhängig. Offizielle Primärquellen wurden für nginx-Defaults, systemd-Härtung und die benannten Go-/npm-Advisories herangezogen. Es wurde kein bestätigter Remote-Code-Execution-Pfad, keine öffentliche Sessionsecret-Leckage und keine Datenbank-/SQL-Injection-Fläche im gelesenen Code gefunden; dies ersetzt keine unbegrenzte Sicherheitsgarantie.</p>
+</section>
+<footer>
+<p class="meta">Auditstand 22.10.2026 · Quellcode, lokale Reproduktionen, maßvolle Live-Prüfung und read-only SSH. Dieser Report ersetzt die pauschale Aussage „ein offener Punkt, keine hohen Risiken“ des historischen Berichts. Alle Findings enthalten Nachweisart, Auswirkung, Maßnahme und prüfbare Abnahme.</p>
+</footer>
+</main>
+<script>
+const articles=[...document.querySelectorAll('.finding')];const search=document.getElementById('search'),priority=document.getElementById('priority'),area=document.getElementById('area');function filter(){const q=search.value.toLocaleLowerCase('de');let n=0;for(const a of articles){const visible=(!priority.value||a.dataset.priority===priority.value)&&(!area.value||a.dataset.area===area.value)&&a.textContent.toLocaleLowerCase('de').includes(q);a.hidden=!visible;if(visible)n++;}document.getElementById('filter-count').textContent=n+' von '+articles.length+' Findings sichtbar.';}for(const el of [search,priority,area])el.addEventListener('input',filter);document.getElementById('reset').addEventListener('click',()=>{search.value='';priority.value='';area.value='';filter();});window.addEventListener('hashchange',()=>{const a=document.getElementById(location.hash.slice(1));if(a?.classList.contains('finding')){search.value='';priority.value='';area.value='';filter();a.scrollIntoView();}});
+</script>
+</body>
 </html>
