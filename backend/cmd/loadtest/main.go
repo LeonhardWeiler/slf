@@ -155,7 +155,9 @@ func main() {
 }
 
 func dial(ctx context.Context, addr string) *client {
-	conn, _, err := websocket.Dial(ctx, addr, nil)
+	conn, _, err := websocket.Dial(ctx, addr, &websocket.DialOptions{
+		CompressionMode: websocket.CompressionNoContextTakeover,
+	})
 	if err != nil {
 		log.Fatalf("Dial failed: %v", err)
 	}

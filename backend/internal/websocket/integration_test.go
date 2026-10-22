@@ -49,9 +49,14 @@ func dial(t *testing.T, srv *httptest.Server) *testConn {
 	url := "ws" + strings.TrimPrefix(srv.URL, "http")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	conn, _, err := websocket.Dial(ctx, url, nil)
+	conn, res, err := websocket.Dial(ctx, url, &websocket.DialOptions{
+		CompressionMode: websocket.CompressionNoContextTakeover,
+	})
 	if err != nil {
 		t.Fatalf("dial: %v", err)
+	}
+	if ext := res.Header.Get("Sec-WebSocket-Extensions"); !strings.HasPrefix(ext, "permessage-deflate") {
+		t.Fatalf("compression not negotiated: %q", ext)
 	}
 	tc := &testConn{t: t, conn: conn}
 	t.Cleanup(func() { conn.Close(websocket.StatusNormalClosure, "") })
