@@ -223,7 +223,7 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges, mostly in the UI layer.
-        <b>5 open findings, none critical or high.</b>
+        <b>4 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -242,7 +242,7 @@
           <div class="l">Medium</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--low)">3</div>
+          <div class="n" style="color: var(--low)">2</div>
           <div class="l">Low</div>
         </div>
         <div class="stat">
@@ -278,41 +278,6 @@
         game plays correctly end to end, and none of these can change a game's
         outcome.
       </p>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> Live regions that appear together
-          with their content <span class="id">A11Y-2</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/components/Toaster.tsx</code>,
-          <code>ConnectionBadge.tsx</code>, <code>QrScanner.tsx</code>
-        </div>
-        <p>
-          <code>Toaster</code> returns <code>null</code> while the queue is
-          empty, so its <code>aria-live</code> container enters the DOM at the
-          same moment as the first toast. Screen readers generally announce
-          <em>changes inside an already-present</em> live region; a region
-          inserted together with its text is commonly missed. The same shape
-          applies to <code>ConnectionBadge</code> (<code>role="status"</code>,
-          rendered only while disconnected), so "Verbindung getrennt" can pass
-          silently. The QR scanner's camera error is a plain
-          <code>&lt;p&gt;</code> with no live semantics at all.
-        </p>
-        <p class="note">
-          <code>HostGraceBanner</code> is <em>not</em> affected: it uses
-          <code>role="alert"</code>, which is announced on insertion - the
-          deliberate split between the static alert text and the
-          <code>aria-hidden</code> ticking digits still works as designed.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> always render the live-region wrapper (empty)
-          and only swap its children - for the toaster, move the
-          <code>aria-live</code> div above the
-          <code>toasts.length === 0</code> early return. Give the scanner error
-          <code>role="alert"</code>.
-        </div>
-      </div>
 
       <div class="card">
         <h3>
@@ -713,10 +678,6 @@
         host-grace banner) and on forms (errors linked and announced), with tab
         order following the visible order. Responsive, light/dark theme, and
         animations fully disabled under <code>prefers-reduced-motion</code>.
-      </p>
-      <p>
-        Where it slips: the live regions that appear
-        <em>with</em> their content may not be announced at all (A11Y-2).
       </p>
 
       <h3>Optional next steps (non-blocking)</h3>

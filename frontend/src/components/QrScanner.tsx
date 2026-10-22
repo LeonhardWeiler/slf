@@ -96,7 +96,9 @@ export function QrScannerView({
 				/>
 			</div>
 			{error ? (
-				<p className="text-sm text-destructive text-center">{error}</p>
+				<p role="alert" className="text-sm text-destructive text-center">
+					{error}
+				</p>
 			) : (
 				<p className="text-center text-xs text-muted-foreground">
 					Richte die Kamera auf den QR-Code der Lobby.

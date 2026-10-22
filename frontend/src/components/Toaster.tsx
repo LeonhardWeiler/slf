@@ -77,9 +77,7 @@ export function Toaster() {
 	const toasts = useToastStore((s) => s.toasts);
 	const clearToasts = useToastStore((s) => s.clearToasts);
 
-	if (toasts.length === 0) return null;
-
-	const front = toasts[toasts.length - 1];
+	const front = toasts.at(-1);
 	// Toasts directly behind the front, nearest first, capped to a few peeks.
 	const behind = toasts
 		.slice(Math.max(0, toasts.length - 1 - MAX_PEEK), toasts.length - 1)
@@ -89,8 +87,10 @@ export function Toaster() {
 		// Only the front toast is read out (the peeking cards behind it are
 		// aria-hidden), so key the region's urgency off its variant: errors
 		// interrupt (assertive), neutral info updates wait their turn (polite).
+		// The region stays mounted while empty: one that appears together with
+		// its first toast is often not announced.
 		<div
-			aria-live={front.variant === "error" ? "assertive" : "polite"}
+			aria-live={front?.variant === "error" ? "assertive" : "polite"}
 			className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-sm flex-col items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
 		>
 			{toasts.length > 1 && (
@@ -105,25 +105,27 @@ export function Toaster() {
 
 			{/* The front toast defines the box size; the peeking cards are absolutely
           positioned to fill it and shifted down/back, so they poke out below. */}
-			<div className="relative w-full">
-				{behind.map((t, i) => {
-					const depth = i + 1;
-					return (
-						<div
-							key={t.id}
-							aria-hidden="true"
-							className={`absolute inset-0 rounded-lg border shadow-lg backdrop-blur ${VARIANTS[t.variant].peek}`}
-							style={{
-								transform: `translateY(${depth * 7}px) scale(${1 - depth * 0.05})`,
-								transformOrigin: "top center",
-								opacity: 1 - depth * 0.2,
-								zIndex: -depth,
-							}}
-						/>
-					);
-				})}
-				<FrontToast key={front.id} toast={front} />
-			</div>
+			{front && (
+				<div className="relative w-full">
+					{behind.map((t, i) => {
+						const depth = i + 1;
+						return (
+							<div
+								key={t.id}
+								aria-hidden="true"
+								className={`absolute inset-0 rounded-lg border shadow-lg backdrop-blur ${VARIANTS[t.variant].peek}`}
+								style={{
+									transform: `translateY(${depth * 7}px) scale(${1 - depth * 0.05})`,
+									transformOrigin: "top center",
+									opacity: 1 - depth * 0.2,
+									zIndex: -depth,
+								}}
+							/>
+						);
+					})}
+					<FrontToast key={front.id} toast={front} />
+				</div>
+			)}
 		</div>
 	);
 }

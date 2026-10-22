@@ -8,14 +8,15 @@ export function ConnectionBadge() {
 	const [connected, setConnected] = useState(ws.status);
 	useEffect(() => ws.onStatusChange(setConnected), []);
 
-	if (connected) return null;
+	// The status region stays mounted so the drop is announced when it appears.
 	return (
-		<span
-			role="status"
-			className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-800 dark:text-amber-300"
-		>
-			<WifiOff className="h-3.5 w-3.5 shrink-0" />
-			<span className="hidden sm:inline">Verbindung getrennt…</span>
+		<span role="status" className="contents">
+			{!connected && (
+				<span className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-800 dark:text-amber-300">
+					<WifiOff className="h-3.5 w-3.5 shrink-0" />
+					<span className="sr-only sm:not-sr-only">Verbindung getrennt…</span>
+				</span>
+			)}
 		</span>
 	);
 }
