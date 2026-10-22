@@ -35,6 +35,9 @@ type inbound struct {
 	Payload struct {
 		SessionID string `json:"sessionId"`
 		LobbyCode string `json:"lobbyCode"`
+		Settings  struct {
+			TimeLimit *int `json:"timeLimit"`
+		} `json:"settings"`
 	} `json:"payload"`
 }
 
@@ -43,11 +46,15 @@ type client struct {
 	sessionID string
 	lobbyCode string
 	isHost    bool
-	armed     atomic.Bool
+	measured  int // last request id this client recorded
 }
 
+// Each measured round sets timeLimit to its request id (5, 6, ...), so a
+// broadcast is matched to the round that caused it. startNanos is stored
+// before requestID, so a reader that sees the id also sees its start.
 var (
 	startNanos atomic.Int64
+	requestID  atomic.Int64
 	results    chan time.Duration
 )
 
@@ -114,19 +121,16 @@ func main() {
 	log.Printf("%d players connected. Measuring %d rounds…", len(clients), *iters)
 
 	// 3) Measurement rounds: every host toggles a setting simultaneously; every
-	// client times the resulting lobbyState broadcast.
+	// client times the resulting lobby broadcast.
 	var samples []time.Duration
-	toggle := false
 	for it := 0; it < *iters; it++ {
-		toggle = !toggle
-		for _, c := range clients {
-			c.armed.Store(true)
-		}
+		id := 5 + it
 		startNanos.Store(time.Now().UnixNano())
+		requestID.Store(int64(id))
 		for _, h := range hosts {
 			h.send(ctx, "updateSettings", map[string]any{
-				"timeLimit":                 nil,
-				"showLetterDuringCountdown": toggle,
+				"timeLimit":                 id,
+				"showLetterDuringCountdown": false,
 				"excludedLetters":           []string{},
 				"hostPlays":                 true,
 				"lastLetterMode":            false,
@@ -198,17 +202,20 @@ func (c *client) read(ctx context.Context, m *inbound) bool {
 	return json.Unmarshal(data, m) == nil
 }
 
-// readLoop records a latency sample for the first lobbyState received after the
-// measurement was armed.
+// readLoop records a latency sample for the first lobby broadcast that carries
+// the current request id.
 func (c *client) readLoop(ctx context.Context) {
 	for {
 		var m inbound
 		if !c.read(ctx, &m) {
 			return
 		}
-		if (m.Type == "lobbyState" || m.Type == "lobbyPatch") && c.armed.CompareAndSwap(true, false) {
-			d := time.Duration(time.Now().UnixNano() - startNanos.Load())
-			results <- d
+		if m.Type != "lobbyState" && m.Type != "lobbyPatch" || m.Payload.Settings.TimeLimit == nil {
+			continue
+		}
+		if id := *m.Payload.Settings.TimeLimit; id != c.measured && int64(id) == requestID.Load() {
+			c.measured = id
+			results <- time.Duration(time.Now().UnixNano() - startNanos.Load())
 		}
 	}
 }
