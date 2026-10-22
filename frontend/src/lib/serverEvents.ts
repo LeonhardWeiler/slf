@@ -90,6 +90,7 @@ const reviewStatePayload = z.object({
 	answers: z.array(reviewAnswerSchema),
 	// Optional/lenient: an older server without this field must not drop the event.
 	buzzedBy: z.optional(z.string()),
+	endReason: z.optional(z.string()),
 	solo: z._default(
 		z.nullish(
 			z.array(

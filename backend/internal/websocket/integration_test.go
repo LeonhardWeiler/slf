@@ -327,7 +327,9 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	// Host ends the round and finishes review -> RoundResult. Bob must not appear
 	// in the ranking while pending.
 	host.send("endRound", map[string]any{})
-	host.waitFor("reviewState")
+	if raw := host.waitFor("reviewState"); !strings.Contains(string(raw), `"endReason":"host"`) {
+		t.Fatalf("expected endReason host, got %s", raw)
+	}
 	host.send("finishReview", map[string]any{})
 	var rr struct {
 		Ranking []struct {
@@ -891,9 +893,13 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 		Points     int    `json:"points"`
 	}
 	var rs struct {
-		Solo []soloRow `json:"solo"`
+		Solo      []soloRow `json:"solo"`
+		EndReason string    `json:"endReason"`
 	}
 	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if rs.EndReason != "buzz" {
+		t.Fatalf("expected endReason buzz, got %q", rs.EndReason)
+	}
 	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 {
 		t.Fatalf("unexpected solo rows %+v", rs.Solo)
 	}

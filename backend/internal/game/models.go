@@ -95,6 +95,8 @@ type Round struct {
 	// round ended by timeout or a host "end round". Surfaced in review so everyone
 	// sees who stopped the round.
 	BuzzedBy string `json:"-"`
+	// EndReason is how the round ended: "timeout", "host" or "buzz".
+	EndReason string `json:"-"`
 }
 
 // Game is a sequence of rounds over a fresh alphabet within one lobby.
@@ -185,6 +187,8 @@ type ReviewStatePayload struct {
 	// BuzzedBy is the playerID who buzzed to end the round; empty on timeout or a
 	// host-ended round.
 	BuzzedBy string `json:"buzzedBy"`
+	// EndReason is how the round ended: "timeout", "host" or "buzz".
+	EndReason string `json:"endReason"`
 	// Solo holds every category of the round with the player's answer; nil
 	// unless the lobby is solo.
 	Solo []SoloRow `json:"solo"`

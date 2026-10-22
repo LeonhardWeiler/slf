@@ -520,3 +520,21 @@ describe("review merge", () => {
 		).toBeDefined();
 	});
 });
+
+describe("review end reason", () => {
+	it("says the time ran out", () => {
+		setup("guest", "Reviewing");
+		useGameStore.getState().setReview({
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			answers: [],
+			endReason: "timeout",
+			solo: null,
+		});
+		render(<ReviewScreen />);
+		expect(screen.getByText("Zeit abgelaufen")).toBeDefined();
+	});
+});

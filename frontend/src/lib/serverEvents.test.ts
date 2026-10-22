@@ -68,7 +68,7 @@ describe("parseServerEvent", () => {
 		).toBeNull();
 	});
 
-	it("parses a reviewState carrying buzzedBy", () => {
+	it("parses a reviewState carrying buzzedBy and endReason", () => {
 		const ev = parseServerEvent(
 			JSON.stringify({
 				type: "reviewState",
@@ -80,12 +80,14 @@ describe("parseServerEvent", () => {
 					categoryCount: 3,
 					answers: [],
 					buzzedBy: "p42",
+					endReason: "buzz",
 				},
 			}),
 		);
 		expect(ev?.type).toBe("reviewState");
 		if (ev?.type === "reviewState") {
 			expect(ev.payload.buzzedBy).toBe("p42");
+			expect(ev.payload.endReason).toBe("buzz");
 		}
 	});
 

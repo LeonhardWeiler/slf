@@ -79,8 +79,17 @@ export function ReviewScreen() {
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
 	const categoryName =
 		lobby.categories[review.categoryIndex]?.name ?? "Kategorie";
-	// Who buzzed to end the round (empty on timeout / host-ended round).
-	const buzzerName = review.buzzedBy ? playerName(review.buzzedBy) : null;
+	// Everyone sees how the round ended.
+	const endText =
+		review.endReason === "timeout" ? (
+			"Zeit abgelaufen"
+		) : review.endReason === "host" ? (
+			"Host hat die Runde beendet"
+		) : review.buzzedBy ? (
+			<>
+				<b>{playerName(review.buzzedBy)}</b> hat gestoppt
+			</>
+		) : null;
 
 	function setValid(answerId: string, valid: boolean) {
 		ws.send({ type: "setAnswerValidity", payload: { answerId, valid } });
@@ -111,13 +120,10 @@ export function ReviewScreen() {
 			<div className="mx-auto w-full max-w-xl space-y-4">
 				<RoomHeader title="Bewertung" />
 
-				{/* Everyone sees who stopped the round. */}
-				{buzzerName && (
+				{endText && (
 					<p className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
 						<Bell className="h-4 w-4 shrink-0" />
-						<span>
-							<b>{buzzerName}</b> hat gestoppt
-						</span>
+						<span>{endText}</span>
 					</p>
 				)}
 

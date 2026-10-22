@@ -148,7 +148,7 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 
 	if !endsAt.IsZero() {
 		time.AfterFunc(time.Until(endsAt), func() {
-			hub.endRound(lobby, roundID)
+			hub.endRound(lobby, roundID, "timeout")
 		})
 	}
 }
@@ -295,7 +295,7 @@ func handleBuzz(hub *Hub, c *Client) {
 	roundID := round.ID
 	hub.mu.Unlock()
 
-	hub.endRound(lobby, roundID)
+	hub.endRound(lobby, roundID, "buzz")
 }
 
 // handleEndRound lets the host stop the running round early and move everyone to
@@ -313,7 +313,7 @@ func handleEndRound(hub *Hub, c *Client) {
 	roundID := lobby.Game.Round.ID
 	hub.mu.Unlock()
 
-	hub.endRound(lobby, roundID)
+	hub.endRound(lobby, roundID, "host")
 }
 
 // ---- Phase 3: review ----
@@ -323,13 +323,14 @@ func handleEndRound(hub *Hub, c *Client) {
 // submitted anything there is nothing to review, so it scores straight away and
 // jumps to the scoreboard. Idempotent via the roundID + state guard, so a late
 // timer after a buzz is a no-op.
-func (hub *Hub) endRound(lobby *game.Lobby, roundID string) {
+func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason string) {
 	hub.mu.Lock()
 	g := lobby.Game
 	if g == nil || g.Round == nil || g.Round.ID != roundID || lobby.State != game.StatePlaying {
 		hub.mu.Unlock()
 		return
 	}
+	g.Round.EndReason = reason
 	// Default validity: rule-conforming answers start valid (SRS 6.4). Done before
 	// the empty-round check so scoring is correct on the direct-to-scoreboard path.
 	for _, byCat := range g.Round.Answers {
