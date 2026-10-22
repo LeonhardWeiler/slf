@@ -239,6 +239,7 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 		UsedLetters:      g.UsedLetters,
 		RemainingLetters: g.RemainingLetters,
 		CategoryCount:    len(lobby.Categories),
+		ServerNow:        time.Now().UnixMilli(),
 	}
 	if lobby.State == game.StateCountdown {
 		rem := countdownSeconds - int(time.Since(r.StartedAt).Seconds())
@@ -252,11 +253,8 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 	} else { // Playing
 		p.Letter = r.Letter
 		if lobby.Settings.TimeLimit != nil && !r.EndsAt.IsZero() {
-			rem := int(time.Until(r.EndsAt).Seconds())
-			if rem < 0 {
-				rem = 0
-			}
-			p.TimeRemaining = &rem
+			endsAt := r.EndsAt.UnixMilli()
+			p.EndsAt = &endsAt
 		}
 		// Elapsed lets a (re)connecting client resume the stopwatch / countdown
 		// from the correct position instead of restarting at 0.

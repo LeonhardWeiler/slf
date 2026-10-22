@@ -158,7 +158,8 @@ type GameStatePayload struct {
 	Letter             string   `json:"letter"` // "" while hidden during countdown
 	UsedLetters        []string `json:"usedLetters"`
 	RemainingLetters   []string `json:"remainingLetters"`
-	TimeRemaining      *int     `json:"timeRemaining"`      // seconds, null = unlimited
+	EndsAt             *int64   `json:"endsAt"`             // unix ms deadline, null = unlimited
+	ServerNow          int64    `json:"serverNow"`          // unix ms at send time
 	CountdownRemaining *int     `json:"countdownRemaining"` // seconds, null when Playing
 	Elapsed            *int     `json:"elapsed"`            // seconds since playing start, null outside Playing
 	CategoryCount      int      `json:"categoryCount"`

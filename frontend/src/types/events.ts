@@ -84,7 +84,8 @@ export interface GameStatePayload {
 	letter: string;
 	usedLetters: string[];
 	remainingLetters: string[];
-	timeRemaining: number | null;
+	endsAt: number | null;
+	serverNow: number;
 	countdownRemaining: number | null;
 	elapsed: number | null;
 	categoryCount: number;

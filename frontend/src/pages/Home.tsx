@@ -215,7 +215,7 @@ export function Home() {
 		timeoutRef.current = setTimeout(() => {
 			addToast("Keine Verbindung zum Server. Bitte erneut versuchen.");
 			setLoading(false);
-		}, 8000);
+		}, 15000);
 	}
 
 	function submitCreate(e: React.FormEvent) {
@@ -276,7 +276,7 @@ export function Home() {
 			pendingCode.current = null;
 			setChecking(false);
 			setJoinError("Keine Verbindung zum Server. Bitte erneut versuchen.");
-		}, 8000);
+		}, 15000);
 		ws.send({ type: "checkLobby", payload: { lobbyCode: c } });
 	}
 

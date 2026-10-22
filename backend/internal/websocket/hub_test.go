@@ -116,3 +116,20 @@ func TestBeginCountdownRechecksState(t *testing.T) {
 		t.Fatal("a second start from a stale state began another round")
 	}
 }
+
+func TestGameStateSendsAbsoluteDeadline(t *testing.T) {
+	limit := 60
+	endsAt := time.Now().Add(time.Minute)
+	lobby := &game.Lobby{
+		State:    game.StatePlaying,
+		Settings: game.Settings{TimeLimit: &limit},
+		Game:     &game.Game{Round: &game.Round{StartedAt: time.Now(), EndsAt: endsAt}},
+	}
+	p := buildGameState(lobby)
+	if p.EndsAt == nil || *p.EndsAt != endsAt.UnixMilli() {
+		t.Fatalf("endsAt = %v, want %d", p.EndsAt, endsAt.UnixMilli())
+	}
+	if d := time.Now().UnixMilli() - p.ServerNow; d < 0 || d > 1000 {
+		t.Fatalf("serverNow off by %d ms", d)
+	}
+}

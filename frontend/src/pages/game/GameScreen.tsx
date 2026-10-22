@@ -30,6 +30,18 @@ function useCountdown(seconds: number | null, resetKey: string): number | null {
 	return value;
 }
 
+// Whole seconds until the local-clock deadline `endsAt`, null when unlimited.
+function useSecondsLeft(endsAt: number | null): number | null {
+	const [now, setNow] = useState(Date.now);
+	useEffect(() => {
+		if (endsAt === null) return;
+		setNow(Date.now());
+		const id = setInterval(() => setNow(Date.now()), 250);
+		return () => clearInterval(id);
+	}, [endsAt]);
+	return endsAt === null ? null : Math.max(0, Math.ceil((endsAt - now) / 1000));
+}
+
 // Count-up stopwatch starting from `start` seconds, restarting on resetKey.
 function useStopwatch(start: number, resetKey: string): number {
 	const [value, setValue] = useState(start);
@@ -79,7 +91,8 @@ export function GameScreen() {
 	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
 	const game = useGameStore((s) => s.game);
 	const buzzRejected = useGameStore((s) => s.buzzRejected);
-	const setBuzzRejected = useGameStore((s) => s.setBuzzRejected);
+	const buzzing = useGameStore((s) => s.buzzing);
+	const buzz = useGameStore((s) => s.buzz);
 	const commentator = useGameStore((s) => s.commentator);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
@@ -172,10 +185,7 @@ export function GameScreen() {
 		game?.countdownRemaining ?? null,
 		`${roundId}:cd:${game?.countdownRemaining ?? ""}`,
 	);
-	const timeLeft = useCountdown(
-		game?.timeRemaining ?? null,
-		`${roundId}:${game?.state ?? ""}:${game?.timeRemaining ?? ""}`,
-	);
+	const timeLeft = useSecondsLeft(game?.endsAt ?? null);
 	const elapsed = useStopwatch(
 		game?.elapsed ?? 0,
 		`${roundId}:${game?.state ?? ""}:${game?.elapsed ?? ""}`,
@@ -187,11 +197,11 @@ export function GameScreen() {
 			? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
 			: { valid: false as const };
 	const canBuzz =
-		!isSpectator && lobby?.state === "Playing" && validation.valid;
+		!isSpectator && lobby?.state === "Playing" && validation.valid && !buzzing;
 
 	function handleBuzz() {
 		flushAnswers(); // server must have the latest answers before the buzz check
-		setBuzzRejected(null);
+		buzz();
 		ws.send({ type: "buzz", payload: {} });
 	}
 
@@ -499,9 +509,9 @@ export function GameScreen() {
 								className="w-full"
 								size="lg"
 								onClick={handleBuzz}
-								disabled={!validation.valid}
+								disabled={!validation.valid || buzzing}
 							>
-								STOPP - Fertig!
+								{buzzing ? "Gesendet…" : "STOPP - Fertig!"}
 							</Button>
 							{!validation.valid && (
 								<p className="text-center text-xs text-muted-foreground">
