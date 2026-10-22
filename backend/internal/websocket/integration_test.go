@@ -882,7 +882,8 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
 	}
 	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test"})
-	host.send("endRound", map[string]any{})
+	// Solo may stop with empty fields.
+	host.send("buzz", map[string]any{})
 
 	type soloRow struct {
 		CategoryID string `json:"categoryId"`

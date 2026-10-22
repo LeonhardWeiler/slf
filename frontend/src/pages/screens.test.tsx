@@ -352,3 +352,28 @@ describe("GameScreen field hint", () => {
 		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
 	});
 });
+
+describe("GameScreen solo", () => {
+	it("lets a solo player stop with empty fields and hides the end button", () => {
+		setup("host", "Playing");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: { ...lobby, solo: true, players: [player("host", true)] },
+		});
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		const buzz = screen.getByRole("button", { name: /STOPP/ });
+		expect((buzz as HTMLButtonElement).disabled).toBe(false);
+		expect(screen.queryByRole("button", { name: "Runde beenden" })).toBeNull();
+	});
+});

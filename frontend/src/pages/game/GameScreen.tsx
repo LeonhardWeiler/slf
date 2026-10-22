@@ -178,11 +178,12 @@ export function GameScreen() {
 	);
 	const timeLeft = useSecondsLeft(game?.endsAt ?? null);
 
-	// Validate once and reuse for both the buzz gate and the disabled-reason text.
-	const validation =
-		lobby && game
+	// Solo needs no gate: the lone player may end their own round at any time.
+	const validation = lobby?.solo
+		? { valid: true }
+		: lobby && game
 			? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
-			: { valid: false as const };
+			: { valid: false };
 	const canBuzz =
 		!isSpectator && lobby?.state === "Playing" && validation.valid && !buzzing;
 
@@ -490,7 +491,7 @@ export function GameScreen() {
 
 				{/* Host can end a stuck round early (hard letter, or a commentator host
             who never buzzes) -> everyone moves to review. */}
-				{isHost && (
+				{isHost && !lobby.solo && (
 					<div className="flex justify-center pt-1">
 						<Button
 							variant="ghost"

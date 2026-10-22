@@ -274,18 +274,21 @@ func handleBuzz(hub *Hub, c *Client) {
 	// Every category must have an answer (SRS 5.7) and - server-authoritative,
 	// not just the client's Zod gate - each answer must satisfy the formal rules
 	// for the round letter: 2-30 chars, starting with the letter (SRS 9.13.15).
-	answers := round.Answers[session.PlayerID]
-	for _, cat := range lobby.Categories {
-		ans := answers[cat.ID]
-		if answers == nil || ans == nil || game.Normalize(ans.Value) == "" {
-			hub.mu.Unlock()
-			hub.sendBuzzRejected(c, "incompleteAnswers")
-			return
-		}
-		if !game.IsRuleValid(round.Letter, ans.Value, lobby.Settings.LastLetterMode) {
-			hub.mu.Unlock()
-			hub.sendBuzzRejected(c, "invalidAnswers")
-			return
+	// A solo player only ends their own round, so they may stop at any time.
+	if soloPlayer(lobby) == nil {
+		answers := round.Answers[session.PlayerID]
+		for _, cat := range lobby.Categories {
+			ans := answers[cat.ID]
+			if answers == nil || ans == nil || game.Normalize(ans.Value) == "" {
+				hub.mu.Unlock()
+				hub.sendBuzzRejected(c, "incompleteAnswers")
+				return
+			}
+			if !game.IsRuleValid(round.Letter, ans.Value, lobby.Settings.LastLetterMode) {
+				hub.mu.Unlock()
+				hub.sendBuzzRejected(c, "invalidAnswers")
+				return
+			}
 		}
 	}
 	round.BuzzedBy = session.PlayerID
