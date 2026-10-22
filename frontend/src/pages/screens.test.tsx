@@ -1,0 +1,152 @@
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { ThemeProvider } from "@/lib/theme";
+import { useGameStore } from "@/store/game";
+import { useLobbyStore } from "@/store/lobby";
+import type { LobbyStatePayload, Player } from "@/types/events";
+
+const send = mock((_msg: unknown) => {});
+mock.module("@/lib/ws", () => ({
+	ws: { send, status: true, onStatusChange: () => () => {} },
+}));
+mock.module("@tanstack/react-router", () => ({
+	useNavigate: () => () => {},
+	Navigate: () => null,
+}));
+
+const { GameScreen } = await import("@/pages/game/GameScreen");
+const { RoundResultScreen } = await import("@/pages/game/RoundResultScreen");
+const { ReviewScreen } = await import("@/pages/game/ReviewScreen");
+const { SoloReviewScreen } = await import("@/pages/game/SoloReviewScreen");
+const { GameOverScreen } = await import("@/pages/game/GameOverScreen");
+const { Lobby } = await import("@/pages/Lobby");
+const { renderScreen } = await import("@/pages/Room");
+
+const render = (ui: ReactNode) => rtlRender(ui, { wrapper: ThemeProvider });
+
+const player = (id: string, isHost: boolean): Player => ({
+	id,
+	name: id,
+	isHost,
+	connected: true,
+	left: false,
+	pending: false,
+	score: 0,
+});
+
+function setup(me: string, state: LobbyStatePayload["state"]) {
+	useLobbyStore.setState({
+		myPlayerId: me,
+		lobby: {
+			lobbyCode: "123456",
+			hostId: "host",
+			players: [player("host", true), player("guest", false)],
+			categories: [
+				{ id: "c1", name: "Stadt" },
+				{ id: "c2", name: "Land" },
+			],
+			settings: {
+				timeLimit: null,
+				showLetterDuringCountdown: false,
+				excludedLetters: [],
+				hostPlays: true,
+				lastLetterMode: false,
+				flamesEnabled: false,
+			},
+			state,
+			solo: false,
+		},
+	});
+}
+
+beforeEach(() => {
+	send.mockClear();
+	localStorage.clear();
+	useGameStore.getState().resetGame();
+});
+
+describe("Room", () => {
+	it("maps each lobby state to its screen", () => {
+		expect(renderScreen("Lobby", false).type).toBe(Lobby);
+		expect(renderScreen("Countdown", false).type).toBe(GameScreen);
+		expect(renderScreen("Playing", false).type).toBe(GameScreen);
+		expect(renderScreen("Reviewing", false).type).toBe(ReviewScreen);
+		expect(renderScreen("Reviewing", true).type).toBe(SoloReviewScreen);
+		expect(renderScreen("RoundResult", false).type).toBe(RoundResultScreen);
+		expect(renderScreen("GameOver", false).type).toBe(GameOverScreen);
+	});
+});
+
+describe("RoundResultScreen", () => {
+	beforeEach(() => {
+		useGameStore.getState().setResult({
+			letter: "A",
+			scores: [],
+			ranking: [
+				{ playerId: "host", rank: 1, score: 10 },
+				{ playerId: "guest", rank: 2, score: 5 },
+			],
+			usedLetters: ["A"],
+			remainingLetters: ["B"],
+			isGameOver: false,
+		});
+	});
+
+	it("gives the host the next round and the kick", () => {
+		setup("host", "RoundResult");
+		render(<RoundResultScreen />);
+		expect(screen.getByRole("button", { name: "Nächste Runde" })).toBeDefined();
+		expect(screen.getByTitle("guest entfernen")).toBeDefined();
+	});
+
+	it("leaves a guest waiting without host actions", () => {
+		setup("guest", "RoundResult");
+		render(<RoundResultScreen />);
+		expect(screen.getByText("Warte auf den Host…")).toBeDefined();
+		expect(screen.queryByRole("button", { name: "Nächste Runde" })).toBeNull();
+		expect(screen.queryByTitle("host entfernen")).toBeNull();
+	});
+});
+
+describe("GameScreen", () => {
+	it("gates the buzz on valid answers and shows it pending", () => {
+		setup("guest", "Playing");
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			elapsed: 0,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		const buzz = () =>
+			screen.getByRole("button", {
+				name: /STOPP|Gesendet/,
+			}) as HTMLButtonElement;
+		expect(buzz().disabled).toBe(true);
+
+		fireEvent.change(document.getElementById("cat-c1") as Element, {
+			target: { value: "Berlin" },
+		});
+		fireEvent.change(document.getElementById("cat-c2") as Element, {
+			target: { value: "Ahaus" },
+		});
+		expect(buzz().disabled).toBe(true);
+
+		fireEvent.change(document.getElementById("cat-c2") as Element, {
+			target: { value: "Belgien" },
+		});
+		expect(buzz().disabled).toBe(false);
+
+		fireEvent.click(buzz());
+		expect(send).toHaveBeenCalledWith({ type: "buzz", payload: {} });
+		expect(buzz().disabled).toBe(true);
+		expect(buzz().textContent).toBe("Gesendet…");
+	});
+});

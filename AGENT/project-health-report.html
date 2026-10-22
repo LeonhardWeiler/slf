@@ -223,7 +223,7 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges, mostly in the UI layer.
-        <b>2 open findings, none critical or high.</b>
+        <b>1 open finding, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -238,7 +238,7 @@
           <div class="l">High</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--med)">1</div>
+          <div class="n" style="color: var(--med)">0</div>
           <div class="l">Medium</div>
         </div>
         <div class="stat">
@@ -301,38 +301,6 @@
         </div>
       </div>
 
-      <div class="card">
-        <h3>
-          <span class="badge b-low">low</span> No render tests for the React
-          screens <span class="id">TEST-1</span>
-        </h3>
-        <div class="loc">
-          <code>frontend/src/</code> - only
-          <code>answerValidation.test.ts</code> and
-          <code>serverEvents.test.ts</code> exist
-        </div>
-        <p>
-          The logic layer is well covered (26 frontend tests, plus protocol-level
-          Go integration tests), but no test ever renders a component. Everything
-          that lives in JSX - conditional host affordances, disabled states,
-          focus behaviour, which screen a phase maps to - is guarded only by
-          typecheck, lint and manual runs. That is exactly the blind spot a
-          previous pass fell into (a missing <code>isHost</code> gate on a
-          destructive action in the standings).
-        </p>
-        <p class="note">
-          Cost is the honest caveat: <code>bun test</code> runs without a Vite
-          transform, so component tests need a happy-dom preload and cannot use
-          Vite-only features (<code>import.meta.env</code>, CSS imports) - as
-          <code>CLAUDE.md</code> already spells out.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> add a happy-dom preload plus Testing Library and
-          cover the few highest-value cases: host vs. non-host affordances per
-          screen, the buzz gate, and <code>Room</code>'s state → screen mapping.
-        </div>
-      </div>
-
       <!-- ============ GOOD ============ -->
       <h2 id="good">2. What is already strong</h2>
       <ul class="tight">
@@ -381,9 +349,12 @@
           <span class="badge b-ok">plus</span> <b>Tests</b>: Go WS integration
           tests at the protocol level (<code>-race</code> green, ~15&nbsp;s)
           <em>and</em> a frontend suite on the native <code>bun test</code>
-          runner (26&nbsp;tests) covering the client mirror of the engine rules
+          runner (37&nbsp;tests) covering the client mirror of the engine rules
           (<code>answerValidation</code>, now including the non-ASCII casing and
-          code-point-length cases) and <code>parseServerEvent</code> (Zod). Both
+          code-point-length cases), <code>parseServerEvent</code> (Zod) and
+          render tests on happy-dom + Testing Library (host vs. guest
+          affordances, the buzz gate, Room's state → screen mapping, the modal
+          shell). Both
           run in CI. The Go harness is good enough that pinning the
           leave-then-reconnect scoring path took a single test function on the
           existing helpers.
@@ -551,13 +522,9 @@
         config is test-free again.
       </p>
       <p>
-        <em>Remaining gap (TEST-1).</em> There are still no render tests for the
-        React components/screens; the UI is guarded by typecheck, lint and
-        manual variant runs. That is the layer where
-        the missing <code>isHost</code> gate sat, which a
-        previous pass had to catch by reading. The mirror suite, by contrast,
-        covers the non-ASCII casing and code-point-length edges its invariant
-        depends on.
+        Render tests now cover the JSX layer where the missing
+        <code>isHost</code> gate once sat; a test removing that gate or the
+        buzz pending state fails.
       </p>
 
       <h3>Security</h3>

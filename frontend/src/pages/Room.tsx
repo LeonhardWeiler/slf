@@ -23,7 +23,7 @@ export function Room() {
 	return renderScreen(state, solo);
 }
 
-function renderScreen(state: string, solo: boolean) {
+export function renderScreen(state: string, solo: boolean) {
 	switch (state) {
 		case "Countdown":
 		case "Playing":
