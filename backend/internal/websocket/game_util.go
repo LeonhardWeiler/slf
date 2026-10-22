@@ -172,24 +172,44 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 		if !playsThisRound(lobby, p) {
 			continue
 		}
-		filled := make([]string, 0, len(lobby.Categories))
-		for _, cat := range lobby.Categories {
-			// A category counts as "done" only when the answer passes the same
-			// server-side rule check the player needs to buzz (e.g. "arst" for
-			// letter O is not done) - not merely when it is non-empty.
-			if a := r.Answers[p.ID][cat.ID]; a != nil &&
-				game.IsRuleValid(r.Letter, a.Value, lobby.Settings.LastLetterMode) {
-				filled = append(filled, cat.ID)
-			}
-		}
-		players = append(players, game.CommentatorPlayer{
-			PlayerID:          p.ID,
-			FilledCategoryIDs: filled,
-			Complete:          len(filled) == len(lobby.Categories),
-		})
+		players = append(players, commentatorRow(lobby, p))
 	}
 	slices.SortFunc(players, func(a, b game.CommentatorPlayer) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
 	return game.CommentatorStatePayload{RoundID: r.ID, Players: players}
+}
+
+// commentatorRow is one player's line of the board. Caller must hold hub.mu.
+func commentatorRow(lobby *game.Lobby, p *game.Player) game.CommentatorPlayer {
+	r := lobby.Game.Round
+	filled := make([]string, 0, len(lobby.Categories))
+	for _, cat := range lobby.Categories {
+		// A category counts as "done" only when the answer passes the same
+		// server-side rule check the player needs to buzz (e.g. "arst" for
+		// letter O is not done) - not merely when it is non-empty.
+		if a := r.Answers[p.ID][cat.ID]; a != nil &&
+			game.IsRuleValid(r.Letter, a.Value, lobby.Settings.LastLetterMode) {
+			filled = append(filled, cat.ID)
+		}
+	}
+	return game.CommentatorPlayer{
+		PlayerID:          p.ID,
+		FilledCategoryIDs: filled,
+		Complete:          len(filled) == len(lobby.Categories),
+	}
+}
+
+// notifyRowLocked sends the spectators p's board row if it differs from
+// before. Most keystrokes change nothing on the board and send nothing.
+// Caller must hold hub.mu.
+func (hub *Hub) notifyRowLocked(lobby *game.Lobby, p *game.Player, before game.CommentatorPlayer) {
+	row := commentatorRow(lobby, p)
+	if slices.Equal(row.FilledCategoryIDs, before.FilledCategoryIDs) {
+		return
+	}
+	payload := game.CommentatorUpdatePayload{RoundID: lobby.Game.Round.ID, Player: row}
+	for _, cl := range hub.spectatorClients(lobby) {
+		cl.send("commentatorUpdate", payload)
+	}
 }
 
 // spectatorClients returns every connected client that should watch the round's
@@ -214,16 +234,16 @@ func (hub *Hub) spectatorClients(lobby *game.Lobby) []*Client {
 	return out
 }
 
-// notifyCommentator sends the current fill overview to every spectator (the
+// notifyCommentator sends the full fill overview to every spectator (the
 // commentator host and any pending joiners). Caller must NOT hold hub.mu.
 func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
 	hub.mu.Lock()
+	defer hub.mu.Unlock()
 	viewers := hub.spectatorClients(lobby)
-	var payload game.CommentatorStatePayload
-	if len(viewers) > 0 {
-		payload = buildCommentatorState(lobby)
+	if len(viewers) == 0 {
+		return
 	}
-	hub.mu.Unlock()
+	payload := buildCommentatorState(lobby)
 	for _, cl := range viewers {
 		cl.send("commentatorState", payload)
 	}

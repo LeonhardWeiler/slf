@@ -4,6 +4,7 @@ import type {
 	ReviewStatePayload,
 	RoundResultPayload,
 	CommentatorStatePayload,
+	CommentatorUpdatePayload,
 	BuzzRejectReason,
 } from "@/types/events";
 
@@ -19,6 +20,7 @@ interface GameStore {
 	setReview: (review: ReviewStatePayload) => void;
 	setResult: (result: RoundResultPayload) => void;
 	setCommentator: (commentator: CommentatorStatePayload) => void;
+	updateCommentator: (update: CommentatorUpdatePayload) => void;
 	setBuzzRejected: (reason: BuzzRejectReason | null) => void;
 	buzz: () => void;
 	resetGame: () => void;
@@ -48,6 +50,12 @@ export const useGameStore = create<GameStore>((set) => ({
 	setReview: (review) => set({ review }),
 	setResult: (result) => set({ result }),
 	setCommentator: (commentator) => set({ commentator }),
+	updateCommentator: ({ roundId, player }) =>
+		set(({ commentator: c }) => {
+			if (c?.roundId !== roundId) return {};
+			const players = c.players.filter((p) => p.playerId !== player.playerId);
+			return { commentator: { roundId, players: [...players, player] } };
+		}),
 	setBuzzRejected: (reason) => set({ buzzRejected: reason, buzzing: false }),
 	buzz: () => set({ buzzRejected: null, buzzing: true }),
 	resetGame: () =>

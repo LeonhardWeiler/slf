@@ -165,6 +165,9 @@ function RootLayout() {
 		ws.on("commentatorState", (payload) => {
 			useGameStore.getState().setCommentator(payload);
 		});
+		ws.on("commentatorUpdate", (payload) => {
+			useGameStore.getState().updateCommentator(payload);
+		});
 		ws.on("roundResult", (payload) => {
 			useGameStore.getState().setResult(payload);
 		});

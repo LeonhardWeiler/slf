@@ -180,11 +180,10 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.mu.Unlock()
 		return
 	}
+	before := commentatorRow(lobby, player)
 	storeAnswer(lobby.Game.Round, session.PlayerID, p.CategoryID, p.Value)
+	hub.notifyRowLocked(lobby, player, before)
 	hub.mu.Unlock()
-
-	// Keep a commentator host's fill overview live as players type.
-	hub.notifyCommentator(lobby)
 }
 
 func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
@@ -212,14 +211,14 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.mu.Unlock()
 		return
 	}
+	before := commentatorRow(lobby, player)
 	for _, a := range p.Answers {
 		if categoryExists(lobby, a.CategoryID) {
 			storeAnswer(lobby.Game.Round, session.PlayerID, a.CategoryID, a.Value)
 		}
 	}
+	hub.notifyRowLocked(lobby, player, before)
 	hub.mu.Unlock()
-
-	hub.notifyCommentator(lobby)
 }
 
 // handleSetFlame records (or clears, when categoryId is empty) the player's

@@ -106,15 +106,15 @@ const reviewStatePayload = z.object({
 	),
 });
 
+const commentatorPlayer = z.object({
+	playerId: z.string(),
+	filledCategoryIds: z.array(z.string()),
+	complete: z.boolean(),
+});
+
 const commentatorStatePayload = z.object({
 	roundId: z.string(),
-	players: z.array(
-		z.object({
-			playerId: z.string(),
-			filledCategoryIds: z.array(z.string()),
-			complete: z.boolean(),
-		}),
-	),
+	players: z.array(commentatorPlayer),
 });
 
 const roundResultPayload = z.object({
@@ -178,6 +178,10 @@ const serverEventSchema = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("commentatorState"),
 		payload: commentatorStatePayload,
+	}),
+	z.object({
+		type: z.literal("commentatorUpdate"),
+		payload: z.object({ roundId: z.string(), player: commentatorPlayer }),
 	}),
 	z.object({ type: z.literal("roundResult"), payload: roundResultPayload }),
 	z.object({

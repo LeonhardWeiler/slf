@@ -953,3 +953,44 @@ func TestDrainThenRestoreKeepsLobby(t *testing.T) {
 		t.Fatalf("expected lobby %s after restore, got %q", code, ls.LobbyCode)
 	}
 }
+
+// The commentator board gets one row per change of a player's filled
+// categories, not one message per keystroke.
+func TestCommentatorGetsRowDeltas(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	cat := host.lastLobby.Categories[0].ID
+	excluded := []string{}
+	for r := 'B'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded, "hostPlays": false})
+	host.readLobby()
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+	}
+	json.Unmarshal(guest.waitFor("sessionCreated"), &sc)
+	guest.sessionID = sc.SessionID
+
+	host.send("startGame", map[string]any{})
+	host.waitFor("commentatorState")
+	for _, v := range []string{"Aachen", "Aachener", ""} {
+		guest.send("answerUpdate", map[string]any{"categoryId": cat, "value": v})
+	}
+	var u struct {
+		Player struct {
+			FilledCategoryIDs []string `json:"filledCategoryIds"`
+		} `json:"player"`
+	}
+	json.Unmarshal(host.waitFor("commentatorUpdate"), &u)
+	if len(u.Player.FilledCategoryIDs) != 1 {
+		t.Fatalf("first update: %v, want [%s]", u.Player.FilledCategoryIDs, cat)
+	}
+	json.Unmarshal(host.waitFor("commentatorUpdate"), &u)
+	if len(u.Player.FilledCategoryIDs) != 0 {
+		t.Fatalf("second update: %v, want []", u.Player.FilledCategoryIDs)
+	}
+}

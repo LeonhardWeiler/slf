@@ -139,6 +139,11 @@ export interface CommentatorPlayer {
 	complete: boolean;
 }
 
+export interface CommentatorUpdatePayload {
+	roundId: string;
+	player: CommentatorPlayer;
+}
+
 export interface CommentatorStatePayload {
 	roundId: string;
 	players: CommentatorPlayer[];
@@ -187,6 +192,7 @@ export type ServerEvent =
 	| { type: "gameState"; payload: GameStatePayload }
 	| { type: "reviewState"; payload: ReviewStatePayload }
 	| { type: "commentatorState"; payload: CommentatorStatePayload }
+	| { type: "commentatorUpdate"; payload: CommentatorUpdatePayload }
 	| { type: "roundResult"; payload: RoundResultPayload }
 	| { type: "buzzRejected"; payload: { reason: BuzzRejectReason } }
 	| { type: "hostDisconnected"; payload: { graceSeconds: number } }

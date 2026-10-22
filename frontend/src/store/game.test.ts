@@ -44,4 +44,23 @@ describe("game store", () => {
 		s.setGame(payload(null, 0));
 		expect(useGameStore.getState().buzzing).toBe(false);
 	});
+
+	it("merges a commentator row into the board of the same round", () => {
+		const s = useGameStore.getState();
+		const row = (playerId: string, filled: string[]) => ({
+			playerId,
+			filledCategoryIds: filled,
+			complete: false,
+		});
+		s.setCommentator({ roundId: "r1", players: [row("a", []), row("b", [])] });
+		s.updateCommentator({ roundId: "r1", player: row("a", ["c1"]) });
+		s.updateCommentator({ roundId: "r0", player: row("b", ["c1"]) });
+		const players = useGameStore.getState().commentator?.players ?? [];
+		expect(players.find((p) => p.playerId === "a")?.filledCategoryIds).toEqual([
+			"c1",
+		]);
+		expect(players.find((p) => p.playerId === "b")?.filledCategoryIds).toEqual(
+			[],
+		);
+	});
 });

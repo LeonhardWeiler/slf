@@ -244,3 +244,9 @@ type CommentatorStatePayload struct {
 	RoundID string              `json:"roundId"`
 	Players []CommentatorPlayer `json:"players"`
 }
+
+// CommentatorUpdatePayload carries one player's changed row of the board.
+type CommentatorUpdatePayload struct {
+	RoundID string            `json:"roundId"`
+	Player  CommentatorPlayer `json:"player"`
+}
