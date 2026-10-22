@@ -153,6 +153,7 @@ export interface RoundResultPayload {
 	usedLetters: string[];
 	remainingLetters: string[];
 	isGameOver: boolean;
+	empty?: boolean;
 	reason?: GameOverReason;
 }
 

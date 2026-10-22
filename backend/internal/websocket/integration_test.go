@@ -398,10 +398,14 @@ func TestEmptyRoundSkipsReview(t *testing.T) {
 	host.send("endRound", map[string]any{})
 	var rr struct {
 		IsGameOver bool `json:"isGameOver"`
+		Empty      bool `json:"empty"`
 	}
 	json.Unmarshal(host.waitFor("roundResult"), &rr)
 	if rr.IsGameOver {
 		t.Fatal("an empty round should produce a normal RoundResult, not GameOver")
+	}
+	if !rr.Empty {
+		t.Fatal("an empty round should be marked empty")
 	}
 }
 

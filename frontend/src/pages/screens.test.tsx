@@ -99,6 +99,15 @@ describe("RoundResultScreen", () => {
 		expect(screen.getByRole("button", { name: "Nächste Runde" })).toBeDefined();
 		expect(screen.getByTitle("guest entfernen")).toBeDefined();
 		expect(screen.getByText("Runde 1 · A")).toBeDefined();
+		expect(screen.queryByText("Niemand hat etwas eingetragen.")).toBeNull();
+	});
+
+	it("explains an empty round", () => {
+		setup("guest", "RoundResult");
+		const result = useGameStore.getState().result!;
+		useGameStore.getState().setResult({ ...result, empty: true });
+		render(<RoundResultScreen />);
+		expect(screen.getByText("Niemand hat etwas eingetragen.")).toBeDefined();
 	});
 
 	it("leaves a guest waiting without host actions", () => {

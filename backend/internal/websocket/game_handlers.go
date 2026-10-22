@@ -343,6 +343,8 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason string) {
 	// player has no scoreboard and sees the round in review instead.
 	if !hasActiveSubmission(lobby) && soloPlayer(lobby) == nil {
 		result := hub.scoreAndFinishRound(lobby)
+		result.Empty = true
+		g.LastResult = &result
 		hub.mu.Unlock()
 		hub.broadcastLobbyState(lobby)
 		hub.broadcastTo(lobby, "roundResult", result)

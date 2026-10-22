@@ -220,6 +220,8 @@ type RoundResultPayload struct {
 	UsedLetters      []string     `json:"usedLetters"`
 	RemainingLetters []string     `json:"remainingLetters"`
 	IsGameOver       bool         `json:"isGameOver"`
+	// Empty marks a round nobody submitted anything in (review was skipped).
+	Empty bool `json:"empty,omitempty"`
 	// Reason is set only when IsGameOver (SRS 9.15.14):
 	// "AlphabetFinished" | "HostEnded". A host disconnect does not produce a
 	// GameOver result - after the grace window the lobby is closed instead

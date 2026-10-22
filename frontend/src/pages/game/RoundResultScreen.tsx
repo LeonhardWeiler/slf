@@ -91,6 +91,11 @@ export function RoundResultScreen() {
 				<p className="text-center text-lg font-semibold">
 					Runde {result.usedLetters.length} · {result.letter}
 				</p>
+				{result.empty && (
+					<p className="text-center text-sm text-muted-foreground">
+						Niemand hat etwas eingetragen.
+					</p>
+				)}
 
 				<Card>
 					<CardHeader className="pb-3">
