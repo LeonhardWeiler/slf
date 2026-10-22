@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
 	"os/signal"
@@ -165,28 +166,41 @@ func securityHeaders(h http.Header) {
 }
 
 // spaHandler serves static files from dir and falls back to index.html for
-// paths that do not map to an existing file (single-page-app routing).
+// paths that do not map to an existing file (single-page-app routing). A
+// precompressed sibling (.br, .gz from the build) is served when the client
+// accepts it.
 func spaHandler(dir string) http.Handler {
-	fs := http.FileServer(http.Dir(dir))
 	index := filepath.Join(dir, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		securityHeaders(w.Header())
-		clean := filepath.Clean(r.URL.Path)
-		path := filepath.Join(dir, clean)
-		// Only serve a real file inside dir; otherwise hand the SPA its entrypoint.
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
-			// Vite emits content-hashed filenames under /assets/, so those can be
-			// cached immutably for a year; everything else (index.html, robots.txt,
-			// favicon) must revalidate so a redeploy is picked up.
-			if strings.HasPrefix(r.URL.Path, "/assets/") {
-				w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
-			} else {
-				w.Header().Set("Cache-Control", "no-cache")
-			}
-			fs.ServeHTTP(w, r)
-			return
+		h := w.Header()
+		securityHeaders(h)
+		h.Set("Vary", "Accept-Encoding")
+		path := filepath.Join(dir, filepath.Clean(r.URL.Path))
+		// Vite emits content-hashed filenames under /assets/, so those can be
+		// cached immutably for a year; everything else (index.html, robots.txt,
+		// favicon) must revalidate so a redeploy is picked up.
+		if info, err := os.Stat(path); err != nil || info.IsDir() {
+			path = index
+			h.Set("Cache-Control", "no-cache")
+		} else if strings.HasPrefix(r.URL.Path, "/assets/") {
+			h.Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			h.Set("Cache-Control", "no-cache")
 		}
-		w.Header().Set("Cache-Control", "no-cache")
-		http.ServeFile(w, r, index)
+		accept := r.Header.Get("Accept-Encoding")
+		for _, enc := range [][2]string{{"br", ".br"}, {"gzip", ".gz"}} {
+			if !strings.Contains(accept, enc[0]) {
+				continue
+			}
+			if _, err := os.Stat(path + enc[1]); err == nil {
+				if ct := mime.TypeByExtension(filepath.Ext(path)); ct != "" {
+					h.Set("Content-Type", ct)
+				}
+				h.Set("Content-Encoding", enc[0])
+				path += enc[1]
+				break
+			}
+		}
+		http.ServeFile(w, r, path)
 	})
 }

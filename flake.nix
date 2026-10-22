@@ -28,13 +28,15 @@
             frontend = pkgs.stdenvNoCC.mkDerivation {
               name = "slf-frontend";
               src = ./frontend;
-              nativeBuildInputs = [ pkgs.bun pkgs.nodejs ];
+              nativeBuildInputs = [ pkgs.bun pkgs.nodejs pkgs.brotli ];
               buildPhase = ''
                 cp -r ${nodeModules}/node_modules .
                 chmod -R u+w node_modules
                 patchShebangs node_modules
                 bun test src
                 bun run build
+                find dist -type f -regex '.*\.\(html\|js\|css\|svg\|txt\)' \
+                  -exec gzip -9kn {} \; -exec brotli -Z {} \;
               '';
               installPhase = "cp -r dist $out";
             };
