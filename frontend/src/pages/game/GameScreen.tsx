@@ -331,15 +331,11 @@ export function GameScreen() {
 	);
 
 	// A category counts as done once it holds a valid answer (non-empty and
-	// matching the letter rule) - drives the per-field check and the fill bar.
+	// matching the letter rule) - drives the per-field check.
 	const isAnswerDone = (categoryId: string) => {
 		const v = answers[categoryId] ?? "";
 		return v.trim() !== "" && !isFieldInvalid(v, game.letter, lastLetterMode);
 	};
-	const answeredCount = categories.filter((c) => isAnswerDone(c.id)).length;
-	const answeredPct = categories.length
-		? (answeredCount / categories.length) * 100
-		: 0;
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
@@ -410,21 +406,6 @@ export function GameScreen() {
 					</Card>
 				) : (
 					<>
-						{/* Fill progress: how many categories already hold a valid answer. */}
-						<div className="space-y-1">
-							<div className="flex justify-end text-xs text-muted-foreground">
-								<span className="tabular-nums">
-									{answeredCount}/{categories.length}
-								</span>
-							</div>
-							<div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-								<div
-									className="h-full rounded-full bg-primary transition-[width] duration-200"
-									style={{ width: `${answeredPct}%` }}
-								/>
-							</div>
-						</div>
-
 						<div className="space-y-3">
 							{categories.map((cat, idx) => {
 								const isFlamed = flamed === cat.id;

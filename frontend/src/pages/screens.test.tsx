@@ -126,6 +126,7 @@ describe("GameScreen", () => {
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
+		expect(screen.queryByText("0/2")).toBeNull();
 		const buzz = () =>
 			screen.getByRole("button", {
 				name: /STOPP|Gesendet/,
