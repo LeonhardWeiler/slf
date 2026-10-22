@@ -1,195 +1,158 @@
 # TODO
 
-Zusammengeführt am 2026-10-22 aus der alten TODO (Netz-Performance, gemessen
-2026-08-07), `project-health-report.html` (Scan 2026-08-07) und
-`performance-report.html`. Jeder Punkt wurde gegen den aktuellen Code geprüft
-und ist noch offen. Reihenfolge nach Wirkung/Aufwand.
+Stand 2026-10-22. Alle alten Punkte (SEC-1, UX-1/2, A11Y-1/2, CI-1, CONC-1,
+DOC-2, TEST-1, Kompression, Ping, Deadline, zod/mini) sind erledigt. Die
+Punkte unten stammen aus einer Messreihe gegen slf.coprime.tech und gegen
+einen lokalen Nachbau (`/tmp/slfperf`: Perf-Client mit Szenarien fanout, hol,
+freeze, bytes, late, join, comm; netns mit MTU 1500 für realistische
+TCP-Puffer). Sortiert nach Wirkung.
 
-Ausgangslage Netz: die Serialisierung ist **nicht** das Problem
-(JSON-Marshalling = 0,6 % der Roundtrip-Latenz, Loadtest mit 500 Spielern:
-avg 2,27 ms). Der Schmerz auf schmalen Leitungen (EDGE/3G) kommt aus
-unkomprimierten Bytes, zu harten Timeouts und stillen Verbindungsabbrüchen.
-Punkte 1 und 2 senken den Kaltstart um ~70 % und den laufenden Traffic um
-68-91 %, ohne Spiellogik anzufassen.
+Ausgangslage: bei moderater Last ist der Server unkritisch (live 20 Lobbys x
+10 Spieler avg 30 ms bei 22 ms RTT, RSS 5 MB). Die Probleme sind Blockaden
+durch einzelne langsame Clients, verlorene Eingaben und O(n²)-Broadcasts.
+Binary statt JSON lohnt **nicht**: eine Runde mit 8 Spielern sind 28 KB JSON
+bzw. 9 KB deflated pro Spieler.
 
 ---
 
-## 1. HTTP-Kompression für die statischen Assets
+## PERF-1. Alter Build nach Deploy bleibt hängen
 
-`spaHandler` in `backend/cmd/server/main.go` liefert über `http.FileServer`
-**roh** aus, obwohl der Browser gzip/br anbietet. Kaltstart: 445 KB statt
-~133 KB, bei EDGE (~12,5 KB/s) **36 s statt 10 s** bis zum ersten Bild.
+Live nachgewiesen: Browser lief mit `index-LYMNjlTT.js`, live ausgeliefert wird
+`index-B9n0T5HE.js`. `reloadIfUpdated` (`lib/ws.ts`) erkennt den neuen Build,
+aber `location.reload()` revalidiert `index.html` und bekommt **304**:
+`spaHandler` (`cmd/server/main.go`) nutzt `http.ServeFile`, und im Nix-Store
+ist jede mtime 1970-01-01, also ist `Last-Modified` nach jedem Deploy gleich.
+Zusätzlich liefert ein fehlendes `/assets/*.js` `200 text/html` (SPA-Fallback)
+statt 404, der alte Chunk-Import scheitert dann mit MIME-Fehler.
 
-- Assets zur Buildzeit vorkomprimieren (`.br` + `.gz` in der
-  `frontend`-Derivation in `flake.nix` nach `bun run build`), maximale Stufe.
-- `spaHandler`: bei passendem `Accept-Encoding` die vorkomprimierte Variante
-  ausliefern, sonst das Original.
-- `Content-Encoding` **und** `Vary: Accept-Encoding` setzen;
-  `Cache-Control: immutable` für `/assets/` bleibt.
-- `index.html` mit abdecken.
+**Fix:** `index.html` mit `Cache-Control: no-cache` und einem `ETag` aus dem
+Inhaltshash (beim Start einmal berechnen) ausliefern, `Last-Modified`
+weglassen. Unter `/assets/` kein SPA-Fallback, sondern 404.
 
-## 2. WebSocket-Kompression (permessage-deflate)
+## PERF-2. Globaler Hub-Lock während eines Socket-Writes
 
-`coder/websocket` hat `CompressionDisabled` als Default, der Code setzt nie
-etwas anderes.
+`sendCurrentGameStateTo` (`game_handlers.go`) ruft `c.sendV` mit gehaltenem
+`hub.mu`. Ein langsamer Mid-Game-Joiner (commentatorState 78 KB bei 50
+Spielern x 100 Kategorien) blockiert damit **alle** Lobbys. Gemessen im netns
+(MTU 1500): ein gestauter Joiner fror eine unbeteiligte Lobby ein, deren max
+Latenz 14,99 s (= `writeTimeout`).
 
-| Payload                    | roh     | deflate        |
-| -------------------------- | ------- | -------------- |
-| typisch (6 Spieler/3 Kat.) | 1096 B  | 353 B (-68 %)  |
-| 25 Spieler                 | 3273 B  | 520 B (-84 %)  |
-| Cap (200 Spieler/100 Kat.) | 27162 B | 2352 B (-91 %) |
+**Fix:** Payload unter dem Lock bauen und marshallen, Write nach dem Unlock.
+Grundsätzlich gelöst durch PERF-3.
 
-- `CompressionMode` in den `AcceptOptions` in
-  `internal/websocket/client.go` (`ServeWS`) setzen.
-- **`CompressionNoContextTakeover`**, nicht ContextTakeover (~1,2 MB
-  `flate.Writer` pro Verbindung, bei 500 Spielern ~600 MB).
-- Mit `go run ./cmd/loadtest -players 500` gegenmessen: Latenz und Speicher.
+## PERF-3. Sequenzielles `writeAll` mit 15 s Timeout (Head-of-Line)
 
-## 3. `writeTimeout` von 5 s auf 15-20 s
+`writeAll` (`game_util.go`) schreibt nacheinander, jeder Write darf 15 s
+blockieren. 1 toter Client (TCP-Puffer voll) verzögerte den Broadcast an alle
+gesunden Spieler um 14,955 s.
 
-`writeRaw` (`internal/websocket/client.go`) schließt die Verbindung, wenn ein
-Write nicht in 5 s durchgeht. Große Lobby über EDGE: 27 KB / 12,5 KB/s = 2,2 s
-plus Radio-Promotion (1-2 s), RTT und Retransmits -> Kick, Reconnect, gleicher
-großer State, Schleife. Risiko skaliert mit der Spielerzahl; Punkt 2 entschärft
-es zusätzlich.
+**Fix:** pro Client ein gepufferter Outbound-Channel (z. B. 64 Nachrichten)
+und eine Writer-Goroutine; `writeAll` macht nur nicht-blockierende Sends. Ist
+die Queue voll, den Client schließen (er reconnectet und bekommt den
+Snapshot). Snapshots (`lobbyState`, `commentatorState`) in der Queue
+zusammenfassen: nur der neueste zählt. Damit gibt es nirgends mehr I/O unter
+`hub.mu`.
 
-## 4. Heartbeat gegen halb-tote Verbindungen
+## PERF-4. Letzte Tastendrücke gehen am Rundenende verloren
 
-Kein Ping/Pong, `coder/websocket` pingt nicht selbst. Mobilfunk-NAT räumt
-stille Verbindungen weg (Lobby/Bewertung: minutenlang kein Traffic).
-`ensureConnected` in `lib/ws.ts` prüft nur `readyState === WebSocket.OPEN`,
-und das bleibt bei half-open stehen.
+`handleAnswerUpdate` verwirft Updates, sobald die Lobby nicht mehr
+`StatePlaying` ist. Der Client debounced 250 ms (`flushAnswers` in
+`GameScreen.tsx`). Nachgewiesen: ein `answerUpdate` 30 ms nach dem Buzz fehlte
+in der Bewertung. Wer bis zur letzten Sekunde tippt oder beim Buzz anderer
+noch schreibt, verliert die letzten bis zu 250 ms + RTT.
 
-- Server-seitig alle ~25 s `conn.Ping(ctx)` mit Deadline; scheitert er,
-  Verbindung schließen und `onDisconnect` normal laufen lassen. Damit greift
-  der bestehende Reconnect-Pfad (Backoff + Jitter).
+**Fix:** Server nimmt `answerUpdate` noch ~500 ms nach Rundenende an (Grace
+nach `endRound`, bevor Review/Scoring die Antworten einfriert). Client flusht
+sofort ohne Debounce, wenn `endsAt` erreicht ist oder ein `roundEnded`/Buzz
+eintrifft.
 
-## 5. Lobby-Erstellung drosseln (SEC-1)
+## PERF-5. Stiller Antwortverlust bei halb-offenem Socket
 
-`handleCreateLobby` (`internal/websocket/handlers.go`) ist der einzige
-ungedrosselte Ressourcenpfad: nur das globale `maxLobbies = 10000`. Ein Socket
-erzeugte 300 Lobbys in 8,5 s; bei voller Nachrichtenrate ist der Cap in ~4 min
-erreicht, danach bekommt jeder "Server ausgelastet" für ~12 min pro Welle
-(Janitor: 2-min-Pass + 10-min-TTL). Mit dem öffentlichen Deploy auf
-slf.coprime.tech nicht mehr theoretisch.
+Nur im Code nachgewiesen. Der Server pingt alle 25 s, der Client hat keinen
+eigenen Heartbeat: ein half-open Socket (Mobilfunk-NAT, WLAN-Wechsel) bleibt
+auf dem Client `OPEN`, Antworten landen im Nichts. Nach dem Reconnect sendet
+`GameScreen` kein `inputSync`, weil der Effekt nur einmal pro `roundId` läuft
+(`loadedRound.current === roundId`).
 
-- Pro Verbindung eine Quote oder wachsenden Backoff wie beim Join
-  (`c.createdLobbies` neben `c.joinFails`).
+**Fix:** App-Level-Ping vom Client (alle 10 s, Antwort binnen 3 s, sonst
+Socket schließen und den bestehenden Reconnect-Pfad nehmen). Bei jedem
+`sessionCreated` während `Playing` alle aktuellen Antworten per `inputSync`
+neu senden.
 
-## 6. Eigener Name bleibt nach dem Verlassen reserviert (UX-1)
+## PERF-6. Kommentator-Board ist O(n²)
 
-Die Namensprüfung in `handleJoinLobby` scannt alle `lobby.Players` inklusive
-`Left`; die fliegen erst bei `resetForNewGame` raus. Nach "Verlassen" oder Kick
-mitten im Spiel scheitert der Rejoin mit `NAME_NOT_UNIQUE`, obwohl der Name in
-der Lobby-Liste nirgends zu sehen ist. Mit anderem Namen steht man dann
-doppelt in der Wertung.
+`notifyCommentator` baut bei **jedem** `answerUpdate` den kompletten
+`buildCommentatorState` und schickt ihn. Gemessen: 20 Spieler -> 80 msg/s,
+316 KB/s; 40 Spieler -> 160 msg/s, 1,25 MB/s an den Kommentator.
 
-- `Left`-Spieler aus der Eindeutigkeitsprüfung nehmen (die alte Zeile behält
-  ihren Namen in der Wertung).
+**Fix:** pro Lobby auf ~4 Hz drosseln (dirty-Flag + Timer, nur letzter Stand
+geht raus) und nur geänderte Zellen als Delta schicken
+(`commentatorUpdate {playerId, category, answer}`); Vollstand nur beim
+Einstieg/Reconnect.
 
-## 7. QR-Dialog ohne Fokus-Handling (A11Y-1)
+## PERF-7. Kompression pro Empfänger statt pro Broadcast
 
-Das QR-Popup in `pages/Lobby.tsx` hat `role="dialog" aria-modal="true"`, setzt
-aber keinen Fokus, fängt Tab nicht und gibt den Fokus beim Schließen nicht
-zurück. `ConfirmDialog.tsx` macht alle drei richtig.
+`prepareBroadcast` marshallt einmal, aber `coder/websocket` deflated jede
+Nachricht pro Verbindung neu. Lokal 3 Lobbys x 150 Spieler: CPU 382 vs 133
+Ticks mit/ohne Kompression, avg 19 vs 11 ms. 20 x 200: avg 95 ms, max 315 ms.
+Prod hat 2 vCPU.
 
-- Die Dialog-Hülle aus `ConfirmDialog` in eine gemeinsame Komponente heben und
-  im QR-Popup nutzen.
+**Fix:** einmal pro Broadcast komprimieren. `coder/websocket` 1.8.15 kann das
+nicht; `gorilla/websocket` mit `PreparedMessage` schon. Wenn kein Library-Wechsel:
+`CompressionThreshold` auf ~1 KB heben, damit kleine Events (die Mehrheit)
+roh gehen, und die Payloads per PERF-8 verkleinern.
 
-## 8. Format-, Lint- und Vet-Gate in den Build (CI-1)
+## PERF-8. Vollständige Snapshots bei jeder Änderung
 
-CI ist nur noch `nix build` (`.github/workflows/deploy.yml`). Das läuft
-`go test` und `bun test src`, aber **weder** `gofmt`, `go vet`, `biome lint`
-noch einen Format-Check. `bun run lint` ist `biome lint src`, ohne Format.
-`biome format .` meldet aktuell 8 Dateien: `biome.json`, `package.json`,
-`tsconfig.json`, `vite.config.ts`, `src/index.css`,
-`src/lib/answerValidation.ts`, `src/lib/serverEvents.ts`, `src/pages/Lobby.tsx`.
+`broadcastLobbyState` (`hub.go`) schickt bei jedem Join/Leave/Ready alle
+Spieler + Kategorien an alle. Join-Sturm: 30 Spieler -> 465 Nachrichten,
+1,2 MB JSON; 100 -> 39,7 MB; 200 -> 308 MB JSON und 2,2 CPU-s. Pro Runde geht
+`lobbyState` zusätzlich 4x raus (~21 % der Bytes einer Runde), obwohl
+`gameState` den Stand schon trägt.
 
-- `lint`-Script auf `biome ci .` umstellen und in der `frontend`-Derivation
-  vor `bun test` laufen lassen; `gofmt -l` (muss leer sein) und `go vet` in den
-  `preCheck` der Go-Derivation.
-- Einmal formatieren, um den aktuellen Drift zu beseitigen.
+**Fix:** Delta-Events `playerJoined` / `playerLeft` / `playerUpdated`,
+Vollstand nur beim Einstieg/Reconnect. Kein `lobbyState` bei Phasenwechseln,
+die bereits ein `gameState` senden. Die Zod-Schemas in `serverEvents.ts`
+entsprechend ergänzen.
 
-## 9. Kurz getrennter Spieler gilt als "verlassen" (UX-2)
+## PERF-9. Initial-Bundle
 
-`hasLeft()` in `RoundResultScreen.tsx` und `GameOverScreen.tsx` ist
-`p.left || !p.connected`. Ein 3-s-Abbruch zeigt "(verlassen)" für alle,
-während die Lobby-Liste denselben Spieler mit pulsierendem Punkt zeigt. Das
-Prädikat sperrt auch den Kick-Button genau dann, wenn der Host ihn am ehesten
-braucht.
+Main-Chunk 352 KB roh / 95 KB br: react-dom 51 %, TanStack Router 23 %
+(80 KB für 2 Routen), tailwind-merge 8 %, zod/mini 4,9 %, eigener Code 7,6 %.
+Room-Chunk 62 KB / 16 KB br.
 
-- "(verlassen)" nur bei `p.left`, für `!p.connected` die reversible Darstellung
-  der Lobby-Liste; Kick nur über `p.left` sperren. Die doppelte Funktion dabei
-  zusammenlegen.
+**Fix:** TanStack Router durch einen kleinen `pathname`-Switch mit
+`history.pushState` ersetzen (-~20 KB br). `tailwind-merge` raus, `cn` nur
+noch als `clsx`-Join (Klassenkonflikte in den UI-Bausteinen von Hand
+auflösen). Extravagant: Preact/compat statt react-dom (-~40 KB br), braucht
+einen Test der Base-UI-Komponenten.
 
-## 10. Live-Regions erscheinen zusammen mit ihrem Inhalt (A11Y-2)
+## PERF-10. Verbindungs-Wasserfall beim Laden
 
-`Toaster.tsx` gibt bei leerer Queue `null` zurück, das `aria-live`-Element
-entsteht also zeitgleich mit dem ersten Toast und wird oft nicht angesagt.
-Gleich bei `ConnectionBadge.tsx` (`role="status"`, nur bei getrennt
-gerendert). Der Kamerafehler in `QrScanner.tsx` ist ein `<p>` ohne
-Live-Semantik.
+Der WebSocket baut eine eigene HTTP/1.1-Verbindung auf (58 ms statt 21 ms
+über die bestehende H2-Verbindung) und startet erst, nachdem das Bundle
+ausgeführt wurde. Reload in einer Lobby: Room-Chunk wird erst bei 191 ms
+angefordert, fertig bei 249 ms.
 
-- Live-Region-Wrapper immer rendern, nur die Kinder tauschen; Scanner-Fehler
-  bekommt `role="alert"`.
+**Fix:** `ws.connect()` auf Modul-Top-Level in `main.tsx` anstoßen, vor dem
+ersten Render. Ist eine `sessionId` im `localStorage`, sofort
+`import("./pages/Room")` starten. `preloadRoom` in `Home.tsx` zusätzlich auf
+`touchstart`. Optional `<link rel="modulepreload">` für den Room-Chunk per
+Vite-Plugin in `index.html`.
 
-## 11. Rundenstart prüft die Vorbedingung in einem anderen Lock (CONC-1)
+---
 
-`handleStartGame` / `handleStartNextRound` prüfen den State, geben den Lock
-frei und rufen dann `beginCountdown`, das nur `lobby.Game != nil` nachprüft
-(`beginPlaying` und `endRound` prüfen `roundID` + State). 2 Sockets auf einer
-Session (alle Tabs teilen die `sessionId`; ein ersetzter Socket bleibt bis zum
-Schließen nutzbar) können so 2 Runden starten. Nicht reproduziert (8 Versuche),
-struktureller Härtungspunkt.
+## Kleinkram
 
-- Erwarteten State an `beginCountdown` übergeben und unter demselben Lock
-  prüfen. Optional in `lookupLocked` `h.clients[sessionID] == c` verlangen.
-
-## 12. Initial-Bundle verkleinern (erst nach Punkt 1)
-
-Initial-Chunk 401 KB roh / 124 KB gzip:
-
-```
-174.1 KB  44.7%  react-dom
- 64.8 KB  16.6%  zod            <- nur wegen serverEvents.ts im Initial-Chunk
- 54.6 KB  14.0%  @tanstack/router-core
- 26.5 KB   6.8%  tailwind-merge
- 25.8 KB   6.6%  (eigener Code)
-```
-
-- **Zod aus dem Initial-Chunk** (~18 KB gzip): hängt nur drin, weil `lib/ws.ts`
-  sofort `parseServerEvent` braucht. Handgeschriebene Validatoren für die
-  Event-Schemas in `lib/serverEvents.ts` oder `zod/mini`. Die Validierung jedes
-  eingehenden Events ist Invariante (CLAUDE.md) und bleibt, nur die Umsetzung
-  ändert sich.
-- **Room-Chunk vorladen:** `Room` ist lazy (`router.tsx`); auf langsamer
-  Leitung kurz leer. Bei Hover/Focus auf Erstellen/Beitreten den `import()`
-  anstoßen.
-- `tailwind-merge` (~7 KB gzip) nur, wenn das nicht reicht (Styling-Risiko).
-
-## 13. Gefühlte Geschwindigkeit bei hoher Latenz
-
-- **Buzz-Feedback:** der Button in `GameScreen.tsx` wartet stumm auf die
-  Serverantwort. Sofortiger Pending-Zustand.
-- **Timer-Drift:** `timeRemaining` kommt in ganzen Sekunden, der Client tickt
-  lokal weiter und hinkt bei 1 s RTT ~1 s hinterher (spürbar in der
-  `dangerZone`). RTT/2-Kompensation oder absolute Deadline + Clock-Offset in
-  `buildGameState`.
-- Die 8-s-Timeouts in `Home.tsx` (`armTimeout`, `checkCode`) auf 15 s heben.
-
-## 14. Doku-Kleinkram (DOC-2)
-
-- `frontend/public/llms.txt`: "Set the categories and number of rounds, then
-  play rounds that share a letter" stimmt nicht. Es gibt keine Rundenzahl, jede
-  Runde hat ihren eigenen Buchstaben. Die echten Einstellungen nennen
-  (Zeitlimit, Kommentator-Modus, Flammen, Letzter-Buchstabe-Modus, gesperrte
-  Buchstaben) und den Solo-Modus.
-- `CLAUDE.md`: `cmd/loadtest` in der Backend-Übersicht ergänzen.
-
-## 15. Render-Tests für die React-Screens (TEST-1)
-
-Nur `answerValidation.test.ts` und `serverEvents.test.ts`; kein Test rendert
-eine Komponente. A11Y-1 und UX-2 sitzen genau in dieser Schicht.
-
-- happy-dom-Preload + Testing Library; abdecken: Host- vs. Nicht-Host-Aktionen
-  pro Screen, das Buzz-Gate, das Mapping State -> Screen in `Room`.
+- **LOADTEST-1:** `cmd/loadtest` meldet unsinnige avg/max (z. B.
+  44816457 ms): Join-Broadcasts, die noch unterwegs sind, werden als Antwort
+  gezählt, und `startNanos` hat einen Race. Nur Antworten mit passender
+  Request-ID messen, `startNanos` atomar setzen.
+- **NET-1:** `net.ipv4.tcp_slow_start_after_idle = 0` in
+  `server-config/configuration.nix` (`boot.kernel.sysctl`). Sonst fällt das
+  cwnd nach jeder Pause in der Lobby/Bewertung zurück, und der nächste große
+  Snapshot braucht wieder mehrere RTTs.
+- **NET-2:** nginx liefert `/assets/` direkt aus dem Store
+  (`root` + `gzip_static`/`brotli_static`, `expires max`) statt über Go;
+  zusätzlich HTTP/3 (`quic` + `Alt-Svc`) im slf-vhost für schnellere
+  Handshakes auf Mobilfunk.
