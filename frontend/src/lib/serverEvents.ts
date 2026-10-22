@@ -203,10 +203,7 @@ export function parseServerEvent(raw: string): ServerEvent | null {
 	const result = serverEventSchema.safeParse(json);
 	if (!result.success) {
 		if (import.meta.env?.DEV) {
-			console.warn(
-				"Discarded invalid server message:",
-				result.error.issues,
-			);
+			console.warn("Discarded invalid server message:", result.error.issues);
 		}
 		return null;
 	}

@@ -6,338 +6,338 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+	--color-background: hsl(var(--background));
+	--color-foreground: hsl(var(--foreground));
+	--color-card: hsl(var(--card));
+	--color-card-foreground: hsl(var(--card-foreground));
+	--color-primary: hsl(var(--primary));
+	--color-primary-foreground: hsl(var(--primary-foreground));
+	--color-secondary: hsl(var(--secondary));
+	--color-secondary-foreground: hsl(var(--secondary-foreground));
+	--color-muted: hsl(var(--muted));
+	--color-muted-foreground: hsl(var(--muted-foreground));
+	--color-accent: hsl(var(--accent));
+	--color-accent-foreground: hsl(var(--accent-foreground));
+	--color-destructive: hsl(var(--destructive));
+	--color-destructive-foreground: hsl(var(--destructive-foreground));
+	--color-border: hsl(var(--border));
+	--color-input: hsl(var(--input));
+	--color-ring: hsl(var(--ring));
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
 }
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  /* Darkened from 46.9% so secondary text clears WCAG AA (4.5:1) even on the
+	--background: 0 0% 100%;
+	--foreground: 222.2 84% 4.9%;
+	--card: 0 0% 100%;
+	--card-foreground: 222.2 84% 4.9%;
+	--primary: 222.2 47.4% 11.2%;
+	--primary-foreground: 210 40% 98%;
+	--secondary: 210 40% 96.1%;
+	--secondary-foreground: 222.2 47.4% 11.2%;
+	--muted: 210 40% 96.1%;
+	/* Darkened from 46.9% so secondary text clears WCAG AA (4.5:1) even on the
      muted surfaces it sits on (former LH-A11Y contrast finding). */
-  --muted-foreground: 215.4 16.3% 40%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --radius: 0.5rem;
+	--muted-foreground: 215.4 16.3% 40%;
+	--accent: 210 40% 96.1%;
+	--accent-foreground: 222.2 47.4% 11.2%;
+	--destructive: 0 84.2% 60.2%;
+	--destructive-foreground: 210 40% 98%;
+	--border: 214.3 31.8% 91.4%;
+	--input: 214.3 31.8% 91.4%;
+	--ring: 222.2 84% 4.9%;
+	--radius: 0.5rem;
 }
 
 .dark {
-  /* Neutral near-black palette (no blue tint), cards lifted slightly above the
+	/* Neutral near-black palette (no blue tint), cards lifted slightly above the
      background so they read as distinct surfaces. */
-  --background: 240 9% 6%;
-  --foreground: 0 0% 98%;
-  --card: 240 8% 9%;
-  --card-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 9% 9%;
-  --secondary: 240 5% 16%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 6% 13%;
-  --muted-foreground: 240 5% 65%;
-  --accent: 240 5% 16%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 5% 16%;
-  --input: 240 5% 16%;
-  --ring: 240 5% 84%;
+	--background: 240 9% 6%;
+	--foreground: 0 0% 98%;
+	--card: 240 8% 9%;
+	--card-foreground: 0 0% 98%;
+	--primary: 0 0% 98%;
+	--primary-foreground: 240 9% 9%;
+	--secondary: 240 5% 16%;
+	--secondary-foreground: 0 0% 98%;
+	--muted: 240 6% 13%;
+	--muted-foreground: 240 5% 65%;
+	--accent: 240 5% 16%;
+	--accent-foreground: 0 0% 98%;
+	--destructive: 0 72% 51%;
+	--destructive-foreground: 0 0% 98%;
+	--border: 240 5% 16%;
+	--input: 240 5% 16%;
+	--ring: 240 5% 84%;
 }
 
 * {
-  border-color: hsl(var(--border));
+	border-color: hsl(var(--border));
 }
 
 /* Subtle motion: a fade-in for phase screens and a pop for the countdown tick. */
 @keyframes slf-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 @keyframes slf-countdown-pop {
-  0% {
-    opacity: 0;
-    transform: scale(1.35);
-  }
-  45% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+	0% {
+		opacity: 0;
+		transform: scale(1.35);
+	}
+	45% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 /* A one-shot background flash that fades out, to spotlight a freshly added row. */
 @keyframes slf-highlight {
-  0% {
-    background-color: hsl(var(--primary) / 0.25);
-  }
-  100% {
-    background-color: transparent;
-  }
+	0% {
+		background-color: hsl(var(--primary) / 0.25);
+	}
+	100% {
+		background-color: transparent;
+	}
 }
 /* A brief flicker + warm glow to make a flame indicator feel alive. */
 @keyframes slf-flame-flicker {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  25% {
-    opacity: 0.7;
-    transform: scale(1.12) rotate(-3deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(0.96);
-  }
-  75% {
-    opacity: 0.85;
-    transform: scale(1.08) rotate(2deg);
-  }
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	25% {
+		opacity: 0.7;
+		transform: scale(1.12) rotate(-3deg);
+	}
+	50% {
+		opacity: 1;
+		transform: scale(0.96);
+	}
+	75% {
+		opacity: 0.85;
+		transform: scale(1.08) rotate(2deg);
+	}
 }
 /* Counterpart to slf-fade-in: eases an element out before it's unmounted. */
 @keyframes slf-fade-out {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+	from {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(4px);
+	}
 }
 /* Scale+fade used to open/close modal panels (e.g. the QR popup). */
 @keyframes slf-scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 @keyframes slf-scale-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95);
+	}
 }
 /* A quick scale bump used to confirm an action (copy, toggle, select). */
 @keyframes slf-pop {
-  0% {
-    transform: scale(1);
-  }
-  40% {
-    transform: scale(1.04);
-  }
-  100% {
-    transform: scale(1);
-  }
+	0% {
+		transform: scale(1);
+	}
+	40% {
+		transform: scale(1.04);
+	}
+	100% {
+		transform: scale(1);
+	}
 }
 /* A short horizontal shake to signal a rejected/disabled action. */
 @keyframes slf-shake {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  20% {
-    transform: translateX(-4px);
-  }
-  40% {
-    transform: translateX(4px);
-  }
-  60% {
-    transform: translateX(-3px);
-  }
-  80% {
-    transform: translateX(3px);
-  }
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	20% {
+		transform: translateX(-4px);
+	}
+	40% {
+		transform: translateX(4px);
+	}
+	60% {
+		transform: translateX(-3px);
+	}
+	80% {
+		transform: translateX(3px);
+	}
 }
 /* A checkmark that pops in above an element to confirm a copy. */
 @keyframes slf-check-pop {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 4px) scale(0.6);
-  }
-  55% {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1.12);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1);
-  }
+	0% {
+		opacity: 0;
+		transform: translate(-50%, 4px) scale(0.6);
+	}
+	55% {
+		opacity: 1;
+		transform: translate(-50%, 0) scale(1.12);
+	}
+	100% {
+		opacity: 1;
+		transform: translate(-50%, 0) scale(1);
+	}
 }
 /* Toast slide-in from the bottom-left with a slight overshoot, plus the thin
    auto-dismiss progress bar that shrinks left-to-right. */
 @keyframes slf-toast-in {
-  0% {
-    opacity: 0;
-    transform: translateY(-12px) scale(0.98);
-  }
-  70% {
-    opacity: 1;
-    transform: translateY(2px) scale(1);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+	0% {
+		opacity: 0;
+		transform: translateY(-12px) scale(0.98);
+	}
+	70% {
+		opacity: 1;
+		transform: translateY(2px) scale(1);
+	}
+	100% {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
 }
 @keyframes slf-toast-progress {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
+	from {
+		transform: scaleX(1);
+	}
+	to {
+		transform: scaleX(0);
+	}
 }
 .animate-toast-in {
-  animation: slf-toast-in 0.32s cubic-bezier(0.22, 1.2, 0.4, 1);
+	animation: slf-toast-in 0.32s cubic-bezier(0.22, 1.2, 0.4, 1);
 }
 .toast-progress {
-  transform-origin: left;
-  animation-name: slf-toast-progress;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
+	transform-origin: left;
+	animation-name: slf-toast-progress;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
 }
 
 /* A stronger pop for the final "Los!" tick of the countdown. */
 @keyframes slf-countdown-go {
-  0% {
-    opacity: 0;
-    transform: scale(1.6);
-  }
-  40% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-  70% {
-    transform: scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
+	0% {
+		opacity: 0;
+		transform: scale(1.6);
+	}
+	40% {
+		opacity: 1;
+		transform: scale(1.12);
+	}
+	70% {
+		transform: scale(0.96);
+	}
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
 }
 .animate-countdown-go {
-  animation: slf-countdown-go 0.5s cubic-bezier(0.22, 1.2, 0.4, 1);
+	animation: slf-countdown-go 0.5s cubic-bezier(0.22, 1.2, 0.4, 1);
 }
 
 /* Screen padding that also respects device safe areas (notch / home indicator)
    while keeping a sensible 1rem minimum. */
 .screen-pad {
-  padding-top: max(1rem, env(safe-area-inset-top));
-  padding-right: max(1rem, env(safe-area-inset-right));
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
-  padding-left: max(1rem, env(safe-area-inset-left));
+	padding-top: max(1rem, env(safe-area-inset-top));
+	padding-right: max(1rem, env(safe-area-inset-right));
+	padding-bottom: max(1rem, env(safe-area-inset-bottom));
+	padding-left: max(1rem, env(safe-area-inset-left));
 }
 
 /* Durations kept short so the UI feels snappy: motion confirms an action without
    ever making the user wait on it (responsiveness over visual effect). */
 .animate-fade-in {
-  animation: slf-fade-in 0.15s ease-out;
+	animation: slf-fade-in 0.15s ease-out;
 }
 .animate-countdown-pop {
-  animation: slf-countdown-pop 0.4s ease-out;
+	animation: slf-countdown-pop 0.4s ease-out;
 }
 .animate-fade-out {
-  animation: slf-fade-out 0.12s ease-in forwards;
+	animation: slf-fade-out 0.12s ease-in forwards;
 }
 .animate-flame {
-  animation: slf-flame-flicker 0.7s ease-in-out;
-  filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
+	animation: slf-flame-flicker 0.7s ease-in-out;
+	filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
 }
 .animate-highlight {
-  animation: slf-highlight 0.6s ease-out;
+	animation: slf-highlight 0.6s ease-out;
 }
 .animate-pop {
-  animation: slf-pop 0.2s ease-out;
+	animation: slf-pop 0.2s ease-out;
 }
 .animate-check-pop {
-  animation: slf-check-pop 0.35s ease-out;
+	animation: slf-check-pop 0.35s ease-out;
 }
 .animate-shake {
-  animation: slf-shake 0.4s ease-in-out;
+	animation: slf-shake 0.4s ease-in-out;
 }
 .animate-scale-in {
-  animation: slf-scale-in 0.12s ease-out;
+	animation: slf-scale-in 0.12s ease-out;
 }
 .animate-scale-out {
-  animation: slf-scale-out 0.1s ease-in forwards;
+	animation: slf-scale-out 0.1s ease-in forwards;
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-fade-out,
-  .animate-countdown-pop,
-  .animate-pop,
-  .animate-check-pop,
-  .animate-shake,
-  .animate-scale-in,
-  .animate-scale-out,
-  .animate-toast-in,
-  .toast-progress,
-  .animate-countdown-go,
-  .animate-flame,
-  .animate-highlight {
-    animation: none;
-  }
+	.animate-fade-in,
+	.animate-fade-out,
+	.animate-countdown-pop,
+	.animate-pop,
+	.animate-check-pop,
+	.animate-shake,
+	.animate-scale-in,
+	.animate-scale-out,
+	.animate-toast-in,
+	.toast-progress,
+	.animate-countdown-go,
+	.animate-flame,
+	.animate-highlight {
+		animation: none;
+	}
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: system-ui, -apple-system, sans-serif;
+	background-color: hsl(var(--background));
+	color: hsl(var(--foreground));
+	font-family: system-ui, -apple-system, sans-serif;
 }
 
 /* Inverted text selection: the highlight uses the current text colour as its
    background and the page background as its text colour (theme-aware, works in
    light and dark). */
 ::selection {
-  background-color: hsl(var(--foreground));
-  color: hsl(var(--background));
+	background-color: hsl(var(--foreground));
+	color: hsl(var(--background));
 }
 ::-moz-selection {
-  background-color: hsl(var(--foreground));
-  color: hsl(var(--background));
+	background-color: hsl(var(--foreground));
+	color: hsl(var(--background));
 }

@@ -55,34 +55,36 @@ function answerSchema(letter: string, lastLetter: boolean) {
 
 function buildAnswerSchema(letter: string, lastLetter: boolean) {
 	const upper = upperRunes(letter);
-	return z
-		.string()
-		.transform(normalize)
-		// Counted in code points, like the engine's len([]rune(n)) - `.length`
-		// would count UTF-16 units and reject answers the server accepts.
-		.refine(
-			(n) => {
-				const count = [...n].length;
-				return count >= 2 && count <= 30;
-			},
-			{ message: "2-30 Zeichen" },
-		)
-		.refine(
-			(n) => {
-				const runes = [...n];
-				// Zod runs every refinement, so this one also sees a value the length
-				// check already rejected - including the empty string.
-				if (runes.length === 0) return false;
-				return lastLetter
-					? mapCase(runes[runes.length - 1], true) === upper
-					: upperRunes(n).startsWith(upper);
-			},
-			{
-				message: lastLetter
-					? `muss mit ${upper} enden`
-					: `muss mit ${upper} beginnen`,
-			},
-		);
+	return (
+		z
+			.string()
+			.transform(normalize)
+			// Counted in code points, like the engine's len([]rune(n)) - `.length`
+			// would count UTF-16 units and reject answers the server accepts.
+			.refine(
+				(n) => {
+					const count = [...n].length;
+					return count >= 2 && count <= 30;
+				},
+				{ message: "2-30 Zeichen" },
+			)
+			.refine(
+				(n) => {
+					const runes = [...n];
+					// Zod runs every refinement, so this one also sees a value the length
+					// check already rejected - including the empty string.
+					if (runes.length === 0) return false;
+					return lastLetter
+						? mapCase(runes[runes.length - 1], true) === upper
+						: upperRunes(n).startsWith(upper);
+				},
+				{
+					message: lastLetter
+						? `muss mit ${upper} enden`
+						: `muss mit ${upper} beginnen`,
+				},
+			)
+	);
 }
 
 // True when a field has content that breaks the rules (wrong letter / length).

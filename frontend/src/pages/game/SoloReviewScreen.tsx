@@ -20,8 +20,7 @@ export function SoloReviewScreen() {
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
-			if (isTypingTarget(document.activeElement) || isModalOpen())
-				return;
+			if (isTypingTarget(document.activeElement) || isModalOpen()) return;
 			if (e.repeat) return;
 			if (e.key === "Enter") ws.send({ type: "finishReview", payload: {} });
 		}

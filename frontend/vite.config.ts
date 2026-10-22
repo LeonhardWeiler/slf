@@ -1,16 +1,16 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import path from "path";
+import path from "node:path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    // Force a single copy of React so dependencies (e.g. Radix/shadcn
-    // components) never get a second, dispatcher-less React instance.
-    dedupe: ["react", "react-dom"],
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+	plugins: [react(), tailwindcss()],
+	resolve: {
+		// Force a single copy of React so dependencies (e.g. Radix/shadcn
+		// components) never get a second, dispatcher-less React instance.
+		dedupe: ["react", "react-dom"],
+		alias: {
+			"@": path.resolve(__dirname, "./src"),
+		},
+	},
 });

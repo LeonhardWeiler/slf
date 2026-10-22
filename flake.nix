@@ -28,11 +28,14 @@
             frontend = pkgs.stdenvNoCC.mkDerivation {
               name = "slf-frontend";
               src = ./frontend;
-              nativeBuildInputs = [ pkgs.bun pkgs.nodejs pkgs.brotli ];
+              nativeBuildInputs = [ pkgs.bun pkgs.nodejs pkgs.brotli pkgs.autoPatchelfHook ];
+              buildInputs = [ pkgs.stdenv.cc.cc.lib pkgs.glibc ];
               buildPhase = ''
                 cp -r ${nodeModules}/node_modules .
                 chmod -R u+w node_modules
                 patchShebangs node_modules
+                autoPatchelf node_modules/@biomejs
+                bun run lint
                 bun test src
                 bun run build
                 find dist -type f -regex '.*\.\(html\|js\|css\|svg\|txt\)' \
@@ -46,6 +49,10 @@
             version = (builtins.fromJSON (builtins.readFile ./frontend/package.json)).version;
             src = ./backend;
             vendorHash = "sha256-1ckWAhiyEgGgIk/9Y/bgj4msc4eNVpsRgyIpxK8hDks=";
+            preCheck = ''
+              test -z "$(gofmt -l cmd internal)" || { gofmt -l cmd internal; exit 1; }
+              go vet ./...
+            '';
             postInstall = ''
               mv $out/bin/server $out/bin/slf
               mkdir $out/share

@@ -138,9 +138,7 @@ export function Lobby() {
 	// Codes are presented uppercase everywhere (display, copy, link, URL); the
 	// server normalizes case-insensitively, so this stays purely cosmetic.
 	const lobbyCode = (lobby?.lobbyCode ?? "").toUpperCase();
-	const joinLink = lobby
-		? `${window.location.origin}/join/${lobbyCode}`
-		: "";
+	const joinLink = lobby ? `${window.location.origin}/join/${lobbyCode}` : "";
 
 	async function copyText(text: string, kind: "code" | "link") {
 		if (!text) return;
@@ -579,9 +577,9 @@ export function Lobby() {
 								trigger="Zeitlimit pro Runde"
 								label="Was bedeutet das Zeitlimit?"
 							>
-								Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen. Bei
-								„Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der Host sie
-								beendet.
+								Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
+								Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
+								Host sie beendet.
 							</InfoHint>
 							{isHost ? (
 								<div className="flex flex-wrap gap-2">
@@ -618,7 +616,10 @@ export function Lobby() {
 						{/* Commentator mode - on = host doesn't play, only comments (the
                 switch is the inverse of the hostPlays flag it drives). */}
 						<div className="flex items-center justify-between gap-3">
-							<InfoHint trigger="Kommentator" label="Was bedeutet „Kommentator“?">
+							<InfoHint
+								trigger="Kommentator"
+								label="Was bedeutet „Kommentator“?"
+							>
 								Der Host spielt nicht mit, sondern ist nur Kommentator und sieht
 								bei sich, welche Kategorien schon ausgefüllt wurden.
 							</InfoHint>
@@ -640,8 +641,8 @@ export function Lobby() {
 						{/* Flames spice */}
 						<div className="flex items-center justify-between gap-3">
 							<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
-								Wette pro Runde auf eine Kategorie, dass deine Antwort einzigartig
-								ist: richtig +5, falsch 0 Punkte.
+								Wette pro Runde auf eine Kategorie, dass deine Antwort
+								einzigartig ist: richtig +5, falsch 0 Punkte.
 							</InfoHint>
 							{isHost ? (
 								<Switch
@@ -664,7 +665,8 @@ export function Lobby() {
 								trigger="Letzter Buchstabe"
 								label="Was bedeutet „Letzter Buchstabe“?"
 							>
-								Antworten müssen mit dem Buchstaben <em>enden</em> statt beginnen.
+								Antworten müssen mit dem Buchstaben <em>enden</em> statt
+								beginnen.
 							</InfoHint>
 							{isHost ? (
 								<Switch
@@ -835,9 +837,7 @@ export function Lobby() {
 					labelledBy="qr-title"
 					onClose={closeQr}
 					initialFocus={qrCloseRef}
-					backdropClassName={
-						qrClosing ? "animate-fade-out" : "animate-fade-in"
-					}
+					backdropClassName={qrClosing ? "animate-fade-out" : "animate-fade-in"}
 					className={qrClosing ? "animate-scale-out" : "animate-scale-in"}
 				>
 					<h2 id="qr-title" className="text-center text-lg font-semibold">
