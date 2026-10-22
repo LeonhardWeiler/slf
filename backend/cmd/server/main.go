@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
+	"io/fs"
 	"log"
 	"log/slog"
-	"mime"
 	"net/http"
 	"os"
 	"os/signal"
@@ -166,41 +168,60 @@ func securityHeaders(h http.Header) {
 }
 
 // spaHandler serves static files from dir and falls back to index.html for
-// paths that do not map to an existing file (single-page-app routing). A
-// precompressed sibling (.br, .gz from the build) is served when the client
-// accepts it.
+// paths that do not map to an existing file (single-page-app routing), except
+// under /assets/, where a missing chunk is a 404. A precompressed sibling (.br,
+// .gz from the build) is served when the client accepts it. Every file carries
+// a content-hash ETag and no Last-Modified: the Nix store pins all mtimes to
+// 1970, so a date never changes across deploys.
 func spaHandler(dir string) http.Handler {
+	etags := map[string]string{}
+	_ = filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		b, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		sum := sha256.Sum256(b)
+		etags[p] = `"` + hex.EncodeToString(sum[:8]) + `"`
+		return nil
+	})
 	index := filepath.Join(dir, "index.html")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		securityHeaders(h)
 		h.Set("Vary", "Accept-Encoding")
+		asset := strings.HasPrefix(r.URL.Path, "/assets/")
 		path := filepath.Join(dir, filepath.Clean(r.URL.Path))
-		// Vite emits content-hashed filenames under /assets/, so those can be
-		// cached immutably for a year; everything else (index.html, robots.txt,
-		// favicon) must revalidate so a redeploy is picked up.
-		if info, err := os.Stat(path); err != nil || info.IsDir() {
+		if _, ok := etags[path]; !ok {
+			if asset {
+				http.NotFound(w, r)
+				return
+			}
 			path = index
-			h.Set("Cache-Control", "no-cache")
-		} else if strings.HasPrefix(r.URL.Path, "/assets/") {
+		}
+		if asset {
 			h.Set("Cache-Control", "public, max-age=31536000, immutable")
 		} else {
 			h.Set("Cache-Control", "no-cache")
 		}
+		name := path
 		accept := r.Header.Get("Accept-Encoding")
 		for _, enc := range [][2]string{{"br", ".br"}, {"gzip", ".gz"}} {
-			if !strings.Contains(accept, enc[0]) {
-				continue
-			}
-			if _, err := os.Stat(path + enc[1]); err == nil {
-				if ct := mime.TypeByExtension(filepath.Ext(path)); ct != "" {
-					h.Set("Content-Type", ct)
-				}
+			if _, ok := etags[path+enc[1]]; ok && strings.Contains(accept, enc[0]) {
 				h.Set("Content-Encoding", enc[0])
 				path += enc[1]
 				break
 			}
 		}
-		http.ServeFile(w, r, path)
+		f, err := os.Open(path)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		defer f.Close()
+		h.Set("ETag", etags[path])
+		http.ServeContent(w, r, name, time.Time{}, f)
 	})
 }

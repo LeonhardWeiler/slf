@@ -54,3 +54,34 @@ func TestSpaHandlerPrecompressed(t *testing.T) {
 		}
 	}
 }
+
+func TestSpaHandlerCaching(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("index"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	h := spaHandler(dir)
+	get := func(path, etag string) *http.Response {
+		r := httptest.NewRequest(http.MethodGet, path, nil)
+		if etag != "" {
+			r.Header.Set("If-None-Match", etag)
+		}
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Result()
+	}
+	if res := get("/assets/gone.js", ""); res.StatusCode != http.StatusNotFound {
+		t.Errorf("missing asset: status %d, want 404", res.StatusCode)
+	}
+	res := get("/", "")
+	etag := res.Header.Get("ETag")
+	if etag == "" || res.Header.Get("Last-Modified") != "" || res.Header.Get("Cache-Control") != "no-cache" {
+		t.Errorf("index headers: %v", res.Header)
+	}
+	if res := get("/join/abc", etag); res.StatusCode != http.StatusNotModified {
+		t.Errorf("same etag: status %d, want 304", res.StatusCode)
+	}
+	if res := get("/", `"stale"`); res.StatusCode != http.StatusOK {
+		t.Errorf("stale etag: status %d, want 200", res.StatusCode)
+	}
+}
