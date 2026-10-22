@@ -543,6 +543,12 @@ func TestUnansweredPingDisconnects(t *testing.T) {
 	guest.waitFor("hostDisconnected")
 }
 
+func TestPingGetsPong(t *testing.T) {
+	c := dial(t, newServer(t))
+	c.send("ping", map[string]any{})
+	c.waitFor("pong")
+}
+
 // sr-1: when the host drops, everyone is told (hostDisconnected); a host
 // reconnect within the grace window cancels it (hostReconnected).
 func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {

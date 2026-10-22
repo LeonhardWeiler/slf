@@ -81,6 +81,20 @@ class WSClient {
 		this.connecting = new Promise((resolve, reject) => {
 			const socket = new WebSocket(this.url);
 			this.ws = socket;
+			// Heartbeat: a half-open socket stays OPEN here while nothing arrives,
+			// so a ping without any reply in 3 s counts as a lost connection.
+			let beat: ReturnType<typeof setInterval> | undefined;
+			let pong: ReturnType<typeof setTimeout> | undefined;
+			const lost = () => {
+				clearInterval(beat);
+				clearTimeout(pong);
+				if (this.ws === socket) {
+					this.ws = null;
+				}
+				this.connecting = null;
+				this.notifyStatus(false);
+				this.scheduleReconnect();
+			};
 
 			socket.onopen = () => {
 				this.connecting = null;
@@ -89,6 +103,15 @@ class WSClient {
 				this.reconnectAttempts = 0; // reset backoff after a successful connect
 				this.notifyStatus(true);
 				this.flush();
+				beat = setInterval(() => {
+					socket.send(JSON.stringify({ type: "ping", payload: {} }));
+					pong ??= setTimeout(() => {
+						socket.onclose = null;
+						socket.onmessage = null;
+						socket.close();
+						lost();
+					}, 3000);
+				}, 10_000);
 				resolve();
 			};
 
@@ -99,6 +122,8 @@ class WSClient {
 			};
 
 			socket.onmessage = (event) => {
+				clearTimeout(pong);
+				pong = undefined;
 				// Validate with Zod before dispatching; malformed or unexpected-shape
 				// messages are dropped (SRS 9.3 / 9.12).
 				const msg = parseServerEvent(event.data as string);
@@ -110,14 +135,7 @@ class WSClient {
 				}
 			};
 
-			socket.onclose = () => {
-				if (this.ws === socket) {
-					this.ws = null;
-				}
-				this.connecting = null;
-				this.notifyStatus(false);
-				this.scheduleReconnect();
-			};
+			socket.onclose = lost;
 		});
 
 		// Swallow rejection so callers awaiting connect() don't throw unhandled;

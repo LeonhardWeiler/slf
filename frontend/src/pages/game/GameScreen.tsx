@@ -48,6 +48,18 @@ function useSecondsLeft(endsAt: number | null): number | null {
 }
 
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
+
+function sendInputSync(roundId: string, answers: Record<string, string>) {
+	const entries = Object.entries(answers).filter(([, v]) => v.trim() !== "");
+	if (entries.length === 0) return;
+	ws.send({
+		type: "inputSync",
+		payload: {
+			roundId,
+			answers: entries.map(([categoryId, value]) => ({ categoryId, value })),
+		},
+	});
+}
 const flameKey = (roundId: string) => `slf:flame:${roundId}`;
 const flameHintKey = "slf:flameHintSeen";
 
@@ -161,23 +173,22 @@ export function GameScreen() {
 
 		if (isSpectator) return; // the commentator host submits nothing
 
-		const entries = Object.entries(saved).filter(([, v]) => v.trim() !== "");
-		if (entries.length > 0) {
-			ws.send({
-				type: "inputSync",
-				payload: {
-					roundId,
-					answers: entries.map(([categoryId, value]) => ({
-						categoryId,
-						value,
-					})),
-				},
-			});
-		}
+		sendInputSync(roundId, saved);
 		if (savedFlame) {
 			ws.send({ type: "setFlame", payload: { categoryId: savedFlame } });
 		}
 	}, [roundId]);
+
+	// Every reconnect resends all answers: ones sent just before the socket died
+	// may never have reached the server.
+	const sessionEpoch = useLobbyStore((s) => s.sessionEpoch);
+	const syncedEpoch = useRef(sessionEpoch);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new session
+	useEffect(() => {
+		if (syncedEpoch.current === sessionEpoch) return;
+		syncedEpoch.current = sessionEpoch;
+		if (roundId && !isSpectator) sendInputSync(roundId, answers);
+	}, [sessionEpoch]);
 
 	const countdown = useCountdown(
 		game?.countdownRemaining ?? null,

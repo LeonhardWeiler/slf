@@ -192,6 +192,7 @@ const serverEventSchema = z.discriminatedUnion("type", [
 		type: z.literal("hostReconnected"),
 		payload: z.object({}),
 	}),
+	z.object({ type: z.literal("pong"), payload: z.object({}) }),
 	z.object({ type: z.literal("error"), payload: errorPayload }),
 ]);
 

@@ -191,6 +191,7 @@ export type ServerEvent =
 	| { type: "buzzRejected"; payload: { reason: BuzzRejectReason } }
 	| { type: "hostDisconnected"; payload: { graceSeconds: number } }
 	| { type: "hostReconnected"; payload: Record<string, never> }
+	| { type: "pong"; payload: Record<string, never> }
 	| { type: "error"; payload: ErrorPayload };
 
 // Client -> Server
@@ -241,4 +242,5 @@ export type ClientEvent =
 	| { type: "finishReview"; payload: Record<string, never> }
 	| { type: "startNextRound"; payload: Record<string, never> }
 	| { type: "endGame"; payload: Record<string, never> }
-	| { type: "returnToLobby"; payload: Record<string, never> };
+	| { type: "returnToLobby"; payload: Record<string, never> }
+	| { type: "ping"; payload: Record<string, never> };

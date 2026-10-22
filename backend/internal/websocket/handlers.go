@@ -63,6 +63,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleEndGame(hub, c)
 	case "returnToLobby":
 		handleReturnToLobby(hub, c)
+	case "ping":
+		c.send("pong", struct{}{})
 	}
 }
 

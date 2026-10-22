@@ -13,6 +13,8 @@ interface LobbyStore {
 	// echo. The host also receives that echo, but shouldn't be told the lobby was
 	// closed when they closed it themselves.
 	selfLeaving: boolean;
+	// Counts sessionCreated messages, i.e. every (re)connect of this session.
+	sessionEpoch: number;
 
 	setLobby: (lobby: LobbyStatePayload) => void;
 	setSession: (sessionId: string, playerId: string) => void;
@@ -38,13 +40,18 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
 	mySessionId: null,
 	hostGrace: null,
 	selfLeaving: false,
+	sessionEpoch: 0,
 
 	// A fresh lobbyState means we're (back) in a lobby -> clear any stale
 	// self-leaving flag left over from a previous departure.
 	setLobby: (lobby) => set({ lobby, selfLeaving: false }),
 	setSession: (sessionId, playerId) => {
 		setSessionId(sessionId);
-		set({ mySessionId: sessionId, myPlayerId: playerId });
+		set((s) => ({
+			mySessionId: sessionId,
+			myPlayerId: playerId,
+			sessionEpoch: s.sessionEpoch + 1,
+		}));
 	},
 	setHostGrace: (seconds) => set({ hostGrace: seconds }),
 	setSelfLeaving: (v) => set({ selfLeaving: v }),

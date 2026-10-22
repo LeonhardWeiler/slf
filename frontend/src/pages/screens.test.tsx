@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { fireEvent, render as rtlRender, screen } from "@testing-library/react";
+import {
+	act,
+	fireEvent,
+	render as rtlRender,
+	screen,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme";
 import { useGameStore } from "@/store/game";
@@ -183,6 +188,34 @@ describe("GameScreen", () => {
 		expect(send).toHaveBeenCalledWith({ type: "buzz", payload: {} });
 		expect(buzz().disabled).toBe(true);
 		expect(buzz().textContent).toBe("Gesendet…");
+	});
+
+	it("resends all answers when the session reconnects", () => {
+		setup("guest", "Playing");
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		fireEvent.change(document.getElementById("cat-c1") as Element, {
+			target: { value: "Berlin" },
+		});
+		send.mockClear();
+		act(() => useLobbyStore.getState().setSession("s1", "guest"));
+		expect(send).toHaveBeenCalledWith({
+			type: "inputSync",
+			payload: {
+				roundId: "r1",
+				answers: [{ categoryId: "c1", value: "Berlin" }],
+			},
+		});
 	});
 });
 
