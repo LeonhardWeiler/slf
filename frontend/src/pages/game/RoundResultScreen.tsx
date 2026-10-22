@@ -6,7 +6,6 @@ import { useGameStore } from "@/store/game";
 import { isTypingTarget } from "@/lib/utils";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
-import { LetterOverview } from "@/components/LetterOverview";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
@@ -83,13 +82,15 @@ export function RoundResultScreen() {
 		result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
 
 	const lettersLeft = result.remainingLetters.length;
-	const usedLetters = new Set(result.usedLetters);
-	const excludedLetters = new Set(lobby.settings.excludedLetters);
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
 			<div className="mx-auto w-full max-w-5xl space-y-4">
 				<RoomHeader title="Rundenergebnis" />
+
+				<p className="text-center text-lg font-semibold">
+					Runde {result.usedLetters.length} · {result.letter}
+				</p>
 
 				<Card>
 					<CardHeader className="pb-3">
@@ -173,15 +174,6 @@ export function RoundResultScreen() {
 								</div>
 							);
 						})}
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">Buchstaben</CardTitle>
-					</CardHeader>
-					<CardContent>
-						<LetterOverview used={usedLetters} excluded={excludedLetters} />
 					</CardContent>
 				</Card>
 

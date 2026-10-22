@@ -98,6 +98,7 @@ describe("RoundResultScreen", () => {
 		render(<RoundResultScreen />);
 		expect(screen.getByRole("button", { name: "Nächste Runde" })).toBeDefined();
 		expect(screen.getByTitle("guest entfernen")).toBeDefined();
+		expect(screen.getByText("Runde 1 · A")).toBeDefined();
 	});
 
 	it("leaves a guest waiting without host actions", () => {
