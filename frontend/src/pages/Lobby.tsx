@@ -346,7 +346,7 @@ export function Lobby() {
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-5xl space-y-4">
+			<div className="mx-auto w-full max-w-xl lg:max-w-5xl space-y-4">
 				{/* Header */}
 				<div className="flex items-center justify-between">
 					<div>
@@ -361,426 +361,443 @@ export function Lobby() {
 					</div>
 				</div>
 
-				{/* Lobby Code */}
-				<Card>
-					<CardContent className="pt-6">
-						<button
-							type="button"
-							onClick={() => copyText(lobbyCode, "code")}
-							title="Lobbycode kopieren (Strg+C)"
-							className="block w-full text-center space-y-1 group"
-						>
-							<span className="block">
-								<span
-									// Keyed on copyPulse so the pop replays on every copy.
-									key={copyPulse}
-									className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity ${
-										copyPulse > 0 ? "animate-pop" : ""
-									}`}
+				<div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+					<div className="space-y-4">
+						{/* Lobby Code */}
+						<Card>
+							<CardContent className="pt-6">
+								<button
+									type="button"
+									onClick={() => copyText(lobbyCode, "code")}
+									title="Lobbycode kopieren (Strg+C)"
+									className="block w-full text-center space-y-1 group"
 								>
-									<span>{lobbyCode.slice(0, 3)}</span>
-									<span className="ml-2">{lobbyCode.slice(3)}</span>
-								</span>
-							</span>
-							<p className="min-h-4 text-xs text-muted-foreground">
-								{copyFailed
-									? "Kopieren nicht möglich - Code manuell markieren (nur über HTTPS)"
-									: copied === "code" && "Kopiert!"}
-							</p>
-						</button>
-
-						<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								// Fixed width so swapping the label to "Link kopiert!" doesn't
-								// make the button jump narrower.
-								className="min-w-[8.5rem]"
-								onClick={shareLink}
-							>
-								{copied === "link" ? (
-									<>
-										<Check className="h-4 w-4 text-green-600" />
-										Link kopiert!
-									</>
-								) : (
-									<>
-										<LinkIcon className="h-4 w-4" />
-										{canShare ? "Link teilen" : "Link kopieren"}
-									</>
-								)}
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setShowQr(true)}
-							>
-								<QrCodeIcon className="h-4 w-4" />
-								QR anzeigen
-							</Button>
-						</div>
-					</CardContent>
-				</Card>
-
-				{/* Players */}
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">
-							Spieler ({activePlayers.length})
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						{playerRows.map(({ player, leaving }) => (
-							<div
-								key={player.id}
-								className={`flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 ${
-									leaving
-										? "animate-fade-out pointer-events-none"
-										: "animate-fade-in"
-								}`}
-							>
-								<div className="flex items-center gap-2">
-									<span
-										className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-											player.connected
-												? "bg-green-500"
-												: "bg-muted-foreground animate-pulse"
-										}`}
-									/>
-									<span className="text-sm font-medium">{player.name}</span>
-									{player.id === myPlayerId && (
-										<span className="text-xs text-muted-foreground">(du)</span>
-									)}
-									{!player.connected && (
-										<span className="text-xs text-muted-foreground">
-											offline
-										</span>
-									)}
-								</div>
-								<div className="flex items-center gap-2">
-									{player.isHost && (
-										<span className="text-xs text-muted-foreground font-medium">
-											{lobby.settings.hostPlays ? "Host" : "Host · Kommentator"}
-										</span>
-									)}
-									{isHost && !leaving && player.id !== myPlayerId && (
-										<Button
-											variant="ghost"
-											size="icon"
-											className="h-7 w-7 text-destructive"
-											title={`${player.name} entfernen`}
-											onClick={() => kickPlayer(player.id, player.name)}
+									<span className="block">
+										<span
+											// Keyed on copyPulse so the pop replays on every copy.
+											key={copyPulse}
+											className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity ${
+												copyPulse > 0 ? "animate-pop" : ""
+											}`}
 										>
-											<X className="h-4 w-4" />
-										</Button>
-									)}
-								</div>
-							</div>
-						))}
-					</CardContent>
-				</Card>
+											<span>{lobbyCode.slice(0, 3)}</span>
+											<span className="ml-2">{lobbyCode.slice(3)}</span>
+										</span>
+									</span>
+									<p className="min-h-4 text-xs text-muted-foreground">
+										{copyFailed
+											? "Kopieren nicht möglich - Code manuell markieren (nur über HTTPS)"
+											: copied === "code" && "Kopiert!"}
+									</p>
+								</button>
 
-				{/* Categories */}
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">
-							Kategorien ({lobby.categories.length})
-						</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						{lobby.categories.map((cat) => (
-							<div
-								key={cat.id}
-								onAnimationEnd={() =>
-									setFlashCatId((id) => (id === cat.id ? null : id))
-								}
-								// Fixed height so switching a row into edit mode doesn't grow it
-								// and shove the rest of the list down.
-								className={`flex h-10 items-center justify-between px-3 rounded-md bg-muted/50 ${
-									flashCatId === cat.id ? "animate-highlight" : ""
-								}`}
-							>
-								{isHost && editingId === cat.id ? (
+								<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										// Fixed width so swapping the label to "Link kopiert!" doesn't
+										// make the button jump narrower.
+										className="min-w-[8.5rem]"
+										onClick={shareLink}
+									>
+										{copied === "link" ? (
+											<>
+												<Check className="h-4 w-4 text-green-600" />
+												Link kopiert!
+											</>
+										) : (
+											<>
+												<LinkIcon className="h-4 w-4" />
+												{canShare ? "Link teilen" : "Link kopieren"}
+											</>
+										)}
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={() => setShowQr(true)}
+									>
+										<QrCodeIcon className="h-4 w-4" />
+										QR anzeigen
+									</Button>
+								</div>
+							</CardContent>
+						</Card>
+
+						{/* Players */}
+						<Card>
+							<CardHeader className="pb-3">
+								<CardTitle className="text-base">
+									Spieler ({activePlayers.length})
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								{playerRows.map(({ player, leaving }) => (
+									<div
+										key={player.id}
+										className={`flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 ${
+											leaving
+												? "animate-fade-out pointer-events-none"
+												: "animate-fade-in"
+										}`}
+									>
+										<div className="flex items-center gap-2">
+											<span
+												className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+													player.connected
+														? "bg-green-500"
+														: "bg-muted-foreground animate-pulse"
+												}`}
+											/>
+											<span className="text-sm font-medium">{player.name}</span>
+											{player.id === myPlayerId && (
+												<span className="text-xs text-muted-foreground">
+													(du)
+												</span>
+											)}
+											{!player.connected && (
+												<span className="text-xs text-muted-foreground">
+													offline
+												</span>
+											)}
+										</div>
+										<div className="flex items-center gap-2">
+											{player.isHost && (
+												<span className="text-xs text-muted-foreground font-medium">
+													{lobby.settings.hostPlays
+														? "Host"
+														: "Host · Kommentator"}
+												</span>
+											)}
+											{isHost && !leaving && player.id !== myPlayerId && (
+												<Button
+													variant="ghost"
+													size="icon"
+													className="h-7 w-7 text-destructive"
+													title={`${player.name} entfernen`}
+													onClick={() => kickPlayer(player.id, player.name)}
+												>
+													<X className="h-4 w-4" />
+												</Button>
+											)}
+										</div>
+									</div>
+								))}
+							</CardContent>
+						</Card>
+					</div>
+					<div className="space-y-4">
+						{/* Categories */}
+						<Card>
+							<CardHeader className="pb-3">
+								<CardTitle className="text-base">
+									Kategorien ({lobby.categories.length})
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								{lobby.categories.map((cat) => (
+									<div
+										key={cat.id}
+										onAnimationEnd={() =>
+											setFlashCatId((id) => (id === cat.id ? null : id))
+										}
+										// Fixed height so switching a row into edit mode doesn't grow it
+										// and shove the rest of the list down.
+										className={`flex h-10 items-center justify-between px-3 rounded-md bg-muted/50 ${
+											flashCatId === cat.id ? "animate-highlight" : ""
+										}`}
+									>
+										{isHost && editingId === cat.id ? (
+											<form
+												className="flex items-center gap-2 w-full"
+												onSubmit={(e) => {
+													e.preventDefault();
+													saveEdit();
+												}}
+											>
+												<Input
+													value={editingValue}
+													onChange={(e) => setEditingValue(e.target.value)}
+													maxLength={30}
+													autoFocus
+													// Seamless inline edit: no border/extra padding so the text
+													// stays exactly where the name span sat (no horizontal jump).
+													className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+												/>
+												<Button type="submit" size="icon" className="h-7 w-7">
+													<Check className="h-4 w-4" />
+												</Button>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													className="h-7 w-7"
+													onClick={() => setEditingId(null)}
+												>
+													<X className="h-4 w-4" />
+												</Button>
+											</form>
+										) : (
+											<>
+												<span className="min-w-0 truncate text-sm">
+													{cat.name}
+												</span>
+												{isHost && (
+													// Same spacing (gap-2) and icon size (h-4) as the edit
+													// form's Accept/Dismiss buttons, so Edit/Delete sit in the
+													// exact same position when a row toggles into edit mode.
+													<div className="flex shrink-0 items-center gap-2">
+														<Button
+															variant="ghost"
+															size="icon"
+															className="group h-7 w-7 shrink-0"
+															title="Bearbeiten"
+															onClick={() => startEdit(cat.id, cat.name)}
+														>
+															{/* Subtle tilt on hover, a stronger one on press - a bit
+													    of tactile feedback without slowing anything down. */}
+															<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="icon"
+															// Stays red at all times: the ghost hover/active would
+															// otherwise recolor it to the accent foreground.
+															className="group h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
+															title="Löschen"
+															onClick={() => deleteCategory(cat.id)}
+														>
+															<Trash2 className="h-4 w-4 transition-transform group-hover:-rotate-6 group-active:-rotate-12" />
+														</Button>
+													</div>
+												)}
+											</>
+										)}
+									</div>
+								))}
+
+								{lobby.categories.length === 0 && (
+									<p className="text-sm text-muted-foreground px-3 py-1">
+										Noch keine Kategorien.
+									</p>
+								)}
+
+								{isHost && (
 									<form
-										className="flex items-center gap-2 w-full"
-										onSubmit={(e) => {
-											e.preventDefault();
-											saveEdit();
-										}}
+										onSubmit={handleAddCategory}
+										className="flex items-center gap-2 pt-1"
 									>
 										<Input
-											value={editingValue}
-											onChange={(e) => setEditingValue(e.target.value)}
+											value={newCategory}
+											onChange={(e) => setNewCategory(e.target.value)}
+											placeholder="Neue Kategorie…"
 											maxLength={30}
-											autoFocus
-											// Seamless inline edit: no border/extra padding so the text
-											// stays exactly where the name span sat (no horizontal jump).
-											className="h-8 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+											className="h-8"
 										/>
-										<Button type="submit" size="icon" className="h-7 w-7">
-											<Check className="h-4 w-4" />
-										</Button>
 										<Button
-											type="button"
-											variant="ghost"
+											type="submit"
 											size="icon"
-											className="h-7 w-7"
-											onClick={() => setEditingId(null)}
+											className="h-8 w-8"
+											disabled={!newCategory.trim()}
 										>
-											<X className="h-4 w-4" />
+											<Plus className="h-4 w-4" />
 										</Button>
 									</form>
-								) : (
-									<>
-										<span className="min-w-0 truncate text-sm">{cat.name}</span>
-										{isHost && (
-											// Same spacing (gap-2) and icon size (h-4) as the edit
-											// form's Accept/Dismiss buttons, so Edit/Delete sit in the
-											// exact same position when a row toggles into edit mode.
-											<div className="flex shrink-0 items-center gap-2">
-												<Button
-													variant="ghost"
-													size="icon"
-													className="group h-7 w-7 shrink-0"
-													title="Bearbeiten"
-													onClick={() => startEdit(cat.id, cat.name)}
-												>
-													{/* Subtle tilt on hover, a stronger one on press - a bit
-													    of tactile feedback without slowing anything down. */}
-													<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													// Stays red at all times: the ghost hover/active would
-													// otherwise recolor it to the accent foreground.
-													className="group h-7 w-7 shrink-0 text-destructive hover:text-destructive active:text-destructive"
-													title="Löschen"
-													onClick={() => deleteCategory(cat.id)}
-												>
-													<Trash2 className="h-4 w-4 transition-transform group-hover:-rotate-6 group-active:-rotate-12" />
-												</Button>
-											</div>
-										)}
-									</>
 								)}
-							</div>
-						))}
+							</CardContent>
+						</Card>
 
-						{lobby.categories.length === 0 && (
-							<p className="text-sm text-muted-foreground px-3 py-1">
-								Noch keine Kategorien.
-							</p>
-						)}
+						{/* Settings */}
+						{isHost ? (
+							<Card>
+								<CardHeader className="pb-3">
+									<CardTitle className="text-base">Einstellungen</CardTitle>
+								</CardHeader>
+								<CardContent className="space-y-4">
+									{/* Time limit */}
+									<div className="space-y-2">
+										<InfoHint
+											trigger="Zeitlimit pro Runde"
+											label="Was bedeutet das Zeitlimit?"
+										>
+											Wie viel Zeit pro Runde bleibt, um die Kategorien
+											auszufüllen. Bei „Unbegrenzt“ läuft die Runde, bis jemand
+											buzzert oder der Host sie beendet.
+										</InfoHint>
+										<div className="flex flex-wrap gap-2">
+											{TIME_OPTIONS.map((opt) => {
+												const active = lobby.settings.timeLimit === opt.value;
+												return (
+													<button
+														key={opt.label}
+														type="button"
+														onClick={() =>
+															updateSettings({ timeLimit: opt.value })
+														}
+														className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+															// Active fill already contrasts with the background, so
+															// no border edge is drawn (only the unselected option
+															// keeps a border to read as an outline).
+															active
+																? "bg-primary text-primary-foreground border-transparent"
+																: "bg-background hover:bg-muted active:bg-muted border-border"
+														}`}
+													>
+														{opt.label}
+													</button>
+												);
+											})}
+										</div>
+									</div>
 
-						{isHost && (
-							<form
-								onSubmit={handleAddCategory}
-								className="flex items-center gap-2 pt-1"
-							>
-								<Input
-									value={newCategory}
-									onChange={(e) => setNewCategory(e.target.value)}
-									placeholder="Neue Kategorie…"
-									maxLength={30}
-									className="h-8"
-								/>
-								<Button
-									type="submit"
-									size="icon"
-									className="h-8 w-8"
-									disabled={!newCategory.trim()}
-								>
-									<Plus className="h-4 w-4" />
-								</Button>
-							</form>
-						)}
-					</CardContent>
-				</Card>
-
-				{/* Settings */}
-				{isHost ? (
-					<Card>
-						<CardHeader className="pb-3">
-							<CardTitle className="text-base">Einstellungen</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-4">
-							{/* Time limit */}
-							<div className="space-y-2">
-								<InfoHint
-									trigger="Zeitlimit pro Runde"
-									label="Was bedeutet das Zeitlimit?"
-								>
-									Wie viel Zeit pro Runde bleibt, um die Kategorien auszufüllen.
-									Bei „Unbegrenzt“ läuft die Runde, bis jemand buzzert oder der
-									Host sie beendet.
-								</InfoHint>
-								<div className="flex flex-wrap gap-2">
-									{TIME_OPTIONS.map((opt) => {
-										const active = lobby.settings.timeLimit === opt.value;
-										return (
-											<button
-												key={opt.label}
-												type="button"
-												onClick={() => updateSettings({ timeLimit: opt.value })}
-												className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-													// Active fill already contrasts with the background, so
-													// no border edge is drawn (only the unselected option
-													// keeps a border to read as an outline).
-													active
-														? "bg-primary text-primary-foreground border-transparent"
-														: "bg-background hover:bg-muted active:bg-muted border-border"
-												}`}
-											>
-												{opt.label}
-											</button>
-										);
-									})}
-								</div>
-							</div>
-
-							{/* Commentator mode - on = host doesn't play, only comments (the
+									{/* Commentator mode - on = host doesn't play, only comments (the
                 switch is the inverse of the hostPlays flag it drives). */}
-							<div className="flex items-center justify-between gap-3">
-								<InfoHint
-									trigger="Kommentator"
-									label="Was bedeutet „Kommentator“?"
-								>
-									Der Host spielt nicht mit, sondern ist nur Kommentator und
-									sieht bei sich, welche Kategorien schon ausgefüllt wurden.
-								</InfoHint>
-								<Switch
-									checked={!lobby.settings.hostPlays}
-									onCheckedChange={(v: boolean) =>
-										updateSettings({ hostPlays: !v })
-									}
-									aria-label="Kommentator"
-								/>
-							</div>
+									<div className="flex items-center justify-between gap-3">
+										<InfoHint
+											trigger="Kommentator"
+											label="Was bedeutet „Kommentator“?"
+										>
+											Der Host spielt nicht mit, sondern ist nur Kommentator und
+											sieht bei sich, welche Kategorien schon ausgefüllt wurden.
+										</InfoHint>
+										<Switch
+											checked={!lobby.settings.hostPlays}
+											onCheckedChange={(v: boolean) =>
+												updateSettings({ hostPlays: !v })
+											}
+											aria-label="Kommentator"
+										/>
+									</div>
 
-							{/* Flames spice */}
-							<div className="flex items-center justify-between gap-3">
-								<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
-									Wette pro Runde auf eine Kategorie, dass deine Antwort
-									einzigartig ist: richtig +5, falsch 0 Punkte.
-								</InfoHint>
-								<Switch
-									checked={lobby.settings.flamesEnabled}
-									onCheckedChange={(v: boolean) =>
-										updateSettings({ flamesEnabled: v })
-									}
-									aria-label="Flammen aktivieren"
-								/>
-							</div>
+									{/* Flames spice */}
+									<div className="flex items-center justify-between gap-3">
+										<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
+											Wette pro Runde auf eine Kategorie, dass deine Antwort
+											einzigartig ist: richtig +5, falsch 0 Punkte.
+										</InfoHint>
+										<Switch
+											checked={lobby.settings.flamesEnabled}
+											onCheckedChange={(v: boolean) =>
+												updateSettings({ flamesEnabled: v })
+											}
+											aria-label="Flammen aktivieren"
+										/>
+									</div>
 
-							{/* Last-letter spice */}
-							<div className="flex items-center justify-between gap-3">
-								<InfoHint
-									trigger="Letzter Buchstabe"
-									label="Was bedeutet „Letzter Buchstabe“?"
-								>
-									Antworten müssen mit dem Buchstaben <em>enden</em> statt
-									beginnen.
-								</InfoHint>
-								<Switch
-									checked={lobby.settings.lastLetterMode}
-									onCheckedChange={(v: boolean) =>
-										updateSettings({ lastLetterMode: v })
-									}
-									aria-label="Letzter Buchstabe"
-								/>
-							</div>
+									{/* Last-letter spice */}
+									<div className="flex items-center justify-between gap-3">
+										<InfoHint
+											trigger="Letzter Buchstabe"
+											label="Was bedeutet „Letzter Buchstabe“?"
+										>
+											Antworten müssen mit dem Buchstaben <em>enden</em> statt
+											beginnen.
+										</InfoHint>
+										<Switch
+											checked={lobby.settings.lastLetterMode}
+											onCheckedChange={(v: boolean) =>
+												updateSettings({ lastLetterMode: v })
+											}
+											aria-label="Letzter Buchstabe"
+										/>
+									</div>
 
-							{/* Show letter during countdown */}
-							<div className="flex items-center justify-between gap-3">
-								<InfoHint
-									trigger="Buchstabe während Countdown"
-									label="Was bedeutet „Buchstabe während Countdown“?"
-								>
-									Zeigt den kommenden Buchstaben schon während des Countdowns
-									an.
-								</InfoHint>
-								<Switch
-									checked={lobby.settings.showLetterDuringCountdown}
-									onCheckedChange={(v: boolean) =>
-										updateSettings({ showLetterDuringCountdown: v })
-									}
-									aria-label="Buchstabe während Countdown"
-								/>
-							</div>
+									{/* Show letter during countdown */}
+									<div className="flex items-center justify-between gap-3">
+										<InfoHint
+											trigger="Buchstabe während Countdown"
+											label="Was bedeutet „Buchstabe während Countdown“?"
+										>
+											Zeigt den kommenden Buchstaben schon während des
+											Countdowns an.
+										</InfoHint>
+										<Switch
+											checked={lobby.settings.showLetterDuringCountdown}
+											onCheckedChange={(v: boolean) =>
+												updateSettings({ showLetterDuringCountdown: v })
+											}
+											aria-label="Buchstabe während Countdown"
+										/>
+									</div>
 
-							{/* Letter selection */}
-							<details className="group space-y-2">
-								<summary className="flex min-h-7 cursor-pointer list-none items-center gap-1 text-sm font-medium [&::-webkit-details-marker]:hidden">
-									Buchstaben: {lettersOff || "alle"}
-									<span className="transition-transform group-open:rotate-90">
-										▸
-									</span>
-								</summary>
-								{lobby.settings.excludedLetters.length > 0 && (
-									<Button
-										variant="ghost"
-										size="sm"
-										className="h-7 text-xs"
-										onClick={() => {
-											updateSettings({ excludedLetters: [] });
-											setStaggerLetters(true);
-											// Long enough for the last letter's delayed pop to finish.
-											setTimeout(() => setStaggerLetters(false), 26 * 18 + 350);
-										}}
-									>
-										Alle aktivieren
-									</Button>
-								)}
-								<div className="flex flex-wrap gap-1.5">
-									{ALPHABET.map((letter, idx) => {
-										const excluded =
-											lobby.settings.excludedLetters.includes(letter);
-										const popping = poppedLetter === letter || staggerLetters;
-										return (
-											<button
-												key={letter}
-												type="button"
-												onClick={() => toggleLetter(letter)}
-												onAnimationEnd={() =>
-													setPoppedLetter((l) => (l === letter ? null : l))
-												}
-												aria-pressed={!excluded}
-												title={
-													excluded
-														? `${letter} aktivieren`
-														: `${letter} deaktivieren`
-												}
-												style={
-													staggerLetters
-														? { animationDelay: `${idx * 18}ms` }
-														: undefined
-												}
-												className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
-													popping ? "animate-pop" : ""
-												} ${
-													// Active fill contrasts with the background, so no border
-													// edge; only the excluded (muted) state keeps a border.
-													excluded
-														? "bg-muted text-muted-foreground/40 border-border line-through"
-														: "bg-primary text-primary-foreground border-transparent"
-												}`}
+									{/* Letter selection */}
+									<details className="group space-y-2">
+										<summary className="flex min-h-7 cursor-pointer list-none items-center gap-1 text-sm font-medium [&::-webkit-details-marker]:hidden">
+											Buchstaben: {lettersOff || "alle"}
+											<span className="transition-transform group-open:rotate-90">
+												▸
+											</span>
+										</summary>
+										{lobby.settings.excludedLetters.length > 0 && (
+											<Button
+												variant="ghost"
+												size="sm"
+												className="h-7 text-xs"
+												onClick={() => {
+													updateSettings({ excludedLetters: [] });
+													setStaggerLetters(true);
+													// Long enough for the last letter's delayed pop to finish.
+													setTimeout(
+														() => setStaggerLetters(false),
+														26 * 18 + 350,
+													);
+												}}
 											>
-												{letter}
-											</button>
-										);
-									})}
-								</div>
-							</details>
-						</CardContent>
-					</Card>
-				) : (
-					settingsSummary && (
-						<p className="text-center text-sm text-muted-foreground">
-							{settingsSummary}
-						</p>
-					)
-				)}
+												Alle aktivieren
+											</Button>
+										)}
+										<div className="flex flex-wrap gap-1.5">
+											{ALPHABET.map((letter, idx) => {
+												const excluded =
+													lobby.settings.excludedLetters.includes(letter);
+												const popping =
+													poppedLetter === letter || staggerLetters;
+												return (
+													<button
+														key={letter}
+														type="button"
+														onClick={() => toggleLetter(letter)}
+														onAnimationEnd={() =>
+															setPoppedLetter((l) => (l === letter ? null : l))
+														}
+														aria-pressed={!excluded}
+														title={
+															excluded
+																? `${letter} aktivieren`
+																: `${letter} deaktivieren`
+														}
+														style={
+															staggerLetters
+																? { animationDelay: `${idx * 18}ms` }
+																: undefined
+														}
+														className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
+															popping ? "animate-pop" : ""
+														} ${
+															// Active fill contrasts with the background, so no border
+															// edge; only the excluded (muted) state keeps a border.
+															excluded
+																? "bg-muted text-muted-foreground/40 border-border line-through"
+																: "bg-primary text-primary-foreground border-transparent"
+														}`}
+													>
+														{letter}
+													</button>
+												);
+											})}
+										</div>
+									</details>
+								</CardContent>
+							</Card>
+						) : (
+							settingsSummary && (
+								<p className="text-center text-sm text-muted-foreground">
+									{settingsSummary}
+								</p>
+							)
+						)}
+					</div>
+				</div>
 
 				{/* Start Game (Host only) */}
 				{isHost ? (

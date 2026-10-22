@@ -71,7 +71,7 @@ export function SoloReviewScreen() {
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-5xl space-y-4">
+			<div className="mx-auto w-full max-w-xl space-y-4">
 				<RoomHeader title="Auswertung" />
 
 				<div className="sticky top-0 z-10 -mx-1 flex items-center justify-between rounded-lg border bg-background/90 px-4 py-3 shadow-sm backdrop-blur">

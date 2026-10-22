@@ -85,7 +85,7 @@ export function RoundResultScreen() {
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-5xl space-y-4">
+			<div className="mx-auto w-full max-w-xl space-y-4">
 				<RoomHeader title="Rundenergebnis" />
 
 				<p className="text-center text-lg font-semibold">

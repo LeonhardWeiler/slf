@@ -347,7 +347,12 @@ export function GameScreen() {
 			{dangerZone && (
 				<div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
 			)}
-			<div className="mx-auto w-full max-w-5xl space-y-4 animate-fade-in">
+			<div
+				className={cn(
+					"mx-auto w-full space-y-4 animate-fade-in",
+					isSpectator ? "max-w-5xl" : "max-w-xl",
+				)}
+			>
 				<RoomHeader
 					title={
 						isSpectator
