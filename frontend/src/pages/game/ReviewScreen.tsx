@@ -12,7 +12,7 @@ import {
 import { cn, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
-import { ruleIssue } from "@/lib/answerValidation";
+import { normalize, ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { RoundLetter } from "@/components/RoundLetter";
 import { Button } from "@/components/ui/button";
@@ -97,9 +97,13 @@ export function ReviewScreen() {
 		setMergeAnchor(null);
 	}
 
-	const mergeableCount = review.answers.filter(
-		(a) => a.mergedInto === "",
-	).length;
+	// Merging needs at least 2 different valid answers.
+	const canMerge =
+		new Set(
+			review.answers
+				.filter((a) => a.valid && a.mergedInto === "")
+				.map((a) => normalize(a.value)),
+		).size >= 2;
 	const mergeMode = mergeAnchor !== null;
 
 	return (
@@ -227,9 +231,9 @@ export function ReviewScreen() {
 
 									{isHost &&
 										(merged ||
-											(!mergeMode && mergeableCount > 1) ||
+											(!mergeMode && canMerge && a.valid) ||
 											isAnchor) && (
-											<div className="mt-1.5">
+											<div className="mt-1.5 flex flex-wrap items-center gap-2">
 												{merged ? (
 													<Button
 														variant="ghost"
@@ -244,18 +248,23 @@ export function ReviewScreen() {
 														Trennen
 													</Button>
 												) : isAnchor ? (
-													<Button
-														variant="outline"
-														size="sm"
-														className="h-7 text-xs"
-														onClick={(e) => {
-															e.stopPropagation();
-															setMergeAnchor(null);
-														}}
-													>
-														<X className="h-3.5 w-3.5 mr-1" />
-														Abbrechen
-													</Button>
+													<>
+														<Button
+															variant="outline"
+															size="sm"
+															className="h-7 text-xs"
+															onClick={(e) => {
+																e.stopPropagation();
+																setMergeAnchor(null);
+															}}
+														>
+															<X className="h-3.5 w-3.5 mr-1" />
+															Abbrechen
+														</Button>
+														<span className="text-xs text-muted-foreground">
+															Antwort antippen, die gleich „{a.value}“ ist
+														</span>
+													</>
 												) : (
 													<Button
 														variant="ghost"
@@ -275,16 +284,6 @@ export function ReviewScreen() {
 								</div>
 							);
 						})}
-						{isHost && mergeMode && (
-							<p className="text-xs text-muted-foreground px-1">
-								Klicke eine Antwort, um sie mit „
-								{playerName(
-									review.answers.find((a) => a.answerId === mergeAnchor)
-										?.playerId ?? "",
-								)}
-								" zusammenzuführen.
-							</p>
-						)}
 					</CardContent>
 				</Card>
 

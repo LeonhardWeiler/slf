@@ -484,3 +484,39 @@ describe("GameScreen pending joiner", () => {
 		).toBeDefined();
 	});
 });
+
+describe("review merge", () => {
+	const answer = (id: string, value: string) => ({
+		answerId: id,
+		playerId: id,
+		value,
+		valid: true,
+		mergedInto: "",
+		pointsPreview: 10,
+		flamed: false,
+	});
+	const review = (a: string, b: string) => ({
+		roundId: "r1",
+		letter: "T",
+		categoryId: "c1",
+		categoryIndex: 0,
+		categoryCount: 2,
+		answers: [answer("host", a), answer("guest", b)],
+		solo: null,
+	});
+
+	it("offers merging only for 2 different valid answers", () => {
+		setup("host", "Reviewing");
+		useGameStore.getState().setReview(review("Tahn", "tahn "));
+		const { unmount } = render(<ReviewScreen />);
+		expect(screen.queryByText("Zusammenführen")).toBeNull();
+		unmount();
+
+		useGameStore.getState().setReview(review("Tahn", "Tan"));
+		render(<ReviewScreen />);
+		fireEvent.click(screen.getAllByText("Zusammenführen")[0]);
+		expect(
+			screen.getByText("Antwort antippen, die gleich „Tahn“ ist"),
+		).toBeDefined();
+	});
+});
