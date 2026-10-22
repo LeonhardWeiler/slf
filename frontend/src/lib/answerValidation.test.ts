@@ -118,6 +118,6 @@ describe("validateAnswers", () => {
 			"A",
 		);
 		expect(res.valid).toBe(false);
-		expect(res.reason).toContain("Land");
+		expect(res.reason).toBe('„Land" beginnt nicht mit A.');
 	});
 });

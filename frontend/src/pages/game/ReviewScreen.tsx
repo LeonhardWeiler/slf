@@ -12,6 +12,7 @@ import {
 import { cn, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
+import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -141,6 +142,17 @@ export function ReviewScreen() {
 							const isAnchor = mergeAnchor === a.answerId;
 							const clickable = mergeMode && !isAnchor && !merged;
 							const toggles = isHost && !mergeMode && a.value !== "";
+							const reason = !a.valid
+								? ruleIssue(
+										a.value,
+										review.letter,
+										lobby.settings.lastLetterMode,
+									)
+								: a.flamed
+									? a.pointsPreview === 0
+										? "Flamme verloren"
+										: "Flamme +5"
+									: undefined;
 							return (
 								// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
 								<div
@@ -192,6 +204,11 @@ export function ReviewScreen() {
 											{merged && (
 												<p className="text-xs text-muted-foreground">
 													↳ zusammengeführt mit {playerName(a.mergedInto)}
+												</p>
+											)}
+											{reason && (
+												<p className="text-xs text-muted-foreground">
+													{reason}
 												</p>
 											)}
 										</div>

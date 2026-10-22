@@ -78,23 +78,32 @@ function buildAnswerSchema(letter: string, lastLetter: boolean) {
 			},
 			{
 				message: lastLetter
-					? `muss mit ${upper} enden`
-					: `muss mit ${upper} beginnen`,
+					? `endet nicht auf ${upper}`
+					: `beginnt nicht mit ${upper}`,
 			},
 		),
 	);
 }
 
-// True when a field has content that breaks the rules (wrong letter / length).
-// An empty field is "not yet filled", not wrong, so it returns false and gets no
-// red border. Drives the per-field validity indicator once a field is blurred.
+// The first rule a value breaks (wrong letter / length), undefined when it
+// passes. An empty field is "not yet filled", not wrong, so it has no issue.
+export function ruleIssue(
+	value: string,
+	letter: string,
+	lastLetter = false,
+): string | undefined {
+	if (value.trim() === "") return undefined;
+	const result = answerSchema(letter, lastLetter).safeParse(value);
+	if (result.success) return undefined;
+	return result.error.issues[0]?.message ?? "ungültig";
+}
+
 export function isFieldInvalid(
 	value: string,
 	letter: string,
 	lastLetter = false,
 ): boolean {
-	if (value.trim() === "") return false;
-	return !answerSchema(letter, lastLetter).safeParse(value).success;
+	return ruleIssue(value, letter, lastLetter) !== undefined;
 }
 
 export interface AnswerValidation {
@@ -111,7 +120,6 @@ export function validateAnswers(
 	letter: string,
 	lastLetter = false,
 ): AnswerValidation {
-	const schema = answerSchema(letter, lastLetter);
 	for (const cat of categories) {
 		const raw = answers[cat.id] ?? "";
 		if (raw.trim() === "") {
@@ -120,11 +128,8 @@ export function validateAnswers(
 				reason: "Fülle alle Kategorien aus, um zu buzzern.",
 			};
 		}
-		const result = schema.safeParse(raw);
-		if (!result.success) {
-			const msg = result.error.issues[0]?.message ?? "ungültig";
-			return { valid: false, reason: `„${cat.name}" ${msg}.` };
-		}
+		const issue = ruleIssue(raw, letter, lastLetter);
+		if (issue) return { valid: false, reason: `„${cat.name}" ${issue}.` };
 	}
 	return { valid: true };
 }

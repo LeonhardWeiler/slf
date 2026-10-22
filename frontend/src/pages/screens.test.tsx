@@ -189,14 +189,25 @@ describe("review validity", () => {
 					value: "Berlin",
 					valid: true,
 					mergedInto: "",
-					pointsPreview: 20,
+					pointsPreview: 25,
+					flamed: true,
+				},
+				{
+					answerId: "host",
+					playerId: "host",
+					value: "Xanten",
+					valid: false,
+					mergedInto: "",
+					pointsPreview: 0,
 					flamed: false,
 				},
 			],
 			solo: null,
 		});
 		render(<ReviewScreen />);
-		const row = screen.getByRole("switch");
+		expect(screen.getByText("Flamme +5")).toBeDefined();
+		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
+		const row = screen.getAllByRole("switch")[0];
 		expect(row.getAttribute("aria-checked")).toBe("true");
 		fireEvent.click(row);
 		expect(send).toHaveBeenCalledWith({

@@ -3,6 +3,7 @@ import { ws } from "@/lib/ws";
 import { cn, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
+import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -99,46 +100,58 @@ export function SoloReviewScreen() {
 
 				<Card>
 					<CardContent className="pt-6 space-y-2">
-						{rows.map((r) => (
-							// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
-							<div
-								key={r.categoryId}
-								role={r.value ? "switch" : undefined}
-								aria-checked={r.value ? r.valid : undefined}
-								{...(r.value
-									? pressProps(() => setValid(r.categoryId, !r.valid))
-									: {})}
-								className={cn(
-									"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
-									r.valid ? "bg-green-500/10" : "bg-muted/50",
-									r.value && "cursor-pointer",
-								)}
-							>
-								<div className="min-w-0">
-									<p className="text-xs text-muted-foreground">
-										{categoryName(r.categoryId)}
-									</p>
-									<p
-										className={cn(
-											"text-lg font-medium truncate",
-											r.valid
-												? "text-foreground"
-												: "line-through text-muted-foreground",
-										)}
-									>
-										{r.value || "-"}
-									</p>
-								</div>
-								<span
+						{rows.map((r) => {
+							const issue = r.valid
+								? undefined
+								: ruleIssue(
+										r.value,
+										review.letter,
+										lobby.settings.lastLetterMode,
+									);
+							return (
+								// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
+								<div
+									key={r.categoryId}
+									role={r.value ? "switch" : undefined}
+									aria-checked={r.value ? r.valid : undefined}
+									{...(r.value
+										? pressProps(() => setValid(r.categoryId, !r.valid))
+										: {})}
 									className={cn(
-										"text-lg font-bold tabular-nums w-8 text-right shrink-0",
-										!r.valid && "text-muted-foreground",
+										"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
+										r.valid ? "bg-green-500/10" : "bg-muted/50",
+										r.value && "cursor-pointer",
 									)}
 								>
-									{r.points}
-								</span>
-							</div>
-						))}
+									<div className="min-w-0">
+										<p className="text-xs text-muted-foreground">
+											{categoryName(r.categoryId)}
+										</p>
+										<p
+											className={cn(
+												"text-lg font-medium truncate",
+												r.valid
+													? "text-foreground"
+													: "line-through text-muted-foreground",
+											)}
+										>
+											{r.value || "-"}
+										</p>
+										{issue && (
+											<p className="text-xs text-muted-foreground">{issue}</p>
+										)}
+									</div>
+									<span
+										className={cn(
+											"text-lg font-bold tabular-nums w-8 text-right shrink-0",
+											!r.valid && "text-muted-foreground",
+										)}
+									>
+										{r.points}
+									</span>
+								</div>
+							);
+						})}
 					</CardContent>
 				</Card>
 
