@@ -8,10 +8,17 @@ import type { LobbyStatePayload, Player } from "@/types/events";
 
 const send = mock((_msg: unknown) => {});
 mock.module("@/lib/ws", () => ({
-	ws: { send, status: true, onStatusChange: () => () => {} },
+	ws: {
+		send,
+		status: true,
+		onStatusChange: () => () => {},
+		on: () => {},
+		off: () => {},
+	},
 }));
 mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => () => {},
+	useParams: () => ({ code: "abc123" }),
 	Navigate: () => null,
 }));
 
@@ -22,6 +29,7 @@ const { SoloReviewScreen } = await import("@/pages/game/SoloReviewScreen");
 const { GameOverScreen } = await import("@/pages/game/GameOverScreen");
 const { Lobby } = await import("@/pages/Lobby");
 const { renderScreen } = await import("@/pages/Room");
+const { Home } = await import("@/pages/Home");
 
 const render = (ui: ReactNode) => rtlRender(ui, { wrapper: ThemeProvider });
 
@@ -573,5 +581,13 @@ describe("host grace banner", () => {
 		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
 		expect(banner.closest(".fixed")).toBeNull();
 		useLobbyStore.setState({ hostGrace: null });
+	});
+});
+
+describe("Home join code", () => {
+	it("uses a descriptive placeholder instead of a sample code", () => {
+		useLobbyStore.setState({ lobby: null });
+		render(<Home />);
+		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
 	});
 });

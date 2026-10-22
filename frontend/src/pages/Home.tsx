@@ -468,14 +468,14 @@ export function Home() {
 										// "invalid" - never *why*, which is the part that helps.
 										aria-describedby={joinError ? "code-error" : undefined}
 										disabled={checking}
-										placeholder="ASKZF6"
+										placeholder="6-stelliger Code"
 										autoCapitalize="characters"
 										autoCorrect="off"
 										spellCheck={false}
 										maxLength={6}
 										autoFocus
 										autoComplete="off"
-										className="font-mono uppercase tracking-widest"
+										className="font-mono uppercase tracking-widest placeholder:font-sans placeholder:normal-case placeholder:tracking-normal"
 									/>
 									{joinError && (
 										<p
