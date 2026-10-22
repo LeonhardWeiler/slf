@@ -39,7 +39,7 @@ in RAM.
 | Area     | Technologies                                                                                       |
 | -------- | -------------------------------------------------------------------------------------------------- |
 | Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), in-memory                             |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn style), Zustand, TanStack Router, Zod  |
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn style), Zustand, Zod                    |
 | Tooling  | Bun (package manager), [air](https://github.com/air-verse/air) (Go live-reload), Nix (dev shell)   |
 
 ## Architecture

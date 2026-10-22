@@ -8,7 +8,7 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
 - **Backend:** Go, WebSocket (`coder/websocket`), in-memory state (no persistence layer).
 - **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI building
   blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`),
-  Zustand, TanStack Router (code-based, `src/router.tsx`), Zod.
+  Zustand, routing via the History API (`src/lib/nav.ts`, `src/router.tsx`), Zod.
 - **Package manager: Bun** (not npm/yarn; `npx` is **not** available).
 - Lint + format: Biome (`index.html` excluded, its inline script is CSP-hashed). Frontend tests: `bun test`. Backend tests: `go test`.
 
@@ -41,7 +41,7 @@ There is no Vite transform pipeline, so tests cannot rely on Vite-only
 features (`import.meta.env`, CSS imports). `bunfig.toml` preloads
 `src/test/setup.ts`, which registers happy-dom globals, so component tests
 render with `@testing-library/react`. Screens need a `ThemeProvider` wrapper
-and `mock.module` for `@/lib/ws` and `@tanstack/react-router`, imported
+and `mock.module` for `@/lib/ws` and `@/lib/nav`, imported
 after the mock (see `src/pages/screens.test.tsx`). Adding a dependency changes
 the `nodeModules` `outputHash` in `flake.nix`.
 
