@@ -73,9 +73,10 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   server drops the session, so leaving is final on both sides - a replayed id
   for a player marked `Left` is refused.
 - **Solo** (`soloPlayer` in `game_util.go`: exactly 1 non-left player who is no
-  spectator): review sends all rows at once (`reviewState.solo`), flames are
-  off, empty rounds are still reviewed, and `finishReview` goes straight to the
-  next round instead of `RoundResult`. A joiner ends solo on the spot.
+  spectator): buzz skips the fill and rule checks, review sends all rows at
+  once (`reviewState.solo`), flames are off, empty rounds are still reviewed,
+  and `finishReview` goes straight to the next round instead of `RoundResult`.
+  A joiner ends solo on the spot.
 - **Deploy**: `SIGHUP` drains (no new games until no lobby is mid-game), then
   idle lobbies are saved to `$STATE_DIRECTORY/lobbies.json` and restored on
   start (`persist.go`). The client reloads on reconnect when `index.html`

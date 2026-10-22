@@ -12,10 +12,10 @@ in RAM.
   letters, remove players, end the running round
 - **Round flow**: countdown -> answers -> buzzing -> review -> result
 - **Live review** by the host, including merging identical answers
-- **Solo**: alone in a lobby, the review is one screen with every category and
-  a yes/no per answer, the round points update live in a sticky bar, and there
-  is no scoreboard between rounds; the game ends with your total. As soon as
-  someone joins, the normal flow is back
+- **Solo**: alone in a lobby, STOPP ends the round even with empty fields, the
+  review is one screen where tapping an answer toggles it, the round points
+  update live in a sticky bar, and there is no scoreboard between rounds; the
+  game ends with your total. As soon as someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
   - **Commentator host**: the host does not play and instead sees a live
     overview of which categories each player has filled in
