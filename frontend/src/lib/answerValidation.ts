@@ -53,24 +53,16 @@ function answerSchema(letter: string, lastLetter: boolean) {
 	return schema;
 }
 
+export const LENGTH_ISSUE = "2-30 Zeichen";
+
 function buildAnswerSchema(letter: string, lastLetter: boolean) {
 	const upper = upperRunes(letter);
 	return z.string().check(
 		z.overwrite(normalize),
-		// Counted in code points, like the engine's len([]rune(n)) - `.length`
-		// would count UTF-16 units and reject answers the server accepts.
-		z.refine(
-			(n) => {
-				const count = [...n].length;
-				return count >= 2 && count <= 30;
-			},
-			{ message: "2-30 Zeichen" },
-		),
+		// The letter check comes first so a wrong letter is the reported issue.
 		z.refine(
 			(n) => {
 				const runes = [...n];
-				// Zod runs every refinement, so this one also sees a value the length
-				// check already rejected - including the empty string.
 				if (runes.length === 0) return false;
 				return lastLetter
 					? mapCase(runes[runes.length - 1], true) === upper
@@ -81,6 +73,15 @@ function buildAnswerSchema(letter: string, lastLetter: boolean) {
 					? `endet nicht auf ${upper}`
 					: `beginnt nicht mit ${upper}`,
 			},
+		),
+		// Counted in code points, like the engine's len([]rune(n)) - `.length`
+		// would count UTF-16 units and reject answers the server accepts.
+		z.refine(
+			(n) => {
+				const count = [...n].length;
+				return count >= 2 && count <= 30;
+			},
+			{ message: LENGTH_ISSUE },
 		),
 	);
 }
@@ -98,38 +99,28 @@ export function ruleIssue(
 	return result.error.issues[0]?.message ?? "ungültig";
 }
 
-export function isFieldInvalid(
-	value: string,
-	letter: string,
-	lastLetter = false,
-): boolean {
-	return ruleIssue(value, letter, lastLetter) !== undefined;
-}
-
 export interface AnswerValidation {
 	valid: boolean;
 	reason?: string;
 }
 
 // Validates that *every* category has a rule-valid answer for the given letter.
-// Returns the first human-readable reason when something is off so the buzz
-// button can explain why it is disabled.
+// Only an empty field gets a reason; a rule issue is shown at its field.
 export function validateAnswers(
 	categories: Category[],
 	answers: Record<string, string>,
 	letter: string,
 	lastLetter = false,
 ): AnswerValidation {
-	for (const cat of categories) {
-		const raw = answers[cat.id] ?? "";
-		if (raw.trim() === "") {
-			return {
-				valid: false,
-				reason: "Fülle alle Kategorien aus, um zu buzzern.",
-			};
-		}
-		const issue = ruleIssue(raw, letter, lastLetter);
-		if (issue) return { valid: false, reason: `„${cat.name}" ${issue}.` };
+	if (categories.some((c) => (answers[c.id] ?? "").trim() === "")) {
+		return {
+			valid: false,
+			reason: "Fülle alle Kategorien aus, um zu buzzern.",
+		};
 	}
-	return { valid: true };
+	return {
+		valid: categories.every(
+			(c) => !ruleIssue(answers[c.id], letter, lastLetter),
+		),
+	};
 }

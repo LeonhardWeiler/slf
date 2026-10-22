@@ -4,7 +4,11 @@ import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
-import { validateAnswers, isFieldInvalid } from "@/lib/answerValidation";
+import {
+	validateAnswers,
+	ruleIssue,
+	LENGTH_ISSUE,
+} from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -312,13 +316,6 @@ export function GameScreen() {
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
 	);
 
-	// A category counts as done once it holds a valid answer (non-empty and
-	// matching the letter rule) - drives the per-field check.
-	const isAnswerDone = (categoryId: string) => {
-		const v = answers[categoryId] ?? "";
-		return v.trim() !== "" && !isFieldInvalid(v, game.letter, lastLetterMode);
-	};
-
 	return (
 		<div className="min-h-svh bg-background screen-pad">
 			{/* Red, pulsing screen border for the final 5 seconds (only when timed). */}
@@ -386,14 +383,17 @@ export function GameScreen() {
 						<div className="space-y-3">
 							{categories.map((cat, idx) => {
 								const isFlamed = flamed === cat.id;
+								const issue = ruleIssue(
+									answers[cat.id] ?? "",
+									game.letter,
+									lastLetterMode,
+								);
+								// A wrong first letter shows at once, anything else after blur.
 								const showInvalid =
-									touched[cat.id] &&
-									isFieldInvalid(
-										answers[cat.id] ?? "",
-										game.letter,
-										lastLetterMode,
-									);
-								const done = isAnswerDone(cat.id);
+									issue !== undefined &&
+									(touched[cat.id] ||
+										(!lastLetterMode && issue !== LENGTH_ISSUE));
+								const done = (answers[cat.id] ?? "").trim() !== "" && !issue;
 								return (
 									<div key={cat.id} className="space-y-1">
 										<label
@@ -454,6 +454,9 @@ export function GameScreen() {
 												</Button>
 											)}
 										</div>
+										{showInvalid && (
+											<p className="text-xs text-destructive">{issue}</p>
+										)}
 									</div>
 								);
 							})}

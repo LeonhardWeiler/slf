@@ -326,3 +326,29 @@ describe("GameScreen timer", () => {
 		expect(screen.getByText(/^0:5\d$/)).toBeDefined();
 	});
 });
+
+describe("GameScreen field hint", () => {
+	it("marks a wrong first letter at the field right away", () => {
+		setup("guest", "Playing");
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		const field = document.getElementById("cat-c1") as HTMLInputElement;
+		fireEvent.change(field, { target: { value: "B" } });
+		expect(field.getAttribute("aria-invalid")).toBeNull();
+		fireEvent.blur(field);
+		expect(screen.getByText("2-30 Zeichen")).toBeDefined();
+		fireEvent.change(field, { target: { value: "Xanten" } });
+		expect(field.getAttribute("aria-invalid")).toBe("true");
+		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
+	});
+});

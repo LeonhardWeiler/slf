@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { Category } from "@/types/events";
-import { isFieldInvalid, normalize, validateAnswers } from "./answerValidation";
+import { normalize, ruleIssue, validateAnswers } from "./answerValidation";
+
+const invalid = (...a: Parameters<typeof ruleIssue>) =>
+	ruleIssue(...a) !== undefined;
 
 // These tests guard the client-side mirror of the backend's authoritative rules
 // (game.Normalize / engine.IsRuleValid). If the Go engine changes, the mirror
@@ -38,55 +41,55 @@ describe("normalize", () => {
 	});
 });
 
-describe("isFieldInvalid", () => {
+describe("ruleIssue", () => {
 	it("treats an empty field as not-yet-filled (not invalid)", () => {
-		expect(isFieldInvalid("", "A")).toBe(false);
-		expect(isFieldInvalid("   ", "A")).toBe(false);
+		expect(invalid("", "A")).toBe(false);
+		expect(invalid("   ", "A")).toBe(false);
 	});
 
 	it("accepts an answer starting with the round letter", () => {
-		expect(isFieldInvalid("Apfel", "A")).toBe(false);
-		expect(isFieldInvalid("apfel", "A")).toBe(false); // normalized first
+		expect(invalid("Apfel", "A")).toBe(false);
+		expect(invalid("apfel", "A")).toBe(false); // normalized first
 	});
 
 	it("rejects an answer with the wrong first letter", () => {
-		expect(isFieldInvalid("Banane", "A")).toBe(true);
+		expect(invalid("Banane", "A")).toBe(true);
 	});
 
 	it("honours last-letter mode (must end with the letter)", () => {
-		expect(isFieldInvalid("Bar", "R", true)).toBe(false);
-		expect(isFieldInvalid("Bus", "R", true)).toBe(true);
+		expect(invalid("Bar", "R", true)).toBe(false);
+		expect(invalid("Bus", "R", true)).toBe(true);
 	});
 
 	it("rejects answers longer than 30 characters", () => {
-		expect(isFieldInvalid("A".repeat(31), "A")).toBe(true);
+		expect(invalid("A".repeat(31), "A")).toBe(true);
 	});
 
 	it("rejects a single character as too short (min 2)", () => {
-		expect(isFieldInvalid("A", "A")).toBe(true);
-		expect(isFieldInvalid("A", "A", true)).toBe(true); // last-letter mode too
-		expect(isFieldInvalid("Ab", "A")).toBe(false); // two chars is enough
+		expect(invalid("A", "A")).toBe(true);
+		expect(invalid("A", "A", true)).toBe(true); // last-letter mode too
+		expect(invalid("Ab", "A")).toBe(false); // two chars is enough
 	});
 
 	// rule-1: the length bound counts code points, like the engine's
 	// len([]rune(n)) - not UTF-16 units, which would double every astral char.
 	it("measures length in code points, not UTF-16 units", () => {
 		const surrogate = "\u{1F388}"; // 1 code point, 2 UTF-16 units
-		expect(isFieldInvalid(`A${surrogate.repeat(15)}`, "A")).toBe(false); // 16
-		expect(isFieldInvalid(`A${surrogate.repeat(29)}`, "A")).toBe(false); // 30
-		expect(isFieldInvalid(`A${surrogate.repeat(30)}`, "A")).toBe(true); // 31
+		expect(invalid(`A${surrogate.repeat(15)}`, "A")).toBe(false); // 16
+		expect(invalid(`A${surrogate.repeat(29)}`, "A")).toBe(false); // 30
+		expect(invalid(`A${surrogate.repeat(30)}`, "A")).toBe(true); // 31
 	});
 
 	// rule-1: "ßeta" normalizes to "SSeta" under JS case rules, which would make
 	// it pass for letter S - the engine keeps "ßeta" and rejects it.
 	it("does not let expanding case mappings fake the round letter", () => {
-		expect(isFieldInvalid("ßeta", "S")).toBe(true);
+		expect(invalid("ßeta", "S")).toBe(true);
 	});
 
 	// The last-letter check must look at the last *code point*.
 	it("matches the last code point in last-letter mode", () => {
-		expect(isFieldInvalid(`Ab${"\u{1F388}"}`, "B", true)).toBe(true);
-		expect(isFieldInvalid("Abb", "B", true)).toBe(false);
+		expect(invalid(`Ab${"\u{1F388}"}`, "B", true)).toBe(true);
+		expect(invalid("Abb", "B", true)).toBe(false);
 	});
 });
 
@@ -111,13 +114,13 @@ describe("validateAnswers", () => {
 		expect(res.reason).toMatch(/Fülle alle/);
 	});
 
-	it("fails and names the offending category on a wrong letter", () => {
+	it("fails without a reason on a wrong letter", () => {
 		const res = validateAnswers(
 			categories,
 			{ c1: "Aachen", c2: "Belgien" },
 			"A",
 		);
 		expect(res.valid).toBe(false);
-		expect(res.reason).toBe('„Land" beginnt nicht mit A.');
+		expect(res.reason).toBeUndefined();
 	});
 });
