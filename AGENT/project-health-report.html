@@ -223,7 +223,7 @@
         from <code>index.html</code> this round, still matching
         <code>main.go</code> exactly). What this pass turned up instead sits at
         the edges, mostly in the UI layer.
-        <b>3 open findings, none critical or high.</b>
+        <b>2 open findings, none critical or high.</b>
         The overall assessment is in <b>section&nbsp;4</b>; deliberate
         limitations (documented in the README) are in section&nbsp;3.
       </p>
@@ -246,7 +246,7 @@
           <div class="l">Low</div>
         </div>
         <div class="stat">
-          <div class="n" style="color: var(--info)">1</div>
+          <div class="n" style="color: var(--info)">0</div>
           <div class="l">Info</div>
         </div>
       </div>
@@ -330,35 +330,6 @@
           <b>Recommendation:</b> add a happy-dom preload plus Testing Library and
           cover the few highest-value cases: host vs. non-host affordances per
           screen, the buzz gate, and <code>Room</code>'s state → screen mapping.
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>
-          <span class="badge b-info">info</span> <code>llms.txt</code> describes
-          a setting that does not exist <span class="id">DOC-2</span>
-        </h3>
-        <div class="loc"><code>frontend/public/llms.txt</code></div>
-        <p>
-          The flow section says "Set the categories and <em>number of rounds</em>,
-          then play rounds that share a letter". There is no round-count
-          setting - a game runs until the alphabet is used up or the host ends
-          it - and rounds do not share a letter, each round <em>has</em> one. The
-          actual settings (time limit, commentator mode, flames, last-letter
-          mode, disabled letters) go unmentioned.
-        </p>
-        <p class="note">
-          <code>CLAUDE.md</code> itself was re-checked against the code this
-          round and is accurate: commands, the predicate set in
-          <code>game_util.go</code>, the state machine incl. both shortcuts, the
-          <code>answerValidation</code>&nbsp;↔&nbsp;<code>engine.go</code> mirror
-          and the <code>bun test</code> specifics all still match. Only
-          <code>cmd/loadtest</code> is missing from its backend layout list.
-        </p>
-        <div class="rec">
-          <b>Recommendation:</b> correct the two sentences and name the real
-          settings; optionally add <code>cmd/loadtest</code> to the backend
-          layout in <code>CLAUDE.md</code>.
         </div>
       </div>
 

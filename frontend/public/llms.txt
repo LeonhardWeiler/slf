@@ -17,5 +17,9 @@ through the web interface.
 ## Flow
 
 - Create a lobby and invite other players via code or QR code.
-- Set the categories and number of rounds, then play rounds that share a letter.
+- Set the categories and the settings: time limit, commentator mode (the host
+  watches instead of playing), flames, last-letter mode and excluded letters.
+- Each round has its own letter. The game runs until the letters are used up or
+  the host ends it.
 - Answers are reviewed after each round; the game ends with a ranking.
+- Playing alone works too (solo mode): every round is reviewed at once.

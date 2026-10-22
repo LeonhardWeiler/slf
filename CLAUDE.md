@@ -63,6 +63,7 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
 - Messages: JSON over `/ws`, client->server `{type, payload, sessionId}`,
   server->client `{type, payload, stateVersion}`.
 - Backend: `cmd/server` (entry point + security headers/SPA serving),
+  `cmd/loadtest` (WebSocket load generator),
   `internal/game` (engine/state), `internal/websocket` (hub, handlers).
 - `sessionId` lives in `localStorage` (per browser, survives closing the tab ->
   auto-reconnect as the same player). An explicit "leave" clears it **and** the
