@@ -377,3 +377,33 @@ describe("GameScreen solo", () => {
 		expect(screen.queryByRole("button", { name: "Runde beenden" })).toBeNull();
 	});
 });
+
+describe("GameScreen flames", () => {
+	it("explains the flame bet only in the first round with flames", () => {
+		setup("guest", "Playing");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: { ...lobby, settings: { ...lobby.settings, flamesEnabled: true } },
+		});
+		useGameStore.getState().setGame({
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		const hint = "🔥 Wette: einzige Antwort +5, sonst 0";
+		const { unmount } = render(<GameScreen />);
+		expect(screen.getByText(hint)).toBeDefined();
+		expect(
+			screen.getAllByRole("button", { name: "Flamme setzen" }).length,
+		).toBe(2);
+		unmount();
+		render(<GameScreen />);
+		expect(screen.queryByText(hint)).toBeNull();
+	});
+});

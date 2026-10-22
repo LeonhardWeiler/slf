@@ -48,6 +48,7 @@ function useSecondsLeft(endsAt: number | null): number | null {
 
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
 const flameKey = (roundId: string) => `slf:flame:${roundId}`;
+const flameHintKey = "slf:flameHintSeen";
 
 // Draft answers/flames are stored per round. Drop every round's drafts except the
 // current one so localStorage doesn't grow unbounded across many games.
@@ -105,6 +106,11 @@ export function GameScreen() {
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	// The single category this player has "flamed" this round ("" = none).
 	const [flamed, setFlamed] = useState<string>("");
+	// The flame bet is explained once, in the first round that has flames.
+	const [showFlameHint] = useState(() => !localStorage.getItem(flameHintKey));
+	useEffect(() => {
+		if (flamesEnabled && showFlameHint) localStorage.setItem(flameHintKey, "1");
+	}, [flamesEnabled, showFlameHint]);
 	const loadedRound = useRef<string>("");
 	// Debounce buffer: latest value per category not yet sent to the server.
 	const pendingAnswers = useRef<Record<string, string>>({});
@@ -381,6 +387,11 @@ export function GameScreen() {
 					</Card>
 				) : (
 					<>
+						{flamesEnabled && showFlameHint && (
+							<p className="text-sm text-muted-foreground">
+								🔥 Wette: einzige Antwort +5, sonst 0
+							</p>
+						)}
 						<div className="space-y-3">
 							{categories.map((cat, idx) => {
 								const isFlamed = flamed === cat.id;
@@ -434,6 +445,7 @@ export function GameScreen() {
 													variant="outline"
 													size="icon"
 													aria-pressed={isFlamed}
+													aria-label="Flamme setzen"
 													title={
 														isFlamed
 															? "Flamme entfernen"
