@@ -240,3 +240,21 @@ describe("review validity", () => {
 		});
 	});
 });
+
+describe("Lobby letters", () => {
+	it("folds the letter grid behind a summary of the excluded letters", () => {
+		setup("host", "Lobby");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: {
+				...lobby,
+				settings: { ...lobby.settings, excludedLetters: ["X", "Q"] },
+			},
+		});
+		const { container } = render(<Lobby />);
+		expect(container.querySelector("summary")?.textContent).toBe(
+			"Buchstaben: ohne Q X▸",
+		);
+		expect(container.querySelector("details")?.open).toBe(false);
+	});
+});

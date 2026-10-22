@@ -312,14 +312,17 @@ export function Lobby() {
 	).length;
 	const canStart = isHost && playingCount >= 1 && lobby.categories.length >= 1;
 	const s = lobby.settings;
+	const lettersOff =
+		s.excludedLetters.length > 0
+			? `ohne ${[...s.excludedLetters].sort().join(" ")}`
+			: "";
 	const settingsSummary = [
 		s.timeLimit !== null && `${s.timeLimit} s`,
 		!s.hostPlays && "Kommentator",
 		s.flamesEnabled && "Flammen",
 		s.lastLetterMode && "Letzter Buchstabe",
 		s.showLetterDuringCountdown && "Buchstabe im Countdown",
-		s.excludedLetters.length > 0 &&
-			`ohne ${[...s.excludedLetters].sort().join(" ")}`,
+		lettersOff,
 	]
 		.filter(Boolean)
 		.join(" · ");
@@ -689,38 +692,28 @@ export function Lobby() {
 							</div>
 
 							{/* Letter selection */}
-							<div className="space-y-2">
-								{/* min-h matches the "Alle aktivieren" button (h-7) so the row keeps
-                  the same height whether or not the button is shown - no layout
-                  shift when a letter is toggled. The "Buchstaben" label sits left
-                  (like the other setting titles); "Alle aktivieren" + the count
-                  stay flush right. */}
-								<div className="flex min-h-7 items-center justify-between gap-2">
-									<p className="text-sm font-medium">Buchstaben</p>
-									<div className="flex items-center gap-2">
-										{lobby.settings.excludedLetters.length > 0 && (
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-7 text-xs"
-												onClick={() => {
-													updateSettings({ excludedLetters: [] });
-													setStaggerLetters(true);
-													// Long enough for the last letter's delayed pop to finish.
-													setTimeout(
-														() => setStaggerLetters(false),
-														26 * 18 + 350,
-													);
-												}}
-											>
-												Alle aktivieren
-											</Button>
-										)}
-										<span className="text-xs text-muted-foreground tabular-nums">
-											{26 - lobby.settings.excludedLetters.length} von 26 aktiv
-										</span>
-									</div>
-								</div>
+							<details className="group space-y-2">
+								<summary className="flex min-h-7 cursor-pointer list-none items-center gap-1 text-sm font-medium [&::-webkit-details-marker]:hidden">
+									Buchstaben: {lettersOff || "alle"}
+									<span className="transition-transform group-open:rotate-90">
+										▸
+									</span>
+								</summary>
+								{lobby.settings.excludedLetters.length > 0 && (
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-7 text-xs"
+										onClick={() => {
+											updateSettings({ excludedLetters: [] });
+											setStaggerLetters(true);
+											// Long enough for the last letter's delayed pop to finish.
+											setTimeout(() => setStaggerLetters(false), 26 * 18 + 350);
+										}}
+									>
+										Alle aktivieren
+									</Button>
+								)}
 								<div className="flex flex-wrap gap-1.5">
 									{ALPHABET.map((letter, idx) => {
 										const excluded =
@@ -760,7 +753,7 @@ export function Lobby() {
 										);
 									})}
 								</div>
-							</div>
+							</details>
 						</CardContent>
 					</Card>
 				) : (
@@ -773,7 +766,7 @@ export function Lobby() {
 
 				{/* Start Game (Host only) */}
 				{isHost ? (
-					<div className="space-y-1">
+					<div className="sticky bottom-0 space-y-1 bg-background/90 py-3 backdrop-blur">
 						{/* Kept a real, focusable button (aria-disabled instead of disabled)
                 so a click while not startable still fires and can shake the hint
                 - a plain disabled button swallows the click. */}
