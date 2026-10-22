@@ -156,3 +156,188 @@ Vite-Plugin in `index.html`.
   (`root` + `gzip_static`/`brotli_static`, `expires max`) statt über Go;
   zusätzlich HTTP/3 (`quic` + `Alt-Svc`) im slf-vhost für schnellere
   Handshakes auf Mobilfunk.
+
+---
+
+# UI-Durchgang
+
+Stand 2026-10-22. Alle Spielzustände live auf slf.coprime.tech durchgespielt
+(Playwright 390 px und 1280 px, Bots per WebSocket als Mit-/Gegenspieler und
+als Host). Ziel: alles Sichtbare hat direkten Nutzen, nichts ist nur Füllung.
+Sortiert nach Wirkung. Nicht geprüft: Reconnect-Badge, Kick aus Sicht des
+Gekickten, QR-Scanner, Dark Mode, viele Spieler/Kategorien.
+
+## UI-1. Buchstaben-Raster im Rundenergebnis
+
+`LetterOverview` in `RoundResultScreen.tsx` ist der größte Block und sagt
+nur, welcher Buchstabe gespielt wurde. Eine Rundennummer gibt es nirgends.
+
+**Fix:** Raster entfernen, stattdessen eine Zeile „Runde 2 · T“ über dem
+Zwischenstand.
+
+## UI-2. Lobby aus Spielersicht voller Standardwerte
+
+Nicht-Hosts sehen 4x „Nein“, alle 26 aktiven Buchstaben plus „Aktive
+Buchstaben für dieses Spiel.“ „Warte auf den Host…“ steht erst nach dem
+Scrollen ganz unten.
+
+**Fix:** Einstellungen für Nicht-Hosts als eine Zeile nur mit Abweichungen
+vom Standard („60 s · Flammen · ohne Q X Y“), nichts wenn alles Standard ist.
+„Warte auf den Host…“ fest am unteren Rand (wie UI-5).
+
+## UI-3. Gültig/Ungültig in der Bewertung uneinheitlich
+
+`SoloReviewScreen` nutzt Ja/Nein, `ReviewScreen` einen Icon-Knopf, der die
+Aktion statt des Zustands zeigt (✕ auf gültigen, ✓ auf ungültigen Antworten).
+Der Knopf hat nur `title`, kein `aria-label`.
+
+**Fix:** In beiden Bewertungen schaltet ein Tipp auf die ganze Zeile die
+Gültigkeit um (`role="switch"` + `aria-checked`), durchgestrichen = ungültig.
+Icon-Knopf und Ja/Nein entfallen.
+
+## UI-4. Punkte in der Bewertung unbegründet
+
+Eine verlorene Flamme gibt 0 Punkte, die gleiche Antwort ohne Flamme 5; eine
+Antwort mit falschem Buchstaben ist automatisch ungültig. Beides ohne Grund.
+
+**Fix:** kurzer Grund in der Zeile unter der Antwort: „Flamme verloren“,
+„Flamme +5“, „beginnt nicht mit T“ / „endet nicht auf S“.
+
+## UI-5. „Spiel starten“ nur nach Scrollen erreichbar
+
+Der Knopf liegt unter dem Buchstaben-Raster, auf dem Handy und auf dem
+Desktop (1280x800) außerhalb des Viewports. Das Raster (26 Knöpfe + „26 von
+26 aktiv“) braucht kaum jemand.
+
+**Fix:** „Spiel starten“ `sticky bottom-0` in `Lobby.tsx`. Buchstaben-Raster
+hinter einer zugeklappten Zeile „Buchstaben: alle ▸“ (bzw. „ohne Q X Y ▸“).
+
+## UI-6. Lobby: Code-Karte
+
+„Klicken oder Strg+C zum Kopieren“ ist auf dem Handy sinnlos und doppelt zu
+„Link kopieren“.
+
+**Fix:** Hinweistext entfernen. „Link kopieren“ nutzt `navigator.share`, wenn
+vorhanden, sonst Clipboard.
+
+## UI-7. Lobby: Spielerliste
+
+Host steht unten (alphabetisch). Getrennte Spieler sind nur am grauen Punkt
+erkennbar.
+
+**Fix:** sortieren: du, Host, Rest alphabetisch. Getrennte Spieler mit
+Text „offline“ statt nur grauem Punkt.
+
+## UI-8. Desktop: eine 1000 px breite Spalte
+
+Alle Screens sind einspaltig auf `max-w-5xl` gestreckt, die Lobby braucht
+Scrollen.
+
+**Fix:** Lobby ab `lg` zweispaltig (links Code + Spieler, rechts Kategorien
++ Einstellungen). Übrige Screens auf `max-w-xl` begrenzen.
+
+## UI-9. Spielrunde: doppelte Fortschrittsanzeige
+
+Fortschrittsbalken und „2/3“ wiederholen die Häkchen in den Feldern.
+
+**Fix:** Balken und Zähler in `GameScreen.tsx` entfernen.
+
+## UI-10. Spielrunde: Timer ohne Zeitlimit
+
+Ohne Limit zählt „0:41“ hoch, mit Limit „51s“ herunter. Der hochzählende
+Timer hat keinen Nutzen.
+
+**Fix:** Timer nur bei Zeitlimit anzeigen, einheitlich „0:51“.
+
+## UI-11. Spielrunde: ungültige Antwort nicht am Feld markiert
+
+„Xyz“ bei Buchstabe P hat kein Kennzeichen am Feld; nur unter dem gesperrten
+STOPP-Knopf steht „„Fluss" muss mit P beginnen.“
+
+**Fix:** Feld mit `aria-invalid` und rotem Rand markieren, den Hinweis
+direkt unter das Feld setzen.
+
+## UI-12. Solo: zwei Knöpfe für dasselbe
+
+Solo zeigt „STOPP - Fertig!“ und „Runde beenden“; der Bestätigungsdialog von
+„Runde beenden“ sagt „für alle“.
+
+**Fix:** im Solo-Modus nur „STOPP - Fertig!“, ohne Füllpflicht (beendet die
+Runde auch mit leeren Feldern), „Runde beenden“ ausblenden.
+
+## UI-13. Flammen-Knopf unerklärt
+
+Kein `aria-label`, Erklärung nur in der Lobby-Hilfe, `title` geht auf dem
+Handy nicht.
+
+**Fix:** `aria-label="Flamme setzen"`, beim ersten Spiel mit Flammen eine
+einmalige Zeile über den Feldern: „🔥 Wette: einzige Antwort +5, sonst 0“
+(per `localStorage` gemerkt).
+
+## UI-14. „Letzter Buchstabe“ kaum sichtbar
+
+Spielrunde zeigt nur ein winziges „AM ENDE“ über dem Buchstaben; Countdown
+und Bewertung gar nichts.
+
+**Fix:** überall „endet auf S“ in normaler Textgröße neben dem Buchstaben
+(Countdown, Spielrunde, Bewertung).
+
+## UI-15. Countdown: Buchstabe kleiner als die Zahl
+
+Mit „Buchstabe während Countdown“ steht der Buchstabe klein unter der Zahl.
+
+**Fix:** Buchstabe groß, Countdown-Zahl klein darunter.
+
+## UI-16. Mitten im Spiel beigetreten
+
+Titel „Gleich dabei“ ohne Erklärung.
+
+**Fix:** Satz unter dem Titel: „Du spielst ab der nächsten Runde mit.“
+
+## UI-17. Kommentator-Tabelle: Spalte „Fertig“
+
+„x/3“ wiederholt die Häkchen; vollständige Zeilen sind schon grün.
+
+**Fix:** Spalte in `CommentatorBoard.tsx` entfernen.
+
+## UI-18. Zusammenführen überall
+
+„Zusammenführen“ steht an jeder Zeile, auch bei nur einer Antwort. Der
+Hinweis sagt „mit ‚Anna‘“ statt der Antwort „Tahn“ und steht unter der
+Liste.
+
+**Fix:** Knopf nur bei mindestens 2 verschiedenen gültigen Antworten. Hinweis
+in die ausgewählte Zeile: „Antwort antippen, die gleich ‚Tahn‘ ist“.
+
+## UI-19. Grund für das Rundenende nur bei STOPP
+
+„Leo hat gestoppt“ erscheint, bei abgelaufener Zeit oder Host-Abbruch nichts.
+
+**Fix:** gleicher Hinweis für alle 3 Fälle: „Zeit abgelaufen“, „Host hat die
+Runde beendet“, „X hat gestoppt“ (Server liefert den Grund in
+`reviewState`, analog `buzzedBy`).
+
+## UI-20. Leere Runde ohne Erklärung
+
+Ohne Antworten springt die Runde direkt ins Rundenergebnis.
+
+**Fix:** Zeile im Rundenergebnis: „Niemand hat etwas eingetragen.“
+
+## UI-21. Pokale bei 0 Punkten
+
+Bei Gleichstand mit 0 sind alle „1.“ mit Pokal (Zwischenstand und
+Endstand).
+
+**Fix:** Pokal nur bei mehr als 0 Punkten.
+
+## UI-22. Host-getrennt-Banner überdeckt den Header
+
+`HostGraceBanner` ist `fixed top-0` und liegt über Titel und „Verlassen“.
+
+**Fix:** Banner im Fluss unter `RoomHeader` statt `fixed`.
+
+## UI-23. Platzhalter beim Beitreten
+
+„ASKZF6“ sieht aus wie ein bereits eingetragener Code.
+
+**Fix:** Platzhalter „6-stelliger Code“ in `Home.tsx`.
