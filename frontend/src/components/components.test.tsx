@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { isModalOpen, Modal } from "@/components/Modal";
+import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import type { Player } from "@/types/events";
 
@@ -64,5 +65,36 @@ describe("PlayerStatus", () => {
 	it("shows nothing for a connected player", () => {
 		const { container } = render(<PlayerStatus player={player({})} />);
 		expect(container.innerHTML).toBe("");
+	});
+});
+
+describe("CommentatorBoard", () => {
+	it("shows only the per-category checks, no count column", () => {
+		const p: Player = {
+			id: "p1",
+			name: "Anna",
+			isHost: false,
+			connected: true,
+			left: false,
+			pending: false,
+			score: 0,
+		};
+		render(
+			<CommentatorBoard
+				categories={[
+					{ id: "c1", name: "Stadt" },
+					{ id: "c2", name: "Land" },
+				]}
+				players={[p]}
+				commentator={{
+					roundId: "r1",
+					players: [
+						{ playerId: "p1", filledCategoryIds: ["c1"], complete: false },
+					],
+				}}
+			/>,
+		);
+		expect(screen.queryByText("Fertig")).toBeNull();
+		expect(screen.queryByText("1/2")).toBeNull();
 	});
 });

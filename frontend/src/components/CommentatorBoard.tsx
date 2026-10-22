@@ -38,14 +38,12 @@ export function CommentatorBoard({ categories, players, commentator }: Props) {
 								{cat.name}
 							</th>
 						))}
-						<th className="font-medium px-2 py-1 text-right">Fertig</th>
 					</tr>
 				</thead>
 				<tbody>
 					{players.map((player) => {
 						const filled = filledByPlayer.get(player.id) ?? new Set<string>();
 						const complete = completeByPlayer.get(player.id) ?? false;
-						const count = filled.size;
 						return (
 							<tr
 								key={player.id}
@@ -70,7 +68,10 @@ export function CommentatorBoard({ categories, players, commentator }: Props) {
 								{categories.map((cat) => {
 									const done = filled.has(cat.id);
 									return (
-										<td key={cat.id} className="px-2 py-2 text-center">
+										<td
+											key={cat.id}
+											className="px-2 py-2 text-center last:rounded-r-md"
+										>
 											{done ? (
 												<Check className="h-4 w-4 text-green-600 dark:text-green-500 inline" />
 											) : (
@@ -79,13 +80,6 @@ export function CommentatorBoard({ categories, players, commentator }: Props) {
 										</td>
 									);
 								})}
-								<td className="px-2 py-2 text-right tabular-nums rounded-r-md">
-									<span
-										className={complete ? "text-green-600 font-semibold" : ""}
-									>
-										{count}/{categories.length}
-									</span>
-								</td>
 							</tr>
 						);
 					})}
