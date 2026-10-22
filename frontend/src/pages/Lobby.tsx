@@ -194,7 +194,13 @@ export function Lobby() {
 	const activePlayers = (lobby?.players ?? []).filter((p) => !p.left);
 	// Rows to render, including players that just left (fading out). Called before
 	// the early return below so the hook order stays stable.
-	const playerRows = usePlayerPresence(activePlayers);
+	const playerRank = (p: Player) =>
+		p.id === myPlayerId ? 0 : p.isHost ? 1 : 2;
+	const playerRows = usePlayerPresence(activePlayers).sort(
+		(a, b) =>
+			playerRank(a.player) - playerRank(b.player) ||
+			a.player.name.localeCompare(b.player.name, "de"),
+	);
 
 	// Detect categories added since the last render and flash the newest one.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: react to the id list only
@@ -444,6 +450,11 @@ export function Lobby() {
 									<span className="text-sm font-medium">{player.name}</span>
 									{player.id === myPlayerId && (
 										<span className="text-xs text-muted-foreground">(du)</span>
+									)}
+									{!player.connected && (
+										<span className="text-xs text-muted-foreground">
+											offline
+										</span>
 									)}
 								</div>
 								<div className="flex items-center gap-2">

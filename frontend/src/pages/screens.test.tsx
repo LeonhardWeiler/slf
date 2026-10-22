@@ -241,6 +241,30 @@ describe("review validity", () => {
 	});
 });
 
+describe("Lobby players", () => {
+	it("lists you, then the host, then the rest alphabetically", () => {
+		setup("guest", "Lobby");
+		const lobby = useLobbyStore.getState().lobby!;
+		useLobbyStore.setState({
+			lobby: {
+				...lobby,
+				players: [
+					{ ...player("zoe", false), connected: false },
+					player("host", true),
+					player("anna", false),
+					player("guest", false),
+				],
+			},
+		});
+		render(<Lobby />);
+		const names = screen
+			.getAllByText(/^(zoe|host|anna|guest)$/)
+			.map((el) => el.textContent);
+		expect(names).toEqual(["guest", "host", "anna", "zoe"]);
+		expect(screen.getAllByText("offline").length).toBe(1);
+	});
+});
+
 describe("Lobby letters", () => {
 	it("folds the letter grid behind a summary of the excluded letters", () => {
 		setup("host", "Lobby");
