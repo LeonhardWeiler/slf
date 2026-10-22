@@ -10,7 +10,7 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
   blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`),
   Zustand, TanStack Router (code-based, `src/router.tsx`), Zod.
 - **Package manager: Bun** (not npm/yarn; `npx` is **not** available).
-- Lint: Biome. Frontend tests: `bun test`. Backend tests: `go test`.
+- Lint + format: Biome (`index.html` excluded, its inline script is CSP-hashed). Frontend tests: `bun test`. Backend tests: `go test`.
 
 ## Commands
 
@@ -24,7 +24,7 @@ go test ./...         # for concurrency: go test ./... -race
 
 # Frontend (in frontend/)
 bun install
-bun run lint          # Biome
+bun run lint          # biome ci: lint + format check (fix: node_modules/.bin/biome check --write .)
 bun run test          # bun test (native runner)
 bun run build         # tsc -b && vite build (typechecks + builds)
 bun dev               # dev server

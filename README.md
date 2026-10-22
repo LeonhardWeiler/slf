@@ -150,7 +150,7 @@ several tabs/devices on the same network (the join link/QR code points to
 # Backend: format check, vet, tests (incl. WS integration tests)
 cd backend && gofmt -l . && go vet ./... && go test ./...
 
-# Frontend: Biome lint, unit tests (bun test), typecheck + production build
+# Frontend: Biome lint + format check, unit tests (bun test), typecheck + build
 cd frontend && bun run lint && bun run test && bun run build
 ```
 
