@@ -13,9 +13,9 @@ import { Toaster } from "@/components/Toaster";
 // The lobby/game view (Room + all in-game screens) is only needed once the
 // player is actually in a lobby. Splitting it out of the initial bundle keeps
 // the Home/start screen payload small (no unused in-game JS on first load).
-const Room = lazy(() =>
-	import("@/pages/Room").then((m) => ({ default: m.Room })),
-);
+const loadRoom = () => import("@/pages/Room");
+if (getSessionId()) void loadRoom();
+const Room = lazy(() => loadRoom().then((m) => ({ default: m.Room })));
 
 export function Router() {
 	// Individual selectors instead of destructuring the whole store: otherwise
