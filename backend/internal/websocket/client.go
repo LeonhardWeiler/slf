@@ -15,8 +15,10 @@ import (
 )
 
 // writeTimeout bounds a single message write. Without it a slow or dead client
-// (TCP backpressure) would stall the whole broadcast loop for everyone.
-const writeTimeout = 5 * time.Second
+// (TCP backpressure) would stall the whole broadcast loop for everyone. Sized
+// for a full lobby state over EDGE (radio wake-up, retransmits), so a slow but
+// live phone is not kicked into a reconnect loop.
+const writeTimeout = 15 * time.Second
 
 // maxMessageBytes caps a single inbound WebSocket message (64 KiB).
 const maxMessageBytes = 1 << 16
