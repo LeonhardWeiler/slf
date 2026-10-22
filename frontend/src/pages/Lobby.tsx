@@ -140,6 +140,17 @@ export function Lobby() {
 	const lobbyCode = (lobby?.lobbyCode ?? "").toUpperCase();
 	const joinLink = lobby ? `${window.location.origin}/join/${lobbyCode}` : "";
 
+	const canShare = typeof navigator.share === "function";
+
+	async function shareLink() {
+		if (!canShare) return copyText(joinLink, "link");
+		try {
+			await navigator.share({ url: joinLink });
+		} catch {
+			/* dismissed */
+		}
+	}
+
 	async function copyText(text: string, kind: "code" | "link") {
 		if (!text) return;
 		const ok = await copyToClipboard(text);
@@ -365,14 +376,10 @@ export function Lobby() {
 									<span className="ml-2">{lobbyCode.slice(3)}</span>
 								</span>
 							</span>
-							{/* Copy feedback swaps the hint text below the code (no icon over
-                  the code), the "like before" behaviour. */}
-							<p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+							<p className="min-h-4 text-xs text-muted-foreground">
 								{copyFailed
 									? "Kopieren nicht möglich - Code manuell markieren (nur über HTTPS)"
-									: copied === "code"
-										? "Kopiert!"
-										: "Klicken oder Strg+C zum Kopieren"}
+									: copied === "code" && "Kopiert!"}
 							</p>
 						</button>
 
@@ -383,7 +390,7 @@ export function Lobby() {
 								// Fixed width so swapping the label to "Link kopiert!" doesn't
 								// make the button jump narrower.
 								className="min-w-[8.5rem]"
-								onClick={() => copyText(joinLink, "link")}
+								onClick={shareLink}
 							>
 								{copied === "link" ? (
 									<>
@@ -393,7 +400,7 @@ export function Lobby() {
 								) : (
 									<>
 										<LinkIcon className="h-4 w-4" />
-										Link kopieren
+										{canShare ? "Link teilen" : "Link kopieren"}
 									</>
 								)}
 							</Button>

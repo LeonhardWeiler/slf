@@ -258,3 +258,21 @@ describe("Lobby letters", () => {
 		expect(container.querySelector("details")?.open).toBe(false);
 	});
 });
+
+describe("Lobby code card", () => {
+	it("shares the join link when the browser can share", () => {
+		const share = mock(async (_data: ShareData) => {});
+		Object.defineProperty(navigator, "share", {
+			value: share,
+			configurable: true,
+		});
+		setup("host", "Lobby");
+		render(<Lobby />);
+		expect(screen.queryByText(/Strg\+C zum Kopieren/)).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "Link teilen" }));
+		expect(share).toHaveBeenCalledWith({
+			url: `${window.location.origin}/join/123456`,
+		});
+		Reflect.deleteProperty(navigator, "share");
+	});
+});
