@@ -75,6 +75,8 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   auto-reconnect as the same player). An explicit "leave" clears it **and** the
   server drops the session, so leaving is final on both sides - a replayed id
   for a player marked `Left` is refused.
+  A newer socket for the same session closes the old one with code 4000; that
+  tab does not auto-reconnect, only on focus/visibility (`ws.replaced`).
 - **Solo** (`soloPlayer` in `game_util.go`: exactly 1 non-left player who is no
   spectator): buzz skips the fill and rule checks, review sends all rows at
   once (`reviewState.solo`), flames are off, empty rounds are still reviewed,

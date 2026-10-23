@@ -58,7 +58,9 @@ in RAM.
   as the same player (same name, points, role), as long as the lobby still
   exists. A host keeps its role within the 15-second grace window. Trade-off
   (deliberate): all tabs of the same browser share one identity; a second tab
-  connects into the same session instead of becoming its own player. An explicit
+  takes the session over instead of becoming its own player; the server closes
+  the older tab's socket (code 4000) and that tab stays offline until it is
+  focused again. An explicit
   **leave** is a final exit: the client clears the stored `sessionId` and the
   server invalidates the session, so a replayed id cannot bring the player back.
   Only a tab close/connection drop remains re-joinable.
