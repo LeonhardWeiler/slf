@@ -36,18 +36,6 @@ function useCountdown(seconds: number | null, resetKey: string): number | null {
 	return value;
 }
 
-// Whole seconds until the local-clock deadline `endsAt`, null when unlimited.
-function useSecondsLeft(endsAt: number | null): number | null {
-	const [now, setNow] = useState(Date.now);
-	useEffect(() => {
-		if (endsAt === null) return;
-		setNow(Date.now());
-		const id = setInterval(() => setNow(Date.now()), 250);
-		return () => clearInterval(id);
-	}, [endsAt]);
-	return endsAt === null ? null : Math.max(0, Math.ceil((endsAt - now) / 1000));
-}
-
 const answersKey = (roundId: string) => `slf:answers:${roundId}`;
 
 function sendInputSync(roundId: string, answers: Record<string, string>) {
@@ -95,6 +83,38 @@ function formatClock(total: number): string {
 	const m = Math.floor(total / 60);
 	const s = total % 60;
 	return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Clock for a timed round. It owns its ticking state so a tick re-renders only
+// the clock, not the answer form. Red pulsing border for the final 5 seconds.
+function RoundClock({ endsAt }: { endsAt: number }) {
+	const left = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+	const [secs, setSecs] = useState(left);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
+	useEffect(() => {
+		setSecs(left());
+		const id = setInterval(() => setSecs(left()), 250);
+		return () => clearInterval(id);
+	}, [endsAt]);
+	const danger = secs <= 5;
+	return (
+		<>
+			{danger && (
+				<div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
+			)}
+			<p
+				className={cn(
+					"text-3xl font-mono font-bold tabular-nums",
+					danger && "text-destructive",
+				)}
+			>
+				{formatClock(secs)}
+			</p>
+			<span className="sr-only" aria-live="assertive">
+				{danger ? `Noch ${secs} Sekunden` : ""}
+			</span>
+		</>
+	);
 }
 
 export function GameScreen() {
@@ -201,7 +221,6 @@ export function GameScreen() {
 		game?.countdownRemaining ?? null,
 		`${roundId}:cd:${game?.countdownRemaining ?? ""}`,
 	);
-	const timeLeft = useSecondsLeft(game?.endsAt ?? null);
 
 	// Send the last keystrokes the moment time runs out, not a debounce later.
 	const endsAt = game?.endsAt ?? null;
@@ -338,8 +357,6 @@ export function GameScreen() {
 	const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
 
 	// ---- Playing phase ----
-	// Red border stays on through 0 and until the round actually ends.
-	const dangerZone = timeLeft !== null && timeLeft <= 5;
 
 	// Players actually participating this round (for the fill overview): not left,
 	// not a pending spectator, and - unless the host plays - not the host.
@@ -349,10 +366,6 @@ export function GameScreen() {
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">
-			{/* Red, pulsing screen border for the final 5 seconds (only when timed). */}
-			{dangerZone && (
-				<div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
-			)}
 			<div
 				className={cn(
 					"mx-auto w-full space-y-4 animate-fade-in",
@@ -378,22 +391,8 @@ export function GameScreen() {
             freely on the background (like the borderless switch). */}
 				<div className="flex items-center justify-between px-1">
 					<RoundLetter letter={game.letter} className="text-6xl" />
-					{timeLeft !== null && (
-						<p
-							className={cn(
-								"text-3xl font-mono font-bold tabular-nums",
-								dangerZone && "text-destructive",
-							)}
-						>
-							{formatClock(timeLeft)}
-						</p>
-					)}
+					{game.endsAt !== null && <RoundClock endsAt={game.endsAt} />}
 				</div>
-
-				{/* Screen-reader announcement for the final seconds. */}
-				<span className="sr-only" aria-live="assertive">
-					{dangerZone && timeLeft !== null ? `Noch ${timeLeft} Sekunden` : ""}
-				</span>
 
 				{isSpectator ? (
 					<Card>

@@ -31,11 +31,11 @@
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
-<strong>2</strong>
+<strong>1</strong>
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>12</strong>
+<strong>11</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -280,7 +280,7 @@
 <tr>
 <td>Performance &amp; Skalierung</td>
 <td>Normalfall schnell. Kapazität am Proxy, langsame Empfänger und Snapshot-Fan-out sind relevanter als Scoring oder Binärprotokoll.</td>
-<td>OPS-01, PERF-03</td>
+<td>OPS-01</td>
 </tr>
 <tr>
 <td>UI/UX &amp; Accessibility</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">12 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">11 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -485,19 +485,6 @@
 <p class="accept">
 <b>Abnahme.</b> Jede sichtbare Phase hat passende Daten derselben Runde/Version; absichtlich alte oder unvollständige Nachrichten zeigen einen definierten Ladezustand statt alten Inhalt.</p>
 </article>
-<article class="finding" id="PERF-03" data-priority="P3" data-area="Performance">
-<h3>
-<span class="tag P3">P3</span> <span class="id">PERF-03</span> Timer lassen den gesamten Spielscreeen regelmäßig neu rendern</h3>
-<p class="meta">Performance · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> GameScreen enthält Countdown, 250-ms-Zeitlimit-Ticker, Sekunden-Stopwatch, Formular und Fortschrittsberechnung gemeinsam. Auch eine unbegrenzte Runde startet die Stopwatch. Jede Taste schreibt außerdem synchron den gesamten Draft als JSON in localStorage.</p>
-<p>
-<b>Auswirkung.</b> Bei vielen Kategorien wird dieselbe Formular-/Validierungsarbeit regelmäßig wiederholt, auch wenn nur die Uhr sich ändert. Die Default-Partie mit drei Kategorien ist klein; ein messbarer Engpass auf echten Mobilgeräten ist noch nicht belegt.</p>
-<p>
-<b>Empfohlene Änderung.</b> Timer in kleine Komponenten verschieben, Formularzustand stabil halten und Drafts sinnvoll bündeln. Persistenz beim Hintergrundwechsel/Verlassen sichern. Erst profilen, dann gezielt memo-isieren; keine flächendeckende Memo-Schicht.</p>
-<p class="accept">
-<b>Abnahme.</b> React-Profiler bei vielen Kategorien auf langsamem Gerät: Ticks rendern nicht alle Eingaben, Eingaben bleiben flüssig und Drafts überleben Reload.</p>
-</article>
 <article class="finding" id="OBS-01" data-priority="P3" data-area="Datenschutz">
 <h3>
 <span class="tag P3">P3</span> <span class="id">OBS-01</span> Logdaten und Drafts brauchen eine explizite Aufbewahrungspolitik</h3>
@@ -539,7 +526,7 @@
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>
-<td>CODE-01, PERF-03</td>
+<td>CODE-01</td>
 <td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
 </tr>
 <tr>
@@ -644,7 +631,7 @@
 </tr>
 <tr>
 <td>PERF-7/9/10, NET-1/2</td>
-<td>Gelöst (441861b, 9f8e55b, a018488, Server-Config 11fdf9c): Kompressionsschwelle, Bundle 77 kB gzip, früher Verbindungsaufbau, Assets über nginx, HTTP/3, kein Slow-Start nach Pausen. Offen bleibt PERF-03.</td>
+<td>Gelöst (441861b, 9f8e55b, a018488, Server-Config 11fdf9c): Kompressionsschwelle, Bundle 77 kB gzip, früher Verbindungsaufbau, Assets über nginx, HTTP/3, kein Slow-Start nach Pausen. Die Rundenuhr rendert nur noch sich selbst.</td>
 </tr>
 <tr>
 <td>UI-1 bis UI-5</td>

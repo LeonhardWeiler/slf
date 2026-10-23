@@ -1,4 +1,21 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+
+it("announces the final seconds", () => {
+	setup("guest", "Playing");
+	useGameStore.getState().setGame({
+		roundId: "r3",
+		state: "Playing",
+		letter: "B",
+		usedLetters: ["B"],
+		remainingLetters: [],
+		endsAt: Date.now() + 3_500,
+		serverNow: Date.now(),
+		countdownRemaining: null,
+		categoryCount: 2,
+	});
+	render(<GameScreen />);
+	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
+});
 import {
 	act,
 	fireEvent,
