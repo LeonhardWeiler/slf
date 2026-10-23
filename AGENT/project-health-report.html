@@ -31,11 +31,11 @@
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
-<strong>1</strong>
+<strong>0</strong>
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>11</strong>
+<strong>10</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -305,7 +305,7 @@
 <tr>
 <td>Observability &amp; Betrieb</td>
 <td>Ressourcen gesund, automatisierte Zertifikate und Fehlernotifikation. Uptime-/WSS-Synthetics und App-Metriken nicht belegt.</td>
-<td>OPS-04, OBS-01</td>
+<td>OPS-04</td>
 </tr>
 <tr>
 <td>SEO, Auffindbarkeit &amp; Metadaten</td>
@@ -314,8 +314,8 @@
 </tr>
 <tr>
 <td>Datenschutz &amp; Lizenz</td>
-<td>Keine Analytics-/Tracking-Integration im gelesenen App-Code, Antwortinhalte während Playing nicht öffentlich. GPL-Datei und Paketlizenz vorhanden; Aufbewahrung nicht explizit.</td>
-<td>OBS-01; keine Rechtsprüfung</td>
+<td>Keine Analytics-/Tracking-Integration im gelesenen App-Code, Antwortinhalte während Playing nicht öffentlich. GPL-Datei und Paketlizenz vorhanden; Gespeicherte Daten und Aufbewahrung im README beschrieben.</td>
+<td>Keine Rechtsprüfung</td>
 </tr>
 </tbody>
 </table>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">11 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">10 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -485,19 +485,6 @@
 <p class="accept">
 <b>Abnahme.</b> Jede sichtbare Phase hat passende Daten derselben Runde/Version; absichtlich alte oder unvollständige Nachrichten zeigen einen definierten Ladezustand statt alten Inhalt.</p>
 </article>
-<article class="finding" id="OBS-01" data-priority="P3" data-area="Datenschutz">
-<h3>
-<span class="tag P3">P3</span> <span class="id">OBS-01</span> Logdaten und Drafts brauchen eine explizite Aufbewahrungspolitik</h3>
-<p class="meta">Datenschutz · Code + Live-Logs · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Go loggt Spielernamen, Lobbycodes und Zustandswechsel; Sessiontokens werden korrekt gehasht. nginx führt Accesslogs mit den üblichen Verbindungsdaten und /join/Code-Pfaden. logrotate ist vorhanden, aber eine projektspezifische Retentions-/Zugriffsentscheidung ist nicht dokumentiert. Drafts bleiben bis zum Start einer anderen Runde im lokalen Browser.</p>
-<p>
-<b>Auswirkung.</b> Namen, IP-Adressen und aktive Lobbyeinladungen können länger als nötig rekonstruierbar bleiben. Das ist eine technische Datenminimierungsfrage; keine rechtliche Bewertung oder behauptete externe Weitergabe.</p>
-<p>
-<b>Empfohlene Änderung.</b> Aufbewahrung und Zugriff bewusst festlegen, unnötige Join-URLs/Namen bei Bedarf reduzieren und Drafts bei endgültigem Verlassen/Spielende bereinigen. Für Support nur die tatsächlich erforderlichen Informationen sammeln.</p>
-<p class="accept">
-<b>Abnahme.</b> Dokumentierte Datenliste, Löschfristen und Verantwortlichkeit; nach endgültigem Austritt verbleiben keine benötigtenfalls sensiblen Drafts.</p>
-</article>
 <details>
 <summary>Quellkarte: zentrale Dateien und Funktionen je Finding</summary>
 <div class="scroll">
@@ -530,7 +517,7 @@
 <td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
 </tr>
 <tr>
-<td>TEST-01, OBS-01</td>
+<td>TEST-01</td>
 <td>Backend-/Frontend-Testdateien; backend/cmd/loadtest/main.go; README.md, CHANGELOG.md, AGENT/TODO.md; hub/handlers-Logging; nginx-/logrotate-Konfiguration</td>
 </tr>
 </tbody>

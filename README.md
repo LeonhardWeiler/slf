@@ -207,6 +207,16 @@ The tool spreads the players across many lobbies, has all hosts trigger a state
 change at the same time and measures, per client, the time until the resulting
 `lobbyState`/`lobbyPatch` broadcast (avg/p50/p95/p99/max).
 
+## Stored data
+
+- **Server:** game state lives in memory. On a deploy, idle lobbies (names,
+  scores, categories) go to `lobbies.json` and are deleted after the restart
+  loaded them. Logs hold player names, lobby codes and state changes; session
+  ids only as hashes. journald and the nginx access logs keep 14 days.
+- **Browser:** `sessionId` (until leaving), `theme`, `slf:flameHintSeen`, and
+  the draft answers of the running round (deleted when the round ends or on
+  leaving).
+
 ## Deliberate decisions & known limitations
 
 These points are known and chosen deliberately; they are **not a problem** for
