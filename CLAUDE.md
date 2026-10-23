@@ -68,6 +68,10 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   `lobbyState` per session (and per `reconnect`), then `lobbyPatch` (only
   changed players + `removed`, merged by `applyLobbyPatch`); the commentator
   board likewise gets `commentatorState` once, then `commentatorUpdate` rows.
+  All room messages go through `reduceRoom` (`store/room.ts`): it drops a
+  message older than the last `stateVersion` (0 = unversioned, never dropped),
+  clears round data on a phase or round change, and `Room` shows a loading view
+  until `phaseReady`.
 - Backend: `cmd/server` (entry point + security headers/SPA serving),
   `cmd/loadtest` (WebSocket load generator),
   `internal/game` (engine/state), `internal/websocket` (hub, handlers).

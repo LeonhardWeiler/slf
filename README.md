@@ -105,7 +105,7 @@ backend/
 frontend/
   src/pages/         Home, Lobby and game screens (game/)
   src/components/     UI building blocks (incl. ui/ = shadcn style on Base UI)
-  src/store/         Zustand stores (lobby, game)
+  src/store/         Zustand stores (room, toast)
   src/lib/           WebSocket client, theme, session, validation
   src/types/         Shared event/payload types
 flake.nix            Nix package and dev shell (Go, Bun, air, ...)
