@@ -106,7 +106,7 @@ export function RoundResultScreen() {
 										animationDelay: `${i * 70}ms`,
 										animationFillMode: "backwards",
 									}}
-									className={`animate-fade-in flex items-center justify-between py-2 px-3 rounded-md ${
+									className={`animate-fade-in flex items-center justify-between py-2 px-3 ${
 										r.rank === 1 && r.score > 0
 											? "bg-amber-500/15 border border-amber-500/40"
 											: "bg-muted/50"

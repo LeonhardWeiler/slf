@@ -437,7 +437,7 @@ export function Lobby() {
 								{playerRows.map(({ player, leaving }) => (
 									<div
 										key={player.id}
-										className={`flex items-center justify-between py-2 px-3 rounded-md bg-muted/50 ${
+										className={`flex items-center justify-between py-2 px-3 border-b last:border-b-0 ${
 											leaving
 												? "animate-fade-out pointer-events-none"
 												: "animate-fade-in"
@@ -505,7 +505,7 @@ export function Lobby() {
 										}
 										// Fixed height so switching a row into edit mode doesn't grow it
 										// and shove the rest of the list down.
-										className={`flex h-10 items-center justify-between px-3 rounded-md bg-muted/50 ${
+										className={`flex h-10 items-center justify-between px-3 border-b last:border-b-0 ${
 											flashCatId === cat.id ? "animate-highlight" : ""
 										}`}
 									>

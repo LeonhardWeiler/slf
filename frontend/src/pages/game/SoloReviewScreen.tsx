@@ -9,7 +9,6 @@ import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export function SoloReviewScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -92,62 +91,60 @@ export function SoloReviewScreen() {
 					</div>
 				</div>
 
-				<Card>
-					<CardContent className="pt-6 space-y-2">
-						{rows.map((r) => {
-							const issue = r.valid
-								? undefined
-								: ruleIssue(
-										r.value,
-										review.letter,
-										lobby.settings.lastLetterMode,
-									);
-							return (
-								// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
-								<div
-									key={r.categoryId}
-									role={r.value ? "switch" : undefined}
-									aria-checked={r.value ? r.valid : undefined}
-									{...(r.value
-										? pressProps(() => setValid(r.categoryId, !r.valid))
-										: {})}
-									className={cn(
-										"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
-										r.valid ? "bg-green-500/10" : "bg-muted/50",
-										r.value && "cursor-pointer",
-									)}
-								>
-									<div className="min-w-0">
-										<p className="text-xs text-muted-foreground">
-											{categoryName(r.categoryId)}
-										</p>
-										<p
-											className={cn(
-												"text-lg font-medium truncate",
-												r.valid
-													? "text-foreground"
-													: "line-through text-muted-foreground",
-											)}
-										>
-											{r.value || "-"}
-										</p>
-										{issue && (
-											<p className="text-xs text-muted-foreground">{issue}</p>
-										)}
-									</div>
-									<span
+				<div className="space-y-2">
+					{rows.map((r) => {
+						const issue = r.valid
+							? undefined
+							: ruleIssue(
+									r.value,
+									review.letter,
+									lobby.settings.lastLetterMode,
+								);
+						return (
+							// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
+							<div
+								key={r.categoryId}
+								role={r.value ? "switch" : undefined}
+								aria-checked={r.value ? r.valid : undefined}
+								{...(r.value
+									? pressProps(() => setValid(r.categoryId, !r.valid))
+									: {})}
+								className={cn(
+									"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
+									r.valid ? "bg-green-500/10" : "bg-muted/50",
+									r.value && "cursor-pointer",
+								)}
+							>
+								<div className="min-w-0">
+									<p className="text-xs text-muted-foreground">
+										{categoryName(r.categoryId)}
+									</p>
+									<p
 										className={cn(
-											"text-lg font-bold tabular-nums w-8 text-right shrink-0",
-											!r.valid && "text-muted-foreground",
+											"text-lg font-medium truncate",
+											r.valid
+												? "text-foreground"
+												: "line-through text-muted-foreground",
 										)}
 									>
-										{r.points}
-									</span>
+										{r.value || "-"}
+									</p>
+									{issue && (
+										<p className="text-xs text-muted-foreground">{issue}</p>
+									)}
 								</div>
-							);
-						})}
-					</CardContent>
-				</Card>
+								<span
+									className={cn(
+										"text-lg font-bold tabular-nums w-8 text-right shrink-0",
+										!r.valid && "text-muted-foreground",
+									)}
+								>
+									{r.points}
+								</span>
+							</div>
+						);
+					})}
+				</div>
 
 				<div className="flex flex-col-reverse gap-2 sm:flex-row">
 					<Button

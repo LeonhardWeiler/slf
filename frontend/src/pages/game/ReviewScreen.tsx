@@ -161,7 +161,7 @@ export function ReviewScreen() {
 								<div
 									key={a.answerId}
 									className={cn(
-										"rounded-md px-3 py-2.5 transition-colors",
+										"px-3 py-2.5 transition-colors",
 										isAnchor
 											? "bg-primary/10 ring-2 ring-primary"
 											: a.valid
