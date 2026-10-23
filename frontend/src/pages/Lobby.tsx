@@ -43,12 +43,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 const TIME_OPTIONS: { label: string; value: number | null }[] = [
-	{ label: "Unbegrenzt", value: null },
 	{ label: "30 Sek.", value: 30 },
 	{ label: "60 Sek.", value: 60 },
 	{ label: "90 Sek.", value: 90 },
 	{ label: "120 Sek.", value: 120 },
 	{ label: "180 Sek.", value: 180 },
+	{ label: "Unbegrenzt", value: null },
 ];
 
 // Keeps players briefly rendered after they leave so the row can fade out
@@ -640,29 +640,48 @@ export function Lobby() {
 											auszufüllen. Bei „Unbegrenzt“ läuft die Runde, bis jemand
 											buzzert oder der Host sie beendet.
 										</InfoHint>
-										<div className="flex flex-wrap gap-2">
-											{TIME_OPTIONS.map((opt) => {
-												const active = lobby.settings.timeLimit === opt.value;
-												return (
-													<button
-														key={opt.label}
-														type="button"
-														onClick={() =>
-															updateSettings({ timeLimit: opt.value })
-														}
-														className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-															// Active fill already contrasts with the background, so
-															// no border edge is drawn (only the unselected option
-															// keeps a border to read as an outline).
-															active
-																? "bg-primary text-primary-foreground border-transparent"
-																: "bg-background hover:bg-muted active:bg-muted border-border"
-														}`}
-													>
-														{opt.label}
-													</button>
-												);
-											})}
+										<div>
+											<output
+												htmlFor="round-time"
+												className="block text-sm font-semibold tabular-nums text-right"
+											>
+												{TIME_OPTIONS.find((opt) => opt.value === s.timeLimit)
+													?.label ?? `${s.timeLimit} Sek.`}
+											</output>
+											<input
+												id="round-time"
+												type="range"
+												min={0}
+												max={TIME_OPTIONS.length - 1}
+												step={1}
+												value={Math.max(
+													0,
+													TIME_OPTIONS.findIndex(
+														(opt) => opt.value === s.timeLimit,
+													),
+												)}
+												aria-label="Zeitlimit pro Runde"
+												aria-valuetext={
+													s.timeLimit === null
+														? "Unbegrenzt"
+														: `${s.timeLimit} Sekunden`
+												}
+												onChange={(e) =>
+													updateSettings({
+														timeLimit:
+															TIME_OPTIONS[Number(e.target.value)].value,
+													})
+												}
+												className="block h-8 w-full cursor-pointer accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+											/>
+											<div
+												aria-hidden="true"
+												className="flex justify-between text-xs text-muted-foreground tabular-nums"
+											>
+												{TIME_OPTIONS.map((opt) => (
+													<span key={opt.label}>{opt.value ?? "∞"}</span>
+												))}
+											</div>
 										</div>
 									</div>
 

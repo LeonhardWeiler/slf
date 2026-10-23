@@ -383,6 +383,27 @@ describe("Lobby players", () => {
 	});
 });
 
+describe("Lobby time limit", () => {
+	it("maps slider steps to server settings, including unlimited", () => {
+		setup("host", "Lobby");
+		render(<Lobby />);
+		const slider = screen.getByRole("slider", { name: "Zeitlimit pro Runde" });
+		for (const [step, timeLimit] of [30, 60, 90, 120, 180, null].entries()) {
+			fireEvent.change(slider, { target: { value: String(step) } });
+			expect(send).toHaveBeenLastCalledWith({
+				type: "updateSettings",
+				payload: { ...useRoomStore.getState().lobby!.settings, timeLimit },
+			});
+			act(() => {
+				const lobby = useRoomStore.getState().lobby!;
+				useRoomStore.setState({
+					lobby: { ...lobby, settings: { ...lobby.settings, timeLimit } },
+				});
+			});
+		}
+	});
+});
+
 describe("Lobby letters", () => {
 	it("folds the letter grid behind a summary of the excluded letters", () => {
 		setup("host", "Lobby");
