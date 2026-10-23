@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Stadt Land Fluss · Versuch 03</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%23ffd93b'/%3E%3Crect x='4' y='4' width='56' height='14' rx='7' fill='%23fff' opacity='.45'/%3E%3Ctext x='32' y='45' font-family='Arial' font-weight='900' font-size='34' text-anchor='middle' fill='%23402a00'%3ES%3C/text%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-look="block" data-phase="lobby">
+  <div class="bg" aria-hidden="true"></div>
+  <div class="app" id="app">
+    <header class="top">
+      <div class="brand" aria-hidden="true"><i>s</i><i>l</i><i>f</i></div>
+      <div class="looks" role="group" aria-label="Look">
+        <button type="button" data-look="block" aria-label="Look Block" aria-pressed="true" title="Block"><i></i><i></i><i></i></button>
+        <button type="button" data-look="paper" aria-label="Look Papier" aria-pressed="false" title="Papier"><i></i><i></i><i></i></button>
+        <button type="button" data-look="pop" aria-label="Look Pop" aria-pressed="false" title="Pop"><i></i><i></i><i></i></button>
+      </div>
+      <button type="button" class="icon-btn" id="sound" aria-label="Ton aus" aria-pressed="true"></button>
+      <button type="button" class="icon-btn" id="rate" aria-label="Bewerten"></button>
+    </header>
+    <main class="stage" id="stage"></main>
+  </div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="slam" aria-hidden="true"></div>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+  <dialog id="rate-dialog" aria-labelledby="rate-title">
+    <form method="dialog" class="rate-form">
+      <div class="rate-top"><h2 id="rate-title">Wie war's?</h2><button type="submit" class="icon-btn" value="close" aria-label="Schließen" data-icon="x"></button></div>
+      <p class="rate-context" id="rate-context"></p>
+      <div id="rate-scales"></div>
+      <textarea id="rate-notes" rows="3" maxlength="1500" placeholder="Was war gut, was nicht?" aria-label="Notizen"></textarea>
+      <button type="button" class="btn primary" id="rate-save">Speichern</button>
+      <p class="rate-status" id="rate-status" role="status"></p>
+      <div class="rate-row"><button type="button" class="btn ghost" id="rate-export">JSON exportieren</button><button type="button" class="btn ghost" id="rate-reset">Daten löschen</button></div>
+      <label class="rate-check"><input type="checkbox" id="reduce-motion"> Weniger Bewegung</label>
+      <label class="rate-check">Lautstärke <input type="range" id="volume" min="0" max="100" value="60"></label>
+    </form>
+  </dialog>
+  <script type="module" src="game.js"></script>
+</body>
+</html>

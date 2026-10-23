@@ -264,3 +264,16 @@ Dein Test hat 3 Annahmen aus v1 widerlegt. Details und Studien: [v2/NOTES.md](en
 5. **Review in einem Bild**: alle Antworten auf einmal, Punkte zählen live hoch. Für Multiplayer ist das eine Protokolländerung am Review-Ablauf und damit der größte Brocken.
 6. **Kürzere Partien**: Standard 3 bis 5 Runden mit klarem Finale und „Nochmal“ als Hauptknopf.
 7. **Duell/Sprint als Solo-Modi** erst, wenn 1 bis 6 im echten Spiel getestet sind.
+
+## Iteration 3 nach dem zweiten Spieltest (23.10.2026)
+
+Ergebnis von v2: Musik ist der stärkste Hebel, Animationen bringen Dopamin, der Sprint soll ins Spiel (steht in `AGENT/TODO.md`). Das Design war zu sci-fi, die Materialien zu ähnlich, und getestet wurde fast nur das Schreiben.
+
+v3 (`engagement-lab/v3/`) antwortet darauf mit:
+
+1. **Ganze Partie statt Schreibtest:** Lobby, Buchstaben-Slot, Schreiben mit 3 simulierten Freunden, Bewertung als Show, Rangliste mit Überholen, Podium. Dazu der Sprint mit Combo und Rekord.
+2. **3 klar verschiedene Looks** statt 3 ähnlicher Materialien: *Block* (glänzende Candy-Tiles), *Papier* (Notizblock, Textmarker, Stempel), *Pop* (Knallfarben, schwarze Konturen, harte Schatten). Jeder Look hat eigene Schrift, eigene 4 Paletten und eigenen Klang.
+3. **Musik als Rückgrat:** eine durchgehende Progression mit Szenen je Phase (96–132 bpm), die mit jedem gesperrten Wort oder Combo eine Schicht dichter wird.
+4. **Mobile zuerst:** eine Spalte mit max. 460 px, Tippen über ein unsichtbares Eingabefeld, die Buchstaben erscheinen als Tiles.
+
+Was v3 testen soll: welcher Look, ob die Bewertung als Show Spaß macht statt nach Arbeit aussieht, und ob Rangliste und Podium Lust auf eine weitere Partie machen. Details in `engagement-lab/v3/NOTES.md`.
