@@ -1103,7 +1103,7 @@ func TestShutdownRefusesNewSockets(t *testing.T) {
 	if _, _, err := host.conn.Read(ctx); websocket.CloseStatus(err) != websocket.StatusGoingAway {
 		t.Fatalf("open socket: %v, want going away", err)
 	}
-	if _, _, err := dial(t, srv).conn.Read(ctx); websocket.CloseStatus(err) != websocket.StatusGoingAway {
-		t.Fatalf("new socket: %v, want going away", err)
+	if _, _, err := dial(t, srv).conn.Read(ctx); websocket.CloseStatus(err) != websocket.StatusTryAgainLater {
+		t.Fatalf("new socket: %v, want try again later", err)
 	}
 }

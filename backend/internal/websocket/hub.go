@@ -15,7 +15,8 @@ import (
 // Resource caps to bound memory use. Deliberately far above any realistic game
 // so normal players never hit them; they exist only to stop abuse.
 const (
-	maxLobbies            = 10000
+	maxLobbies            = 2000
+	maxConnections        = 2000
 	maxPlayersPerLobby    = 200
 	maxCategoriesPerLobby = 100
 )
@@ -164,7 +165,7 @@ func (h *Hub) uniqueLobbyCode() string {
 func (h *Hub) addPending(c *Client) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if h.closed.Load() {
+	if h.closed.Load() || len(h.pending)+len(h.clients) >= maxConnections {
 		return false
 	}
 	h.pending[c] = struct{}{}

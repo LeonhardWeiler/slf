@@ -53,7 +53,7 @@ const (
 )
 
 // Backoff for joins and lobby creation: after a few free tries, consecutive
-// failed joins (wrong/unknown code) and every further lobby created on one
+// failed joins (wrong/unknown code) and every further seat (create or join) on one
 // connection must be spaced out by a growing delay. Gentle on purpose -
 // legitimate users rarely hit it - while slowing code guessing and stopping
 // one socket from walking the global maxLobbies cap.
@@ -144,12 +144,12 @@ type Client struct {
 	rlTokens float64
 	rlLast   time.Time
 
-	// Throttling state (also read-loop-only): consecutive failed joins, lobbies
-	// created, and the time of the last attempt of each.
-	joinFails      int
-	lastJoinAt     time.Time
-	createdLobbies int
-	lastCreateAt   time.Time
+	// Throttling state (also read-loop-only): consecutive failed joins, seats
+	// taken by create or join, and the time of the last attempt of each.
+	joinFails  int
+	lastJoinAt time.Time
+	seats      int
+	lastSeatAt time.Time
 }
 
 // backoff returns how long a client must wait between attempts after n
@@ -201,7 +201,7 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	c := &Client{conn: conn, hub: hub, wake: make(chan struct{}, 1)}
 	if !hub.addPending(c) {
-		c.closeGoingAway()
+		_ = conn.Close(websocket.StatusTryAgainLater, "server busy")
 		return
 	}
 	defer hub.onDisconnect(c)

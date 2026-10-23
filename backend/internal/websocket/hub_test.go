@@ -240,3 +240,15 @@ func TestHealthDetectsStuckHub(t *testing.T) {
 		t.Fatal("a held hub lock must report not live")
 	}
 }
+
+func TestAddPendingCapsConnections(t *testing.T) {
+	h := NewHub()
+	for range maxConnections {
+		if !h.addPending(&Client{}) {
+			t.Fatal("refused below the cap")
+		}
+	}
+	if h.addPending(&Client{}) {
+		t.Fatal("accepted above the cap")
+	}
+}
