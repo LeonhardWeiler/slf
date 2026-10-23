@@ -23,7 +23,7 @@
 <span>bestätigte kritische Gesamtrisiken</span>
 </div>
 <div class="stat">
-<strong>4</strong>
+<strong>3</strong>
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>29</strong>
+<strong>28</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -265,7 +265,7 @@
 <tr>
 <td>Security &amp; Supply Chain</td>
 <td>Starke Basiskontrollen, aber veraltete Toolchain, Advisory-Lock und zu grobe Ressourcenbudgets.</td>
-<td>SEC-01 bis SEC-05, DATA-01</td>
+<td>SEC-02 bis SEC-05, DATA-01</td>
 </tr>
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
@@ -354,20 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">29 Findings sichtbar.</p>
-<article class="finding" id="SEC-01" data-priority="P1" data-area="Sicherheit">
-<h3>
-<span class="tag P1">P1</span> <span class="id">SEC-01</span> Der ausgelieferte Go-Build enthält bekannte Sicherheitslücken</h3>
-<p class="meta">Sicherheit · Live + Scan · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Das lokale result ist derselbe Nix-Paketpfad wie ExecStart auf dem Server. go version -m identifiziert Go 1.26.4 und coder/websocket 1.8.15. govulncheck meldet im ausgelieferten Binary 13 Symboltreffer aus der Standardbibliothek, im gesamten Backend einschließlich Lasttest 17. Besonders relevant: GO-2026-6609 betrifft http.ServeFile, das spaHandler tatsächlich verwendet. Der SLF-Flake pinnt nixpkgs auf eine Revision vom Juni 2026, obwohl das Server-OS vom Oktober ist.</p>
-<p>
-<b>Auswirkung.</b> Das aktuelle Server-OS repariert keine in ein Go-Binary einkompilierten Bibliotheken. Ein über nginx weitergeleiteter Range-Request erreicht ServeFile. Die HTTP/2- und TLS-Treffer sind dagegen kein Beweis einer extern ausnutzbaren Go-TLS/HTTP2-Lücke: TLS/H2 terminieren hier in nginx, der Upstream ist HTTP/1.1.</p>
-<p>
-<b>Empfohlene Änderung.</b> SLF-eigenen Flake-Lock und Toolchain auf einen aktuell gepatchten Stand aktualisieren, neu bauen und deployen. Der Scan nennt Go 1.26.10 als erforderliche Patchversion für den höchsten gefundenen Fixstand; vor dem Update aktuelle Version prüfen. Danach Binary erneut scannen. Quellen: <a href="https://pkg.go.dev/vuln/GO-2026-6609">Go Range-Advisory</a>, <a href="https://go.dev/doc/devel/release">Go Release History</a>.</p>
-<p class="accept">
-<b>Abnahme.</b> Neues tatsächlich laufendes Binary identifizieren; kein ungeklärter erreichbarer govulncheck-Treffer. Nicht nur go.mod ändern.</p>
-</article>
+<p id="filter-count" class="meta" role="status">28 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -744,7 +731,7 @@
 </thead>
 <tbody>
 <tr>
-<td>SEC-01/03, CI-01</td>
+<td>SEC-03, CI-01</td>
 <td>flake.lock; flake.nix; backend/go.mod; frontend/bun.lock; .github/workflows/deploy.yml</td>
 </tr>
 <tr>
