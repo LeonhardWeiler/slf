@@ -123,15 +123,9 @@ export function Lobby() {
 		},
 		[],
 	);
-	// The letter currently playing its toggle pop; cleared when the animation ends
-	// so the same letter can pop again on the next toggle.
-	const [poppedLetter, setPoppedLetter] = useState<string | null>(null);
 	// Set when the disabled "Spiel starten" button is clicked, so the hint text
 	// shakes; reset once the shake animation ends.
 	const [startShake, setStartShake] = useState(false);
-	// While true, every letter replays the pop with a staggered delay - used when
-	// "Alle aktivieren" brings the whole row back at once.
-	const [staggerLetters, setStaggerLetters] = useState(false);
 	// Flash a just-added category so it's clear what appeared. Known ids are
 	// seeded from the initial list so existing categories don't flash on mount.
 	const [flashCatId, setFlashCatId] = useState<string | null>(null);
@@ -320,7 +314,6 @@ export function Lobby() {
 		if (excluded.has(letter)) excluded.delete(letter);
 		else excluded.add(letter);
 		updateSettings({ excludedLetters: [...excluded] });
-		setPoppedLetter(letter);
 	}
 
 	// Who would actually play a round right now: connected, not left, and - with a
@@ -756,71 +749,52 @@ export function Lobby() {
 									</div>
 
 									{/* Letter selection */}
-									<details className="group space-y-2">
-										<summary className="flex min-h-7 cursor-pointer list-none items-center gap-1 text-sm font-medium [&::-webkit-details-marker]:hidden">
-											Buchstaben: {lettersOff || "alle"}
-											<span className="transition-transform group-open:rotate-90">
-												▸
+									<fieldset
+										className="space-y-2"
+										aria-describedby="letters-help"
+									>
+										<legend className="text-sm font-medium">Buchstaben</legend>
+										<div className="flex items-center justify-between gap-2">
+											<span
+												className="text-xs text-muted-foreground"
+												role="status"
+											>
+												{ALPHABET.length - s.excludedLetters.length} von{" "}
+												{ALPHABET.length} aktiv
 											</span>
-										</summary>
-										{lobby.settings.excludedLetters.length > 0 && (
 											<Button
 												variant="ghost"
 												size="xs"
-												onClick={() => {
-													updateSettings({ excludedLetters: [] });
-													setStaggerLetters(true);
-													// Long enough for the last letter's delayed pop to finish.
-													setTimeout(
-														() => setStaggerLetters(false),
-														26 * 18 + 350,
-													);
-												}}
+												disabled={s.excludedLetters.length === 0}
+												onClick={() => updateSettings({ excludedLetters: [] })}
 											>
 												Alle aktivieren
 											</Button>
-										)}
-										<div className="flex flex-wrap gap-1.5">
-											{ALPHABET.map((letter, idx) => {
-												const excluded =
-													lobby.settings.excludedLetters.includes(letter);
-												const popping =
-													poppedLetter === letter || staggerLetters;
+										</div>
+										<p
+											id="letters-help"
+											className="text-xs text-muted-foreground"
+										>
+											Antippen, um Buchstaben ein- oder auszuschließen.
+										</p>
+										<div className="grid grid-cols-7 gap-1.5 sm:grid-cols-9">
+											{ALPHABET.map((letter) => {
+												const excluded = s.excludedLetters.includes(letter);
 												return (
 													<button
 														key={letter}
 														type="button"
 														onClick={() => toggleLetter(letter)}
-														onAnimationEnd={() =>
-															setPoppedLetter((l) => (l === letter ? null : l))
-														}
 														aria-pressed={!excluded}
-														title={
-															excluded
-																? `${letter} aktivieren`
-																: `${letter} deaktivieren`
-														}
-														style={
-															staggerLetters
-																? { animationDelay: `${idx * 18}ms` }
-																: undefined
-														}
-														className={`h-8 w-8 rounded-md text-sm font-semibold border transition-[background-color,border-color,color,opacity] duration-200 ${
-															popping ? "animate-pop" : ""
-														} ${
-															// Active fill contrasts with the background, so no border
-															// edge; only the excluded (muted) state keeps a border.
-															excluded
-																? "bg-muted text-muted-foreground/40 border-border line-through"
-																: "bg-primary text-primary-foreground border-transparent"
-														}`}
+														aria-label={letter}
+														className={`min-h-10 rounded-md border text-sm font-semibold transition-[background-color,color,transform] duration-150 active:scale-90 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${excluded ? "border-dashed border-muted-foreground text-muted-foreground line-through hover:bg-muted" : "border-transparent bg-primary text-primary-foreground hover:opacity-80"}`}
 													>
 														{letter}
 													</button>
 												);
 											})}
 										</div>
-									</details>
+									</fieldset>
 								</CardContent>
 							</Card>
 						) : (

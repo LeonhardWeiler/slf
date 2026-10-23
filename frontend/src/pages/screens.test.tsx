@@ -405,7 +405,7 @@ describe("Lobby time limit", () => {
 });
 
 describe("Lobby letters", () => {
-	it("folds the letter grid behind a summary of the excluded letters", () => {
+	it("keeps letters visible and exposes selection and reset", () => {
 		setup("host", "Lobby");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -414,11 +414,24 @@ describe("Lobby letters", () => {
 				settings: { ...lobby.settings, excludedLetters: ["X", "Q"] },
 			},
 		});
-		const { container } = render(<Lobby />);
-		expect(container.querySelector("summary")?.textContent).toBe(
-			"Buchstaben: ohne Q X▸",
-		);
-		expect(container.querySelector("details")?.open).toBe(false);
+		render(<Lobby />);
+		expect(screen.getByText("24 von 26 aktiv")).toBeDefined();
+		expect(
+			screen.getByRole("button", { name: "Q" }).getAttribute("aria-pressed"),
+		).toBe("false");
+		expect(
+			screen.getByRole("button", { name: "A" }).getAttribute("aria-pressed"),
+		).toBe("true");
+		fireEvent.click(screen.getByRole("button", { name: "Q" }));
+		expect(send).toHaveBeenLastCalledWith({
+			type: "updateSettings",
+			payload: { ...lobby.settings, excludedLetters: ["X"] },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Alle aktivieren" }));
+		expect(send).toHaveBeenLastCalledWith({
+			type: "updateSettings",
+			payload: { ...lobby.settings, excludedLetters: [] },
+		});
 	});
 });
 
