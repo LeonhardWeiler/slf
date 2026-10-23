@@ -28,3 +28,12 @@ export function pressProps(onPress: () => void) {
 		},
 	};
 }
+
+// True if Enter on el already has its own action (typing or a control), so a
+// global Enter shortcut must leave it alone.
+export function handlesEnter(el: Element | null): boolean {
+	return (
+		isTypingTarget(el) ||
+		!!el?.closest("button, a[href], [role=button], [role=switch]")
+	);
+}

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { ws } from "@/lib/ws";
-import { cn, isTypingTarget, pressProps } from "@/lib/utils";
+import { cn, handlesEnter, pressProps } from "@/lib/utils";
 import { useLobbyStore } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { ruleIssue } from "@/lib/answerValidation";
@@ -23,7 +23,7 @@ export function SoloReviewScreen() {
 		function onKey(e: KeyboardEvent) {
 			if (
 				e.defaultPrevented ||
-				isTypingTarget(document.activeElement) ||
+				handlesEnter(document.activeElement) ||
 				isModalOpen()
 			)
 				return;

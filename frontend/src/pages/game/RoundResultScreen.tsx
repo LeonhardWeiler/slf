@@ -3,7 +3,7 @@ import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
-import { isTypingTarget } from "@/lib/utils";
+import { handlesEnter } from "@/lib/utils";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
@@ -52,7 +52,7 @@ export function RoundResultScreen() {
 	useEffect(() => {
 		if (!isHost) return;
 		function onKey(e: KeyboardEvent) {
-			if (isTypingTarget(document.activeElement)) return;
+			if (e.defaultPrevented || handlesEnter(document.activeElement)) return;
 			// Don't fire while a confirm dialog is up (e.g. "Spiel beenden?"), so the
 			// Enter that confirms it doesn't also start the next round (UX-1).
 			if (isModalOpen()) return;

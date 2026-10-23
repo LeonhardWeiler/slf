@@ -116,6 +116,18 @@ describe("RoundResultScreen", () => {
 		expect(screen.queryByText("Niemand hat etwas eingetragen.")).toBeNull();
 	});
 
+	it("leaves Enter on a focused button to that button", () => {
+		setup("host", "RoundResult");
+		render(<RoundResultScreen />);
+		send.mockClear();
+		screen.getByRole("button", { name: "Spiel beenden" }).focus();
+		fireEvent.keyDown(window, { key: "Enter" });
+		expect(send).not.toHaveBeenCalled();
+		(document.activeElement as HTMLElement).blur();
+		fireEvent.keyDown(window, { key: "Enter" });
+		expect(send).toHaveBeenCalledWith({ type: "startNextRound", payload: {} });
+	});
+
 	it("gives a trophy only to a leader with points", () => {
 		setup("guest", "RoundResult");
 		const { container, unmount } = render(<RoundResultScreen />);

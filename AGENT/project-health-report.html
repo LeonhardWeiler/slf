@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>12</strong>
+<strong>11</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>16</strong>
+<strong>15</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -285,12 +285,12 @@
 <tr>
 <td>UI/UX &amp; Accessibility</td>
 <td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
-<td>A11Y-03, UX-01, UX-04</td>
+<td>A11Y-03, UX-04</td>
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
-<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Storage-Fehler, Tastatur und mobile Tastatur brauchen bessere Verträge.</td>
-<td>CODE-02, UX-01, A11Y-03</td>
+<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Storage-Fehler und mobile Tastatur brauchen bessere Verträge.</td>
+<td>CODE-02, A11Y-03</td>
 </tr>
 <tr>
 <td>Tests &amp; Wartung</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">16 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">15 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -432,19 +432,6 @@
 <b>Empfohlene Änderung.</b> LISTEN_ADDR konfigurierbar machen und in Produktion 127.0.0.1:8080 verwenden; für LAN-Entwicklung weiterhin explizit alle Interfaces zulassen. Tailnet-ACLs und Deploy-Zugänge gesondert prüfen.</p>
 <p class="accept">
 <b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
-</article>
-<article class="finding" id="UX-01" data-priority="P2" data-area="UI/UX">
-<h3>
-<span class="tag P2">P2</span> <span class="id">UX-01</span> Globale Tastenkürzel können fokussierte Buttons übersteuern</h3>
-<p class="meta">UI/UX · Browser lokal + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> RoundResultScreen und SoloReviewScreen reagieren global auf Enter und ignorieren Textfelder und bereits offene Modals, aber nicht fokussierte Buttons/Links. Lokal im Browser reproduziert: „Spiel beenden“ im Rundenergebnis fokussiert, Enter gedrückt; danach lief die nächste Runde mit neuem Buchstaben. ReviewScreen prüft zusätzlich defaultPrevented; seine untergeordneten Merge-Buttons liegen wiederum in pressProps-Zeilen.</p>
-<p>
-<b>Auswirkung.</b> Enter auf „Spiel beenden“ oder einem Merge-Button kann neben der erwarteten Aktion einen Phasenwechsel oder eine Zeilenaktion auslösen. Ein Modal-Guard allein greift zu spät, wenn das Modal erst als Folge derselben Taste öffnet.</p>
-<p>
-<b>Empfohlene Änderung.</b> Globale Shortcuts nur auf geeigneten nicht interaktiven Zielen ausführen, defaultPrevented beachten und fokussierte native Aktionen gewinnen lassen. In Review getrennte Tastaturpfade für Zeilen und Mergeaktionen.</p>
-<p class="accept">
-<b>Abnahme.</b> Tastaturtest auf jedem fokussierbaren Button: genau eine Aktion, kein ungewollter Start/Review-Abschluss. Den lokal bestätigten Rundenergebnisfall als Regression automatisieren; Merge-/Solofälle zusätzlich prüfen.</p>
 </article>
 <article class="finding" id="UX-04" data-priority="P2" data-area="UI/UX">
 <h3>
@@ -595,8 +582,8 @@
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>
-<td>UX-01</td>
-<td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, isTypingTarget; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
+<td>A11Y-03, UX-04</td>
+<td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, handlesEnter; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>
 <td>CODE-01/02, PERF-03</td>

@@ -9,7 +9,7 @@ import {
 	Flame,
 	Bell,
 } from "lucide-react";
-import { cn, isTypingTarget, pressProps } from "@/lib/utils";
+import { cn, handlesEnter, isTypingTarget, pressProps } from "@/lib/utils";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import { normalize, ruleIssue } from "@/lib/answerValidation";
@@ -53,7 +53,7 @@ export function ReviewScreen() {
 				ws.send({ type: "previousCategory", payload: {} });
 			} else if (e.key === "ArrowRight" && !isLast) {
 				ws.send({ type: "nextCategory", payload: {} });
-			} else if (e.key === "Enter") {
+			} else if (e.key === "Enter" && !handlesEnter(document.activeElement)) {
 				if (mergeAnchor !== null) {
 					setMergeAnchor(null);
 				} else if (isLast) {
