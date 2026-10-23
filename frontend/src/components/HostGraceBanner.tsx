@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { WifiOff } from "lucide-react";
+import { sound } from "@/lib/sound";
 import { useRoomStore } from "@/store/room";
 
 // Shared, prominent countdown shown to everyone while the host is disconnected.
@@ -44,23 +45,25 @@ export function HostGraceBanner() {
 		return () => clearInterval(id);
 	}, []);
 
+	useEffect(() => {
+		if (remaining != null && remaining <= 5) sound.tick(5 - remaining);
+	}, [remaining]);
+
 	if (remaining == null) return null;
 	return (
-		<div className="flex justify-center">
-			{/* The situation is announced once via a static live region; the ticking
-          seconds are aria-hidden so screen readers aren't spammed every second. */}
+		<div
+			className="grace"
+			style={{ "--k": 1 - remaining / 15 } as React.CSSProperties}
+		>
 			<span className="sr-only" role="alert">
 				Host getrennt - die Lobby wird in Kürze geschlossen.
 			</span>
-			<div
-				aria-hidden="true"
-				className="flex items-center gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-5 py-2.5 text-base font-medium text-amber-800 dark:text-amber-300"
-			>
-				<AlertTriangle className="h-5 w-5 shrink-0" />
-				<span>
-					Host getrennt - Lobby schließt in{" "}
-					<span className="tabular-nums font-bold">{remaining}s</span>
-				</span>
+			<div className="grace-card" aria-hidden="true">
+				<WifiOff />
+				<svg className="ring" viewBox="0 0 100 100" aria-hidden="true">
+					<circle cx="50" cy="50" r="44" />
+				</svg>
+				<b>{remaining}</b>
 			</div>
 		</div>
 	);

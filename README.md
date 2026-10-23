@@ -32,14 +32,14 @@ in RAM.
 - **Host disconnect protection**: if the host loses the connection, all players
   see a 15-second countdown; if the host returns, the game continues, otherwise
   the lobby is closed (SRS 4.6/8.5)
-- Light/dark theme, responsive layout, keyboard controls
+- Per-round worlds (shape, colour, particles, sound), music, haptics, keyboard controls
 
 ## Tech stack
 
 | Area     | Technologies                                                                                       |
 | -------- | -------------------------------------------------------------------------------------------------- |
 | Backend  | Go, [`coder/websocket`](https://github.com/coder/websocket), in-memory                             |
-| Frontend | React 19, Vite, TypeScript, Tailwind CSS 4, Base UI (shadcn style), Zustand, Zod                    |
+| Frontend | React 19, Vite, TypeScript, plain CSS, Zustand, Zod                                                |
 | Tooling  | Bun (package manager), [air](https://github.com/air-verse/air) (Go live-reload), Nix (dev shell)   |
 
 ## Architecture
@@ -104,7 +104,7 @@ backend/
   internal/websocket/ Hub, clients, message handlers, broadcasts
 frontend/
   src/pages/         Home, Lobby and game screens (game/)
-  src/components/     UI building blocks (incl. ui/ = shadcn style on Base UI)
+  src/components/     UI building blocks (kit.tsx = primitives)
   src/store/         Zustand stores (room, toast)
   src/lib/           WebSocket client, theme, session, validation
   src/types/         Shared event/payload types

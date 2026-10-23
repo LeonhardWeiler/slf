@@ -7,6 +7,7 @@ import { useRoomStore } from "@/store/room";
 import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
 import { Toaster } from "@/components/Toaster";
+import { Shell } from "@/components/Shell";
 
 // The lobby/game view (Room + all in-game screens) is only needed once the
 // player is actually in a lobby. Splitting it out of the initial bundle keeps
@@ -162,14 +163,10 @@ export function Router() {
 	}, [setSession, setHostGrace, reset]);
 
 	return (
-		<>
+		<Shell>
+			<Routes />
 			<Toaster />
-			{/* Single <main> landmark around the routed content (the fixed overlay
-          above stay outside it) so assistive tech can jump to the main content. */}
-			<main>
-				<Routes />
-			</main>
-		</>
+		</Shell>
 	);
 }
 

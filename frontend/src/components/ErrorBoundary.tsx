@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { RotateCcw } from "lucide-react";
+import { Btn, Mascot } from "@/components/kit";
 
 interface Props {
 	children: ReactNode;
@@ -32,19 +34,16 @@ export class ErrorBoundary extends Component<Props, State> {
 		if (this.state.error) {
 			if (this.props.fallback) return this.props.fallback(this.retry);
 			return (
-				<div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-4 text-center">
-					<h1 className="text-xl font-bold">Etwas ist schiefgelaufen</h1>
-					<p className="text-muted-foreground text-sm max-w-sm">
-						Ein unerwarteter Fehler ist aufgetreten. Lade die Seite neu, um
-						fortzufahren.
-					</p>
-					<button
-						type="button"
+				<div className="center crash">
+					<Mascot size="big" base="sad" />
+					<Btn
+						kind="primary"
+						aria-label="Neu laden"
+						data-tip="Neu laden"
 						onClick={() => window.location.reload()}
-						className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
 					>
-						Neu laden
-					</button>
+						<RotateCcw />
+					</Btn>
 				</div>
 			);
 		}

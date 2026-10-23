@@ -1,55 +1,50 @@
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
-	useEffect,
-	useState,
-	useRef,
-	useCallback,
-	lazy,
-	Suspense,
-} from "react";
-import { Navigate, navigate } from "@/lib/nav";
-import type { Player } from "@/types/events";
-import {
-	Plus,
-	Pencil,
 	Check,
-	X,
-	Trash2,
-	QrCode as QrCodeIcon,
 	Copy,
+	Crown,
+	Eye,
+	Flame,
+	Hourglass,
 	Link as LinkIcon,
+	Mic,
+	Play,
+	Plus,
+	QrCode as QrCodeIcon,
+	Share2,
+	Star,
+	Timer,
+	X,
 } from "lucide-react";
+import { Navigate } from "@/lib/nav";
+import type { Player, Settings } from "@/types/events";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
-import { markForcedLeave } from "@/lib/forcedLeave";
+import { bounce, floatText, haptic } from "@/lib/feel";
+import { fx } from "@/lib/fx";
+import { sound } from "@/lib/sound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen, Modal } from "@/components/Modal";
-import { InfoHint } from "@/components/InfoHint";
+import { RoomHeader } from "@/components/RoomHeader";
+import {
+	Av,
+	Btn,
+	CodeTiles,
+	IconBtn,
+	mood,
+	Slider,
+	Toggle,
+} from "@/components/kit";
 import { useRoomStore, useIsHost } from "@/store/room";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { ConnectionBadge } from "@/components/ConnectionBadge";
-import { HostGraceBanner } from "@/components/HostGraceBanner";
-// The QR generator (qrcode lib) is only needed when the host reveals the code,
-// so load it lazily instead of in the main bundle.
+
 const QrCode = lazy(() =>
 	import("@/components/QrCode").then((m) => ({ default: m.QrCode })),
 );
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-
-const TIME_OPTIONS: { label: string; value: number | null }[] = [
-	{ label: "30 Sek.", value: 30 },
-	{ label: "60 Sek.", value: 60 },
-	{ label: "90 Sek.", value: 90 },
-	{ label: "120 Sek.", value: 120 },
-	{ label: "180 Sek.", value: 180 },
-	{ label: "Unbegrenzt", value: null },
-];
+const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
 
 // Keeps players briefly rendered after they leave so the row can fade out
 // instead of snapping away. Present players carry fresh data (name/connection
@@ -102,46 +97,25 @@ function usePlayerPresence(
 export function Lobby() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
-	const reset = useRoomStore((s) => s.reset);
-	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
-
 	const [newCategory, setNewCategory] = useState("");
-	const [editingId, setEditingId] = useState<string | null>(null);
-	const [editingValue, setEditingValue] = useState("");
 	const [showQr, setShowQr] = useState(false);
-	// True while the QR popup plays its exit animation before unmounting.
-	const [qrClosing, setQrClosing] = useState(false);
-	const qrCloseRef = useRef<HTMLButtonElement>(null);
-	const [copied, setCopied] = useState<null | "code" | "link">(null);
-	const [copyFailed, setCopyFailed] = useState(false);
-	const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-	useEffect(
-		() => () => {
-			if (copyTimer.current) clearTimeout(copyTimer.current);
-		},
-		[],
-	);
-	// Set when the disabled "Spiel starten" button is clicked, so the hint text
-	// shakes; reset once the shake animation ends.
-	const [startShake, setStartShake] = useState(false);
-	// Flash a just-added category so it's clear what appeared. Known ids are
-	// seeded from the initial list so existing categories don't flash on mount.
-	const [flashCatId, setFlashCatId] = useState<string | null>(null);
-	const knownCatIds = useRef<Set<string>>(
-		new Set((lobby?.categories ?? []).map((c) => c.id)),
-	);
+	const [startHint, setStartHint] = useState(false);
+	const seen = useRef<Set<string> | null>(null);
 
-	// Codes are presented uppercase everywhere (display, copy, link, URL); the
-	// server normalizes case-insensitively, so this stays purely cosmetic.
 	const lobbyCode = (lobby?.lobbyCode ?? "").toUpperCase();
 	const joinLink = lobby ? `${window.location.origin}/join/${lobbyCode}` : "";
-
 	const canShare = typeof navigator.share === "function";
 
-	async function shareLink() {
-		if (!canShare) return copyText(joinLink, "link");
+	async function copyLink(el: Element | null) {
+		const ok = await copyToClipboard(joinLink);
+		floatText(el, ok ? "✓" : "✗");
+		if (ok) sound.pop();
+	}
+
+	async function shareLink(el: Element | null) {
+		if (!canShare) return copyLink(el);
 		try {
 			await navigator.share({ url: joinLink });
 		} catch {
@@ -149,49 +123,19 @@ export function Lobby() {
 		}
 	}
 
-	async function copyText(text: string, kind: "code" | "link") {
-		if (!text) return;
-		const ok = await copyToClipboard(text);
-		if (ok) {
-			setCopyFailed(false);
-			setCopied(kind);
-			if (copyTimer.current) clearTimeout(copyTimer.current);
-			copyTimer.current = setTimeout(() => setCopied(null), 2000);
-		} else {
-			setCopyFailed(true);
-			setTimeout(() => setCopyFailed(false), 4000);
-		}
-	}
-
-	// Ctrl/Cmd+C copies the lobby code - but only when the user isn't selecting
-	// text or typing in a field, so normal copy still works there.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on lobbyCode
 	useEffect(() => {
 		function onCopy(e: KeyboardEvent) {
 			if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
 			if (isTypingTarget(document.activeElement)) return;
-			// Don't hijack copy while a confirm dialog is up (kick/delete/leave) - UX-1.
 			if (isModalOpen()) return;
 			if ((window.getSelection()?.toString() ?? "") !== "") return;
-			copyText(lobbyCode, "code");
+			void copyToClipboard(lobbyCode).then((ok) => ok && sound.pop());
 		}
 		window.addEventListener("keydown", onCopy);
 		return () => window.removeEventListener("keydown", onCopy);
 	}, [lobbyCode]);
 
-	// Play the exit animation, then unmount the popup.
-	const closeQr = useCallback(() => {
-		setQrClosing(true);
-		setTimeout(() => {
-			setShowQr(false);
-			setQrClosing(false);
-		}, 120);
-	}, []);
-
-	// Players who left an in-progress game linger only for the final standings.
 	const activePlayers = (lobby?.players ?? []).filter((p) => !p.left);
-	// Rows to render, including players that just left (fading out). Called before
-	// the early return below so the hook order stays stable.
 	const playerRank = (p: Player) =>
 		p.id === myPlayerId ? 0 : p.isHost ? 1 : 2;
 	const playerRows = usePlayerPresence(activePlayers).sort(
@@ -200,45 +144,25 @@ export function Lobby() {
 			a.player.name.localeCompare(b.player.name, "de"),
 	);
 
-	// Detect categories added since the last render and flash the newest one.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: react to the id list only
+	// A seat that appears after the first render pops in with confetti.
+	const ids = activePlayers.map((p) => p.id).join();
 	useEffect(() => {
-		if (!lobby) return;
-		const current = lobby.categories.map((c) => c.id);
-		const added = current.filter((id) => !knownCatIds.current.has(id));
-		knownCatIds.current = new Set(current);
-		if (added.length > 0) setFlashCatId(added[added.length - 1]);
-	}, [lobby?.categories]);
+		const now = new Set(ids.split(","));
+		if (seen.current) {
+			for (const id of now) {
+				if (seen.current.has(id)) continue;
+				const el = document.querySelector(`[data-seat="${id}"]`);
+				fx.at(el, { n: 14, speed: 5 });
+				sound.pop();
+				haptic(10);
+				mood("cheer", 900);
+			}
+		}
+		seen.current = now;
+	}, [ids]);
 
 	if (!lobby) {
 		return <Navigate to="/" />;
-	}
-
-	async function handleLeave() {
-		const confirmed = await confirm(
-			isHost
-				? {
-						title: "Lobby schließen?",
-						description: "Als Host beendest du die Lobby für alle Mitspieler.",
-						confirmLabel: "Lobby schließen",
-						destructive: true,
-					}
-				: {
-						title: "Lobby verlassen?",
-						description:
-							"Du verlässt die Lobby und kehrst zur Startseite zurück.",
-						confirmLabel: "Verlassen",
-						destructive: true,
-					},
-		);
-		if (!confirmed) return;
-		// Suppress the "lobby closed" toast the host would otherwise get from the
-		// server's own lobbyClosed echo.
-		setSelfLeaving(true);
-		ws.send({ type: "leaveLobby", payload: {} });
-		markForcedLeave();
-		reset();
-		navigate("/");
 	}
 
 	function handleAddCategory(e: React.FormEvent) {
@@ -247,52 +171,30 @@ export function Lobby() {
 		if (!name) return;
 		ws.send({ type: "addCategory", payload: { name } });
 		setNewCategory("");
+		sound.word(1);
 	}
 
-	function startEdit(id: string, current: string) {
-		setEditingId(id);
-		setEditingValue(current);
+	function saveCategory(id: string, before: string, value: string) {
+		const name = value.trim();
+		if (name && name !== before)
+			ws.send({ type: "editCategory", payload: { categoryId: id, name } });
 	}
 
-	function saveEdit() {
-		const name = editingValue.trim();
-		if (editingId && name) {
-			ws.send({
-				type: "editCategory",
-				payload: { categoryId: editingId, name },
-			});
-		}
-		setEditingId(null);
-		setEditingValue("");
-	}
-
-	// Categories can be re-added at any time, so deleting is cheaply
-	// reversible; run it directly without a confirmation popup.
-	function deleteCategory(id: string) {
-		ws.send({ type: "deleteCategory", payload: { categoryId: id } });
-	}
-
-	async function kickPlayer(id: string, name: string) {
+	async function kickPlayer(id: string, name: string, el: Element | null) {
 		if (
 			await confirm({
 				title: `${name} entfernen?`,
-				description: `${name} wird aus der Lobby entfernt und kehrt zur Startseite zurück.`,
 				confirmLabel: "Entfernen",
 				destructive: true,
 			})
 		) {
+			fx.at(el, { n: 16, speed: 6 });
+			sound.crunch();
 			ws.send({ type: "kickPlayer", payload: { playerId: id } });
 		}
 	}
 
-	function updateSettings(patch: {
-		timeLimit?: number | null;
-		showLetterDuringCountdown?: boolean;
-		excludedLetters?: string[];
-		hostPlays?: boolean;
-		lastLetterMode?: boolean;
-		flamesEnabled?: boolean;
-	}) {
+	function updateSettings(patch: Partial<Settings>) {
 		const s = lobby!.settings;
 		ws.send({
 			type: "updateSettings",
@@ -316,591 +218,256 @@ export function Lobby() {
 		updateSettings({ excludedLetters: [...excluded] });
 	}
 
-	// Who would actually play a round right now: connected, not left, and - with a
-	// commentator host (hostPlays=false) - not the host. Mirrors the server's
-	// hasRoundParticipant. Counting merely-present players let the button stay
-	// enabled while the server had nobody to start a round for, so the click did
-	// nothing at all.
+	const s = lobby.settings;
 	const playingCount = activePlayers.filter(
-		(p) => p.connected && (!p.isHost || lobby.settings.hostPlays),
+		(p) => p.connected && (!p.isHost || s.hostPlays),
 	).length;
 	const canStart = isHost && playingCount >= 1 && lobby.categories.length >= 1;
-	const s = lobby.settings;
-	const lettersOff =
-		s.excludedLetters.length > 0
-			? `ohne ${[...s.excludedLetters].sort().join(" ")}`
-			: "";
-	const settingsSummary = [
-		s.timeLimit !== null && `${s.timeLimit} s`,
-		!s.hostPlays && "Kommentator",
-		s.flamesEnabled && "Flammen",
-		s.lastLetterMode && "Letzter Buchstabe",
-		s.showLetterDuringCountdown && "Buchstabe im Countdown",
-		lettersOff,
-	]
-		.filter(Boolean)
-		.join(" · ");
 
 	return (
-		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-xl lg:max-w-5xl space-y-4">
-				{/* Header */}
-				<div className="flex items-center justify-between">
-					<div>
-						<h1 className="text-2xl font-bold">Lobby</h1>
-					</div>
-					<div className="flex items-center gap-2">
-						<ConnectionBadge />
-						<ThemeToggle />
-						<Button variant="ghost" size="sm" onClick={handleLeave}>
-							Verlassen
-						</Button>
-					</div>
+		<>
+			<RoomHeader noCode />
+			<section className="screen lobby">
+				<div className="room">
+					<CodeTiles code={lobbyCode} />
+					<IconBtn
+						tip="Link kopieren"
+						onClick={(e) => copyLink(e.currentTarget)}
+					>
+						<LinkIcon />
+					</IconBtn>
+					<IconBtn tip="QR-Code" onClick={() => setShowQr(true)}>
+						<QrCodeIcon />
+					</IconBtn>
 				</div>
-				<HostGraceBanner />
 
-				<div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-					<div className="space-y-4">
-						{/* Lobby Code */}
-						<Card>
-							<CardContent className="pt-6">
+				<div className="seats">
+					{playerRows.map(({ player, leaving }) => (
+						<div
+							key={player.id}
+							data-seat={player.id}
+							className={`seat${leaving ? " leaving" : ""}${player.connected ? "" : " off"}${player.id === myPlayerId ? " me" : ""}`}
+						>
+							<Av id={player.id} name={player.name} size="big">
+								{player.id === myPlayerId ? <Star /> : undefined}
+							</Av>
+							{player.isHost && (
+								<span className="seat-crown">
+									<Crown />
+								</span>
+							)}
+							<span className="seat-name">{player.name}</span>
+							{isHost && player.id !== myPlayerId && !leaving && (
 								<button
 									type="button"
-									onClick={() => copyText(lobbyCode, "code")}
-									aria-label={`Lobbycode ${lobbyCode} kopieren`}
-									title="Lobbycode kopieren (Strg+C)"
-									className="relative block w-full rounded-md py-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="kick"
+									aria-label={`${player.name} entfernen`}
+									data-tip="Entfernen"
+									onClick={(e) =>
+										kickPlayer(
+											player.id,
+											player.name,
+											e.currentTarget.parentElement,
+										)
+									}
 								>
-									<span
-										className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] transition-[filter,opacity] duration-300 motion-reduce:transition-none ${copied === "code" ? "blur-sm opacity-40" : "blur-none"}`}
-									>
-										<span>{lobbyCode.slice(0, 3)}</span>
-										<span className="ml-2">{lobbyCode.slice(3)}</span>
-									</span>
-									<span
-										role="status"
-										className={`pointer-events-none absolute inset-0 flex items-center justify-center font-semibold transition-[opacity,transform] duration-300 motion-reduce:transition-none ${copied === "code" ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
-									>
-										{copied === "code" && "Kopiert!"}
-									</span>
+									<X />
 								</button>
-								{copyFailed && (
-									<p
-										role="status"
-										className="mt-2 text-center text-xs text-destructive"
+							)}
+						</div>
+					))}
+				</div>
+
+				<div className={`panel${isHost ? "" : " locked"}`} inert={!isHost}>
+					<div className="cats-edit">
+						{lobby.categories.map((cat) => (
+							<span key={cat.id} className="cat-chip">
+								<input
+									defaultValue={cat.name}
+									key={cat.name}
+									maxLength={30}
+									spellCheck={false}
+									aria-label={`Kategorie ${cat.name}`}
+									size={Math.max(3, [...cat.name].length)}
+									onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+									onBlur={(e) => saveCategory(cat.id, cat.name, e.target.value)}
+								/>
+								{lobby.categories.length > 1 && (
+									<button
+										type="button"
+										className="chip-x"
+										aria-label={`${cat.name} löschen`}
+										onClick={(e) => {
+											fx.at(e.currentTarget.parentElement, { n: 8, speed: 4 });
+											sound.poof();
+											ws.send({
+												type: "deleteCategory",
+												payload: { categoryId: cat.id },
+											});
+										}}
 									>
-										Kopieren nicht möglich – Code manuell markieren.
-									</p>
+										<X />
+									</button>
 								)}
-
-								<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-									<Button
-										variant="outline"
-										size="sm"
-										// Fixed width so swapping the label to "Link kopiert!" doesn't
-										// make the button jump narrower.
-										className="min-w-[8.5rem]"
-										onClick={shareLink}
-									>
-										{copied === "link" ? (
-											<>
-												<Check className="h-4 w-4 text-green-600" />
-												Link kopiert!
-											</>
-										) : (
-											<>
-												<LinkIcon className="h-4 w-4" />
-												{canShare ? "Link teilen" : "Link kopieren"}
-											</>
-										)}
-									</Button>
-									<Button
-										variant="outline"
-										size="sm"
-										onClick={() => setShowQr(true)}
-									>
-										<QrCodeIcon className="h-4 w-4" />
-										QR anzeigen
-									</Button>
-								</div>
-							</CardContent>
-						</Card>
-
-						{/* Players */}
-						<Card>
-							<CardHeader className="pb-3">
-								<CardTitle className="text-base">
-									Spieler ({activePlayers.length})
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-2">
-								{playerRows.map(({ player, leaving }) => (
-									<div
-										key={player.id}
-										className={`flex items-center justify-between py-2 px-3 border-b last:border-b-0 ${
-											leaving
-												? "animate-fade-out pointer-events-none"
-												: "animate-fade-in"
-										}`}
-									>
-										<div className="flex items-center gap-2">
-											<span
-												className={`w-2 h-2 rounded-full transition-colors duration-200 ${
-													player.connected
-														? "bg-green-500"
-														: "bg-muted-foreground animate-pulse"
-												}`}
-											/>
-											<span className="text-sm font-medium">{player.name}</span>
-											{player.id === myPlayerId && (
-												<span className="text-xs text-muted-foreground">
-													(du)
-												</span>
-											)}
-											{!player.connected && (
-												<span className="text-xs text-muted-foreground">
-													offline
-												</span>
-											)}
-										</div>
-										<div className="flex items-center gap-2">
-											{player.isHost && (
-												<span className="text-xs text-muted-foreground font-medium">
-													{lobby.settings.hostPlays
-														? "Host"
-														: "Host · Kommentator"}
-												</span>
-											)}
-											{isHost && !leaving && player.id !== myPlayerId && (
-												<Button
-													variant="ghost"
-													size="icon-xs"
-													className="text-destructive"
-													title={`${player.name} entfernen`}
-													onClick={() => kickPlayer(player.id, player.name)}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											)}
-										</div>
-									</div>
-								))}
-							</CardContent>
-						</Card>
+							</span>
+						))}
+						<form
+							className="cat-chip add"
+							onSubmit={handleAddCategory}
+							data-tip="Kategorie hinzufügen"
+						>
+							<Plus />
+							<input
+								value={newCategory}
+								onChange={(e) => setNewCategory(e.target.value)}
+								maxLength={30}
+								size={Math.max(3, [...newCategory].length)}
+								aria-label="Neue Kategorie"
+								spellCheck={false}
+								enterKeyHint="done"
+							/>
+						</form>
 					</div>
-					<div className="space-y-4">
-						{/* Categories */}
-						<Card>
-							<CardHeader className="pb-3">
-								<CardTitle className="text-base">
-									Kategorien ({lobby.categories.length})
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="space-y-2">
-								{lobby.categories.map((cat) => (
-									<div
-										key={cat.id}
-										onAnimationEnd={() =>
-											setFlashCatId((id) => (id === cat.id ? null : id))
-										}
-										// Fixed height so switching a row into edit mode doesn't grow it
-										// and shove the rest of the list down.
-										className={`flex h-10 items-center justify-between px-3 border-b last:border-b-0 ${
-											flashCatId === cat.id ? "animate-highlight" : ""
-										}`}
-									>
-										{isHost && editingId === cat.id ? (
-											<form
-												className="grid w-full grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-2"
-												onSubmit={(e) => {
-													e.preventDefault();
-													saveEdit();
-												}}
-											>
-												<Input
-													value={editingValue}
-													onChange={(e) => setEditingValue(e.target.value)}
-													maxLength={30}
-													aria-label="Kategoriename"
-													onKeyDown={(e) => {
-														if (e.key === "Escape") setEditingId(null);
-													}}
-													autoFocus
-													// Seamless inline edit: no border/extra padding so the text
-													// stays exactly where the name span sat (no horizontal jump).
-													className="min-w-0 h-8! border-0! px-0! shadow-none!"
-												/>
-												<Button
-													type="submit"
-													variant="ghost"
-													size="icon-xs"
-													aria-label="Speichern"
-												>
-													<Check className="h-4 w-4" />
-												</Button>
-												<Button
-													type="button"
-													variant="ghost-destructive"
-													size="icon-xs"
-													aria-label="Abbrechen"
-													onClick={() => setEditingId(null)}
-												>
-													<X className="h-4 w-4" />
-												</Button>
-											</form>
-										) : (
-											<>
-												<span className="min-w-0 truncate text-sm">
-													{cat.name}
-												</span>
-												{isHost && (
-													// Same spacing (gap-2) and icon size (h-4) as the edit
-													// form's Accept/Dismiss buttons, so Edit/Delete sit in the
-													// exact same position when a row toggles into edit mode.
-													<div className="flex shrink-0 items-center gap-2">
-														<Button
-															variant="ghost"
-															size="icon-xs"
-															className="group shrink-0"
-															title="Bearbeiten"
-															onClick={() => startEdit(cat.id, cat.name)}
-														>
-															{/* Subtle tilt on hover, a stronger one on press - a bit
-													    of tactile feedback without slowing anything down. */}
-															<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
-														</Button>
-														<Button
-															variant="ghost-destructive"
-															size="icon-xs"
-															className="group shrink-0"
-															title="Löschen"
-															onClick={() => deleteCategory(cat.id)}
-														>
-															<Trash2 className="h-4 w-4 transition-transform group-hover:-rotate-6 group-active:-rotate-12" />
-														</Button>
-													</div>
-												)}
-											</>
-										)}
-									</div>
-								))}
 
-								{lobby.categories.length === 0 && (
-									<p className="text-sm text-muted-foreground px-3 py-1">
-										Noch keine Kategorien.
-									</p>
-								)}
+					<div className="row">
+						<Timer />
+						<Slider
+							steps={TIME_STEPS}
+							value={s.timeLimit}
+							label="Zeitlimit"
+							format={(v) => (v === null ? "∞" : `${v}s`)}
+							onChange={(timeLimit) => updateSettings({ timeLimit })}
+						/>
+					</div>
 
-								{isHost && (
-									<form
-										onSubmit={handleAddCategory}
-										className="flex items-center gap-2 pt-1"
-									>
-										<Input
-											value={newCategory}
-											onChange={(e) => setNewCategory(e.target.value)}
-											placeholder="Neue Kategorie…"
-											maxLength={30}
-											className="h-8!"
-										/>
-										<Button
-											type="submit"
-											size="icon-sm"
-											aria-label="Kategorie hinzufügen"
-											disabled={!newCategory.trim()}
-										>
-											<Plus className="h-4 w-4" />
-										</Button>
-									</form>
-								)}
-							</CardContent>
-						</Card>
+					<div className="row modes">
+						<Toggle
+							on={!s.hostPlays}
+							tip="Host kommentiert nur"
+							onChange={(v) => updateSettings({ hostPlays: !v })}
+						>
+							<Mic />
+						</Toggle>
+						<Toggle
+							on={s.flamesEnabled}
+							tip="Flammen: Wette auf eine einzigartige Antwort"
+							onChange={(flamesEnabled) => updateSettings({ flamesEnabled })}
+						>
+							<Flame />
+						</Toggle>
+						<Toggle
+							on={s.lastLetterMode}
+							tip="Antwort endet mit dem Buchstaben"
+							onChange={(lastLetterMode) => updateSettings({ lastLetterMode })}
+						>
+							<b>…A</b>
+						</Toggle>
+						<Toggle
+							on={s.showLetterDuringCountdown}
+							tip="Buchstabe schon im Countdown"
+							onChange={(showLetterDuringCountdown) =>
+								updateSettings({ showLetterDuringCountdown })
+							}
+						>
+							<Eye />
+						</Toggle>
+					</div>
 
-						{/* Settings */}
-						{isHost ? (
-							<Card>
-								<CardHeader className="pb-3">
-									<CardTitle className="text-base">Einstellungen</CardTitle>
-								</CardHeader>
-								<CardContent className="space-y-4">
-									{/* Time limit */}
-									<div className="space-y-2">
-										<InfoHint
-											trigger="Zeitlimit pro Runde"
-											label="Was bedeutet das Zeitlimit?"
-										>
-											Wie viel Zeit pro Runde bleibt, um die Kategorien
-											auszufüllen. Bei „Unbegrenzt“ läuft die Runde, bis jemand
-											buzzert oder der Host sie beendet.
-										</InfoHint>
-										<div>
-											<output
-												htmlFor="round-time"
-												className="block text-sm font-semibold tabular-nums text-right"
-											>
-												{TIME_OPTIONS.find((opt) => opt.value === s.timeLimit)
-													?.label ?? `${s.timeLimit} Sek.`}
-											</output>
-											<input
-												id="round-time"
-												type="range"
-												min={0}
-												max={TIME_OPTIONS.length - 1}
-												step={1}
-												value={Math.max(
-													0,
-													TIME_OPTIONS.findIndex(
-														(opt) => opt.value === s.timeLimit,
-													),
-												)}
-												aria-label="Zeitlimit pro Runde"
-												aria-valuetext={
-													s.timeLimit === null
-														? "Unbegrenzt"
-														: `${s.timeLimit} Sekunden`
-												}
-												onChange={(e) =>
-													updateSettings({
-														timeLimit:
-															TIME_OPTIONS[Number(e.target.value)].value,
-													})
-												}
-												className="block h-8 w-full cursor-pointer accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-											/>
-											<div
-												aria-hidden="true"
-												className="flex justify-between text-xs text-muted-foreground tabular-nums"
-											>
-												{TIME_OPTIONS.map((opt) => (
-													<span key={opt.label}>{opt.value ?? "∞"}</span>
-												))}
-											</div>
-										</div>
-									</div>
-
-									{/* Commentator mode - on = host doesn't play, only comments (the
-                switch is the inverse of the hostPlays flag it drives). */}
-									<div className="flex items-center justify-between gap-3">
-										<InfoHint
-											trigger="Kommentator"
-											label="Was bedeutet „Kommentator“?"
-										>
-											Der Host spielt nicht mit, sondern ist nur Kommentator und
-											sieht bei sich, welche Kategorien schon ausgefüllt wurden.
-										</InfoHint>
-										<Switch
-											checked={!lobby.settings.hostPlays}
-											onCheckedChange={(v: boolean) =>
-												updateSettings({ hostPlays: !v })
-											}
-											aria-label="Kommentator"
-										/>
-									</div>
-
-									{/* Flames spice */}
-									<div className="flex items-center justify-between gap-3">
-										<InfoHint trigger="Flammen" label="Was bedeutet „Flammen“?">
-											Wette pro Runde auf eine Kategorie, dass deine Antwort
-											einzigartig ist: richtig +5, falsch 0 Punkte.
-										</InfoHint>
-										<Switch
-											checked={lobby.settings.flamesEnabled}
-											onCheckedChange={(v: boolean) =>
-												updateSettings({ flamesEnabled: v })
-											}
-											aria-label="Flammen aktivieren"
-										/>
-									</div>
-
-									{/* Last-letter spice */}
-									<div className="flex items-center justify-between gap-3">
-										<InfoHint
-											trigger="Letzter Buchstabe"
-											label="Was bedeutet „Letzter Buchstabe“?"
-										>
-											Antworten müssen mit dem Buchstaben <em>enden</em> statt
-											beginnen.
-										</InfoHint>
-										<Switch
-											checked={lobby.settings.lastLetterMode}
-											onCheckedChange={(v: boolean) =>
-												updateSettings({ lastLetterMode: v })
-											}
-											aria-label="Letzter Buchstabe"
-										/>
-									</div>
-
-									{/* Show letter during countdown */}
-									<div className="flex items-center justify-between gap-3">
-										<InfoHint
-											trigger="Buchstabe während Countdown"
-											label="Was bedeutet „Buchstabe während Countdown“?"
-										>
-											Zeigt den kommenden Buchstaben schon während des
-											Countdowns an.
-										</InfoHint>
-										<Switch
-											checked={lobby.settings.showLetterDuringCountdown}
-											onCheckedChange={(v: boolean) =>
-												updateSettings({ showLetterDuringCountdown: v })
-											}
-											aria-label="Buchstabe während Countdown"
-										/>
-									</div>
-
-									{/* Letter selection */}
-									<fieldset
-										className="space-y-2"
-										aria-describedby="letters-help"
-									>
-										<legend className="text-sm font-medium">Buchstaben</legend>
-										<div className="flex items-center justify-between gap-2">
-											<span
-												className="text-xs text-muted-foreground"
-												role="status"
-											>
-												{ALPHABET.length - s.excludedLetters.length} von{" "}
-												{ALPHABET.length} aktiv
-											</span>
-											<Button
-												variant="ghost"
-												size="xs"
-												disabled={s.excludedLetters.length === 0}
-												onClick={() => updateSettings({ excludedLetters: [] })}
-											>
-												Alle aktivieren
-											</Button>
-										</div>
-										<p
-											id="letters-help"
-											className="text-xs text-muted-foreground"
-										>
-											Antippen, um Buchstaben ein- oder auszuschließen.
-										</p>
-										<div className="grid grid-cols-7 gap-1.5 sm:grid-cols-9">
-											{ALPHABET.map((letter) => {
-												const excluded = s.excludedLetters.includes(letter);
-												return (
-													<button
-														key={letter}
-														type="button"
-														onClick={() => toggleLetter(letter)}
-														aria-pressed={!excluded}
-														aria-label={letter}
-														className={`min-h-10 rounded-md border text-sm font-semibold transition-[background-color,color,transform] duration-150 active:scale-90 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${excluded ? "border-dashed border-muted-foreground text-muted-foreground line-through hover:bg-muted" : "border-transparent bg-primary text-primary-foreground hover:opacity-80"}`}
-													>
-														{letter}
-													</button>
-												);
-											})}
-										</div>
-									</fieldset>
-								</CardContent>
-							</Card>
-						) : (
-							settingsSummary && (
-								<p className="text-center text-sm text-muted-foreground">
-									{settingsSummary}
-								</p>
-							)
-						)}
+					{/* biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons */}
+					<div className="letters" role="group" aria-label="Buchstaben">
+						{ALPHABET.map((letter) => (
+							<button
+								key={letter}
+								type="button"
+								className="lt"
+								aria-pressed={!s.excludedLetters.includes(letter)}
+								onClick={(e) => {
+									toggleLetter(letter);
+									bounce(e.currentTarget, 1.2);
+								}}
+							>
+								{letter}
+							</button>
+						))}
 					</div>
 				</div>
 
-				{/* Start Game (Host only) */}
 				{isHost ? (
-					<div className="sticky bottom-0 space-y-1 bg-background/90 py-3 backdrop-blur">
-						{/* Kept a real, focusable button (aria-disabled instead of disabled)
-                so a click while not startable still fires and can shake the hint
-                - a plain disabled button swallows the click. */}
-						<Button
-							className="w-full transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] aria-disabled:pointer-events-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:translate-y-0"
-							size="lg"
+					<>
+						<Btn
+							kind="primary"
+							className="go"
+							aria-label="Spiel starten"
+							data-tip="Spiel starten"
 							aria-disabled={!canStart}
 							onClick={() => {
 								if (!canStart) {
-									setStartShake(true);
+									setStartHint(true);
+									mood("worried");
 									return;
 								}
 								ws.send({ type: "startGame", payload: {} });
 							}}
 						>
-							Spiel starten
-						</Button>
-						{!canStart && (
-							<p
-								onAnimationEnd={() => setStartShake(false)}
-								className={`text-center text-xs ${
-									startShake
-										? "animate-shake text-destructive"
-										: "text-muted-foreground"
-								}`}
-							>
-								{!lobby.settings.hostPlays && playingCount < 1
-									? "Als Kommentator brauchst du mindestens einen verbundenen Mitspieler."
-									: "Mindestens 1 verbundener Spieler und 1 Kategorie nötig."}
+							<Play />
+						</Btn>
+						{startHint && !canStart && (
+							<p className="hint" role="status">
+								{!s.hostPlays && playingCount < 1
+									? "Als Kommentator brauchst du mindestens 1 Mitspieler."
+									: "Mindestens 1 Spieler und 1 Kategorie nötig."}
 							</p>
 						)}
-					</div>
+					</>
 				) : (
-					<p className="sticky bottom-0 bg-background/90 py-3 text-center text-sm text-muted-foreground backdrop-blur">
-						Warte auf den Host…
+					<p className="hint wait" data-tip="Warte auf den Host">
+						<Hourglass />
 					</p>
 				)}
-			</div>
+			</section>
 
-			{/* The join link lives in the QR popup too (previously under the inline QR). */}
 			{showQr && (
 				<Modal
 					role="dialog"
 					labelledBy="qr-title"
-					onClose={closeQr}
-					initialFocus={qrCloseRef}
-					backdropClassName={qrClosing ? "animate-fade-out" : "animate-fade-in"}
-					className={qrClosing ? "animate-scale-out" : "animate-scale-in"}
+					onClose={() => setShowQr(false)}
 				>
-					<h2 id="qr-title" className="text-center text-lg font-semibold">
+					<h2 id="qr-title" className="sr-only">
 						Zum Beitreten scannen
 					</h2>
-					<div className="mt-4 flex flex-col items-center gap-3">
-						<ErrorBoundary
-							fallback={() => (
-								<p className="text-sm text-destructive">
-									QR-Code konnte nicht geladen werden.
-								</p>
-							)}
+					<ErrorBoundary
+						fallback={() => (
+							<p className="err">QR-Code konnte nicht geladen werden.</p>
+						)}
+					>
+						<Suspense fallback={<div className="qr" />}>
+							<QrCode value={joinLink} />
+						</Suspense>
+					</ErrorBoundary>
+					<CodeTiles code={lobbyCode} small />
+					<div className="row">
+						<IconBtn
+							tip="Link kopieren"
+							onClick={(e) => copyLink(e.currentTarget)}
 						>
-							<Suspense fallback={<div style={{ height: 220 }} />}>
-								<QrCode value={joinLink} size={220} />
-							</Suspense>
-						</ErrorBoundary>
-						<button
-							type="button"
-							onClick={() => copyText(joinLink, "link")}
-							title="Link kopieren"
-							className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors break-all"
+							<Copy />
+						</IconBtn>
+						{canShare && (
+							<IconBtn tip="Teilen" onClick={(e) => shareLink(e.currentTarget)}>
+								<Share2 />
+							</IconBtn>
+						)}
+						<Btn
+							kind="primary"
+							aria-label="Schließen"
+							onClick={() => setShowQr(false)}
 						>
-							{copied === "link" ? (
-								<>
-									<Check className="h-3.5 w-3.5 shrink-0 text-green-600" />
-									Link kopiert!
-								</>
-							) : (
-								<>
-									<Copy className="h-3.5 w-3.5 shrink-0" />
-									{joinLink}
-								</>
-							)}
-						</button>
-					</div>
-					<div className="mt-5 flex justify-center">
-						<Button ref={qrCloseRef} variant="ghost" onClick={closeQr}>
-							Schließen
-						</Button>
+							<Check />
+						</Btn>
 					</div>
 				</Modal>
 			)}
 			{dialog}
-		</div>
+		</>
 	);
 }

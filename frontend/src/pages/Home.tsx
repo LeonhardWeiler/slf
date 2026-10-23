@@ -1,13 +1,24 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { joinCode, Navigate, usePath } from "@/lib/nav";
-import { ArrowLeft, Plus, LogIn, ScanLine } from "lucide-react";
+import {
+	ArrowLeft,
+	ArrowRight,
+	Loader2,
+	LogIn,
+	Plus,
+	ScanLine,
+	User,
+	WifiOff,
+} from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { consumeForcedLeave } from "@/lib/forcedLeave";
 import type { LobbyCheckPayload } from "@/types/events";
 import { useRoomStore } from "@/store/room";
 import { useToastStore } from "@/store/toast";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Btn, CodeTiles, IconBtn, Mascot, Tiles } from "@/components/kit";
+import { TopBar } from "@/components/Shell";
+import { sound } from "@/lib/sound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // The QR scanner pulls in the sizeable qr-scanner library (+ worker); load it
@@ -15,17 +26,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 const QrScannerView = lazy(() =>
 	import("@/components/QrScanner").then((m) => ({ default: m.QrScannerView })),
 );
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
-
 type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
 // Human-readable reason why a lobby can't be joined, keyed by the server's
@@ -297,293 +297,218 @@ export function Home() {
 		});
 	}
 
-	return (
-		<div className="min-h-svh flex items-center justify-center screen-pad bg-background">
-			<div className="absolute top-3 right-3">
-				<ThemeToggle />
+	const ready = connected && !loading;
+	const nameForm = (
+		onSubmit: (e: React.FormEvent) => void,
+		errorId?: string,
+	) => (
+		<form onSubmit={onSubmit}>
+			<Tiles value={name} live max={40} className="name-tiles" />
+			<label className={`field${joinError && errorId ? " bad" : ""}`}>
+				<User />
+				<input
+					value={name}
+					onChange={(e) => {
+						setJoinError(null);
+						setName(e.target.value);
+						sound.key([...e.target.value].length);
+					}}
+					aria-label="Dein Name"
+					placeholder="Name"
+					maxLength={20}
+					aria-invalid={errorId ? joinError != null : undefined}
+					aria-describedby={joinError && errorId ? errorId : undefined}
+					// biome-ignore lint/a11y/noAutofocus: each step focuses its only field
+					autoFocus
+					autoComplete="off"
+					enterKeyHint="go"
+				/>
+			</label>
+			{errorId && joinError && (
+				<p id={errorId} role="alert" className="err">
+					{joinError}
+				</p>
+			)}
+			<div className="row">
+				<IconBtn
+					tip="Zurück"
+					onClick={() => {
+						setJoinError(null);
+						back();
+					}}
+				>
+					<ArrowLeft />
+				</IconBtn>
+				<Btn
+					type="submit"
+					kind="primary"
+					aria-label="Los"
+					data-tip="Los"
+					disabled={!ready || !name.trim()}
+				>
+					{loading ? <Loader2 className="spin" /> : <ArrowRight />}
+				</Btn>
 			</div>
-			<div className="w-full max-w-sm space-y-4">
-				<div className="text-center space-y-1">
-					<h1 className="text-3xl font-bold tracking-tight">
-						Stadt Land Fluss
-					</h1>
+		</form>
+	);
+
+	return (
+		<>
+			<TopBar />
+			<section className="screen home">
+				<div className="hero">
+					<Mascot size="big" letter={step === "joinName" ? code[0] : "S"} />
+					{step === "start" && (
+						<div
+							className="title-tiles"
+							role="img"
+							aria-label="Stadt Land Fluss"
+						>
+							<Tiles value="STADT" />
+							<Tiles value="LAND" />
+							<Tiles value="FLUSS" />
+						</div>
+					)}
 				</div>
 
-				{/* The banner is deferred on the start screen (the connectivity check
-				    only matters once the user actually creates/joins) and elsewhere is
-				    debounced so a fast (re)connect after a reload never flashes it. */}
 				{step !== "start" && showOffline && (
-					// Same width and centering as the start-screen Join/Create buttons so
-					// the banner lines up with them instead of spanning the full card.
-					<div className="mx-auto flex max-w-[18rem] items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 sm:max-w-[22rem] dark:text-amber-300">
-						<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-						Keine Verbindung zum Server…
-					</div>
+					<p className="offline" role="status">
+						<WifiOff /> Keine Verbindung…
+					</p>
 				)}
 
-				{/* ---- Step: start ---- */}
 				{step === "start" && (
-					// Centered and a touch narrower than the card. Wider than before, and
-					// narrower on mobile than on desktop, while staying comfortably
-					// tappable on both.
-					<div className="mx-auto max-w-[18rem] space-y-3 sm:max-w-[22rem]">
-						<Button
-							className="w-full"
-							size="lg"
+					<div className="choices">
+						<Btn
+							kind="primary"
+							aria-label="Lobby erstellen"
+							data-tip="Lobby erstellen"
 							onPointerEnter={preloadRoom}
 							onFocus={preloadRoom}
 							onClick={() => goTo("createName")}
 						>
-							<Plus className="h-4 w-4" />
-							Lobby erstellen
-						</Button>
-						<Button
-							variant="outline"
-							className="w-full"
-							size="lg"
+							<Plus />
+						</Btn>
+						<Btn
+							aria-label="Lobby beitreten"
+							data-tip="Lobby beitreten"
 							onPointerEnter={preloadRoom}
 							onFocus={preloadRoom}
 							onClick={() => {
-								// Start a fresh join each time this is opened from the start
-								// screen: a code left over from a previous, abandoned attempt
-								// must not reappear.
 								setCode("");
 								setJoinError(null);
 								goTo("joinCode");
 							}}
 						>
-							<LogIn className="h-4 w-4" />
-							Lobby beitreten
-						</Button>
+							<LogIn />
+						</Btn>
 					</div>
 				)}
 
-				{/* ---- Step: scan QR ---- */}
 				{step === "scan" && (
-					<Card>
-						<CardHeader className="pb-1"></CardHeader>
-						<CardContent>
-							<ErrorBoundary
-								fallback={() => (
-									<p className="text-sm text-destructive">
-										QR-Scanner konnte nicht geladen werden. Nutze stattdessen
-										den Code.
-									</p>
-								)}
-							>
-								<Suspense
-									fallback={
-										<p
-											aria-live="polite"
-											className="text-sm text-muted-foreground"
-										>
-											Kamera wird geladen…
-										</p>
+					<ErrorBoundary
+						fallback={() => (
+							<p role="alert" className="err">
+								QR-Scanner konnte nicht geladen werden.
+							</p>
+						)}
+					>
+						<Suspense
+							fallback={<Loader2 className="spin" aria-label="Kamera lädt" />}
+						>
+							<QrScannerView
+								onScan={(scanned) => {
+									setCode(scanned);
+									checkCode(scanned);
+								}}
+								onClose={back}
+							/>
+						</Suspense>
+					</ErrorBoundary>
+				)}
+
+				{step === "createName" && nameForm(submitCreate)}
+
+				{step === "joinCode" && (
+					<form onSubmit={submitJoinCode}>
+						<label className={`code-in${joinError ? " bad" : ""}`}>
+							{Array.from({ length: 6 }, (_, i) => (
+								<span
+									// biome-ignore lint/suspicious/noArrayIndexKey: a slot is its position
+									key={i}
+									className={
+										i < code.length ? "on" : i === code.length ? "cur" : ""
+									}
+									style={
+										{ "--c": `var(--t${(i % 5) + 1})` } as React.CSSProperties
 									}
 								>
-									<QrScannerView
-										onScan={(scanned) => {
-											setCode(scanned);
-											// Verify the scanned lobby is joinable before asking a name.
-											checkCode(scanned);
-										}}
-										onClose={back}
-									/>
-								</Suspense>
-							</ErrorBoundary>
-						</CardContent>
-					</Card>
+									{code[i] ?? ""}
+								</span>
+							))}
+							<input
+								value={code}
+								onChange={(e) => {
+									setJoinError(null);
+									const next = e.target.value
+										.toUpperCase()
+										.replace(/[^A-Z0-9]/g, "")
+										.slice(0, 6);
+									if (next.length > code.length) sound.slot(next.length);
+									else if (next.length < code.length) sound.poof();
+									setCode(next);
+									if (next.length === 6) checkCode(next);
+								}}
+								aria-label="Lobbycode"
+								aria-invalid={joinError != null}
+								aria-describedby={joinError ? "code-error" : undefined}
+								disabled={checking}
+								autoCapitalize="characters"
+								autoCorrect="off"
+								spellCheck={false}
+								maxLength={6}
+								// biome-ignore lint/a11y/noAutofocus: each step focuses its only field
+								autoFocus
+								autoComplete="off"
+								enterKeyHint="go"
+							/>
+						</label>
+						{joinError && (
+							<p id="code-error" role="alert" className="err">
+								{joinError}
+							</p>
+						)}
+						<div className="row">
+							<IconBtn tip="Zurück" onClick={back} disabled={checking}>
+								<ArrowLeft />
+							</IconBtn>
+							<IconBtn
+								tip="QR-Code scannen"
+								onClick={() => goTo("scan")}
+								disabled={checking || !connected}
+							>
+								<ScanLine />
+							</IconBtn>
+							<Btn
+								type="submit"
+								kind="primary"
+								aria-label="Weiter"
+								data-tip="Weiter"
+								disabled={code.length !== 6 || checking || !connected}
+							>
+								{checking ? <Loader2 className="spin" /> : <ArrowRight />}
+							</Btn>
+						</div>
+					</form>
 				)}
 
-				{/* ---- Step: create -> name ---- */}
-				{step === "createName" && (
-					<Card>
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base">Lobby erstellen</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={submitCreate} className="space-y-4">
-								<div className="space-y-2">
-									<Input
-										id="name"
-										aria-label="Dein Name"
-										value={name}
-										onChange={(e) => setName(e.target.value)}
-										placeholder="Name eingeben…"
-										maxLength={20}
-										autoFocus
-										autoComplete="off"
-									/>
-								</div>
-								<div className="flex gap-2">
-									<Button type="button" variant="outline" onClick={back}>
-										<ArrowLeft className="h-4 w-4" />
-										Zurück
-									</Button>
-									<Button
-										type="submit"
-										className="flex-1"
-										disabled={loading || !name.trim() || !connected}
-									>
-										{loading ? "Verbinde…" : "Weiter"}
-									</Button>
-								</div>
-							</form>
-						</CardContent>
-					</Card>
-				)}
-
-				{/* ---- Step: join -> code ---- */}
-				{step === "joinCode" && (
-					<Card>
-						<CardHeader className="pb-2">
-							<CardTitle className="text-base">Lobby beitreten</CardTitle>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={submitJoinCode} className="space-y-4">
-								<div className="space-y-2">
-									<Input
-										id="code"
-										aria-label="Lobbycode"
-										value={code}
-										onChange={(e) => {
-											setJoinError(null);
-											// Codes are uppercase everywhere (display, typing, paste,
-											// URL); the server normalizes case-insensitively.
-											setCode(
-												e.target.value
-													.toUpperCase()
-													.replace(/[^A-Z0-9]/g, "")
-													.slice(0, 6),
-											);
-										}}
-										aria-invalid={joinError != null}
-										// Without the description link the field announces only
-										// "invalid" - never *why*, which is the part that helps.
-										aria-describedby={joinError ? "code-error" : undefined}
-										disabled={checking}
-										placeholder="6-stelliger Code"
-										autoCapitalize="characters"
-										autoCorrect="off"
-										spellCheck={false}
-										maxLength={6}
-										autoFocus
-										autoComplete="off"
-										className="font-mono uppercase tracking-widest placeholder:font-sans placeholder:normal-case placeholder:tracking-normal"
-									/>
-									{joinError && (
-										<p
-											id="code-error"
-											role="alert"
-											className="text-sm text-destructive"
-										>
-											{joinError}
-										</p>
-									)}
-								</div>
-
-								<div className="flex items-center gap-3 text-xs text-muted-foreground">
-									<span className="h-px flex-1 bg-border" />
-									oder
-									<span className="h-px flex-1 bg-border" />
-								</div>
-								<Button
-									type="button"
-									variant="outline"
-									className="w-full"
-									onClick={() => goTo("scan")}
-									disabled={checking || !connected}
-								>
-									<ScanLine className="h-4 w-4" />
-									QR-Code scannen
-								</Button>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										variant="outline"
-										onClick={back}
-										disabled={checking}
-									>
-										<ArrowLeft className="h-4 w-4" />
-										Zurück
-									</Button>
-									<Button
-										type="submit"
-										className="flex-1"
-										disabled={
-											code.trim().length !== 6 || checking || !connected
-										}
-									>
-										{checking ? "Prüfe…" : "Weiter"}
-									</Button>
-								</div>
-							</form>
-						</CardContent>
-					</Card>
-				)}
-
-				{/* ---- Step: join -> name ---- */}
 				{step === "joinName" && (
-					<Card>
-						<CardHeader className="pb-4">
-							<CardTitle className="text-base">Lobby beitreten</CardTitle>
-							<CardDescription>
-								Lobby {code.toUpperCase()} - gib deinen Namen ein.
-							</CardDescription>
-						</CardHeader>
-						<CardContent>
-							<form onSubmit={submitJoinName} className="space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="join-name">Dein Name</Label>
-									<Input
-										id="join-name"
-										value={name}
-										onChange={(e) => {
-											setJoinError(null);
-											setName(e.target.value);
-										}}
-										placeholder="Name eingeben…"
-										maxLength={20}
-										aria-invalid={joinError != null}
-										aria-describedby={joinError ? "join-name-error" : undefined}
-										autoFocus
-										autoComplete="off"
-									/>
-									{joinError && (
-										<p
-											id="join-name-error"
-											role="alert"
-											className="text-sm text-destructive"
-										>
-											{joinError}
-										</p>
-									)}
-								</div>
-								<div className="flex gap-2">
-									<Button
-										type="button"
-										variant="outline"
-										onClick={() => {
-											setJoinError(null);
-											back();
-										}}
-									>
-										<ArrowLeft className="h-4 w-4" />
-										Zurück
-									</Button>
-									<Button
-										type="submit"
-										className="flex-1"
-										disabled={loading || !name.trim() || !connected}
-									>
-										{loading ? "Verbinde…" : "Beitreten"}
-									</Button>
-								</div>
-							</form>
-						</CardContent>
-					</Card>
+					<>
+						<CodeTiles code={code} small />
+						{nameForm(submitJoinName, "join-name-error")}
+					</>
 				)}
-			</div>
-		</div>
+			</section>
+		</>
 	);
 }

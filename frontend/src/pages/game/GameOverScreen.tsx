@@ -1,17 +1,41 @@
-import { Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Crown, Hourglass, RotateCcw, Star } from "lucide-react";
 import { ws } from "@/lib/ws";
+import { fx } from "@/lib/fx";
+import { sound } from "@/lib/sound";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Av, Btn, Mascot, mood } from "@/components/kit";
+
+const ORDER = [1, 0, 2];
 
 export function GameOverScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
+	const [up, setUp] = useState(0);
+
+	// Third, second, then first rise; the winner lands with confetti.
+	useEffect(() => {
+		const ids = [3, 2, 1].map((place, i) =>
+			setTimeout(
+				() => {
+					setUp(4 - place);
+					sound.slot(i);
+					if (place === 1) {
+						sound.fanfare();
+						fx.rain();
+						mood("cheer", 2000);
+					}
+				},
+				500 + i * 700,
+			),
+		);
+		return () => ids.forEach(clearTimeout);
+	}, []);
 
 	if (!lobby) return null;
 
@@ -20,86 +44,79 @@ export function GameOverScreen() {
 	const ranking = result?.ranking ?? [];
 
 	return (
-		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-xl space-y-4">
-				<RoomHeader title="Spiel beendet" />
-
+		<>
+			<RoomHeader />
+			<section className="screen over">
 				{lobby.solo ? (
-					<Card>
-						<CardContent className="pt-6 text-center">
-							<p className="text-sm text-muted-foreground">Du hast</p>
-							<CountUp
-								value={
-									lobby.players.find((p) => p.id === myPlayerId)?.score ?? 0
-								}
-								className="block text-6xl font-black tabular-nums"
-							/>
-							<p className="text-sm text-muted-foreground">Punkte gemacht</p>
-						</CardContent>
-					</Card>
+					<div className="center solo-score">
+						<Mascot size="big" base="happy" />
+						<span className="solo-total">
+							<Star />
+							<CountUp value={playerOf(myPlayerId ?? "")?.score ?? 0} />
+						</span>
+					</div>
 				) : (
-					<Card>
-						<CardHeader className="pb-3">
-							<CardTitle className="text-base">Endstand</CardTitle>
-						</CardHeader>
-						<CardContent className="space-y-2">
-							{ranking.map((r, i) => (
-								<div
-									key={r.playerId}
-									// Final standings ease in top-to-bottom (backwards fill keeps
-									// them hidden through the stagger delay).
-									style={{
-										animationDelay: `${i * 70}ms`,
-										animationFillMode: "backwards",
-									}}
-									className={`animate-fade-in flex items-center justify-between py-2 px-3 ${
-										r.rank === 1 && r.score > 0
-											? "bg-amber-500/15 border border-amber-500/40"
-											: "bg-muted/50"
-									}`}
-								>
-									<div className="flex items-center gap-3">
-										<span className="text-sm font-bold text-muted-foreground w-5">
-											{r.rank}.
-										</span>
-										{r.rank === 1 && r.score > 0 && (
-											<Trophy className="h-4 w-4 text-amber-500" />
-										)}
-										<span className="text-sm font-medium">
-											{playerName(r.playerId)}
-											{r.playerId === myPlayerId && (
-												<span className="text-xs text-muted-foreground">
-													{" "}
-													(du)
+					<>
+						<div className="podium-row">
+							{ORDER.map((i) => {
+								const r = ranking[i];
+								if (!r) return null;
+								return (
+									<div
+										key={r.playerId}
+										className={`step s${i + 1}${up >= 3 - i ? " up" : ""}${r.playerId === myPlayerId ? " me" : ""}`}
+									>
+										<div className="step-av">
+											{r.rank === 1 && r.score > 0 && (
+												<span className="crown">
+													<Crown />
 												</span>
 											)}
-											<PlayerStatus player={playerOf(r.playerId)} />
-										</span>
+											<Av
+												id={r.playerId}
+												name={playerName(r.playerId)}
+												size="big"
+											/>
+											<b>{r.score}</b>
+										</div>
+										<div className="block">{r.rank}</div>
 									</div>
-									<CountUp
-										value={r.score}
-										className="text-sm font-bold tabular-nums"
-									/>
-								</div>
-							))}
-						</CardContent>
-					</Card>
+								);
+							})}
+						</div>
+						{ranking.slice(3).map((r) => (
+							<div
+								key={r.playerId}
+								className={`fourth${r.playerId === myPlayerId ? " me" : ""}`}
+							>
+								<b>{r.rank}</b>
+								<Av id={r.playerId} name={playerName(r.playerId)} size="sm" />
+								<span className="name">
+									{playerName(r.playerId)}
+									<PlayerStatus player={playerOf(r.playerId)} />
+								</span>
+								<b>{r.score}</b>
+							</div>
+						))}
+					</>
 				)}
-
-				{isHost ? (
-					<Button
-						className="w-full"
-						size="lg"
-						onClick={() => ws.send({ type: "returnToLobby", payload: {} })}
-					>
-						Zurück zur Lobby
-					</Button>
-				) : (
-					<p className="text-center text-sm text-muted-foreground">
-						Warte auf den Host…
-					</p>
-				)}
-			</div>
-		</div>
+				<div className="end-actions">
+					{isHost ? (
+						<Btn
+							kind="primary"
+							aria-label="Zurück zur Lobby"
+							data-tip="Zurück zur Lobby"
+							onClick={() => ws.send({ type: "returnToLobby", payload: {} })}
+						>
+							<RotateCcw />
+						</Btn>
+					) : (
+						<p className="waiting" data-tip="Warte auf den Host">
+							<Hourglass />
+						</p>
+					)}
+				</div>
+			</section>
+		</>
 	);
 }

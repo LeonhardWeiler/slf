@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Crown, Flag, Hourglass, X } from "lucide-react";
+import { sound } from "@/lib/sound";
 import { ws } from "@/lib/ws";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { handlesEnter } from "@/lib/utils";
@@ -8,8 +9,7 @@ import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Av, Btn, IconBtn, Mascot, mood, playerColor } from "@/components/kit";
 
 export function RoundResultScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -17,6 +17,21 @@ export function RoundResultScreen() {
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
+	const [counted, setCounted] = useState(false);
+
+	// The round's points land a beat after the board appears.
+	useEffect(() => {
+		const id = setTimeout(() => {
+			setCounted(true);
+			const mine =
+				result?.scores.find((s) => s.playerId === myPlayerId)?.roundPoints ?? 0;
+			if (mine > 0) {
+				sound.combo(Math.min(5, Math.ceil(mine / 10)));
+				mood("cheer", 1200);
+			} else sound.thud();
+		}, 700);
+		return () => clearTimeout(id);
+	}, [result, myPlayerId]);
 
 	// Host can remove a player from the between-rounds standings (the points
 	// table). The server keeps them in the ranking marked "(verlassen)" (todo-4).
@@ -73,128 +88,101 @@ export function RoundResultScreen() {
 	const playerName = (id: string) => playerOf(id)?.name ?? "?";
 	const roundPointsOf = (id: string) =>
 		result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
-
 	const lettersLeft = result.remainingLetters.length;
+	const top = Math.max(1, ...result.ranking.map((r) => r.score));
 
 	return (
-		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-xl space-y-4">
-				<RoomHeader title="Rundenergebnis" />
-
-				<p className="text-center text-lg font-semibold">
-					Runde {result.usedLetters.length} · {result.letter}
-				</p>
-				{result.empty && (
-					<p className="text-center text-sm text-muted-foreground">
-						Niemand hat etwas eingetragen.
-					</p>
+		<>
+			<RoomHeader>
+				{isHost && (
+					<IconBtn tip="Spiel beenden" onClick={handleEndGame}>
+						<Flag />
+					</IconBtn>
 				)}
-
-				<Card>
-					<CardHeader className="pb-3">
-						<CardTitle className="text-base">Zwischenstand</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-2">
-						{result.ranking.map((r, i) => {
-							const roundPoints = roundPointsOf(r.playerId);
-							return (
-								<div
-									key={r.playerId}
-									// Rows ease in one after another (backwards fill holds them
-									// hidden through the stagger delay so they don't flash first).
-									style={{
-										animationDelay: `${i * 70}ms`,
-										animationFillMode: "backwards",
-									}}
-									className={`animate-fade-in flex items-center justify-between py-2 px-3 ${
-										r.rank === 1 && r.score > 0
-											? "bg-amber-500/15 border border-amber-500/40"
-											: "bg-muted/50"
-									}`}
-								>
-									<div className="flex items-center gap-3">
-										<span className="text-sm font-bold text-muted-foreground w-5">
-											{r.rank}.
-										</span>
-										{r.rank === 1 && r.score > 0 && (
-											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
-										)}
-										<span className="text-sm font-medium">
-											{/* Only the host may remove a player, so only the host gets
-											    the clickable name. Rendering it for everyone offered a
-											    destructive action the server rejects with NOT_HOST. */}
-											{isHost &&
-											r.playerId !== myPlayerId &&
-											!playerOf(r.playerId)?.left ? (
-												<button
-													type="button"
-													// The name itself is the trigger, so name it: without this
-													// the accessible name is just the player and nothing says
-													// what activating it does.
-													title={`${playerName(r.playerId)} entfernen`}
-													className="font-medium hover:line-through cursor-pointer bg-transparent border-0 p-0 inline"
-													onClick={() =>
-														handleKick(r.playerId, playerName(r.playerId))
-													}
-												>
-													{playerName(r.playerId)}
-												</button>
-											) : (
-												<span>{playerName(r.playerId)}</span>
-											)}
-											{r.playerId === myPlayerId && (
-												<span className="text-xs text-muted-foreground">
-													{" "}
-													(du)
-												</span>
-											)}
-
-											<PlayerStatus player={playerOf(r.playerId)} />
-										</span>
-									</div>
-									<div className="flex items-center gap-3">
-										{/* Round gain only shown in success green when >0; a zero gain
-                      is shown neutrally as "±0", not as green "+0". */}
-										<span
-											className={`text-xs font-medium ${
-												roundPoints === 0
-													? "text-muted-foreground"
-													: "text-green-600"
-											}`}
-										>
-											{roundPoints === 0 ? "±0" : `+${roundPoints}`}
-										</span>
-										<CountUp
-											value={r.score}
-											className="text-sm font-bold tabular-nums w-10 text-right"
-										/>
-									</div>
-								</div>
-							);
-						})}
-					</CardContent>
-				</Card>
-
-				{isHost ? (
-					// Nebeneinander ab sm; auf schmalen Screens gestapelt.
-					<div className="flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2">
-						<Button variant="outline" size="lg" onClick={handleEndGame}>
-							Spiel beenden
-						</Button>
-						<Button
-							size="lg"
-							onClick={() => ws.send({ type: "startNextRound", payload: {} })}
-						>
-							{lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
-						</Button>
+			</RoomHeader>
+			<section className="screen result">
+				<div className="hud">
+					<Mascot
+						size="letter"
+						letter={result.letter}
+						base={result.empty ? "sad" : "happy"}
+					/>
+					<div className="hud-mid">
+						<div className="rounds big">
+							{result.usedLetters.map((l) => (
+								<i key={l} className="done" />
+							))}
+							{result.remainingLetters.slice(0, 3).map((l) => (
+								<i key={l} />
+							))}
+						</div>
 					</div>
+				</div>
+				<ol className="ranking">
+					{result.ranking.map((r, i) => {
+						const gain = roundPointsOf(r.playerId);
+						const p = playerOf(r.playerId);
+						return (
+							<li
+								key={r.playerId}
+								className={`rank${r.playerId === myPlayerId ? " me" : ""}${counted && gain > 0 ? " gaining" : ""}`}
+								style={
+									{
+										"--pc": playerColor(r.playerId),
+										"--w": counted ? r.score / top : (r.score - gain) / top,
+										animationDelay: `${i * 70}ms`,
+									} as React.CSSProperties
+								}
+							>
+								<span className="pos">
+									{r.rank === 1 && r.score > 0 ? <Crown /> : r.rank}
+								</span>
+								<Av id={r.playerId} name={playerName(r.playerId)} />
+								<span className="name">
+									{playerName(r.playerId)}
+									<PlayerStatus player={p} />
+								</span>
+								<span className="gain">+{gain}</span>
+								<CountUp
+									value={counted ? r.score : r.score - gain}
+									className="total"
+								/>
+								{isHost && r.playerId !== myPlayerId && !p?.left && (
+									<button
+										type="button"
+										className="kick"
+										aria-label={`${playerName(r.playerId)} entfernen`}
+										data-tip="Entfernen"
+										onClick={() =>
+											handleKick(r.playerId, playerName(r.playerId))
+										}
+									>
+										<X />
+									</button>
+								)}
+								<span className="bar">
+									<i />
+								</span>
+							</li>
+						);
+					})}
+				</ol>
+				{isHost ? (
+					<Btn
+						kind="next"
+						aria-label={lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
+						data-tip={lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
+						onClick={() => ws.send({ type: "startNextRound", payload: {} })}
+					>
+						{lettersLeft > 0 ? <ArrowRight /> : <Flag />}
+					</Btn>
 				) : (
-					<p className="text-center text-sm text-muted-foreground">
-						Warte auf den Host…
+					<p className="waiting" data-tip="Warte auf den Host">
+						<Hourglass />
 					</p>
 				)}
-			</div>
+			</section>
 			{dialog}
-		</div>
+		</>
 	);
 }

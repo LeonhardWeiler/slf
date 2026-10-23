@@ -157,11 +157,7 @@ func securityHeaders(h http.Header) {
 		"default-src 'self'; base-uri 'self'; frame-ancestors 'none'; "+
 			"object-src 'none'; form-action 'self'; img-src 'self' data:; "+
 			"style-src 'self' 'unsafe-inline'; "+
-			// The only inline script is the pre-paint theme switcher in
-			// frontend/index.html (anti-FOUC). Its sha256 is allow-listed so we do
-			// NOT need 'unsafe-inline' for scripts. If that snippet changes, update
-			// this hash (the browser console prints the expected value).
-			"script-src 'self' 'sha256-4sXzUGvzAZlY5lT80QJC2LfIdvaAGVrh73rtFO9aWVQ='; "+
+			"script-src 'self'; "+
 			"connect-src 'self'; worker-src 'self' blob:; font-src 'self'")
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "no-referrer")

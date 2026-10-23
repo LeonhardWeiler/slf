@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Flame, Check } from "lucide-react";
+import { Check, Eye, Flame, Hand, Loader2, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { cn } from "@/lib/utils";
+import { isTypingTarget } from "@/lib/utils";
+import { haptic, shiftPalette, slam } from "@/lib/feel";
+import { fx } from "@/lib/fx";
+import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
 import { answersKey, clearDrafts, flameKey } from "@/lib/session";
 import { useRoomStore, useIsHost } from "@/store/room";
@@ -11,13 +14,10 @@ import {
 	LENGTH_ISSUE,
 } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
-import { RoundLetter } from "@/components/RoundLetter";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Av, Btn, IconBtn, Mascot, mood, Tiles } from "@/components/kit";
 
 // Local ticking timer that counts down from `seconds`, restarting whenever
 // `resetKey` changes. The server stays authoritative for phase transitions.
@@ -60,44 +60,6 @@ function loadDraft(roundId: string): Record<string, string> {
 	} catch {
 		return {};
 	}
-}
-
-function formatClock(total: number): string {
-	const m = Math.floor(total / 60);
-	const s = total % 60;
-	return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-// Clock for a timed round. It owns its ticking state so a tick re-renders only
-// the clock, not the answer form. Red pulsing border for the final 5 seconds.
-function RoundClock({ endsAt }: { endsAt: number }) {
-	const left = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-	const [secs, setSecs] = useState(left);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
-	useEffect(() => {
-		setSecs(left());
-		const id = setInterval(() => setSecs(left()), 250);
-		return () => clearInterval(id);
-	}, [endsAt]);
-	const danger = secs <= 5;
-	return (
-		<>
-			{danger && (
-				<div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
-			)}
-			<p
-				className={cn(
-					"text-3xl font-mono font-bold tabular-nums",
-					danger && "text-destructive",
-				)}
-			>
-				{formatClock(secs)}
-			</p>
-			<span className="sr-only" aria-live="assertive">
-				{danger ? `Noch ${secs} Sekunden` : ""}
-			</span>
-		</>
-	);
 }
 
 export function GameScreen() {
@@ -260,6 +222,7 @@ export function GameScreen() {
 			// after the round advances would hit an invalid state.
 			if (e.repeat) return;
 			if (!canBuzz) return;
+			if (isTypingTarget(e.target as Element)) return;
 			// Pause while a confirm dialog is up (e.g. "Runde beenden?") so its Enter
 			// doesn't also buzz (UX-1).
 			if (isModalOpen()) return;
@@ -270,247 +233,345 @@ export function GameScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [canBuzz]);
 
+	const lockedCount =
+		lobby && game && !isSpectator
+			? lobby.categories.filter(
+					(c) =>
+						touched[c.id] &&
+						(answers[c.id] ?? "").trim() !== "" &&
+						!ruleIssue(answers[c.id] ?? "", game.letter, lastLetterMode),
+				).length
+			: 0;
+	const prevLocked = useRef(0);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per newly locked card
+	useEffect(() => {
+		const n = lobby?.categories.length ?? 0;
+		if (lockedCount > prevLocked.current) {
+			sound.word(lockedCount);
+			haptic(15);
+			mood("happy", 700);
+			for (const el of document.querySelectorAll(".card.locked .tiles"))
+				fx.at(el, { n: 10, speed: 5 });
+			if (lockedCount === n && n > 1) {
+				sound.clear();
+				shiftPalette();
+				slam(`${n}/${n}`, "clear");
+				mood("cheer", 1400);
+			}
+		}
+		sound.layer = lockedCount;
+		prevLocked.current = lockedCount;
+	}, [lockedCount]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per countdown step
+	useEffect(() => {
+		if (countdown === null || lobby?.state !== "Countdown") return;
+		if (countdown > 0) sound.tick(3 - countdown);
+		else slam("Los!", "big");
+	}, [countdown]);
+
 	if (!lobby) return null;
 
 	function updateAnswer(categoryId: string, value: string) {
+		const before = [...(answers[categoryId] ?? "")].length;
+		const len = [...value].length;
+		if (len > before) {
+			sound.key(len - 1);
+			if (Math.random() < 0.25) mood("blink", 160);
+		}
 		setAnswers((prev) => {
 			const next = { ...prev, [categoryId]: value };
 			storage.set(answersKey(roundId), JSON.stringify(next));
 			return next;
 		});
-		// Debounce the server sync: batch keystrokes into at most one answerUpdate
-		// per ~250ms instead of one message per keystroke.
 		pendingAnswers.current[categoryId] = value;
 		if (!flushTimer.current) {
 			flushTimer.current = setTimeout(flushAnswers, 250);
 		}
 	}
 
-	// Toggle the flame on a category. Only one flame per round, so flaming another
-	// category moves it. The server is authoritative and enforces the same limit.
-	function toggleFlame(categoryId: string) {
+	function toggleFlame(categoryId: string, el: Element) {
 		const next = flamed === categoryId ? "" : categoryId;
 		setFlamed(next);
 		if (next) storage.set(flameKey(roundId), next);
 		else storage.remove(flameKey(roundId));
 		ws.send({ type: "setFlame", payload: { roundId, categoryId: next } });
+		if (next) {
+			sound.ignite();
+			fx.at(el, { n: 14, speed: 5, up: 3 });
+			haptic([10, 20, 25]);
+			mood("wow", 700);
+		} else sound.fizzle();
 	}
 
-	// ---- Countdown phase ----
-	// Phase is derived from the lobby state (single source of truth) so the
-	// countdown screen shows immediately - even before the first gameState
-	// arrives - instead of a blank frame or a flash of the Playing UI.
 	if (lobby.state === "Countdown") {
-		const display =
-			countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
-		const isGo = countdown === 0;
-		const letter = game?.letter;
 		return (
-			<div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
-				{letter && <RoundLetter letter={letter} className="text-9xl" />}
-				<div
-					className={cn(
-						"flex items-center justify-center",
-						letter ? "h-16" : "h-48 w-48",
+			<>
+				<RoomHeader />
+				<section className="screen center countdown">
+					<Mascot size="huge" letter={game?.letter ?? ""} base="wow" />
+					{countdown !== null && (
+						<b key={countdown} className="count" aria-live="assertive">
+							{countdown > 0 ? countdown : "Los!"}
+						</b>
 					)}
-				>
-					{/* Just the digits scale down and swap each tick - no progress ring. */}
-					<div
-						key={display}
-						aria-live="assertive"
-						aria-atomic="true"
-						className={cn(
-							"font-bold tabular-nums min-h-[1em]",
-							letter ? "text-4xl" : "text-8xl",
-							isGo
-								? "animate-countdown-go text-primary"
-								: "animate-countdown-pop",
-						)}
-					>
-						{display}
-					</div>
-				</div>
-			</div>
+				</section>
+			</>
 		);
 	}
 
 	if (!game) return null;
 
 	const categories = lobby.categories;
-	const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
-
-	// ---- Playing phase ----
-
-	// Players actually participating this round (for the fill overview): not left,
-	// not a pending spectator, and - unless the host plays - not the host.
 	const playingPlayers = lobby.players.filter(
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
 	);
+	const isLocked = (id: string) =>
+		touched[id] &&
+		(answers[id] ?? "").trim() !== "" &&
+		!ruleIssue(answers[id] ?? "", game.letter, lastLetterMode);
+
+	function onEnter(idx: number, card: HTMLElement) {
+		const cat = categories[idx];
+		const value = answers[cat.id] ?? "";
+		if (ruleIssue(value, game!.letter, lastLetterMode)) {
+			if (value.trim()) {
+				card.classList.remove("wrong");
+				void card.offsetWidth;
+				card.classList.add("wrong");
+				sound.crunch();
+				haptic([30, 40, 30]);
+				mood("sad", 800);
+			}
+			return;
+		}
+		setTouched((t) => ({ ...t, [cat.id]: true }));
+		const next = [
+			...categories.slice(idx + 1),
+			...categories.slice(0, idx),
+		].find((c) => !isLocked(c.id));
+		if (next) document.getElementById(`cat-${next.id}`)?.focus();
+		else if (canBuzz) handleBuzz();
+	}
 
 	return (
-		<div className="min-h-svh bg-background screen-pad">
-			<div
-				className={cn(
-					"mx-auto w-full space-y-4 animate-fade-in",
-					isSpectator ? "max-w-5xl" : "max-w-xl",
+		<>
+			<RoomHeader>
+				{isHost && !lobby.solo && !isSpectator && (
+					<IconBtn tip="Runde beenden" onClick={handleEndRound}>
+						<Square />
+					</IconBtn>
 				)}
-			>
-				<RoomHeader
-					title={
-						isSpectator
-							? isPending
-								? "Gleich dabei"
-								: "Kommentator"
-							: "Runde läuft"
-					}
-				/>
-				{isPending && (
-					<p className="text-center text-sm text-muted-foreground">
-						Du spielst ab der nächsten Runde mit.
-					</p>
-				)}
-
-				{/* Letter & time without a surrounding card/border; the values sit
-            freely on the background (like the borderless switch). */}
-				<div className="flex items-center justify-between px-1">
-					<RoundLetter letter={game.letter} className="text-6xl" />
-					{game.endsAt !== null && <RoundClock endsAt={game.endsAt} />}
+			</RoomHeader>
+			<section className="screen play">
+				<div className="hud">
+					<Mascot
+						size="letter"
+						letter={lastLetterMode ? `…${game.letter}` : game.letter}
+					/>
+					<div className="hud-mid">
+						<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
+					</div>
+					<div className="friends">
+						{playingPlayers
+							.filter((p) => p.id !== myPlayerId)
+							.map((p) => (
+								<span
+									key={p.id}
+									className={`friend${p.connected ? "" : " off"}`}
+								>
+									<Av id={p.id} name={p.name} size="sm" />
+								</span>
+							))}
+					</div>
 				</div>
 
 				{isSpectator ? (
-					<Card>
-						<CardContent className="pt-6">
-							<CommentatorBoard
-								categories={categories}
-								players={playingPlayers}
-								commentator={commentator}
-							/>
-						</CardContent>
-					</Card>
-				) : (
 					<>
-						{flamesEnabled && showFlameHint && (
-							<p className="text-sm text-muted-foreground">
-								🔥 Wette: einzige Antwort +5, sonst 0
+						{isPending && (
+							<p
+								className="hint"
+								data-tip="Du spielst ab der nächsten Runde mit"
+							>
+								<Eye />
 							</p>
 						)}
-						<div className="space-y-3">
+						<CommentatorBoard
+							categories={categories}
+							players={playingPlayers}
+							commentator={commentator}
+						/>
+						{isHost && !lobby.solo && (
+							<Btn
+								kind="stop"
+								className="armed"
+								aria-label="Runde beenden"
+								data-tip="Runde beenden"
+								onClick={handleEndRound}
+							>
+								<Square />
+							</Btn>
+						)}
+					</>
+				) : (
+					<>
+						<div className="cards">
 							{categories.map((cat, idx) => {
-								const isFlamed = flamed === cat.id;
-								const issue = ruleIssue(
-									answers[cat.id] ?? "",
-									game.letter,
-									lastLetterMode,
-								);
-								// A wrong first letter shows at once, anything else after blur.
+								const value = answers[cat.id] ?? "";
+								const issue = ruleIssue(value, game.letter, lastLetterMode);
 								const showInvalid =
 									issue !== undefined &&
 									(touched[cat.id] ||
 										(!lastLetterMode && issue !== LENGTH_ISSUE));
-								const done = (answers[cat.id] ?? "").trim() !== "" && !issue;
 								return (
-									<div key={cat.id} className="space-y-1">
-										<label
-											htmlFor={`cat-${cat.id}`}
-											className="text-sm font-medium"
-										>
-											{cat.name}
-										</label>
-										<div className="flex items-center gap-2">
-											<div className="relative flex-1">
-												<Input
-													id={`cat-${cat.id}`}
-													value={answers[cat.id] ?? ""}
-													onChange={(e) => updateAnswer(cat.id, e.target.value)}
-													onBlur={() =>
-														setTouched((t) => ({ ...t, [cat.id]: true }))
-													}
-													placeholder={placeholder}
-													maxLength={30}
-													autoComplete="off"
-													autoFocus={idx === 0}
-													aria-invalid={showInvalid || undefined}
-													className={cn(done && "pr-9")}
-												/>
-												{/* Check pops in once the field holds a valid answer. */}
-												{done && (
-													<Check className="animate-scale-in pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
-												)}
-											</div>
-											{flamesEnabled && (
-												<Button
-													type="button"
-													variant="outline"
-													size="icon"
-													aria-pressed={isFlamed}
-													aria-label="Flamme setzen"
-													title={
-														isFlamed
-															? "Flamme entfernen"
-															: "Flamme setzen: Wette, dass du die einzige Antwort hast (+5 / 0)"
-													}
-													onClick={() => toggleFlame(cat.id)}
-													className="shrink-0 aria-pressed:border-orange-500 aria-pressed:text-orange-500 aria-pressed:bg-orange-500/10 aria-pressed:hover:text-orange-500"
-												>
-													<Flame
-														className={cn(
-															"h-4 w-4",
-															isFlamed && "fill-orange-500",
-														)}
-													/>
-												</Button>
-											)}
-										</div>
-										{showInvalid && (
-											<p className="text-xs text-destructive">{issue}</p>
+									<label
+										key={cat.id}
+										className={`card${isLocked(cat.id) ? " locked" : ""}${flamed === cat.id ? " flamed" : ""}`}
+										style={{ "--ci": idx } as React.CSSProperties}
+									>
+										<span className="cat">{cat.name}</span>
+										<Tiles
+											value={value}
+											letter={game.letter}
+											last={lastLetterMode}
+											live
+											ghost={
+												value
+													? undefined
+													: lastLetterMode
+														? `…${game.letter}`
+														: game.letter
+											}
+										/>
+										<input
+											id={`cat-${cat.id}`}
+											className="answer"
+											value={value}
+											onChange={(e) => updateAnswer(cat.id, e.target.value)}
+											onBlur={() =>
+												setTouched((t) => ({ ...t, [cat.id]: true }))
+											}
+											onKeyDown={(e) => {
+												if (e.key !== "Enter" || e.repeat) return;
+												e.preventDefault();
+												onEnter(
+													idx,
+													e.currentTarget.parentElement as HTMLElement,
+												);
+											}}
+											maxLength={30}
+											autoComplete="off"
+											autoCapitalize="words"
+											spellCheck={false}
+											enterKeyHint={
+												idx === categories.length - 1 ? "done" : "next"
+											}
+											// biome-ignore lint/a11y/noAutofocus: the round starts typing in the first field
+											autoFocus={idx === 0}
+											aria-label={`${cat.name} mit ${game.letter}`}
+											aria-invalid={showInvalid || undefined}
+										/>
+										{showInvalid && <span className="issue">{issue}</span>}
+										{flamesEnabled && (
+											<button
+												type="button"
+												className="flame-btn"
+												aria-pressed={flamed === cat.id}
+												aria-label="Flamme"
+												data-tip="Wette: einzige Antwort +5, sonst 0"
+												onClick={(e) => toggleFlame(cat.id, e.currentTarget)}
+											>
+												<Flame />
+											</button>
 										)}
-									</div>
+										<span className="lock">
+											<Check />
+										</span>
+									</label>
 								);
 							})}
 						</div>
 
 						{(buzzRejected === "incompleteAnswers" ||
 							buzzRejected === "invalidAnswers") && (
-							<p className="text-sm text-destructive text-center">
-								Du musst alle Kategorien gültig ausfüllen, bevor du buzzern
-								kannst.
-							</p>
+							<p className="err">Erst alle Kategorien gültig ausfüllen.</p>
 						)}
 
-						<div className="space-y-2">
-							<Button
-								className="w-full"
-								size="lg"
-								onClick={handleBuzz}
-								disabled={!validation.valid || buzzing}
-							>
-								{buzzing ? "Gesendet…" : "STOPP - Fertig!"}
-							</Button>
-							{!validation.valid && (
-								<p className="text-center text-xs text-muted-foreground">
-									{validation.reason}
-								</p>
-							)}
-						</div>
+						<Btn
+							kind="stop"
+							className={canBuzz ? "armed" : ""}
+							aria-disabled={!canBuzz}
+							data-tip={validation.valid ? "STOPP" : validation.reason}
+							onClick={() => canBuzz && handleBuzz()}
+						>
+							{buzzing ? <Loader2 className="spin" /> : <Hand />}
+							<span>STOPP</span>
+						</Btn>
 					</>
 				)}
-
-				{/* Host can end a stuck round early (hard letter, or a commentator host
-            who never buzzes) -> everyone moves to review. */}
-				{isHost && !lobby.solo && (
-					<div className="flex justify-center pt-1">
-						<Button
-							variant="ghost"
-							size="sm"
-							className="text-muted-foreground"
-							onClick={handleEndRound}
-						>
-							Runde beenden
-						</Button>
-					</div>
-				)}
-			</div>
+			</section>
 			{dialog}
+		</>
+	);
+}
+
+// Fuse burns down to `endsAt`; it turns hot and ticks in the last seconds.
+function Fuse({
+	endsAt,
+	total,
+}: {
+	endsAt: number | null;
+	total: number | null;
+}) {
+	const left = () => (endsAt === null ? 1 : Math.max(0, endsAt - Date.now()));
+	const [ms, setMs] = useState(left);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
+	useEffect(() => {
+		if (endsAt === null) return;
+		let last = -1;
+		const id = setInterval(() => {
+			const m = left();
+			setMs(m);
+			const s = Math.ceil(m / 1000);
+			if (s !== last && s <= 5 && s > 0) {
+				sound.tick(5 - s);
+				haptic(12);
+			}
+			last = s;
+		}, 100);
+		return () => {
+			clearInterval(id);
+			document.body.classList.remove("urgent");
+		};
+	}, [endsAt]);
+	const secs = Math.ceil(ms / 1000);
+	const hot = endsAt !== null && secs <= 10;
+	useEffect(() => {
+		document.body.classList.toggle("urgent", hot);
+		if (hot) mood("worried", 0);
+	}, [hot]);
+	if (endsAt === null)
+		return (
+			<div className="fuse endless" data-tip="Ohne Zeitlimit">
+				<i />
+			</div>
+		);
+	return (
+		<div
+			className={`fuse${hot ? " hot" : ""}`}
+			style={
+				{
+					"--f": total ? Math.min(1, ms / (total * 1000)) : 1,
+				} as React.CSSProperties
+			}
+			role="timer"
+			aria-label={`${secs} Sekunden`}
+		>
+			<i />
+			<b />
+			<span className="sr-only" aria-live="assertive">
+				{secs <= 5 ? secs : ""}
+			</span>
 		</div>
 	);
 }

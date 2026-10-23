@@ -14,7 +14,6 @@ import {
 	screen,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { ThemeProvider } from "@/lib/theme";
 import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
 import type { LobbyStatePayload, Player } from "@/types/events";
@@ -37,7 +36,7 @@ const { Lobby } = await import("@/pages/Lobby");
 const { renderScreen } = await import("@/pages/Room");
 const { Home } = await import("@/pages/Home");
 
-const render = (ui: ReactNode) => rtlRender(ui, { wrapper: ThemeProvider });
+const render = (ui: ReactNode) => rtlRender(ui);
 
 const player = (id: string, isHost: boolean): Player => ({
 	id,
@@ -110,9 +109,9 @@ describe("RoundResultScreen", () => {
 		setup("host", "RoundResult");
 		render(<RoundResultScreen />);
 		expect(screen.getByRole("button", { name: "Nächste Runde" })).toBeDefined();
-		expect(screen.getByTitle("guest entfernen")).toBeDefined();
-		expect(screen.getByText("Runde 1 · A")).toBeDefined();
-		expect(screen.queryByText("Niemand hat etwas eingetragen.")).toBeNull();
+		expect(
+			screen.getByRole("button", { name: "guest entfernen" }),
+		).toBeDefined();
 	});
 
 	it("leaves Enter on a focused button to that button", () => {
@@ -127,10 +126,10 @@ describe("RoundResultScreen", () => {
 		expect(send).toHaveBeenCalledWith({ type: "startNextRound", payload: {} });
 	});
 
-	it("gives a trophy only to a leader with points", () => {
+	it("gives a crown only to a leader with points", () => {
 		setup("guest", "RoundResult");
 		const { container, unmount } = render(<RoundResultScreen />);
-		expect(container.querySelectorAll(".lucide-trophy").length).toBe(1);
+		expect(container.querySelectorAll(".pos .lucide-crown").length).toBe(1);
 		unmount();
 		const result = useRoomStore.getState().result!;
 		useRoomStore.getState().receive("roundResult", {
@@ -141,23 +140,27 @@ describe("RoundResultScreen", () => {
 			],
 		});
 		const again = render(<RoundResultScreen />);
-		expect(again.container.querySelectorAll(".lucide-trophy").length).toBe(0);
+		expect(again.container.querySelectorAll(".pos .lucide-crown").length).toBe(
+			0,
+		);
 	});
 
-	it("explains an empty round", () => {
+	it("shows a sad mascot after an empty round", () => {
 		setup("guest", "RoundResult");
 		const result = useRoomStore.getState().result!;
 		useRoomStore.getState().receive("roundResult", { ...result, empty: true });
-		render(<RoundResultScreen />);
-		expect(screen.getByText("Niemand hat etwas eingetragen.")).toBeDefined();
+		const { container } = render(<RoundResultScreen />);
+		expect(container.querySelector(".mascot")?.getAttribute("data-base")).toBe(
+			"sad",
+		);
 	});
 
 	it("leaves a guest waiting without host actions", () => {
 		setup("guest", "RoundResult");
 		render(<RoundResultScreen />);
-		expect(screen.getByText("Warte auf den Host…")).toBeDefined();
+		expect(document.querySelector(".waiting")).not.toBeNull();
 		expect(screen.queryByRole("button", { name: "Nächste Runde" })).toBeNull();
-		expect(screen.queryByTitle("host entfernen")).toBeNull();
+		expect(screen.queryByRole("button", { name: "host entfernen" })).toBeNull();
 	});
 });
 
@@ -177,11 +180,9 @@ describe("GameScreen", () => {
 		});
 		render(<GameScreen />);
 		expect(screen.queryByText("0/2")).toBeNull();
-		const buzz = () =>
-			screen.getByRole("button", {
-				name: /STOPP|Gesendet/,
-			}) as HTMLButtonElement;
-		expect(buzz().disabled).toBe(true);
+		const buzz = () => screen.getByRole("button", { name: /STOPP/ });
+		const off = () => buzz().getAttribute("aria-disabled");
+		expect(off()).toBe("true");
 
 		fireEvent.change(document.getElementById("cat-c1") as Element, {
 			target: { value: "Berlin" },
@@ -189,20 +190,20 @@ describe("GameScreen", () => {
 		fireEvent.change(document.getElementById("cat-c2") as Element, {
 			target: { value: "Ahaus" },
 		});
-		expect(buzz().disabled).toBe(true);
+		expect(off()).toBe("true");
 
 		fireEvent.change(document.getElementById("cat-c2") as Element, {
 			target: { value: "Belgien" },
 		});
-		expect(buzz().disabled).toBe(false);
+		expect(off()).toBe("false");
 
 		fireEvent.click(buzz());
 		expect(send).toHaveBeenCalledWith({
 			type: "buzz",
 			payload: { roundId: "r1" },
 		});
-		expect(buzz().disabled).toBe(true);
-		expect(buzz().textContent).toBe("Gesendet…");
+		expect(off()).toBe("true");
+		expect(buzz().querySelector(".spin")).not.toBeNull();
 	});
 
 	it("resends all answers when the session reconnects", () => {
@@ -256,7 +257,7 @@ describe("GameScreen", () => {
 });
 
 describe("Lobby", () => {
-	it("shows a guest only the settings that differ from the default", () => {
+	it("shows a guest the settings read-only", () => {
 		setup("guest", "Lobby");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -270,29 +271,34 @@ describe("Lobby", () => {
 				},
 			},
 		});
-		render(<Lobby />);
-		expect(screen.getByText("60 s · Flammen · ohne Q Y")).toBeDefined();
-		expect(screen.queryByText("Einstellungen")).toBeNull();
+		const { container } = render(<Lobby />);
+		expect(container.querySelector(".panel")?.hasAttribute("inert")).toBe(true);
+		expect(
+			screen
+				.getByRole("button", {
+					name: "Flammen: Wette auf eine einzigartige Antwort",
+				})
+				.getAttribute("aria-pressed"),
+		).toBe("true");
+		expect(screen.queryByRole("button", { name: "Spiel starten" })).toBeNull();
 	});
 
 	it("names every host button", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
 		expect(
-			screen.getByRole("button", { name: "Kategorie hinzufügen" }),
+			screen.getByRole("textbox", { name: "Neue Kategorie" }),
 		).toBeDefined();
 		for (const b of screen.getAllByRole("button")) {
-			const name =
-				b.textContent?.trim() ||
-				b.getAttribute("aria-label") ||
-				b.getAttribute("title");
-			expect(name).toBeTruthy();
+			expect(
+				b.textContent?.trim() || b.getAttribute("aria-label"),
+			).toBeTruthy();
 		}
 	});
 });
 
 describe("review validity", () => {
-	it("toggles a multiplayer answer by tapping its row", () => {
+	it("lets the host overrule an answer", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
@@ -328,12 +334,12 @@ describe("review validity", () => {
 			ready: null,
 			voters: null,
 		});
-		render(<ReviewScreen />);
-		expect(screen.getByText("Flamme +5")).toBeDefined();
-		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
-		const row = screen.getAllByRole("switch")[0];
-		expect(row.getAttribute("aria-checked")).toBe("true");
-		fireEvent.click(row);
+		const { container } = render(<ReviewScreen />);
+		expect(container.querySelectorAll(".ans-flame").length).toBe(1);
+		expect(container.querySelectorAll(".ans.cracked").length).toBe(1);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Als ungültig festlegen" }),
+		);
 		expect(send).toHaveBeenCalledWith({
 			type: "setAnswerValidity",
 			payload: { answerId: "guest", valid: false },
@@ -357,9 +363,9 @@ describe("review validity", () => {
 			voters: null,
 		});
 		render(<SoloReviewScreen />);
-		const rows = screen.getAllByRole("switch");
-		expect(rows.length).toBe(1);
-		fireEvent.keyDown(rows[0], { key: " " });
+		const rows = screen.getAllByRole("switch") as HTMLButtonElement[];
+		expect(rows.map((r) => r.disabled)).toEqual([false, true]);
+		fireEvent.click(rows[0]);
 		expect(send).toHaveBeenCalledWith({
 			type: "setAnswerValidity",
 			payload: { answerId: "guest", valid: true, categoryId: "c1" },
@@ -383,11 +389,11 @@ describe("Lobby players", () => {
 			},
 		});
 		render(<Lobby />);
-		const names = screen
-			.getAllByText(/^(zoe|host|anna|guest)$/)
-			.map((el) => el.textContent);
+		const names = [...document.querySelectorAll(".seat-name")].map(
+			(el) => el.textContent,
+		);
 		expect(names).toEqual(["guest", "host", "anna", "zoe"]);
-		expect(screen.getAllByText("offline").length).toBe(1);
+		expect(document.querySelectorAll(".seat.off").length).toBe(1);
 	});
 });
 
@@ -395,9 +401,10 @@ describe("Lobby time limit", () => {
 	it("maps slider steps to server settings, including unlimited", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
-		const slider = screen.getByRole("slider", { name: "Zeitlimit pro Runde" });
+		const slider = screen.getByRole("slider", { name: "Zeitlimit" });
 		for (const [step, timeLimit] of [30, 60, 90, 120, 180, null].entries()) {
 			fireEvent.change(slider, { target: { value: String(step) } });
+			fireEvent.pointerUp(slider);
 			expect(send).toHaveBeenLastCalledWith({
 				type: "updateSettings",
 				payload: { ...useRoomStore.getState().lobby!.settings, timeLimit },
@@ -423,7 +430,6 @@ describe("Lobby letters", () => {
 			},
 		});
 		render(<Lobby />);
-		expect(screen.getByText("24 von 26 aktiv")).toBeDefined();
 		expect(
 			screen.getByRole("button", { name: "Q" }).getAttribute("aria-pressed"),
 		).toBe("false");
@@ -434,11 +440,6 @@ describe("Lobby letters", () => {
 		expect(send).toHaveBeenLastCalledWith({
 			type: "updateSettings",
 			payload: { ...lobby.settings, excludedLetters: ["X"] },
-		});
-		fireEvent.click(screen.getByRole("button", { name: "Alle aktivieren" }));
-		expect(send).toHaveBeenLastCalledWith({
-			type: "updateSettings",
-			payload: { ...lobby.settings, excludedLetters: [] },
 		});
 	});
 });
@@ -452,8 +453,8 @@ describe("Lobby code card", () => {
 		});
 		setup("host", "Lobby");
 		render(<Lobby />);
-		expect(screen.queryByText(/Strg\+C zum Kopieren/)).toBeNull();
-		fireEvent.click(screen.getByRole("button", { name: "Link teilen" }));
+		fireEvent.click(screen.getByRole("button", { name: "QR-Code" }));
+		fireEvent.click(screen.getByRole("button", { name: "Teilen" }));
 		expect(share).toHaveBeenCalledWith({
 			url: `${window.location.origin}/join/123456`,
 		});
@@ -462,7 +463,7 @@ describe("Lobby code card", () => {
 });
 
 describe("GameScreen timer", () => {
-	it("shows a clock only with a time limit", () => {
+	it("burns a fuse only with a time limit", () => {
 		setup("guest", "Playing");
 		const game = {
 			roundId: "r1",
@@ -477,7 +478,7 @@ describe("GameScreen timer", () => {
 		};
 		useRoomStore.getState().receive("gameState", game);
 		const { unmount } = render(<GameScreen />);
-		expect(screen.queryByText(/^\d+:\d\d$/)).toBeNull();
+		expect(screen.queryByRole("timer")).toBeNull();
 		unmount();
 		useRoomStore.getState().receive("gameState", {
 			...game,
@@ -485,7 +486,9 @@ describe("GameScreen timer", () => {
 			endsAt: Date.now() + 51_000,
 		});
 		render(<GameScreen />);
-		expect(screen.getByText(/^0:5\d$/)).toBeDefined();
+		expect(screen.getByRole("timer").getAttribute("aria-label")).toMatch(
+			/^5\d Sekunden$/,
+		);
 	});
 });
 
@@ -535,13 +538,13 @@ describe("GameScreen solo", () => {
 		});
 		render(<GameScreen />);
 		const buzz = screen.getByRole("button", { name: /STOPP/ });
-		expect((buzz as HTMLButtonElement).disabled).toBe(false);
+		expect(buzz.getAttribute("aria-disabled")).toBe("false");
 		expect(screen.queryByRole("button", { name: "Runde beenden" })).toBeNull();
 	});
 });
 
 describe("GameScreen flames", () => {
-	it("explains the flame bet only in the first round with flames", () => {
+	it("offers a flame per category", () => {
 		setup("guest", "Playing");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -558,20 +561,13 @@ describe("GameScreen flames", () => {
 			countdownRemaining: null,
 			categoryCount: 2,
 		});
-		const hint = "🔥 Wette: einzige Antwort +5, sonst 0";
-		const { unmount } = render(<GameScreen />);
-		expect(screen.getByText(hint)).toBeDefined();
-		expect(
-			screen.getAllByRole("button", { name: "Flamme setzen" }).length,
-		).toBe(2);
-		unmount();
 		render(<GameScreen />);
-		expect(screen.queryByText(hint)).toBeNull();
+		expect(screen.getAllByRole("button", { name: "Flamme" }).length).toBe(2);
 	});
 });
 
 describe("last-letter mode", () => {
-	it("says the answer ends on the letter", () => {
+	it("ghosts the letter at the end", () => {
 		setup("guest", "Playing");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -592,12 +588,12 @@ describe("last-letter mode", () => {
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
-		expect(screen.getByText("endet auf S")).toBeDefined();
+		expect(screen.getAllByText("…S").length).toBeGreaterThan(0);
 	});
 });
 
 describe("GameScreen countdown", () => {
-	it("puts a shown letter big above a small count", () => {
+	it("shows the letter on the mascot above the count", () => {
 		setup("guest", "Countdown");
 		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
@@ -611,8 +607,8 @@ describe("GameScreen countdown", () => {
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
-		expect(screen.getByText("K").className).toContain("text-9xl");
-		expect(screen.getByText("3").className).toContain("text-4xl");
+		expect(screen.getByText("K").className).toBe("m-letter");
+		expect(document.querySelector(".count")?.textContent).toBe("3");
 	});
 });
 
@@ -642,8 +638,11 @@ describe("GameScreen pending joiner", () => {
 		});
 		render(<GameScreen />);
 		expect(
-			screen.getByText("Du spielst ab der nächsten Runde mit."),
-		).toBeDefined();
+			document.querySelector(
+				'[data-tip="Du spielst ab der nächsten Runde mit"]',
+			),
+		).not.toBeNull();
+		expect(document.getElementById("cat-c1")).toBeNull();
 	});
 });
 
@@ -675,30 +674,36 @@ describe("review merge", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", review("Tahn", "tahn "));
 		const { unmount } = render(<ReviewScreen />);
-		expect(screen.queryByText("Zusammenführen")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Zusammenführen" })).toBeNull();
 		unmount();
 
 		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
 		render(<ReviewScreen />);
-		fireEvent.click(screen.getAllByText("Zusammenführen")[0]);
+		fireEvent.click(
+			screen.getAllByRole("button", { name: "Zusammenführen" })[0],
+		);
 		expect(
-			screen.getByText("Antwort antippen, die gleich „Tahn“ ist"),
+			screen.getByRole("button", { name: "Verbinden abbrechen" }),
 		).toBeDefined();
 	});
 
-	it("keeps the merge buttons out of the validity switch", () => {
+	it("merges the picked answer into the anchor", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
-		render(<ReviewScreen />);
-		for (const sw of screen.getAllByRole("switch")) {
-			expect(sw.querySelector("button")).toBeNull();
-		}
-		expect(screen.getAllByText("Zusammenführen")).toHaveLength(2);
+		const { container } = render(<ReviewScreen />);
+		fireEvent.click(
+			screen.getAllByRole("button", { name: "Zusammenführen" })[0],
+		);
+		fireEvent.click(container.querySelectorAll(".ans")[1]);
+		expect(send).toHaveBeenCalledWith({
+			type: "mergeAnswers",
+			payload: { targetAnswerId: "host", sourceAnswerId: "guest" },
+		});
 	});
 });
 
 describe("review end reason", () => {
-	it("says the time ran out", () => {
+	it("marks a timeout", () => {
 		setup("guest", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
@@ -713,26 +718,27 @@ describe("review end reason", () => {
 			voters: null,
 		});
 		render(<ReviewScreen />);
-		expect(screen.getByText("Zeit abgelaufen")).toBeDefined();
+		expect(
+			document.querySelector('[data-tip="Zeit abgelaufen"]'),
+		).not.toBeNull();
 	});
 });
 
 describe("host grace banner", () => {
-	it("sits in the screen flow under the header", () => {
+	it("alerts everyone while the host is gone", () => {
 		setup("guest", "Lobby");
 		useRoomStore.setState({ hostGrace: 30 });
 		render(<Lobby />);
-		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
-		expect(banner.closest(".fixed")).toBeNull();
+		expect(screen.getByRole("alert").textContent).toContain("Host getrennt");
 		useRoomStore.setState({ hostGrace: null });
 	});
 });
 
 describe("Home join code", () => {
-	it("uses a descriptive placeholder instead of a sample code", () => {
+	it("opens the code step on a join link", () => {
 		useRoomStore.setState({ lobby: null });
 		render(<Home />);
-		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
+		expect(screen.getByRole("textbox", { name: "Lobbycode" })).toBeDefined();
 	});
 });
 it("announces the final seconds", () => {
@@ -749,5 +755,5 @@ it("announces the final seconds", () => {
 		categoryCount: 2,
 	});
 	render(<GameScreen />);
-	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
+	expect(document.querySelector(".fuse .sr-only")?.textContent).toBe("4");
 });

@@ -16,8 +16,8 @@ interface ModalProps {
 	onClose: () => void;
 	// Receives focus on open; defaults to the first focusable element.
 	initialFocus?: RefObject<HTMLElement | null>;
-	backdropClassName?: string;
-	className?: string;
+	// Slides in from the bottom as a sheet instead of a centred card.
+	bottom?: boolean;
 	children: ReactNode;
 }
 
@@ -30,8 +30,7 @@ export function Modal({
 	describedBy,
 	onClose,
 	initialFocus,
-	backdropClassName = "animate-fade-in",
-	className = "",
+	bottom,
 	children,
 }: ModalProps) {
 	const dialogRef = useRef<HTMLDivElement>(null);
@@ -88,7 +87,7 @@ export function Modal({
 		// biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; keyboard is covered by the Escape handler
 		// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar - Escape closes via the window listener above
 		<div
-			className={`fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm ${backdropClassName}`}
+			className={`modal-back${bottom ? " bottom" : ""}`}
 			onClick={(e) => {
 				if (e.target === e.currentTarget) onCloseRef.current();
 			}}
@@ -100,7 +99,7 @@ export function Modal({
 				aria-modal="true"
 				aria-labelledby={labelledBy}
 				aria-describedby={describedBy}
-				className={`w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl ${className}`}
+				className={bottom ? "sheet" : "modal"}
 			>
 				{children}
 			</div>

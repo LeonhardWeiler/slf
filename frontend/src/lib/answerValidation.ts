@@ -9,7 +9,7 @@ import type { Category } from "@/types/events";
 // too. Without this the mirror accepted "ßeta" for letter S (normalised to
 // "SSeta") while the engine rejected it, and the buzz button lit up for an
 // answer the server refused.
-function mapCase(ch: string, upper: boolean): string {
+export function mapCase(ch: string, upper: boolean): string {
 	const mapped = upper ? ch.toUpperCase() : ch.toLowerCase();
 	return [...mapped].length === 1 ? mapped : ch;
 }

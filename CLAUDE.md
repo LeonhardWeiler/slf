@@ -6,11 +6,14 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
 ## Stack
 
 - **Backend:** Go, WebSocket (`coder/websocket`), in-memory state (no persistence layer).
-- **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI building
-  blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`),
-  Zustand, routing via the History API (`src/lib/nav.ts`, `src/router.tsx`), Zod.
-- **Package manager: Bun** (not npm/yarn; `npx` is **not** available).
-- Lint + format: Biome (`index.html` excluded, its inline script is CSP-hashed). Frontend tests: `bun test`. Backend tests: `go test`.
+- **Frontend:** React 19, Vite, TypeScript (`strict`), plain CSS (`src/index.css`),
+  lucide-react icons, Zustand, routing via the History API (`src/lib/nav.ts`,
+  `src/router.tsx`), Zod. UI primitives live in `src/components/kit.tsx`
+  (Btn, IconBtn, Toggle, Slider, Mascot, Tiles, Av); `Shell` adds the global
+  tap sound/haptic, tooltips (`data-tip`, hover and long-press), the per-round
+  world (`lib/feel.ts`: shape, palette, particles via `lib/fx.ts`, timbre via
+  `lib/sound.ts`) and the music scene per lobby state. Light only, no dark mode.
+- Lint + format: Biome. Frontend tests: `bun test`. Backend tests: `go test`.
 
 ## Commands
 
@@ -40,8 +43,7 @@ is therefore build-only and holds no test config. Test files import
 There is no Vite transform pipeline, so tests cannot rely on Vite-only
 features (`import.meta.env`, CSS imports). `bunfig.toml` preloads
 `src/test/setup.ts`, which registers happy-dom globals, so component tests
-render with `@testing-library/react`. Screens need a `ThemeProvider` wrapper
-and `mock.module` for `@/lib/nav`, imported after the mock; `ws.send` is a
+render with `@testing-library/react`. Screens need `mock.module` for `@/lib/nav`, imported after the mock; `ws.send` is a
 `spyOn` restored in `afterAll`, since a module mock of `@/lib/ws` leaks into
 `ws.test.ts` (see `src/pages/screens.test.tsx`). Adding a dependency changes
 the `nodeModules` `outputHash` in `flake.nix`.

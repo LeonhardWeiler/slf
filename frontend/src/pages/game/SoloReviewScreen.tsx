@@ -1,14 +1,14 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { ArrowRight, Flag, Star } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { cn, handlesEnter, pressProps } from "@/lib/utils";
+import { sound } from "@/lib/sound";
+import { handlesEnter } from "@/lib/utils";
 import { useRoomStore } from "@/store/room";
-import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
-import { RoundLetter } from "@/components/RoundLetter";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Button } from "@/components/ui/button";
+import { Btn, IconBtn, Mascot, Tiles } from "@/components/kit";
 
 export function SoloReviewScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -16,6 +16,20 @@ export function SoloReviewScreen() {
 	const review = useRoomStore((s) => s.review);
 	const lettersLeft = useRoomStore((s) => s.game?.remainingLetters.length);
 	const { confirm, dialog } = useConfirm();
+	const [shown, setShown] = useState(0);
+	const n = review?.solo?.length ?? 0;
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: deal once per round
+	useEffect(() => {
+		let k = 0;
+		const id = setInterval(() => {
+			k++;
+			setShown(k);
+			sound.flip();
+			if (k >= n) clearInterval(id);
+		}, 160);
+		return () => clearInterval(id);
+	}, [review?.roundId]);
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -63,102 +77,73 @@ export function SoloReviewScreen() {
 	}
 
 	return (
-		<div className="min-h-svh bg-background screen-pad">
-			<div className="mx-auto w-full max-w-xl space-y-4">
-				<RoomHeader title="Auswertung" />
-
-				<div className="sticky top-0 z-10 -mx-1 flex items-center justify-between rounded-lg border bg-background/90 px-4 py-3 shadow-sm backdrop-blur">
-					<RoundLetter letter={review.letter} className="text-4xl" />
-					<div className="flex items-end gap-6 text-right">
-						<div>
-							<p className="text-xs text-muted-foreground uppercase tracking-widest">
-								Runde
-							</p>
-							<CountUp
-								value={roundPoints}
-								className="text-2xl font-bold tabular-nums text-green-600"
-							/>
-						</div>
-						<div>
-							<p className="text-xs text-muted-foreground uppercase tracking-widest">
-								Gesamt
-							</p>
-							<CountUp
-								value={total}
-								className="text-2xl font-bold tabular-nums"
-							/>
-						</div>
-					</div>
+		<>
+			<RoomHeader>
+				<IconBtn tip="Spiel beenden" onClick={handleEndGame}>
+					<Flag />
+				</IconBtn>
+			</RoomHeader>
+			<section className="screen solo-review">
+				<div className="solo-bar">
+					<Mascot
+						size="letter"
+						letter={review.letter}
+						base={roundPoints > 0 ? "happy" : "sad"}
+					/>
+					<b>
+						+<CountUp value={roundPoints} />
+					</b>
+					<span className="solo-total" data-tip="Gesamt">
+						<Star />
+						<CountUp value={total} />
+					</span>
 				</div>
-
-				<div className="space-y-2">
-					{rows.map((r) => {
-						const issue = r.valid
-							? undefined
-							: ruleIssue(
-									r.value,
-									review.letter,
-									lobby.settings.lastLetterMode,
-								);
-						return (
-							// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
-							<div
-								key={r.categoryId}
-								role={r.value ? "switch" : undefined}
-								aria-checked={r.value ? r.valid : undefined}
-								{...(r.value
-									? pressProps(() => setValid(r.categoryId, !r.valid))
-									: {})}
-								className={cn(
-									"flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition-colors",
-									r.valid ? "bg-green-500/10" : "bg-muted/50",
-									r.value && "cursor-pointer",
+				<div className="solo-list">
+					{rows.map((r, i) => (
+						<button
+							key={r.categoryId}
+							type="button"
+							className={`solo-row${i < shown ? " in" : ""}${r.valid ? "" : " cracked"}`}
+							role="switch"
+							aria-checked={r.valid}
+							aria-label={`${categoryName(r.categoryId)}: ${r.value || "leer"}`}
+							data-tip={
+								r.value
+									? r.valid
+										? "Antippen: gilt nicht"
+										: "Antippen: gilt"
+									: categoryName(r.categoryId)
+							}
+							disabled={!r.value}
+							onClick={() => setValid(r.categoryId, !r.valid)}
+						>
+							<span className="ans-word">
+								<small>{categoryName(r.categoryId)}</small>
+								{r.value ? (
+									<Tiles
+										value={r.value}
+										letter={review.letter}
+										last={lobby.settings.lastLetterMode}
+										max={26}
+									/>
+								) : (
+									<span className="empty">–</span>
 								)}
-							>
-								<div className="min-w-0">
-									<p className="text-xs text-muted-foreground">
-										{categoryName(r.categoryId)}
-									</p>
-									<p
-										className={cn(
-											"text-lg font-medium truncate",
-											r.valid
-												? "text-foreground"
-												: "line-through text-muted-foreground",
-										)}
-									>
-										{r.value || "-"}
-									</p>
-									{issue && (
-										<p className="text-xs text-muted-foreground">{issue}</p>
-									)}
-								</div>
-								<span
-									className={cn(
-										"text-lg font-bold tabular-nums w-8 text-right shrink-0",
-										!r.valid && "text-muted-foreground",
-									)}
-								>
-									{r.points}
-								</span>
-							</div>
-						);
-					})}
+							</span>
+							<span className="pts">{r.points}</span>
+						</button>
+					))}
 				</div>
-
-				<div className="flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2">
-					<Button variant="outline" size="lg" onClick={handleEndGame}>
-						Spiel beenden
-					</Button>
-					<Button
-						size="lg"
-						onClick={() => ws.send({ type: "finishReview", payload: {} })}
-					>
-						{lettersLeft === 0 ? "Spiel abschließen" : "Nächste Runde"}
-					</Button>
-				</div>
-			</div>
+				<Btn
+					kind="next"
+					aria-label={lettersLeft === 0 ? "Spiel abschließen" : "Nächste Runde"}
+					data-tip={lettersLeft === 0 ? "Spiel abschließen" : "Nächste Runde"}
+					onClick={() => ws.send({ type: "finishReview", payload: {} })}
+				>
+					{lettersLeft === 0 ? <Flag /> : <ArrowRight />}
+				</Btn>
+			</section>
 			{dialog}
-		</div>
+		</>
 	);
 }

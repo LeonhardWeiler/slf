@@ -1,0 +1,310 @@
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	Hand,
+	Settings,
+	Volume2,
+	VolumeX,
+	Waves,
+	Music,
+	Zap,
+} from "lucide-react";
+import { fx } from "@/lib/fx";
+import { haptic, setWorld, shake, shiftPalette, worldFor } from "@/lib/feel";
+import { prefs, usePrefs } from "@/lib/prefs";
+import { sound, type Scene } from "@/lib/sound";
+import { useRoomStore } from "@/store/room";
+import type { GameState } from "@/types/events";
+import { Btn, IconBtn, Toggle } from "@/components/kit";
+import { Modal } from "@/components/Modal";
+
+const SCENES: Record<GameState, Scene> = {
+	Lobby: "lobby",
+	Countdown: "play",
+	Playing: "play",
+	Reviewing: "review",
+	RoundResult: "result",
+	GameOver: "final",
+};
+
+const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+
+function lookAt(x: number, y: number) {
+	for (const m of document.querySelectorAll<HTMLElement>(".mascot")) {
+		const r = m.getBoundingClientRect();
+		const dx = x - (r.left + r.width / 2);
+		const dy = y - (r.top + r.height * 0.3);
+		const d = Math.max(1, Math.hypot(dx, dy));
+		const k = Math.min(1, d / 160);
+		m.style.setProperty("--lx", ((dx / d) * k).toFixed(3));
+		m.style.setProperty("--ly", ((dy / d) * k).toFixed(3));
+	}
+}
+
+// Shell owns everything that lives outside a screen: background, confetti
+// canvas, tooltips, world and music per phase, and the global input feedback.
+export function Shell({ children }: { children: ReactNode }) {
+	const canvas = useRef<HTMLCanvasElement>(null);
+	const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(
+		null,
+	);
+	const calm = usePrefs((s) => s.calm);
+	const code = useRoomStore((s) => s.lobby?.lobbyCode ?? "");
+	const state = useRoomStore((s) => s.lobby?.state);
+	const used = useRoomStore(
+		(s) => (s.game?.usedLetters ?? s.result?.usedLetters)?.length,
+	);
+	const round = useRef(0);
+	if (state === "Lobby" || !state) round.current = 0;
+	else if (used !== undefined) round.current = used;
+
+	useEffect(() => (canvas.current ? fx.mount(canvas.current) : undefined), []);
+
+	useEffect(() => {
+		fx.calm = calm;
+		document.body.classList.toggle("calm", calm);
+	}, [calm]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: a new round or phase re-reads round.current
+	useEffect(() => {
+		setWorld(worldFor(code, round.current));
+	}, [code, used, state]);
+
+	useEffect(() => {
+		sound.scene = state ? SCENES[state] : "lobby";
+		sound.layer = 0;
+		shiftPalette();
+	}, [state]);
+
+	useEffect(() => {
+		let queued = false;
+		let tipTimer = 0;
+		let press = 0;
+		let pressed: Element | null = null;
+		let swallow = false;
+		const st = document.documentElement.style;
+
+		function showTip(el: Element) {
+			const text = el.getAttribute("data-tip");
+			if (!text) return;
+			const r = el.getBoundingClientRect();
+			setTip({ text, x: r.left + r.width / 2, y: r.top });
+		}
+		function onMove(e: PointerEvent) {
+			if (e.pointerType === "mouse") {
+				st.setProperty(
+					"--px",
+					clamp((e.clientX / innerWidth - 0.5) * 2).toFixed(3),
+				);
+				st.setProperty(
+					"--py",
+					clamp((e.clientY / innerHeight - 0.5) * 2).toFixed(3),
+				);
+			}
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				lookAt(e.clientX, e.clientY);
+			});
+		}
+		function onOver(e: PointerEvent) {
+			if (e.pointerType !== "mouse") return;
+			const el = (e.target as Element).closest("[data-tip]");
+			clearTimeout(tipTimer);
+			setTip(null);
+			if (el) tipTimer = window.setTimeout(() => showTip(el), 350);
+		}
+		function onDown(e: PointerEvent) {
+			sound.start();
+			const t = e.target as Element;
+			const btn = t.closest("button, [role=button], [role=switch]");
+			if (btn) {
+				if (
+					(btn as HTMLButtonElement).disabled ||
+					btn.getAttribute("aria-disabled") === "true"
+				) {
+					shake(btn, 0.6);
+					sound.nope();
+					haptic([20, 30, 20]);
+				} else {
+					sound.tap();
+					haptic(8);
+				}
+			}
+			clearTimeout(press);
+			setTip(null);
+			const tipEl = t.closest("[data-tip]");
+			if (tipEl && e.pointerType !== "mouse") {
+				pressed = tipEl;
+				press = window.setTimeout(() => {
+					swallow = true;
+					showTip(tipEl);
+					haptic(15);
+				}, 450);
+			}
+		}
+		function onUp() {
+			clearTimeout(press);
+			if (swallow) setTimeout(() => setTip(null), 1400);
+		}
+		function onClick(e: MouseEvent) {
+			if (!swallow) return;
+			swallow = false;
+			if (pressed?.contains(e.target as Node)) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}
+		function onTilt(e: DeviceOrientationEvent) {
+			if (e.gamma == null || e.beta == null) return;
+			st.setProperty("--px", clamp(e.gamma / 25).toFixed(3));
+			st.setProperty("--py", clamp((e.beta - 45) / 25).toFixed(3));
+		}
+		function onVisible() {
+			if (document.hidden) sound.pause();
+			else sound.start();
+		}
+		addEventListener("pointermove", onMove, { passive: true });
+		addEventListener("pointerover", onOver);
+		addEventListener("pointerdown", onDown, true);
+		addEventListener("pointerup", onUp);
+		addEventListener("pointercancel", onUp);
+		addEventListener("click", onClick, true);
+		addEventListener("deviceorientation", onTilt);
+		addEventListener("scroll", () => setTip(null), { passive: true });
+		document.addEventListener("visibilitychange", onVisible);
+		return () => {
+			removeEventListener("pointermove", onMove);
+			removeEventListener("pointerover", onOver);
+			removeEventListener("pointerdown", onDown, true);
+			removeEventListener("pointerup", onUp);
+			removeEventListener("pointercancel", onUp);
+			removeEventListener("click", onClick, true);
+			removeEventListener("deviceorientation", onTilt);
+			document.removeEventListener("visibilitychange", onVisible);
+		};
+	}, []);
+
+	return (
+		<>
+			<div className="bg" aria-hidden="true">
+				<i />
+				<i />
+				<i />
+				<i />
+				<i />
+				<i />
+				<i />
+				<i />
+			</div>
+			<main className="app">{children}</main>
+			<canvas id="fx" ref={canvas} />
+			{tip && <Tip {...tip} />}
+		</>
+	);
+}
+
+function Tip({ text, x, y }: { text: string; x: number; y: number }) {
+	const ref = useRef<HTMLDivElement>(null);
+	const [pos, setPos] = useState({ left: x, top: y - 40 });
+	useEffect(() => {
+		const r = ref.current?.getBoundingClientRect();
+		if (!r) return;
+		const left = Math.max(
+			8,
+			Math.min(innerWidth - r.width - 8, x - r.width / 2),
+		);
+		const top = y - r.height - 10 < 8 ? y + 52 : y - r.height - 10;
+		setPos({ left, top });
+	}, [x, y]);
+	return (
+		<div ref={ref} className="tip" role="tooltip" style={pos}>
+			{text}
+		</div>
+	);
+}
+
+// TopBar is the row on top of every screen; sound and settings sit at its end.
+export function TopBar({ children }: { children?: ReactNode }) {
+	const on = usePrefs((s) => s.sound);
+	const [open, setOpen] = useState(false);
+	return (
+		<header className="top">
+			{children}
+			<span className="spacer" />
+			<IconBtn
+				tip={on ? "Ton aus" : "Ton an"}
+				aria-pressed={on}
+				onClick={() => sound.setOn(!on)}
+			>
+				{on ? <Volume2 /> : <VolumeX />}
+			</IconBtn>
+			<IconBtn tip="Einstellungen" onClick={() => setOpen(true)}>
+				<Settings />
+			</IconBtn>
+			{open && <PrefsSheet onClose={() => setOpen(false)} />}
+		</header>
+	);
+}
+
+function PrefsSheet({ onClose }: { onClose: () => void }) {
+	const p = usePrefs();
+	return (
+		<Modal role="dialog" labelledBy="prefs-title" onClose={onClose} bottom>
+			<span className="sheet-grip" />
+			<h2 id="prefs-title" className="sr-only">
+				Einstellungen
+			</h2>
+			<div className="prefs">
+				<label className="pref" data-tip="Musik">
+					<Music />
+					<input
+						type="range"
+						min={0}
+						max={100}
+						value={Math.round(p.music * 100)}
+						aria-label="Musik"
+						onChange={(e) => {
+							prefs.set({ music: Number(e.target.value) / 100 });
+							sound.levels();
+						}}
+					/>
+				</label>
+				<label className="pref" data-tip="Effekte">
+					<Waves />
+					<input
+						type="range"
+						min={0}
+						max={100}
+						value={Math.round(p.sfx * 100)}
+						aria-label="Effekte"
+						onChange={(e) => {
+							prefs.set({ sfx: Number(e.target.value) / 100 });
+							sound.levels();
+						}}
+						onPointerUp={() => sound.word(2)}
+					/>
+				</label>
+				<div className="row" style={{ justifyContent: "center" }}>
+					<Toggle
+						on={p.haptics}
+						tip="Vibration"
+						onChange={(haptics) => prefs.set({ haptics })}
+					>
+						<Hand />
+					</Toggle>
+					<Toggle
+						on={!p.calm}
+						tip="Animationen"
+						onChange={(on) => prefs.set({ calm: !on })}
+					>
+						<Zap />
+					</Toggle>
+				</div>
+			</div>
+			<Btn kind="primary" className="wide" onClick={onClose}>
+				OK
+			</Btn>
+		</Modal>
+	);
+}

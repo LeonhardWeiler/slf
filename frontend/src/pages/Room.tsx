@@ -1,3 +1,4 @@
+import { Mascot } from "@/components/kit";
 import { Navigate } from "@/lib/nav";
 import { phaseReady, useRoomStore } from "@/store/room";
 import { Lobby } from "./Lobby";
@@ -23,8 +24,8 @@ export function Room() {
 
 	if (!ready) {
 		return (
-			<div className="min-h-svh bg-background flex items-center justify-center">
-				<p className="text-muted-foreground">Wird geladen…</p>
+			<div className="center">
+				<Mascot size="big" base="blink" />
 			</div>
 		);
 	}
