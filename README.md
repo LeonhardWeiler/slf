@@ -167,9 +167,11 @@ triggers the deploy pipeline of the server config, which pulls the newest
 binary in `bin/slf` and the frontend in `share/slf`.
 
 The server reloads the service with `SIGHUP`: it refuses new games, waits until
-no lobby is mid-game (at most 1 h), saves the idle lobbies and exits; systemd
+no lobby is mid-game (at most 1 h), closes all sockets, saves the idle lobbies
+and exits; systemd
 starts the new version, which restores them. On reconnect, clients reload the
-page if `index.html` points to a new build.
+page if `index.html` points to a new build. `/healthz` answers `ok`, `draining`
+while waiting, or 503 when the game loop is stuck.
 
 After changing `frontend/bun.lock` or `backend/go.sum`, `nix build` fails with
 `hash mismatch` and prints `got: sha256-…`. Put that value into `outputHash`

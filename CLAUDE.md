@@ -83,6 +83,7 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   and `finishReview` goes straight to the next round instead of `RoundResult`.
   A joiner ends solo on the spot.
 - **Deploy**: `SIGHUP` drains (no new games until no lobby is mid-game), then
+  `Hub.Shutdown` refuses new sockets/messages and closes all sockets, then
   idle lobbies are saved to `$STATE_DIRECTORY/lobbies.json` and restored on
   start (`persist.go`). The client reloads on reconnect when `index.html`
   references a new build (`ws.ts`).
