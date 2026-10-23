@@ -41,8 +41,9 @@ There is no Vite transform pipeline, so tests cannot rely on Vite-only
 features (`import.meta.env`, CSS imports). `bunfig.toml` preloads
 `src/test/setup.ts`, which registers happy-dom globals, so component tests
 render with `@testing-library/react`. Screens need a `ThemeProvider` wrapper
-and `mock.module` for `@/lib/ws` and `@/lib/nav`, imported
-after the mock (see `src/pages/screens.test.tsx`). Adding a dependency changes
+and `mock.module` for `@/lib/nav`, imported after the mock; `ws.send` is a
+`spyOn` restored in `afterAll`, since a module mock of `@/lib/ws` leaks into
+`ws.test.ts` (see `src/pages/screens.test.tsx`). Adding a dependency changes
 the `nodeModules` `outputHash` in `flake.nix`.
 
 ## Conventions
