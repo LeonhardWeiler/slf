@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>7</strong>
+<strong>6</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>8</strong>
+<strong>7</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -254,8 +254,8 @@
 <tbody>
 <tr>
 <td>Architektur &amp; Einfachheit</td>
-<td>Passender modularer Monolith; globale Mutex als solche vertretbar. Komplexität liegt im Nachrichten-/Reconnect-Lifecycle und Frontend-Zwischenzuständen.</td>
-<td>CODE-01</td>
+<td>Passender modularer Monolith; globale Mutex als solche vertretbar. Raumdaten laufen im Frontend durch einen Reducer mit Runden- und Versionsbindung.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Spielregeln &amp; Fairness</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">8 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">7 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -446,19 +446,6 @@
 <p class="accept">
 <b>Abnahme.</b> Die konkret reproduzierten Fehler würden jeweils einen vorhandenen Gate rot machen; Tests bleiben isoliert und begrenzt.</p>
 </article>
-<article class="finding" id="CODE-01" data-priority="P2" data-area="Einfachheit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">CODE-01</span> Frontend-Zustand ist auf mehrere nicht atomar aktualisierte Kanäle verteilt</h3>
-<p class="meta">Einfachheit · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Lobbyphase liegt im Lobby-Store, Rundendaten/Review/Ergebnis im Game-Store. Nachrichten kommen separat und haben im Client keine verwendete Version. Room rendert bereits nach lobby.state, bevor der passende neue Payload sicher angekommen ist. Home führt zusätzlich eine eigene Step-History neben TanStack Router; Ereignistypen sind in Go, TypeScript und Zod manuell gespiegelt.</p>
-<p>
-<b>Auswirkung.</b> Mehrere Quellen für zusammengehörigen Zustand erhöhen die Zahl der Zwischenzustände und erschweren Änderungen am Protokoll. Ein weiterer State-Manager oder neue Abstraktionsschicht würde dieses Problem nicht automatisch lösen.</p>
-<p>
-<b>Empfohlene Änderung.</b> Ein expliziter Session-/Room-Reducer kann verbundene Updates, Round-ID und Version gemeinsam übernehmen. Typen/Schema gezielt aus einer Protokolldefinition ableiten oder über Contracttests koppeln. Navigation und lokale Formschritte klar voneinander abgrenzen.</p>
-<p class="accept">
-<b>Abnahme.</b> Jede sichtbare Phase hat passende Daten derselben Runde/Version; absichtlich alte oder unvollständige Nachrichten zeigen einen definierten Ladezustand statt alten Inhalt.</p>
-</article>
 <details>
 <summary>Quellkarte: zentrale Dateien und Funktionen je Finding</summary>
 <div class="scroll">
@@ -481,10 +468,6 @@
 <tr>
 <td>OPS-04</td>
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
-</tr>
-<tr>
-<td>CODE-01</td>
-<td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
 </tr>
 <tr>
 <td>TEST-01</td>
