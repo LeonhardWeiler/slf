@@ -4,7 +4,7 @@ import { HelpCircle } from "lucide-react";
 // A small "?" icon that reveals an explanatory hint. On desktop it opens on
 // hover/focus; on touch it toggles on tap. Escape, an outside tap or blur close
 // it again. Kept dependency-free (no positioning lib): the panel is anchored
-// centred under the icon, then nudged horizontally so it never spills off either
+// centred above the trigger, then nudged horizontally so it never spills off either
 // viewport edge (measured after open and on resize).
 //
 // Pass `trigger` to render a visible label (e.g. the setting name) inside the
@@ -87,7 +87,9 @@ export function InfoHint({
 				aria-expanded={open}
 				aria-describedby={open ? id : undefined}
 				onClick={() => setOpen((v) => !v)}
-				onFocus={() => setOpen(true)}
+				onFocus={(e) => {
+					if (e.currentTarget.matches(":focus-visible")) setOpen(true);
+				}}
 				onBlur={() => setOpen(false)}
 				className="inline-flex items-center gap-1.5 rounded text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 			>
@@ -102,7 +104,7 @@ export function InfoHint({
 					role="tooltip"
 					id={id}
 					style={{ transform: `translateX(calc(-50% + ${shift}px))` }}
-					className="absolute left-1/2 top-full z-50 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-md border border-border bg-card p-3 text-xs font-normal leading-relaxed text-muted-foreground shadow-md"
+					className="absolute left-1/2 bottom-full z-50 mb-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-md border border-border bg-card p-3 text-xs font-normal leading-relaxed text-muted-foreground shadow-md before:absolute before:inset-x-0 before:top-full before:h-2"
 				>
 					{children}
 				</span>
