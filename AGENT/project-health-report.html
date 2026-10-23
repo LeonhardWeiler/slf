@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>11</strong>
+<strong>10</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>15</strong>
+<strong>14</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -269,8 +269,8 @@
 </tr>
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
-<td>Automatischer Reconnect vorhanden, Session-ready-/Outbox-Vertrag unvollständig.</td>
-<td>UX-04</td>
+<td>Automatischer Reconnect, Session-Bindung vor dem Outbox-Replay, Raumaktionen offline verworfen statt verzögert.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Daten &amp; Recovery</td>
@@ -285,7 +285,7 @@
 <tr>
 <td>UI/UX &amp; Accessibility</td>
 <td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
-<td>A11Y-03, UX-04</td>
+<td>A11Y-03</td>
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">15 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">14 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -432,19 +432,6 @@
 <b>Empfohlene Änderung.</b> LISTEN_ADDR konfigurierbar machen und in Produktion 127.0.0.1:8080 verwenden; für LAN-Entwicklung weiterhin explizit alle Interfaces zulassen. Tailnet-ACLs und Deploy-Zugänge gesondert prüfen.</p>
 <p class="accept">
 <b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
-</article>
-<article class="finding" id="UX-04" data-priority="P2" data-area="UI/UX">
-<h3>
-<span class="tag P2">P2</span> <span class="id">UX-04</span> Verbindungsverlust beeinträchtigt weiter bedienbare Aktionen</h3>
-<p class="meta">UI/UX · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> ConnectionBadge meldet Transportstatus, viele Buttons bleiben aber aktiv. WSClient.status startet optimistisch true; ein dauerhaft hängender initialer WebSocket-Handschlag muss nicht schnell einen Fehler liefern. Outbox-Aktionen können bis zum späteren Reconnect gepuffert werden; Home hat dafür einen 15-Sekunden-Formtimeout, laufende Spiele keinen vergleichbaren Aktionsvertrag.</p>
-<p>
-<b>Auswirkung.</b> Die UI kann eine Handlung scheinbar annehmen, die später in einer anderen Phase ausgeführt oder verworfen wird. Insbesondere Hostaktionen wie Start/Ende benötigen klare Rückmeldung über Serverbestätigung.</p>
-<p>
-<b>Empfohlene Änderung.</b> An Session-ready aus REL-03 koppeln: ungeeignete Aktionen bei Offline sperren, Draft-Tippen erlauben und sichtbar als lokal markieren. Handshake-/Aktionsfristen und bestätigte Zustände statt endloser optimistischer Anzeigen.</p>
-<p class="accept">
-<b>Abnahme.</b> Unterbrochenes WLAN während Spielen und Hostaktionen führt zu verständlicher Anzeige, keiner Aktionswiederholung und keiner verlorenen Bestätigung.</p>
 </article>
 <article class="finding" id="CI-01" data-priority="P2" data-area="Entwicklung">
 <h3>
@@ -570,10 +557,6 @@
 <td>Angrenzendes waentw/server-config/configuration.nix: nginx/slf/firewall; waentw/flake.nix: apps.deploy; waentw/.gitlab-ci.yml; aktive nginx.conf und systemd slf.service</td>
 </tr>
 <tr>
-<td>UX-04</td>
-<td>frontend/src/lib/ws.ts: onopen, flush, scheduleReconnect, status; frontend/src/router.tsx: sessionCreated/lobbyState; backend/internal/websocket/handlers.go: handleReconnect</td>
-</tr>
-<tr>
 <td>SEC-02</td>
 <td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
 </tr>
@@ -582,7 +565,7 @@
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>
-<td>A11Y-03, UX-04</td>
+<td>A11Y-03</td>
 <td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, handlesEnter; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>

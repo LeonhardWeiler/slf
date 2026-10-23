@@ -1,6 +1,14 @@
+import { useToastStore } from "@/store/toast";
 import type { ClientEvent, ServerEvent } from "@/types/events";
 import { getSessionId } from "./session";
 import { parseServerEvent } from "./serverEvents";
+
+const queued = new Set<ClientEvent["type"]>([
+	"createLobby",
+	"joinLobby",
+	"checkLobby",
+]);
+const silent = new Set<ClientEvent["type"]>(["answerUpdate", "leaveLobby"]);
 
 type EventHandler<T extends ServerEvent["type"]> = (
 	payload: Extract<ServerEvent, { type: T }>["payload"],
@@ -82,6 +90,8 @@ class WSClient {
 
 		this.connecting = new Promise((resolve, reject) => {
 			const socket = new WebSocket(this.url);
+			// A handshake that hangs counts as a failure, so the status turns offline.
+			const handshake = setTimeout(() => socket.close(), 5000);
 			this.ws = socket;
 			// Heartbeat: a half-open socket stays OPEN here while nothing arrives,
 			// so a ping without any reply in 3 s counts as a lost connection.
@@ -99,6 +109,7 @@ class WSClient {
 			};
 
 			socket.onopen = () => {
+				clearTimeout(handshake);
 				this.connecting = null;
 				if (this.opened) void reloadIfUpdated();
 				this.opened = true;
@@ -166,13 +177,18 @@ class WSClient {
 		return () => this.statusListeners.delete(listener);
 	}
 
-	// Queue the message and make sure it gets delivered. If the socket is not
-	// open yet (initial load, or mid-reconnect), the message is buffered and
-	// flushed as soon as the connection is established - instead of being
-	// silently dropped.
+	// Deliver the message, connecting first if needed. Only the Home actions
+	// that create a session wait in the outbox; an action in a room is dropped
+	// while offline (with a toast) so it can't fire later in another phase.
+	// Answers need no toast (the reconnect resends them), nor does leaving.
 	send(event: ClientEvent) {
-		this.outbox.push(event);
-		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+		const open = this.ws?.readyState === WebSocket.OPEN;
+		if (open || queued.has(event.type)) {
+			this.outbox.push(event);
+		} else if (!silent.has(event.type)) {
+			useToastStore.getState().addToast("Offline – Aktion nicht gesendet.");
+		}
+		if (open) {
 			this.flush();
 		} else if (!this.replaced) {
 			void this.connect();
