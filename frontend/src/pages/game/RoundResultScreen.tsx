@@ -177,16 +177,11 @@ export function RoundResultScreen() {
 
 				{isHost ? (
 					// Nebeneinander ab sm; auf schmalen Screens gestapelt.
-					<div className="flex flex-col-reverse gap-2 sm:flex-row">
-						<Button
-							variant="outline"
-							className="sm:flex-1"
-							onClick={handleEndGame}
-						>
+					<div className="flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2">
+						<Button variant="outline" size="lg" onClick={handleEndGame}>
 							Spiel beenden
 						</Button>
 						<Button
-							className="sm:flex-1"
 							size="lg"
 							onClick={() => ws.send({ type: "startNextRound", payload: {} })}
 						>
