@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>9</strong>
+<strong>8</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>10</strong>
+<strong>9</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -264,8 +264,8 @@
 </tr>
 <tr>
 <td>Security &amp; Supply Chain</td>
-<td>Starke Basiskontrollen, aber veraltete Toolchain, Advisory-Lock und zu grobe Ressourcenbudgets.</td>
-<td>SEC-02 bis SEC-05</td>
+<td>Starke Basiskontrollen, aktuelle Toolchain und auditfreier Lock; Ressourcenbudgets pro IP und Diensthärtung offen.</td>
+<td>SEC-02, SEC-04, SEC-05</td>
 </tr>
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">10 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">9 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -380,19 +380,6 @@
 <b>Empfohlene Änderung.</b> Gleichzeitige Verbindungen, ungebundene Sockets, Lobby-Erstellung und gespeicherte Bytes begrenzen. Zeitlimit bis create/join/reconnect; pro-IP-Limits behutsam dimensionieren, da viele echte Partyspieler dieselbe NAT-IP teilen. Nur vertrauenswürdige Proxyheader zur IP-Ermittlung nutzen.</p>
 <p class="accept">
 <b>Abnahme.</b> Lokaler Reconnect-/Create-Sturm kann Budgets nicht überschreiten; normale Gruppe hinter einer IP bleibt spielbar.</p>
-</article>
-<article class="finding" id="SEC-03" data-priority="P2" data-area="Sicherheit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">SEC-03</span> Der Frontend-Lock enthält 12 Advisory-Treffer in fünf Paketen</h3>
-<p class="meta">Sicherheit · Dependency-Scan · Offen</p>
-<p>
-<b>Befund und Beleg.</b> bun audit --json meldet 1 critical, 6 high, 4 moderate und 1 low: nanoid 3.3.15, postcss 8.5.16, seroval 1.5.4, source-map-js 1.2.1 und vite 8.1.0. seroval kommt transitiv über @tanstack/router-core. Dessen betroffene Deserialisierung ist vor allem im SSR-Kontext relevant; dieses Projekt betreibt eine statische SPA und einen Go-Server.</p>
-<p>
-<b>Auswirkung.</b> Ein critical-Pakettreffer ist hier kein nachgewiesenes Produktions-RCE. Vite/PostCSS/Source-Map betreffen vor allem Entwicklung und Buildverarbeitung. Trotzdem bleiben vermeidbare bekannte Schwachstellen in der Lieferkette und in eventuell exponierten Entwicklungsservern.</p>
-<p>
-<b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
-<p class="accept">
-<b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
 </article>
 <article class="finding" id="OPS-04" data-priority="P2" data-area="Betrieb">
 <h3>
@@ -497,7 +484,7 @@
 </thead>
 <tbody>
 <tr>
-<td>SEC-03, CI-01</td>
+<td>CI-01</td>
 <td>flake.lock; flake.nix; backend/go.mod; frontend/bun.lock; .github/workflows/deploy.yml</td>
 </tr>
 <tr>

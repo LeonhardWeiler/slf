@@ -23,7 +23,7 @@
               installPhase = "mkdir $out && cp -r node_modules $out";
               dontFixup = true;
               outputHashMode = "recursive";
-              outputHash = "sha256-63M/dWRIB8naB+Et2U+Cd52VaODXp9otw7fBW+dilH0=";
+              outputHash = "sha256-DwnMFyboPstcQl1lyOeav8KNjpYykZ+0wnjJou4pGiA=";
             };
             frontend = pkgs.stdenvNoCC.mkDerivation {
               name = "slf-frontend";
