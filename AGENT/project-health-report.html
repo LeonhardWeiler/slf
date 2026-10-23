@@ -27,15 +27,15 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>24</strong>
+<strong>21</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
-<strong>7</strong>
+<strong>4</strong>
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>35</strong>
+<strong>29</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -255,7 +255,7 @@
 <tr>
 <td>Architektur &amp; Einfachheit</td>
 <td>Passender modularer Monolith; globale Mutex als solche vertretbar. Komplexität liegt im Nachrichten-/Reconnect-Lifecycle und Frontend-Zwischenzuständen.</td>
-<td>REL-03, STATE-01, CODE-01</td>
+<td>REL-03, CODE-01</td>
 </tr>
 <tr>
 <td>Spielregeln &amp; Fairness</td>
@@ -285,7 +285,7 @@
 <tr>
 <td>UI/UX &amp; Accessibility</td>
 <td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
-<td>A11Y-01 bis 03, UX-01 bis 06</td>
+<td>A11Y-01 bis 03, UX-01, UX-04</td>
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">42 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">29 Findings sichtbar.</p>
 <article class="finding" id="SEC-01" data-priority="P1" data-area="Sicherheit">
 <h3>
 <span class="tag P1">P1</span> <span class="id">SEC-01</span> Der ausgelieferte Go-Build enthält bekannte Sicherheitslücken</h3>
@@ -432,19 +432,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="STATE-01" data-priority="P2" data-area="Protokoll">
-<h3>
-<span class="tag P2">P2</span> <span class="id">STATE-01</span> stateVersion wird übertragen, aber nicht zur Konsistenz verwendet</h3>
-<p class="meta">Protokoll · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> prepareBroadcast erhöht die Lobby-Version unter Lock und schreibt erst danach. Verschiedene Goroutinen können Nachrichten in anderer Reihenfolge zum Socket bringen. serverEvents.ts toleriert stateVersion, entfernt es aber bei der Zod-Validierung; WSClient dispatcht ausschließlich payload. Der Client kann weder einen Rücksprung noch eine Lücke erkennen.</p>
-<p>
-<b>Auswirkung.</b> Ein später eintreffender alter Snapshot kann neueren Zustand überschreiben. Conn.Write ist intern threadsicher, garantiert aber keine Reihenfolge nach dem vorherigen Hub-Lock. Go -race erkennt diesen logischen Fehler nicht.</p>
-<p>
-<b>Empfohlene Änderung.</b> Reihenfolge schon beim Enqueue unter dem Hub-Lock festlegen und Versionen bis in die Stores tragen. Dabei zusammengehörige lobbyState/gameState/reviewState-Typen berücksichtigen: ein pauschales globales Verwerfen aller kleineren Versionen kann notwendige Teilzustände ebenfalls verlieren. Bei Inkonsistenz kompletten Snapshot anfordern.</p>
-<p class="accept">
-<b>Abnahme.</b> Künstlich vertauschte Broadcasts erzeugen keinen Phasenrücksprung und keine veraltete Bewertung; Reconnect setzt Versionsbasis sauber zurück.</p>
 </article>
 <article class="finding" id="STATE-02" data-priority="P2" data-area="Protokoll">
 <h3>
@@ -615,32 +602,6 @@
 <p class="accept">
 <b>Abnahme.</b> Tastaturtest auf jedem fokussierbaren Button: genau eine Aktion, kein ungewollter Start/Review-Abschluss. Den lokal bestätigten Rundenergebnisfall als Regression automatisieren; Merge-/Solofälle zusätzlich prüfen.</p>
 </article>
-<article class="finding" id="UX-02" data-priority="P2" data-area="UI/UX">
-<h3>
-<span class="tag P2">P2</span> <span class="id">UX-02</span> Solo-Runden benötigen zum Beenden unnötig zwei unterschiedliche Wege</h3>
-<p class="meta">UI/UX · Live + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> GameScreen erzwingt auch solo validateAnswers für „STOPP – Fertig!“. Mit leeren Feldern bleibt er deaktiviert; daneben gibt es „Runde beenden“ mit einem Dialog, dessen Text „für alle“ sagt. Live im Soloablauf sichtbar. Der Backend-Solopfad kann leere Runden dagegen bereits bewerten.</p>
-<p>
-<b>Auswirkung.</b> Einzelspieler können nicht über die erwartete Hauptaktion mit unvollständigen Antworten abschließen und müssen einen scheinbar destruktiven Umweg nehmen.</p>
-<p>
-<b>Empfohlene Änderung.</b> Solo: Hauptaktion beendet auch unvollständige Runden, zusätzlicher Host-Abbruch entfällt. Im Multiplayer bleiben Vollständigkeitsregel und Host-Abbruch getrennt. Servervalidierung muss den Solofall explizit unterstützen.</p>
-<p class="accept">
-<b>Abnahme.</b> Solo mit null/einer/drei Antworten sauber abschließen; Multiplayer-Buzz bleibt streng validiert.</p>
-</article>
-<article class="finding" id="UX-03" data-priority="P2" data-area="UI/UX">
-<h3>
-<span class="tag P2">P2</span> <span class="id">UX-03</span> Phasenwechsel und Regeln werden nicht überall ausreichend erklärt</h3>
-<p class="meta">UI/UX · Live-Teilablauf + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Nur BuzzedBy wird als Grund des Rundenendes übermittelt; Timeout und Host-Abbruch bleiben ununterscheidbar. Eine leere Multiplayer-Runde überspringt Review ohne Erklärung. Späte Joiner sehen „Gleich dabei“, aber nicht ausdrücklich „ab nächster Runde“. LastLetterMode ist im Spiel klein angedeutet und fehlt im Countdown/Review als klare Regelzeile.</p>
-<p>
-<b>Auswirkung.</b> Spieler können einen normalen Zustandswechsel als Fehler oder ungerechte Bewertung verstehen. Gerade seltene Modi werden erst nach einer falschen Eingabe bemerkt.</p>
-<p>
-<b>Empfohlene Änderung.</b> RoundEndReason als Enum führen, leere Runde erklären, Wartezustand benennen und „beginnt mit/endet auf …“ an allen entscheidenden Phasen konsistent zeigen. Hinweise kurz und situationsbezogen halten.</p>
-<p class="accept">
-<b>Abnahme.</b> Buzz, Timeout, Host-Ende, leere Runde und Mid-Game-Join sind ohne Protokollkenntnis verständlich.</p>
-</article>
 <article class="finding" id="UX-04" data-priority="P2" data-area="UI/UX">
 <h3>
 <span class="tag P2">P2</span> <span class="id">UX-04</span> Verbindungsverlust beeinträchtigt weiter bedienbare Aktionen</h3>
@@ -745,32 +706,6 @@
 <p class="accept">
 <b>Abnahme.</b> br;q=0 wird nie gewählt; Prioritäten, Groß-/Kleinschreibung, Wildcard und identity sind eindeutig getestet.</p>
 </article>
-<article class="finding" id="UX-05" data-priority="P3" data-area="UI/UX">
-<h3>
-<span class="tag P3">P3</span> <span class="id">UX-05</span> Breite Layouts und Statusdarstellung lassen sich weiter vereinfachen</h3>
-<p class="meta">UI/UX · Live älterer Build + aktueller Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Die meisten Screens verwenden max-w-5xl mit einer Spalte; die Live-Lobby benötigt mit Standardwerten bereits Scrollen. Im sauberen HEAD sind der feste Startbereich und das eingeklappte Buchstabenraster inzwischen umgesetzt. Spielerliste sortiert serverseitig alphabetisch; offline wird in der Lobby hauptsächlich farblich erkennbar.</p>
-<p>
-<b>Auswirkung.</b> Auf Desktop bleiben breite Zeilen und langer vertikaler Weg; auf Mobilgeräten ist der Zustand einzelner Spieler nicht immer sofort verständlich. Diese Punkte betreffen Übersicht, keine Spielkorrektheit.</p>
-<p>
-<b>Empfohlene Änderung.</b> Desktop-Lobby bei Bedarf zweispaltig, Spiel-/Reviewansichten schmaler. Eigene Person und Host bevorzugen; offline zusätzlich als Text anzeigen. Den bereits korrigierten Sticky-Start nicht erneut als offenen Quellcodefehler führen.</p>
-<p class="accept">
-<b>Abnahme.</b> Desktop und kleine Viewports, lange Namen und viele Kategorien prüfen; Hauptaktion bleibt erreichbar und Status ist ohne Farberkennung verständlich.</p>
-</article>
-<article class="finding" id="UX-06" data-priority="P3" data-area="UI/UX">
-<h3>
-<span class="tag P3">P3</span> <span class="id">UX-06</span> Flammen, Merge-Hinweise und Nullpunkte sind noch nicht selbsterklärend</h3>
-<p class="meta">UI/UX · Code + Live-Teilablauf · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Flammen-Buttons erklären sich vorwiegend über title, der auf Touch nicht verlässlich erscheint. Merge-Hilfe nennt den Spielernamen statt des Antwortwerts; mergeableCount zählt auch ungültige beziehungsweise inhaltlich identische Einzelantworten. Rundenergebnis/GameOver zeigen bei rank===1 auch für null Punkte einen Pokal. Fortschrittsbalken/Zähler und Kommentator-Fertig-Spalte wiederholen andere Signale.</p>
-<p>
-<b>Auswirkung.</b> Seltene Regeln brauchen unnötige Erklärung durch den Host; redundante Anzeigen erschweren das schnelle Erfassen. Der aktuelle HEAD erklärt verlorene Flammen und Regelverstöße in der Bewertung bereits besser.</p>
-<p>
-<b>Empfohlene Änderung.</b> Kurze Touch-erreichbare Erklärung für die Wette, Merge nur bei sinnvollen Kandidaten und Hilfe am gewählten Antwortwert. Pokal bei null Punkten hinterfragen; doppelte Anzeigen anhand des Informationsnutzens reduzieren.</p>
-<p class="accept">
-<b>Abnahme.</b> Neue Spieler verstehen die Modi ohne Hover; Merge-Auswahl eindeutig; leere Partie wirkt nicht wie ein Sieg.</p>
-</article>
 <article class="finding" id="A11Y-03" data-priority="P3" data-area="UI/UX">
 <h3>
 <span class="tag P3">P3</span> <span class="id">A11Y-03</span> Mobile Eingabedarstellung und Overlay-Verhalten benötigen einen echten Gerätetest</h3>
@@ -797,19 +732,6 @@
 <p class="accept">
 <b>Abnahme.</b> Dokumentierte Datenliste, Löschfristen und Verantwortlichkeit; nach endgültigem Austritt verbleiben keine benötigtenfalls sensiblen Drafts.</p>
 </article>
-<article class="finding" id="DOC-01" data-priority="P3" data-area="Dokumentation">
-<h3>
-<span class="tag P3">P3</span> <span class="id">DOC-01</span> Report und TODO widersprechen dem aktuellen Implementierungsstand</h3>
-<p class="meta">Dokumentation · Dokumentenvergleich · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Alter Report: Stand 2026-08-07, 26 Frontendtests, ein offener Dokumentationspunkt. Aktueller sauberer Commit: 41 Tests und neue offene Zuverlässigkeits-/Security-Befunde. TODO führt UI-1 bis UI-5 noch als Aufgaben, obwohl sie im Commit implementiert sind. LOADTEST-1 beschreibt ein startNanos-Race, das inzwischen durch atomic.Int64 behoben ist; fehlende Antwortkorrelation bleibt.</p>
-<p>
-<b>Auswirkung.</b> Wiederholte Audits können erledigte Arbeit neu priorisieren und wichtige neue Risiken verdecken. Historische Performancezahlen sind nicht automatisch Messungen des aktuellen Builds.</p>
-<p>
-<b>Empfohlene Änderung.</b> Diesen Report als datierten Befundstand nutzen, TODO später mit verlinkten IDs/Status abgleichen und alte Messungen immer mit Commit, Umgebung und Datum führen. Alten Report archivieren statt seine Aussagen unmarkiert zu übernehmen.</p>
-<p class="accept">
-<b>Abnahme.</b> Jeder noch offene TODO-Punkt entspricht aktuellem Code; Messung, Codeableitung und historische Angabe sind unterscheidbar.</p>
-</article>
 <details>
 <summary>Quellkarte: zentrale Dateien und Funktionen je Finding</summary>
 <div class="scroll">
@@ -834,10 +756,6 @@
 <td>backend/cmd/server/main.go: spaHandler; frontend/src/lib/ws.ts: reloadIfUpdated</td>
 </tr>
 <tr>
-<td>STATE-01</td>
-<td>backend/internal/websocket/game_handlers.go: sendCurrentGameStateTo, beginPlaying; game_util.go: prepareBroadcast, writeAll, notifyCommentator; client.go: writeRaw; hub.go: broadcastLobbyState, Shutdown</td>
-</tr>
-<tr>
 <td>DATA-01, STATE-02/03</td>
 <td>game_util.go: storeAnswer, buildGameState; game_handlers.go: beginCountdown, handleAnswerUpdate, handleInputSync, endRound; frontend/src/pages/game/GameScreen.tsx: flushAnswers, loadedRound, pendingAnswers</td>
 </tr>
@@ -854,7 +772,7 @@
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>
-<td>A11Y-01/02, UX-01/02/03/05/06</td>
+<td>A11Y-01/02, UX-01</td>
 <td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, isTypingTarget; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>
@@ -862,7 +780,7 @@
 <td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/session.ts, theme.tsx, serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
 </tr>
 <tr>
-<td>TEST-01, DOC-01, OBS-01</td>
+<td>TEST-01, OBS-01</td>
 <td>Backend-/Frontend-Testdateien; backend/cmd/loadtest/main.go; README.md, CHANGELOG.md, AGENT/TODO.md; hub/handlers-Logging; nginx-/logrotate-Konfiguration</td>
 </tr>
 </tbody>
