@@ -31,4 +31,4 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: curl -fsS -o /dev/null -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main https://gitlab.com/api/v4/projects/87242023/trigger/pipeline
+      - run: curl -fsS -o /dev/null -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main -F "variables[SLF_REVISION]=${{ github.sha }}" https://gitlab.com/api/v4/projects/87242023/trigger/pipeline
