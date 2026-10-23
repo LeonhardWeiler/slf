@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>15</strong>
+<strong>14</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>20</strong>
+<strong>19</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -275,7 +275,7 @@
 <tr>
 <td>Daten &amp; Recovery</td>
 <td>Kein DB-Zwang; idle-only Persistenz passt zum erklärten Produkt. Snapshot-Atomarität und Aufnahme-/Shutdown-Grenzen fehlen.</td>
-<td>OPS-03, CODE-02</td>
+<td>CODE-02</td>
 </tr>
 <tr>
 <td>Performance &amp; Skalierung</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">20 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">19 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -393,19 +393,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="OPS-03" data-priority="P2" data-area="Betrieb">
-<h3>
-<span class="tag P2">P2</span> <span class="id">OPS-03</span> Drain und Shutdown haben keinen durchgängigen Bereitschafts- und Zeitvertrag</h3>
-<p class="meta">Betrieb · Code + Live-Unit · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Drain setzt nur h.draining, /healthz antwortet weiterhin immer ok. Neue Lobbys/Joins bleiben möglich, neue Spiele werden erst beim Start zurückgewiesen. Save läuft vor Hub.Shutdown, während HTTP/WS noch Aktionen annehmen können. Shutdown schließt alle Sockets sequenziell; die spätere HTTP-Shutdown-Frist begrenzt diesen Teil nicht.</p>
-<p>
-<b>Auswirkung.</b> Ein Load-Balancer oder Monitor erkennt Drain und festhängende Spiellogik nicht. Mutationen nach Save können beim Neustart fehlen. Einzelne langsam schließende Sockets verlängern den Stop, bis systemd eventuell nach 90 Sekunden beendet.</p>
-<p>
-<b>Empfohlene Änderung.</b> Shutdown-Flag mit expliziter Annahmepolitik für Mutationen, getrennte readiness/liveness und eine gemeinsame Gesamtdeadline einführen. Vor Save Zustand konsistent einfrieren; Close begrenzt parallelisieren beziehungsweise über den Writer-Lifecycle abwickeln. Drain-Status im Client sichtbar machen.</p>
-<p class="accept">
-<b>Abnahme.</b> Reconnect während Deploy, neue Joins, lange Spiele und nicht antwortende Clients testen; keine still akzeptierten Mutationen nach dem Snapshot und Stop innerhalb der definierten Frist.</p>
 </article>
 <article class="finding" id="OPS-04" data-priority="P2" data-area="Betrieb">
 <h3>
@@ -647,7 +634,7 @@
 <td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
 </tr>
 <tr>
-<td>OPS-03/04</td>
+<td>OPS-04</td>
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>

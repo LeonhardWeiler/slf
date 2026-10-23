@@ -227,3 +227,16 @@ func TestLoadKeepsBrokenSnapshot(t *testing.T) {
 		t.Fatalf("invalid entries must be skipped: err=%v", err)
 	}
 }
+
+func TestHealthDetectsStuckHub(t *testing.T) {
+	h := NewHub()
+	if live, draining := h.Health(time.Second); !live || draining {
+		t.Fatal("idle hub must be live")
+	}
+	h.mu.Lock()
+	live, _ := h.Health(50 * time.Millisecond)
+	h.mu.Unlock()
+	if live {
+		t.Fatal("a held hub lock must report not live")
+	}
+}

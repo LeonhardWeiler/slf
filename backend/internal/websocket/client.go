@@ -200,7 +200,10 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	conn.SetReadLimit(maxMessageBytes)
 
 	c := &Client{conn: conn, hub: hub, wake: make(chan struct{}, 1)}
-	hub.addPending(c)
+	if !hub.addPending(c) {
+		c.closeGoingAway()
+		return
+	}
 	defer hub.onDisconnect(c)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -245,6 +248,9 @@ func (c *Client) read() {
 			continue
 		}
 
+		if c.hub.closed.Load() {
+			return
+		}
 		handleMessage(c.hub, c, msg)
 	}
 }

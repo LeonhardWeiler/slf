@@ -1091,3 +1091,19 @@ func TestReconnectClosesReplacedSocketWith4000(t *testing.T) {
 		}
 	}
 }
+
+func TestShutdownRefusesNewSockets(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	hub.Shutdown()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if _, _, err := host.conn.Read(ctx); websocket.CloseStatus(err) != websocket.StatusGoingAway {
+		t.Fatalf("open socket: %v, want going away", err)
+	}
+	if _, _, err := dial(t, srv).conn.Read(ctx); websocket.CloseStatus(err) != websocket.StatusGoingAway {
+		t.Fatalf("new socket: %v, want going away", err)
+	}
+}

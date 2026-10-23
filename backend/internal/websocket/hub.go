@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"slf/internal/game"
@@ -45,6 +46,8 @@ type Hub struct {
 	pingInterval time.Duration
 	// draining refuses new games while the server waits to restart for an update.
 	draining bool
+	// closed refuses new sockets and messages once Shutdown began.
+	closed atomic.Bool
 }
 
 func NewHub() *Hub {
@@ -67,10 +70,11 @@ func (h *Hub) setHostGraceDuration(d time.Duration) {
 	h.mu.Unlock()
 }
 
-// Shutdown cleanly closes every open WebSocket with a 1001 (going away) frame so
-// clients see an orderly close and reconnect with backoff, instead of a hard
-// drop when the process exits. Call before http.Server.Shutdown.
+// Shutdown stops taking connections and messages, then closes every open
+// WebSocket in parallel with a 1001 (going away) frame so clients reconnect
+// with backoff. The hub state is frozen afterwards and safe to Save.
 func (h *Hub) Shutdown() {
+	h.closed.Store(true)
 	h.mu.Lock()
 	conns := make([]*Client, 0, len(h.clients)+len(h.pending))
 	for _, c := range h.clients {
@@ -80,8 +84,27 @@ func (h *Hub) Shutdown() {
 		conns = append(conns, c)
 	}
 	h.mu.Unlock()
+	var wg sync.WaitGroup
 	for _, c := range conns {
-		c.closeGoingAway()
+		wg.Go(c.closeGoingAway)
+	}
+	wg.Wait()
+}
+
+// Health reports whether the hub lock is obtainable within d (the game loop is
+// not stuck) and whether the hub drains for a restart.
+func (h *Hub) Health(d time.Duration) (live, draining bool) {
+	done := make(chan bool, 1)
+	go func() {
+		h.mu.Lock()
+		done <- h.draining
+		h.mu.Unlock()
+	}()
+	select {
+	case draining = <-done:
+		return true, draining
+	case <-time.After(d):
+		return false, false
 	}
 }
 
@@ -138,10 +161,14 @@ func (h *Hub) uniqueLobbyCode() string {
 	}
 }
 
-func (h *Hub) addPending(c *Client) {
+func (h *Hub) addPending(c *Client) bool {
 	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.closed.Load() {
+		return false
+	}
 	h.pending[c] = struct{}{}
-	h.mu.Unlock()
+	return true
 }
 
 func (h *Hub) registerSession(c *Client, session *game.Session) {

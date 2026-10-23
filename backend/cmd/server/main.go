@@ -40,8 +40,15 @@ func main() {
 	})
 
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
+		live, draining := hub.Health(2 * time.Second)
+		switch {
+		case !live:
+			http.Error(w, "stalled", http.StatusServiceUnavailable)
+		case draining:
+			_, _ = w.Write([]byte("draining"))
+		default:
+			_, _ = w.Write([]byte("ok"))
+		}
 	})
 
 	// When STATIC_DIR is set (production), the Go server
@@ -88,15 +95,12 @@ func main() {
 	}
 	stop() // a second signal now terminates immediately
 	log.Println("Shutting down…")
+	hub.Shutdown()
 	if stateFile != "" {
 		if err := hub.Save(stateFile); err != nil {
 			log.Printf("Saving lobbies failed: %v", err)
 		}
 	}
-
-	// Cleanly close all live WebSockets (1001) so clients reconnect gracefully
-	// instead of seeing a hard drop when the process exits.
-	hub.Shutdown()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
