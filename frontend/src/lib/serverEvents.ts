@@ -77,6 +77,8 @@ const reviewAnswerSchema = z.object({
 	mergedInto: z.string(),
 	pointsPreview: z.number(),
 	flamed: z.boolean(),
+	votes: z._default(z.nullish(z.record(z.string(), z.boolean())), null),
+	ruled: z._default(z.optional(z.boolean()), false),
 });
 
 const reviewStatePayload = z.object({
@@ -102,6 +104,8 @@ const reviewStatePayload = z.object({
 		),
 		null,
 	),
+	ready: z._default(z.nullish(z.array(z.string())), null),
+	voters: z._default(z.nullish(z.array(z.string())), null),
 });
 
 const commentatorPlayer = z.object({

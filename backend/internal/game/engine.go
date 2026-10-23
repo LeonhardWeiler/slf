@@ -86,7 +86,7 @@ func ScoreCategory(answers map[string]*Answer, flamed map[string]bool) {
 	valid := make([]string, 0, len(answers))
 	validSet := map[string]bool{}
 	for pid, a := range answers {
-		if a.Valid && Normalize(a.Value) != "" {
+		if a.Counts() && Normalize(a.Value) != "" {
 			valid = append(valid, pid)
 			validSet[pid] = true
 		}

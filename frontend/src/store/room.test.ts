@@ -165,6 +165,8 @@ describe("reduceRoom", () => {
 			categoryCount: 1,
 			answers: [],
 			solo: null,
+			ready: null,
+			voters: null,
 		},
 	});
 

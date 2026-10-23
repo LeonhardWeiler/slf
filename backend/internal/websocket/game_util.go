@@ -107,6 +107,11 @@ func playsThisRound(lobby *game.Lobby, p *game.Player) bool {
 	return p != nil && !p.Left && !isRoundSpectator(lobby, p)
 }
 
+// votesThisRound reports whether the player votes on answers in review.
+func votesThisRound(lobby *game.Lobby, p *game.Player) bool {
+	return playsThisRound(lobby, p) && p.Connected
+}
+
 // canPlayNextRound reports whether the player would actually play a round
 // starting right now. Pending is deliberately *not* checked: beginCountdown
 // clears it as the round starts, so a waiting mid-game joiner does count.
@@ -297,7 +302,7 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		for _, c := range lobby.Categories {
 			row := game.SoloRow{CategoryID: c.ID}
 			if a := scoredCategory(lobby, c.ID)[p.ID]; a != nil {
-				row.Value, row.Valid, row.Points = a.Value, a.Valid, a.Points
+				row.Value, row.Valid, row.Points = a.Value, a.Counts(), a.Points
 			}
 			solo = append(solo, row)
 		}
@@ -312,13 +317,27 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			AnswerID:      pid,
 			PlayerID:      pid,
 			Value:         a.Value,
-			Valid:         a.Valid,
+			Valid:         a.Counts(),
 			MergedInto:    a.MergedInto,
 			PointsPreview: a.Points,
 			Flamed:        flamed[pid],
+			Votes:         a.Votes,
+			Ruled:         a.Ruled,
 		})
 	}
 	slices.SortFunc(answers, func(a, b game.ReviewAnswer) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
+
+	ready, voters := []string{}, []string{}
+	for _, p := range lobby.Players {
+		if votesThisRound(lobby, p) {
+			voters = append(voters, p.ID)
+			if r.Ready[p.ID] {
+				ready = append(ready, p.ID)
+			}
+		}
+	}
+	slices.Sort(ready)
+	slices.Sort(voters)
 
 	return game.ReviewStatePayload{
 		RoundID:       r.ID,
@@ -330,6 +349,8 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		BuzzedBy:      r.BuzzedBy,
 		EndReason:     r.EndReason,
 		Solo:          solo,
+		Ready:         ready,
+		Voters:        voters,
 	}
 }
 

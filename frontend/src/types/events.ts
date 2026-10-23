@@ -104,6 +104,10 @@ export interface ReviewAnswer {
 	mergedInto: string;
 	pointsPreview: number;
 	flamed: boolean;
+	// voter playerId -> thumbs-up (true) or thumbs-down.
+	votes: Record<string, boolean> | null;
+	// The host overrode the verdict; votes no longer count.
+	ruled: boolean;
 }
 
 export interface ReviewStatePayload {
@@ -118,6 +122,8 @@ export interface ReviewStatePayload {
 	endReason?: string;
 	// Every category with the solo player's answer; null unless solo.
 	solo: SoloRow[] | null;
+	ready: string[] | null;
+	voters: string[] | null;
 }
 
 export interface SoloRow {
@@ -253,6 +259,8 @@ export type ClientEvent =
 			payload: { targetAnswerId: string; sourceAnswerId: string };
 	  }
 	| { type: "unmergeAnswers"; payload: { answerId: string } }
+	| { type: "voteAnswer"; payload: { answerId: string; vote: 1 | -1 | 0 } }
+	| { type: "reviewReady"; payload: Record<string, never> }
 	| { type: "nextCategory"; payload: Record<string, never> }
 	| { type: "previousCategory"; payload: Record<string, never> }
 	| { type: "finishReview"; payload: Record<string, never> }

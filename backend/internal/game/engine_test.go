@@ -192,3 +192,22 @@ func TestAlphabetExcluding(t *testing.T) {
 		t.Errorf("AlphabetExcluding(nil) should be the full 26-letter alphabet")
 	}
 }
+
+func TestAnswerCounts(t *testing.T) {
+	for _, tc := range []struct {
+		a    Answer
+		want bool
+	}{
+		{Answer{Valid: true}, true},
+		{Answer{Valid: false, Votes: map[string]bool{"b": true}}, false},
+		{Answer{Valid: true, Votes: map[string]bool{"b": false}}, false},
+		{Answer{Valid: true, Votes: map[string]bool{"b": false, "c": true}}, false},
+		{Answer{Valid: true, Votes: map[string]bool{"b": false, "c": true, "d": true}}, true},
+		{Answer{Valid: true, Ruled: true, Votes: map[string]bool{"b": false}}, true},
+		{Answer{Valid: false, Ruled: true}, false},
+	} {
+		if got := tc.a.Counts(); got != tc.want {
+			t.Errorf("%+v: got %v, want %v", tc.a, got, tc.want)
+		}
+	}
+}

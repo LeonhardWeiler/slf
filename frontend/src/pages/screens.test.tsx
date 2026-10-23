@@ -309,6 +309,8 @@ describe("review validity", () => {
 					mergedInto: "",
 					pointsPreview: 25,
 					flamed: true,
+					votes: null,
+					ruled: false,
 				},
 				{
 					answerId: "host",
@@ -318,9 +320,13 @@ describe("review validity", () => {
 					mergedInto: "",
 					pointsPreview: 0,
 					flamed: false,
+					votes: null,
+					ruled: false,
 				},
 			],
 			solo: null,
+			ready: null,
+			voters: null,
 		});
 		render(<ReviewScreen />);
 		expect(screen.getByText("Flamme +5")).toBeDefined();
@@ -347,6 +353,8 @@ describe("review validity", () => {
 				{ categoryId: "c1", value: "Bonn", valid: false, points: 0 },
 				{ categoryId: "c2", value: "", valid: false, points: 0 },
 			],
+			ready: null,
+			voters: null,
 		});
 		render(<SoloReviewScreen />);
 		const rows = screen.getAllByRole("switch");
@@ -648,6 +656,8 @@ describe("review merge", () => {
 		mergedInto: "",
 		pointsPreview: 10,
 		flamed: false,
+		votes: null,
+		ruled: false,
 	});
 	const review = (a: string, b: string) => ({
 		roundId: "r1",
@@ -657,6 +667,8 @@ describe("review merge", () => {
 		categoryCount: 2,
 		answers: [answer("host", a), answer("guest", b)],
 		solo: null,
+		ready: null,
+		voters: null,
 	});
 
 	it("offers merging only for 2 different valid answers", () => {
@@ -697,6 +709,8 @@ describe("review end reason", () => {
 			answers: [],
 			endReason: "timeout",
 			solo: null,
+			ready: null,
+			voters: null,
 		});
 		render(<ReviewScreen />);
 		expect(screen.getByText("Zeit abgelaufen")).toBeDefined();

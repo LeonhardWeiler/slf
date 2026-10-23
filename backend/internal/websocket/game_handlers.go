@@ -373,14 +373,15 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	hub.broadcastReviewState(lobby)
 }
 
-// mutateReview runs fn under lock if the caller is the host during review.
-// fn receives the lobby and the id of the category currently under review and
-// returns whether a change was made. Returns the lobby (for broadcasting) or nil.
-func (hub *Hub) mutateReview(c *Client, fn func(lobby *game.Lobby, curCatID string) bool) *game.Lobby {
+// mutateReview runs fn under lock if the caller is the host (or, unless
+// hostOnly, a voter) during review. fn receives the lobby, the caller and the id
+// of the category under review and returns whether a change was made. Returns
+// the lobby (for broadcasting) or nil.
+func (hub *Hub) mutateReview(c *Client, hostOnly bool, fn func(lobby *game.Lobby, p *game.Player, curCatID string) bool) *game.Lobby {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !player.IsHost || lobby.State != game.StateReviewing ||
-		lobby.Game == nil || lobby.Game.Round == nil {
+	if !ok || lobby.State != game.StateReviewing || lobby.Game == nil || lobby.Game.Round == nil ||
+		!(player.IsHost || !hostOnly && votesThisRound(lobby, player)) {
 		hub.mu.Unlock()
 		return nil
 	}
@@ -388,12 +389,90 @@ func (hub *Hub) mutateReview(c *Client, fn func(lobby *game.Lobby, curCatID stri
 	if idx := lobby.Game.Round.ReviewIndex; idx >= 0 && idx < len(lobby.Categories) {
 		curCat = lobby.Categories[idx].ID
 	}
-	changed := fn(lobby, curCat)
+	changed := fn(lobby, player, curCat)
 	hub.mu.Unlock()
 	if !changed {
 		return nil
 	}
 	return lobby
+}
+
+func handleVoteAnswer(hub *Hub, c *Client, raw json.RawMessage) {
+	var p struct {
+		AnswerID string `json:"answerId"`
+		// Vote is 1 (up), -1 (down) or 0 (withdraw).
+		Vote int `json:"vote"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return
+	}
+	if lobby := hub.mutateReview(c, false, func(lobby *game.Lobby, pl *game.Player, catID string) bool {
+		ans := answerFor(lobby.Game.Round, p.AnswerID, catID)
+		if ans == nil || p.AnswerID == pl.ID || !votesThisRound(lobby, pl) {
+			return false
+		}
+		if p.Vote == 0 {
+			delete(ans.Votes, pl.ID)
+			return true
+		}
+		if ans.Votes == nil {
+			ans.Votes = map[string]bool{}
+		}
+		ans.Votes[pl.ID] = p.Vote > 0
+		return true
+	}); lobby != nil {
+		hub.broadcastReviewState(lobby)
+	}
+}
+
+// handleReviewReady toggles the caller's "done" mark for the category under
+// review. Once every voter is done the review moves on by itself.
+func handleReviewReady(hub *Hub, c *Client) {
+	finish := false
+	lobby := hub.mutateReview(c, false, func(lobby *game.Lobby, pl *game.Player, _ string) bool {
+		if !votesThisRound(lobby, pl) {
+			return false
+		}
+		r := lobby.Game.Round
+		if r.Ready == nil {
+			r.Ready = map[string]bool{}
+		}
+		r.Ready[pl.ID] = !r.Ready[pl.ID]
+		finish = advanceIfReady(lobby)
+		return true
+	})
+	if lobby == nil {
+		return
+	}
+	if finish {
+		hub.finishReview(lobby)
+		return
+	}
+	hub.broadcastReviewState(lobby)
+}
+
+// advanceIfReady moves to the next category once all voters are done and
+// reports whether the last category was done. Caller must hold hub.mu.
+func advanceIfReady(lobby *game.Lobby) bool {
+	r := lobby.Game.Round
+	voters := 0
+	for _, p := range lobby.Players {
+		if votesThisRound(lobby, p) {
+			if !r.Ready[p.ID] {
+				return false
+			}
+			voters++
+		}
+	}
+	if voters == 0 {
+		return false
+	}
+	if r.ReviewIndex >= len(lobby.Categories)-1 {
+		return true
+	}
+	r.ReviewIndex++
+	r.Ready = nil
+	return false
 }
 
 func handleSetAnswerValidity(hub *Hub, c *Client, raw json.RawMessage) {
@@ -406,12 +485,12 @@ func handleSetAnswerValidity(hub *Hub, c *Client, raw json.RawMessage) {
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return
 	}
-	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, catID string) bool {
+	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, catID string) bool {
 		if p.CategoryID != "" {
 			catID = p.CategoryID
 		}
 		if ans := answerFor(lobby.Game.Round, p.AnswerID, catID); ans != nil {
-			ans.Valid = p.Valid
+			ans.Valid, ans.Ruled = p.Valid, true
 			return true
 		}
 		return false
@@ -431,7 +510,7 @@ func handleMergeAnswers(hub *Hub, c *Client, raw json.RawMessage) {
 	if p.TargetAnswerID == p.SourceAnswerID {
 		return
 	}
-	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, catID string) bool {
+	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, catID string) bool {
 		src := answerFor(lobby.Game.Round, p.SourceAnswerID, catID)
 		tgt := answerFor(lobby.Game.Round, p.TargetAnswerID, catID)
 		if src == nil || tgt == nil {
@@ -451,7 +530,7 @@ func handleUnmergeAnswers(hub *Hub, c *Client, raw json.RawMessage) {
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return
 	}
-	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, catID string) bool {
+	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, catID string) bool {
 		if ans := answerFor(lobby.Game.Round, p.AnswerID, catID); ans != nil {
 			ans.MergedInto = ""
 			return true
@@ -463,10 +542,11 @@ func handleUnmergeAnswers(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 func handleNextCategory(hub *Hub, c *Client) {
-	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, _ string) bool {
+	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, _ string) bool {
 		r := lobby.Game.Round
 		if r.ReviewIndex < len(lobby.Categories)-1 {
 			r.ReviewIndex++
+			r.Ready = nil
 			return true
 		}
 		return false
@@ -476,10 +556,11 @@ func handleNextCategory(hub *Hub, c *Client) {
 }
 
 func handlePreviousCategory(hub *Hub, c *Client) {
-	if lobby := hub.mutateReview(c, func(lobby *game.Lobby, _ string) bool {
+	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, _ string) bool {
 		r := lobby.Game.Round
 		if r.ReviewIndex > 0 {
 			r.ReviewIndex--
+			r.Ready = nil
 			return true
 		}
 		return false
@@ -503,6 +584,14 @@ func handleFinishReview(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Keine aktive Runde")
 		return
 	}
+	hub.mu.Unlock()
+	hub.finishReview(lobby)
+}
+
+// finishReview scores the round and shows the result, or in solo starts the
+// next round straight away.
+func (hub *Hub) finishReview(lobby *game.Lobby) {
+	hub.mu.Lock()
 	result := hub.scoreAndFinishRound(lobby)
 	solo := soloPlayer(lobby) != nil
 	hub.mu.Unlock()

@@ -77,6 +77,28 @@ type Answer struct {
 	// answer this one was merged into during review (treated as identical).
 	MergedInto string `json:"mergedInto"`
 	Points     int    `json:"points"`
+	// Votes maps a voter's playerID to a thumbs-up (true) or thumbs-down.
+	Votes map[string]bool `json:"-"`
+	// Ruled is set once the host overrode Valid; votes no longer matter then.
+	Ruled bool `json:"-"`
+}
+
+// Counts reports whether the answer is valid after voting: an unruled,
+// rule-valid answer stands until someone votes it down, then it needs more
+// up than down votes.
+func (a *Answer) Counts() bool {
+	if a.Ruled || !a.Valid {
+		return a.Valid
+	}
+	up, down := 0, 0
+	for _, v := range a.Votes {
+		if v {
+			up++
+		} else {
+			down++
+		}
+	}
+	return down == 0 || up > down
 }
 
 // Round is one letter: its answers, buzz state and timing.
@@ -100,6 +122,8 @@ type Round struct {
 	BuzzedBy string `json:"-"`
 	// EndReason is how the round ended: "timeout", "host" or "buzz".
 	EndReason string `json:"-"`
+	// Ready holds the voters done with the category under review.
+	Ready map[string]bool `json:"-"`
 }
 
 // Game is a sequence of rounds over a fresh alphabet within one lobby.
@@ -184,7 +208,9 @@ type ReviewAnswer struct {
 	MergedInto    string `json:"mergedInto"`
 	PointsPreview int    `json:"pointsPreview"`
 	// Flamed is true when this player bet (flamed) that their answer is unique.
-	Flamed bool `json:"flamed"`
+	Flamed bool            `json:"flamed"`
+	Votes  map[string]bool `json:"votes"`
+	Ruled  bool            `json:"ruled"`
 }
 
 type ReviewStatePayload struct {
@@ -202,6 +228,9 @@ type ReviewStatePayload struct {
 	// Solo holds every category of the round with the player's answer; nil
 	// unless the lobby is solo.
 	Solo []SoloRow `json:"solo"`
+	// Ready lists the voters done with this category; Voters all who may vote.
+	Ready  []string `json:"ready"`
+	Voters []string `json:"voters"`
 }
 
 type SoloRow struct {

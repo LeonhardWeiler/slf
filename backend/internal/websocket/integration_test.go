@@ -1107,3 +1107,90 @@ func TestShutdownRefusesNewSockets(t *testing.T) {
 		t.Fatalf("new socket: %v, want try again later", err)
 	}
 }
+
+func TestPlayersVoteAndAdvanceReview(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	cats := host.lastLobby.Categories
+	join := func(name string) *testConn {
+		c := dial(t, srv)
+		c.send("joinLobby", map[string]any{"playerName": name, "lobbyCode": code})
+		var sc struct {
+			SessionID string `json:"sessionId"`
+		}
+		json.Unmarshal(c.waitFor("sessionCreated"), &sc)
+		c.sessionID = sc.SessionID
+		c.readLobby()
+		return c
+	}
+	bob, carol := join("Bob"), join("Carol")
+
+	excluded := []string{}
+	for r := 'B'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State   string `json:"state"`
+		RoundID string `json:"roundId"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen", "roundId": gs.RoundID})
+	bob.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Amsterdam", "roundId": gs.RoundID})
+	host.send("endRound", map[string]any{})
+
+	type review struct {
+		CategoryIndex int      `json:"categoryIndex"`
+		Ready         []string `json:"ready"`
+		Voters        []string `json:"voters"`
+		Answers       []struct {
+			PlayerID string `json:"playerId"`
+			Valid    bool   `json:"valid"`
+		} `json:"answers"`
+	}
+	read := func() review {
+		var rs review
+		json.Unmarshal(host.waitFor("reviewState"), &rs)
+		return rs
+	}
+	valid := func(rs review, pid string) bool {
+		for _, a := range rs.Answers {
+			if a.PlayerID == pid {
+				return a.Valid
+			}
+		}
+		t.Fatalf("no answer for %s", pid)
+		return false
+	}
+	alice := host.lastLobby.Players[0].ID
+	if rs := read(); len(rs.Voters) != 3 || !valid(rs, alice) {
+		t.Fatalf("unexpected start %+v", rs)
+	}
+
+	host.send("voteAnswer", map[string]any{"answerId": alice, "vote": -1})
+	bob.send("voteAnswer", map[string]any{"answerId": alice, "vote": -1})
+	if rs := read(); valid(rs, alice) {
+		t.Fatal("a down vote must reject the answer")
+	}
+	carol.send("voteAnswer", map[string]any{"answerId": alice, "vote": 1})
+	if rs := read(); valid(rs, alice) {
+		t.Fatal("a tie must reject the answer")
+	}
+	host.send("setAnswerValidity", map[string]any{"answerId": alice, "valid": true})
+	if rs := read(); !valid(rs, alice) {
+		t.Fatal("the host override must win")
+	}
+
+	for _, c := range []*testConn{host, bob} {
+		c.send("reviewReady", map[string]any{})
+		read()
+	}
+	carol.send("reviewReady", map[string]any{})
+	if rs := read(); rs.CategoryIndex != 1 || len(rs.Ready) != 0 {
+		t.Fatalf("expected the next category, got %+v", rs)
+	}
+}

@@ -46,6 +46,10 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleSetFlame(hub, c, msg.Payload)
 	case "setAnswerValidity":
 		handleSetAnswerValidity(hub, c, msg.Payload)
+	case "voteAnswer":
+		handleVoteAnswer(hub, c, msg.Payload)
+	case "reviewReady":
+		handleReviewReady(hub, c)
 	case "mergeAnswers":
 		handleMergeAnswers(hub, c, msg.Payload)
 	case "unmergeAnswers":
