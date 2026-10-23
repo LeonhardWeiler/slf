@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Flame, Check } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
+import { storage } from "@/lib/storage";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import {
@@ -66,22 +67,27 @@ const flameHintKey = "slf:flameHintSeen";
 // Draft answers/flames are stored per round. Drop every round's drafts except the
 // current one so localStorage doesn't grow unbounded across many games.
 function purgeOtherRoundDrafts(keepRoundId: string) {
-	try {
-		const keep = new Set([answersKey(keepRoundId), flameKey(keepRoundId)]);
-		const stale: string[] = [];
-		for (let i = 0; i < localStorage.length; i++) {
-			const k = localStorage.key(i);
-			if (!k) continue;
-			if (
-				(k.startsWith("slf:answers:") || k.startsWith("slf:flame:")) &&
-				!keep.has(k)
-			) {
-				stale.push(k);
-			}
+	const keep = new Set([answersKey(keepRoundId), flameKey(keepRoundId)]);
+	for (const k of storage.keys()) {
+		if (
+			(k.startsWith("slf:answers:") || k.startsWith("slf:flame:")) &&
+			!keep.has(k)
+		) {
+			storage.remove(k);
 		}
-		for (const k of stale) localStorage.removeItem(k);
+	}
+}
+
+// A stored draft is only trusted as a map of strings; anything else is dropped.
+function loadDraft(roundId: string): Record<string, string> {
+	try {
+		const v: unknown = JSON.parse(storage.get(answersKey(roundId)) ?? "{}");
+		if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+		return Object.fromEntries(
+			Object.entries(v).filter(([, s]) => typeof s === "string"),
+		);
 	} catch {
-		/* ignore storage errors */
+		return {};
 	}
 }
 
@@ -120,9 +126,9 @@ export function GameScreen() {
 	// The single category this player has "flamed" this round ("" = none).
 	const [flamed, setFlamed] = useState<string>("");
 	// The flame bet is explained once, in the first round that has flames.
-	const [showFlameHint] = useState(() => !localStorage.getItem(flameHintKey));
+	const [showFlameHint] = useState(() => !storage.get(flameHintKey));
 	useEffect(() => {
-		if (flamesEnabled && showFlameHint) localStorage.setItem(flameHintKey, "1");
+		if (flamesEnabled && showFlameHint) storage.set(flameHintKey, "1");
 	}, [flamesEnabled, showFlameHint]);
 	const loadedRound = useRef<string>("");
 	// Debounce buffer: latest value per category not yet sent to the server.
@@ -162,16 +168,11 @@ export function GameScreen() {
 			clearTimeout(flushTimer.current);
 			flushTimer.current = null;
 		}
-		let saved: Record<string, string> = {};
-		try {
-			saved = JSON.parse(localStorage.getItem(answersKey(roundId)) ?? "{}");
-		} catch {
-			saved = {};
-		}
+		const saved = loadDraft(roundId);
 		setAnswers(saved);
 		setTouched({});
 
-		const savedFlame = localStorage.getItem(flameKey(roundId)) ?? "";
+		const savedFlame = storage.get(flameKey(roundId)) ?? "";
 		setFlamed(savedFlame);
 
 		if (isSpectator) return; // the commentator host submits nothing
@@ -272,11 +273,7 @@ export function GameScreen() {
 	function updateAnswer(categoryId: string, value: string) {
 		setAnswers((prev) => {
 			const next = { ...prev, [categoryId]: value };
-			try {
-				localStorage.setItem(answersKey(roundId), JSON.stringify(next));
-			} catch {
-				/* ignore quota errors */
-			}
+			storage.set(answersKey(roundId), JSON.stringify(next));
 			return next;
 		});
 		// Debounce the server sync: batch keystrokes into at most one answerUpdate
@@ -292,12 +289,8 @@ export function GameScreen() {
 	function toggleFlame(categoryId: string) {
 		const next = flamed === categoryId ? "" : categoryId;
 		setFlamed(next);
-		try {
-			if (next) localStorage.setItem(flameKey(roundId), next);
-			else localStorage.removeItem(flameKey(roundId));
-		} catch {
-			/* ignore quota errors */
-		}
+		if (next) storage.set(flameKey(roundId), next);
+		else storage.remove(flameKey(roundId));
 		ws.send({ type: "setFlame", payload: { roundId, categoryId: next } });
 	}
 

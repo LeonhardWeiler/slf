@@ -5,6 +5,7 @@ import {
 	useState,
 	type ReactNode,
 } from "react";
+import { storage } from "./storage";
 
 export type Theme = "light" | "dark";
 
@@ -22,7 +23,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 // OS preference is used *once* to pick a starting value. After that the system
 // preference plays no further role.
 function getInitialTheme(): Theme {
-	const stored = localStorage.getItem(STORAGE_KEY);
+	const stored = storage.get(STORAGE_KEY);
 	if (stored === "light" || stored === "dark") return stored;
 	return window.matchMedia("(prefers-color-scheme: dark)").matches
 		? "dark"
@@ -39,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 	}, [theme]);
 
 	const setTheme = (next: Theme) => {
-		localStorage.setItem(STORAGE_KEY, next);
+		storage.set(STORAGE_KEY, next);
 		setThemeState(next);
 	};
 

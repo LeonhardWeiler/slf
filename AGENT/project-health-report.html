@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>10</strong>
+<strong>9</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>14</strong>
+<strong>13</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -274,8 +274,8 @@
 </tr>
 <tr>
 <td>Daten &amp; Recovery</td>
-<td>Kein DB-Zwang; idle-only Persistenz passt zum erklärten Produkt. Snapshot-Atomarität und Aufnahme-/Shutdown-Grenzen fehlen.</td>
-<td>CODE-02</td>
+<td>Kein DB-Zwang; idle-only Persistenz passt zum erklärten Produkt. Snapshots werden atomar geschrieben, der Hub vor dem Speichern eingefroren, Browser-Speicher fällt auf Memory zurück.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Performance &amp; Skalierung</td>
@@ -289,8 +289,8 @@
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
-<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Storage-Fehler und mobile Tastatur brauchen bessere Verträge.</td>
-<td>CODE-02, A11Y-03</td>
+<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Mobile Tastatur braucht bessere Verträge.</td>
+<td>A11Y-03</td>
 </tr>
 <tr>
 <td>Tests &amp; Wartung</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">14 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">13 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -485,19 +485,6 @@
 <p class="accept">
 <b>Abnahme.</b> Jede sichtbare Phase hat passende Daten derselben Runde/Version; absichtlich alte oder unvollständige Nachrichten zeigen einen definierten Ladezustand statt alten Inhalt.</p>
 </article>
-<article class="finding" id="CODE-02" data-priority="P2" data-area="Zuverlässigkeit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">CODE-02</span> Nicht verfügbare oder beschädigte Browser-Speicherung kann die App abbrechen</h3>
-<p class="meta">Zuverlässigkeit · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> theme.tsx und session.ts verwenden localStorage teilweise ohne try/catch. ThemeProvider liegt außerhalb der ErrorBoundary. GameScreen fängt JSON.parse ab, validiert die Struktur des gelesenen Drafts aber nicht; beispielsweise ist gespeichertes null erfolgreich parsebar und später nicht als Record verwendbar. Flame-Lesezugriffe sind ebenfalls ungeschützt.</p>
-<p>
-<b>Auswirkung.</b> Blockierte Speicherung oder beschädigte Daten können eine leere Seite oder wiederholte Renderfehler verursachen. Die defensive Speicherung bei Tastendrücken schützt den Start-/Leseweg nicht vollständig.</p>
-<p>
-<b>Empfohlene Änderung.</b> Kleine sichere Storage-Adapter mit In-Memory-Fallback; gespeicherte Drafts als Record&lt;string,string&gt; validieren und beschädigte Werte verwerfen. ErrorBoundary so platzieren, dass auch Theme-/Sessioninitialisierung einen nutzbaren Fallback hat.</p>
-<p class="accept">
-<b>Abnahme.</b> Storage-Zugriff wirft SecurityError, Draft enthält null/Array/Zahlen: App startet, erklärt begrenzte Reconnect-Fähigkeit und bleibt bedienbar.</p>
-</article>
 <article class="finding" id="PERF-03" data-priority="P3" data-area="Performance">
 <h3>
 <span class="tag P3">P3</span> <span class="id">PERF-03</span> Timer lassen den gesamten Spielscreeen regelmäßig neu rendern</h3>
@@ -569,8 +556,8 @@
 <td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, handlesEnter; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>
-<td>CODE-01/02, PERF-03</td>
-<td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/session.ts, theme.tsx, serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
+<td>CODE-01, PERF-03</td>
+<td>frontend/src/router.tsx; store/game.ts, store/lobby.ts; lib/serverEvents.ts; types/events.ts; pages/Home.tsx, GameScreen.tsx; components/ui/*; vite.config.ts</td>
 </tr>
 <tr>
 <td>TEST-01, OBS-01</td>

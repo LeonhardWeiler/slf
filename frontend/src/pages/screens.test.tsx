@@ -233,6 +233,27 @@ describe("GameScreen", () => {
 			},
 		});
 	});
+
+	it("drops the broken parts of a stored draft", () => {
+		setup("guest", "Playing");
+		localStorage.setItem("slf:answers:r2", '{"c1":"Bonn","c2":null}');
+		useGameStore.getState().setGame({
+			roundId: "r2",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		const field = (id: string) =>
+			(document.getElementById(id) as HTMLInputElement).value;
+		expect(field("cat-c1")).toBe("Bonn");
+		expect(field("cat-c2")).toBe("");
+	});
 });
 
 describe("Lobby", () => {

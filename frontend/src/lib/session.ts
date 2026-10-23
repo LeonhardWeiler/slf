@@ -1,3 +1,5 @@
+import { storage } from "./storage";
+
 // Session storage for the player's reconnect identity.
 //
 // We use localStorage (per-origin) rather than sessionStorage (per-tab) so the
@@ -12,13 +14,13 @@
 const KEY = "sessionId";
 
 export function getSessionId(): string | null {
-	return localStorage.getItem(KEY);
+	return storage.get(KEY);
 }
 
 export function setSessionId(id: string): void {
-	localStorage.setItem(KEY, id);
+	storage.set(KEY, id);
 }
 
 export function clearSessionId(): void {
-	localStorage.removeItem(KEY);
+	storage.remove(KEY);
 }
