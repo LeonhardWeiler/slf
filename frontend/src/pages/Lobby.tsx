@@ -116,9 +116,13 @@ export function Lobby() {
 	const qrCloseRef = useRef<HTMLButtonElement>(null);
 	const [copied, setCopied] = useState<null | "code" | "link">(null);
 	const [copyFailed, setCopyFailed] = useState(false);
-	// Bumped on every successful code copy so the pop animation replays even when
-	// copying repeatedly (a changing key re-mounts the element -> animation reruns).
-	const [copyPulse, setCopyPulse] = useState(0);
+	const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	useEffect(
+		() => () => {
+			if (copyTimer.current) clearTimeout(copyTimer.current);
+		},
+		[],
+	);
 	// The letter currently playing its toggle pop; cleared when the animation ends
 	// so the same letter can pop again on the next toggle.
 	const [poppedLetter, setPoppedLetter] = useState<string | null>(null);
@@ -157,8 +161,8 @@ export function Lobby() {
 		if (ok) {
 			setCopyFailed(false);
 			setCopied(kind);
-			if (kind === "code") setCopyPulse((n) => n + 1);
-			setTimeout(() => setCopied(null), 2000);
+			if (copyTimer.current) clearTimeout(copyTimer.current);
+			copyTimer.current = setTimeout(() => setCopied(null), 2000);
 		} else {
 			setCopyFailed(true);
 			setTimeout(() => setCopyFailed(false), 4000);
@@ -370,27 +374,31 @@ export function Lobby() {
 								<button
 									type="button"
 									onClick={() => copyText(lobbyCode, "code")}
+									aria-label={`Lobbycode ${lobbyCode} kopieren`}
 									title="Lobbycode kopieren (Strg+C)"
-									className="block w-full text-center space-y-1 group"
+									className="relative block w-full rounded-md py-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
-									<span className="block">
-										<span
-											// Keyed on copyPulse so the pop replays on every copy.
-											key={copyPulse}
-											className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] group-hover:opacity-80 group-active:opacity-80 transition-opacity ${
-												copyPulse > 0 ? "animate-pop" : ""
-											}`}
-										>
-											<span>{lobbyCode.slice(0, 3)}</span>
-											<span className="ml-2">{lobbyCode.slice(3)}</span>
-										</span>
+									<span
+										className={`flex items-center justify-center text-5xl font-mono font-bold uppercase tracking-[0.2em] transition-[filter,opacity] duration-300 motion-reduce:transition-none ${copied === "code" ? "blur-sm opacity-40" : "blur-none"}`}
+									>
+										<span>{lobbyCode.slice(0, 3)}</span>
+										<span className="ml-2">{lobbyCode.slice(3)}</span>
 									</span>
-									<p className="min-h-4 text-xs text-muted-foreground">
-										{copyFailed
-											? "Kopieren nicht möglich - Code manuell markieren (nur über HTTPS)"
-											: copied === "code" && "Kopiert!"}
-									</p>
+									<span
+										role="status"
+										className={`pointer-events-none absolute inset-0 flex items-center justify-center font-semibold transition-[opacity,transform] duration-300 motion-reduce:transition-none ${copied === "code" ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0"}`}
+									>
+										{copied === "code" && "Kopiert!"}
+									</span>
 								</button>
+								{copyFailed && (
+									<p
+										role="status"
+										className="mt-2 text-center text-xs text-destructive"
+									>
+										Kopieren nicht möglich – Code manuell markieren.
+									</p>
+								)}
 
 								<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
 									<Button
