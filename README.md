@@ -181,6 +181,7 @@ or `vendorHash` in `flake.nix`.
 
 | Variable             | Default                     | Meaning                                                                                                                                                                                           |
 | -------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LISTEN_ADDR`        | `0.0.0.0:8080`              | Address the server listens on; production uses `127.0.0.1:8080` behind nginx                                                                                                                     |
 | `STATIC_DIR`         | -                           | Directory with the built frontend; empty = only `/ws` (dev)                                                                                                                                      |
 | `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                           |
 | `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                 |
