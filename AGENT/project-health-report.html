@@ -23,11 +23,11 @@
 <span>bestätigte kritische Gesamtrisiken</span>
 </div>
 <div class="stat">
-<strong>1</strong>
+<strong>0</strong>
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>6</strong>
+<strong>2</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>7</strong>
+<strong>2</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -264,8 +264,8 @@
 </tr>
 <tr>
 <td>Security &amp; Supply Chain</td>
-<td>Starke Basiskontrollen, aktuelle Toolchain und auditfreier Lock; Ressourcenbudgets pro IP und Diensthärtung offen.</td>
-<td>SEC-02, SEC-04, SEC-05</td>
+<td>Starke Basiskontrollen, aktuelle Toolchain und auditfreier Lock; Dienst nur auf Loopback, systemd-Sandbox wie Grid, nginx begrenzt WebSockets pro IP.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
@@ -279,8 +279,8 @@
 </tr>
 <tr>
 <td>Performance &amp; Skalierung</td>
-<td>Normalfall schnell. Kapazität am Proxy, langsame Empfänger und Snapshot-Fan-out sind relevanter als Scoring oder Binärprotokoll.</td>
-<td>OPS-01</td>
+<td>Normalfall schnell. nginx läuft mit 2 Workern zu je 2048 Verbindungen; ein Lasttest mit 500 WSS-Spielern über den Proxy steht aus.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>UI/UX &amp; Accessibility</td>
@@ -299,12 +299,12 @@
 </tr>
 <tr>
 <td>Deployment &amp; Reproduzierbarkeit</td>
-<td>Gepinnte Locks/Hashes, Nix und systemd nützlich. Geprüfte SHA, Readiness und Client-Buildwechsel müssen zusammenpassen.</td>
-<td>CI-02</td>
+<td>Gepinnte Locks/Hashes, Nix und systemd. Der Deploy pinnt den in CI geprüften SLF-Commit (SLF_REVISION).</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Observability &amp; Betrieb</td>
-<td>Ressourcen gesund, automatisierte Zertifikate und Fehlernotifikation. Uptime-/WSS-Synthetics und App-Metriken nicht belegt.</td>
+<td>Ressourcen gesund, automatisierte Zertifikate und Fehlernotifikation. healthz und WSS-Handshake werden alle 5 Minuten geprüft; App-Metriken fehlen.</td>
 <td>OPS-04</td>
 </tr>
 <tr>
@@ -354,84 +354,19 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">7 Findings sichtbar.</p>
-<article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
-<h3>
-<span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
-<p class="meta">Betrieb · Live-Konfiguration · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Die aktive nginx.conf enthält events {} und keine worker_processes-Direktive. ps zeigt genau einen Worker. Damit gelten die dokumentierten Defaults: 1 Worker und 512 worker_connections. Ein proxied WebSocket belegt eine Client- und eine Upstream-Verbindung; auch Mineclash und normale HTTP-Verbindungen nutzen denselben Worker.</p>
-<p>
-<b>Auswirkung.</b> 500 gleichzeitige Spieler benötigen bereits etwa 1.000 Verbindungsslots. Die theoretische Obergrenze liegt hier unter 256 proxied WebSockets, mit anderen Verbindungen darunter. Das ist eine Konfigurationsableitung, kein absichtlich ausgelöster Produktionsausfall. Ein hohes LimitNOFILE von 524288 hebt worker_connections nicht an.</p>
-<p>
-<b>Empfohlene Änderung.</b> In server-config nginx worker_processes="auto" und ausreichend worker_connections, beispielsweise 4096, explizit setzen. Danach in einer isolierten Umgebung und anschließend kontrolliert über den vollständigen nginx-Pfad prüfen. <a href="https://nginx.org/en/docs/ngx_core_module.html#worker_connections">nginx-Dokumentation</a>.</p>
-<p class="accept">
-<b>Abnahme.</b> Mindestens 500 WSS-Spieler über den Proxy, gleichzeitig normale HTTP-Anfragen, keine Fehler wegen connection slots; aktive Konfiguration und Workerzahl kontrollieren.</p>
-</article>
-<article class="finding" id="SEC-02" data-priority="P2" data-area="Sicherheit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">SEC-02</span> Missbrauchsgrenzen sind pro Verbindung und nicht auf das Speicherbudget abgestimmt</h3>
-<p class="meta">Sicherheit · Code + Konfiguration · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Tokenbucket und Join/Create-Backoff werden mit jedem neuen Client zurückgesetzt. Es gibt keinen globalen Pending-/Connection-Cap und kein Authentifizierungszeitlimit für eine offene WS-Verbindung. 10.000 Lobbys × 200 Spieler × 100 Kategorien stehen einem MemoryMax von 256 MiB gegenüber. Die aktive nginx-Konfiguration enthält keine limit_conn-/limit_req-Regeln.</p>
-<p>
-<b>Auswirkung.</b> Viele frische Verbindungen umgehen den Backoff; schon lange vor den fachlichen Obergrenzen drohen Ressourcenengpässe. Origin-Prüfung schützt diesen Pfad nicht vor nativen Clients. Einen Volumenangriff oder die tatsächliche Speicherkante habe ich nicht gegen Produktion getestet.</p>
-<p>
-<b>Empfohlene Änderung.</b> Gleichzeitige Verbindungen, ungebundene Sockets, Lobby-Erstellung und gespeicherte Bytes begrenzen. Zeitlimit bis create/join/reconnect; pro-IP-Limits behutsam dimensionieren, da viele echte Partyspieler dieselbe NAT-IP teilen. Nur vertrauenswürdige Proxyheader zur IP-Ermittlung nutzen.</p>
-<p class="accept">
-<b>Abnahme.</b> Lokaler Reconnect-/Create-Sturm kann Budgets nicht überschreiten; normale Gruppe hinter einer IP bleibt spielbar.</p>
-</article>
+<p id="filter-count" class="meta" role="status">2 Findings sichtbar.</p>
 <article class="finding" id="OPS-04" data-priority="P2" data-area="Betrieb">
 <h3>
-<span class="tag P2">P2</span> <span class="id">OPS-04</span> Prozessfehler werden gemeldet, Anwendungsstillstand und Kapazität nicht</h3>
+<span class="tag P2">P2</span> <span class="id">OPS-04</span> Stillstand wird gemeldet, Last und Kapazität nicht</h3>
 <p class="meta">Betrieb · Code + Konfiguration · Offen</p>
 <p>
-<b>Befund und Beleg.</b> Server: OnFailure-Notifier, logrotate und ACME-Timer sind vorhanden; keine fehlgeschlagenen Units. /healthz prüft keinen Hub-Fortschritt. Es fehlen im Repository/der gelesenen Serverkonfiguration externe HTTP/WSS-Synthetics und Messwerte für aktive Lobbys, Pending-Sockets, Queue-/Write-Latenzen oder abgewiesene Nachrichten. Providerseitiges Monitoring wurde nicht eingesehen.</p>
+<b>Befund und Beleg.</b> Server: OnFailure-Notifier, logrotate und ACME-Timer sind vorhanden. /healthz prüft den Hub-Fortschritt, und slf-probe testet alle 5 Minuten healthz und den WSS-Handshake über nginx. Es fehlen Messwerte für aktive Lobbys, Pending-Sockets, Queue-/Write-Latenzen oder abgewiesene Nachrichten. Providerseitiges Monitoring wurde nicht eingesehen.</p>
 <p>
-<b>Auswirkung.</b> Ein laufender, aber blockierter Prozess bleibt grün. OOM-/Reconnect-Spitzen und langsame Auslieferung werden erst durch Nutzer sichtbar. Die guten Momentaufnahmen liefern keine Uptime- oder p99-Aussage über Tage.</p>
+<b>Auswirkung.</b> OOM-/Reconnect-Spitzen und langsame Auslieferung werden erst durch Nutzer sichtbar. Die guten Momentaufnahmen liefern keine Uptime- oder p99-Aussage über Tage.</p>
 <p>
-<b>Empfohlene Änderung.</b> Kleinen externen Create/Join/Action/Leave-Synthetic und strukturierte Anwendungsmetriken einführen, zunächst ohne große Observability-Plattform. Auf Speicherdruck, Restart-Raten, Socketfehler und fehlende Fortschritte alarmieren; Runbook mit Diagnose und Recovery ergänzen.</p>
+<b>Empfohlene Änderung.</b> Strukturierte Anwendungsmetriken einführen, zunächst ohne große Observability-Plattform. Auf Speicherdruck, Restart-Raten, Socketfehler und fehlende Fortschritte alarmieren; Runbook mit Diagnose und Recovery ergänzen.</p>
 <p class="accept">
-<b>Abnahme.</b> Absichtlich blockierter Hub wird als gestörte readiness erkannt; Alarm bei fehlschlagendem WSS-Ablauf; keine Sessiontokens in Metriklabels.</p>
-</article>
-<article class="finding" id="SEC-04" data-priority="P2" data-area="Sicherheit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">SEC-04</span> systemd-Sandbox kann deutlich enger sein</h3>
-<p class="meta">Sicherheit · Live · Offen</p>
-<p>
-<b>Befund und Beleg.</b> DynamicUser, NoNewPrivileges, ProtectSystem=strict, PrivateTmp und RestrictSUIDSGID greifen bereits. systemd-analyze security bewertet die Unit dennoch mit 8.2 EXPOSED. PrivateDevices, ProtectKernelTunables/Modules/ControlGroups, RestrictNamespaces und ein reduziertes CapabilityBoundingSet fehlen. /proc bestätigt CapEff=0.</p>
-<p>
-<b>Auswirkung.</b> Der Score ist ein Härtungsheuristikwert und kein Nachweis vorhandener Root-Rechte oder eines Exploits. Nach einer künftigen Codeausführung wären jedoch mehr Kernel-/Geräte-/Prozessschnittstellen erreichbar als für ein Go-Spiel nötig.</p>
-<p>
-<b>Empfohlene Änderung.</b> Zusätzliche Schutzoptionen schrittweise setzen; CapabilityBoundingSet leeren, Geräte/Kernel/Namespaces schützen und AddressFamilies auf tatsächlich benötigte Familien beschränken. PrivateNetwork nicht blind aktivieren, da es den Dienst abschneiden würde. <a href="https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html">systemd.exec</a>.</p>
-<p class="accept">
-<b>Abnahme.</b> WSS, Restore und Reload funktionieren mit engerer Unit; effektive Rechte und Logs prüfen. Score nur als Begleitindikator verwenden.</p>
-</article>
-<article class="finding" id="SEC-05" data-priority="P2" data-area="Sicherheit">
-<h3>
-<span class="tag P2">P2</span> <span class="id">SEC-05</span> Go lauscht hinter nginx auf allen Interfaces</h3>
-<p class="meta">Sicherheit · Live + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> main.go setzt 0.0.0.0:8080; ss zeigt *:8080, einschließlich IPv6-Dualstack. Die öffentliche NixOS-Firewall blockiert 8080 korrekt. Tailscales ts-input akzeptiert jedoch sämtlichen Verkehr vom tailscale0-Interface vor der NixOS-Portliste; tatsächlich erlaubte Peers hängen zusätzlich von Tailnet-ACLs ab.</p>
-<p>
-<b>Auswirkung.</b> Im Tailnet oder nach einer späteren Firewalländerung ist ein direkter HTTP/WS-Pfad ohne nginx möglich. Das ist keine aktuell nachgewiesene öffentliche Portfreigabe. Die Lauscheinstellung schafft aber unnötige Abhängigkeit von externer Filterung.</p>
-<p>
-<b>Empfohlene Änderung.</b> LISTEN_ADDR konfigurierbar machen und in Produktion 127.0.0.1:8080 verwenden; für LAN-Entwicklung weiterhin explizit alle Interfaces zulassen. Tailnet-ACLs und Deploy-Zugänge gesondert prüfen.</p>
-<p class="accept">
-<b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
-</article>
-<article class="finding" id="CI-02" data-priority="P2" data-area="Betrieb">
-<h3>
-<span class="tag P2">P2</span> <span class="id">CI-02</span> Deploy ist nicht an den exakt geprüften SLF-Commit gebunden</h3>
-<p class="meta">Betrieb · Workflow + angrenzende Konfiguration · Offen</p>
-<p>
-<b>Befund und Beleg.</b> GitHub baut den Push-Commit und triggert GitLab nur mit token und ref=main. Der gelesene waentw-Deploy aktualisiert anschließend den slf-Flake-Input auf dessen dann aktuellen Git-Stand. Die Pipeline hat resource_group=server, aber transportiert keine geprüfte SLF-SHA oder den gebauten Store-Pfad. Lokale Serverkonfiguration kann ihrerseits vom aktuell deployten Repo-Stand abweichen.</p>
-<p>
-<b>Auswirkung.</b> Bei dicht aufeinanderfolgenden Pushes kann ein anderer Commit als der ursprüngliche geprüfte ausgerollt werden. Ein Buildfehler im neuen Input verhindert häufig den Deploy, aber die Zuordnung von Testnachweis, Freigabe und tatsächlicher Version bleibt unscharf.</p>
-<p>
-<b>Empfohlene Änderung.</b> SLF-SHA oder Artefaktpfad explizit an den Deploy übergeben und genau diesen Stand pinnen. Buildinfo/Commit im Health-/Versionsendpoint ausgeben. Bestehendes GitLab-resource_group beibehalten; nach Switch echte WSS-Readiness prüfen.</p>
-<p class="accept">
-<b>Abnahme.</b> Zwei konkurrierende Pushes lassen sich eindeutig einem Build und laufenden Commit zuordnen; keine stille Aktualisierung auf einen ungeprüften Zwischenstand.</p>
+<b>Abnahme.</b> Last- und Fehlerzahlen sind über Tage abrufbar; keine Sessiontokens in Metriklabels.</p>
 </article>
 <article class="finding" id="TEST-01" data-priority="P2" data-area="Entwicklung">
 <h3>
@@ -457,14 +392,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>OPS-01, SEC-04/05, CI-02</td>
-<td>Angrenzendes waentw/server-config/configuration.nix: nginx/slf/firewall; waentw/flake.nix: apps.deploy; waentw/.gitlab-ci.yml; aktive nginx.conf und systemd slf.service</td>
-</tr>
-<tr>
-<td>SEC-02</td>
-<td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
-</tr>
 <tr>
 <td>OPS-04</td>
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
