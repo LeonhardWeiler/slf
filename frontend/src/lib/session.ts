@@ -23,4 +23,22 @@ export function setSessionId(id: string): void {
 
 export function clearSessionId(): void {
 	storage.remove(KEY);
+	clearDrafts();
+}
+
+// Draft answers and the flame of a round, kept so a reload mid-round restores
+// them. They are only needed while that round runs.
+export const answersKey = (roundId: string) => `slf:answers:${roundId}`;
+export const flameKey = (roundId: string) => `slf:flame:${roundId}`;
+
+export function clearDrafts(keepRoundId = ""): void {
+	const keep = new Set([answersKey(keepRoundId), flameKey(keepRoundId)]);
+	for (const k of storage.keys()) {
+		if (
+			(k.startsWith("slf:answers:") || k.startsWith("slf:flame:")) &&
+			!keep.has(k)
+		) {
+			storage.remove(k);
+		}
+	}
 }

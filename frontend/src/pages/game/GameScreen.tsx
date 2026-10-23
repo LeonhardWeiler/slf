@@ -3,6 +3,7 @@ import { Flame, Check } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
 import { storage } from "@/lib/storage";
+import { answersKey, clearDrafts, flameKey } from "@/lib/session";
 import { useLobbyStore, useIsHost } from "@/store/lobby";
 import { useGameStore } from "@/store/game";
 import {
@@ -36,8 +37,6 @@ function useCountdown(seconds: number | null, resetKey: string): number | null {
 	return value;
 }
 
-const answersKey = (roundId: string) => `slf:answers:${roundId}`;
-
 function sendInputSync(roundId: string, answers: Record<string, string>) {
 	const entries = Object.entries(answers).filter(([, v]) => v.trim() !== "");
 	if (entries.length === 0) return;
@@ -49,22 +48,7 @@ function sendInputSync(roundId: string, answers: Record<string, string>) {
 		},
 	});
 }
-const flameKey = (roundId: string) => `slf:flame:${roundId}`;
 const flameHintKey = "slf:flameHintSeen";
-
-// Draft answers/flames are stored per round. Drop every round's drafts except the
-// current one so localStorage doesn't grow unbounded across many games.
-function purgeOtherRoundDrafts(keepRoundId: string) {
-	const keep = new Set([answersKey(keepRoundId), flameKey(keepRoundId)]);
-	for (const k of storage.keys()) {
-		if (
-			(k.startsWith("slf:answers:") || k.startsWith("slf:flame:")) &&
-			!keep.has(k)
-		) {
-			storage.remove(k);
-		}
-	}
-}
 
 // A stored draft is only trusted as a map of strings; anything else is dropped.
 function loadDraft(roundId: string): Record<string, string> {
@@ -181,7 +165,7 @@ export function GameScreen() {
 		if (!roundId || loadedRound.current === roundId) return;
 		loadedRound.current = roundId;
 		// Clear out drafts from earlier rounds so localStorage stays bounded.
-		purgeOtherRoundDrafts(roundId);
+		clearDrafts(roundId);
 		// Drop any buffered answers from the previous round.
 		pendingAnswers.current = {};
 		if (flushTimer.current) {

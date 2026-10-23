@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { applyLobbyPatch } from "@/store/lobby";
+import { applyLobbyPatch, useLobbyStore } from "@/store/lobby";
 import type { LobbyStatePayload, Player } from "@/types/events";
 
 const player = (id: string, name: string, score = 0): Player => ({
@@ -55,5 +55,21 @@ describe("applyLobbyPatch", () => {
 		expect(
 			applyLobbyPatch({ ...lobby([]), lobbyCode: "999999" }, patch),
 		).toBeNull();
+	});
+});
+
+describe("drafts", () => {
+	it("keeps them only while a round runs and drops them on leave", () => {
+		const draft = () => localStorage.getItem("slf:answers:r1");
+		localStorage.setItem("slf:answers:r1", '{"c1":"Bonn"}');
+		const { setLobby, reset } = useLobbyStore.getState();
+		setLobby({ ...lobby([]), state: "Playing" });
+		expect(draft()).not.toBeNull();
+		setLobby({ ...lobby([]), state: "Reviewing" });
+		expect(draft()).toBeNull();
+
+		localStorage.setItem("slf:answers:r1", '{"c1":"Bonn"}');
+		reset();
+		expect(draft()).toBeNull();
 	});
 });

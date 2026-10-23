@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { LobbyPatchPayload, LobbyStatePayload } from "@/types/events";
-import { setSessionId, clearSessionId } from "@/lib/session";
+import { clearDrafts, clearSessionId, setSessionId } from "@/lib/session";
 
 interface LobbyStore {
 	lobby: LobbyStatePayload | null;
@@ -62,7 +62,10 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
 
 	// A fresh lobbyState means we're (back) in a lobby -> clear any stale
 	// self-leaving flag left over from a previous departure.
-	setLobby: (lobby) => set({ lobby, selfLeaving: false }),
+	setLobby: (lobby) => {
+		if (lobby.state !== "Countdown" && lobby.state !== "Playing") clearDrafts();
+		set({ lobby, selfLeaving: false });
+	},
 	setSession: (sessionId, playerId) => {
 		setSessionId(sessionId);
 		set((s) => ({
