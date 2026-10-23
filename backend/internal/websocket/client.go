@@ -24,6 +24,10 @@ const writeTimeout = 15 * time.Second
 // this far behind is closed; it reconnects and gets a fresh snapshot.
 const sendQueueSize = 64
 
+// statusReplaced closes a socket whose session moved to a newer one (another
+// tab); the client pauses instead of reconnecting.
+const statusReplaced websocket.StatusCode = 4000
+
 // snapshots are message types that carry a full state, so only the newest
 // queued one of each has to reach the client.
 var snapshots = map[string]bool{

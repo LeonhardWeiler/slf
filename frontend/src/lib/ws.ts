@@ -21,6 +21,9 @@ class WSClient {
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	private reconnectAttempts = 0;
 	private opened = false;
+	// Closed by the server because another tab took over this session: stay
+	// offline until this tab is focused again.
+	replaced = false;
 	private url: string;
 	// Optimistic connection status: starts `true` so the UI doesn't flash a
 	// "disconnected" state during the ~200ms initial handshake (a cold load would
@@ -63,6 +66,7 @@ class WSClient {
 			this.reconnectTimer = null;
 		}
 		this.reconnectAttempts = 0;
+		this.replaced = false;
 		void this.connect();
 	};
 
@@ -91,7 +95,7 @@ class WSClient {
 				}
 				this.connecting = null;
 				this.notifyStatus(false);
-				this.scheduleReconnect();
+				if (!this.replaced) this.scheduleReconnect();
 			};
 
 			socket.onopen = () => {
@@ -138,7 +142,10 @@ class WSClient {
 				}
 			};
 
-			socket.onclose = lost;
+			socket.onclose = (event) => {
+				this.replaced = event.code === 4000;
+				lost();
+			};
 		});
 
 		// Swallow rejection so callers awaiting connect() don't throw unhandled;
@@ -167,7 +174,7 @@ class WSClient {
 		this.outbox.push(event);
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			this.flush();
-		} else {
+		} else if (!this.replaced) {
 			void this.connect();
 		}
 	}

@@ -1070,3 +1070,24 @@ func TestRebindingSocketFreesOldSeat(t *testing.T) {
 		}
 	}
 }
+
+func TestReconnectClosesReplacedSocketWith4000(t *testing.T) {
+	srv := newServer(t)
+	first := dial(t, srv)
+	first.createLobby("Alice")
+	second := dial(t, srv)
+	second.sessionID = first.sessionID
+	second.send("reconnect", map[string]any{})
+	second.waitFor("sessionCreated")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for {
+		if _, _, err := first.conn.Read(ctx); err != nil {
+			if code := websocket.CloseStatus(err); code != statusReplaced {
+				t.Fatalf("close status %d, want %d", code, statusReplaced)
+			}
+			return
+		}
+	}
+}

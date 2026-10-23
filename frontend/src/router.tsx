@@ -48,7 +48,11 @@ export function Router() {
 			if (connected) {
 				if (wasEverConnected) addToast("Verbindung wiederhergestellt.", "info");
 			} else if (wasEverConnected) {
-				addToast("Verbindung zum Server verloren…");
+				addToast(
+					ws.replaced
+						? "In einem anderen Tab geöffnet."
+						: "Verbindung zum Server verloren…",
+				);
 			}
 		});
 	}, []);

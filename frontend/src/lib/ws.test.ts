@@ -6,7 +6,7 @@ class FakeSocket {
 	static OPEN = 1;
 	readyState = 0;
 	onopen = () => {};
-	onclose = () => {};
+	onclose = (_event: { code: number }) => {};
 	onerror = () => {};
 	onmessage = () => {};
 	constructor() {
@@ -30,4 +30,14 @@ it("binds the session before replaying the outbox", () => {
 		"reconnect",
 		"startGame",
 	]);
+});
+
+it("pauses after another tab took over and resumes on focus", () => {
+	const socket = sockets[0];
+	socket.readyState = 3;
+	socket.onclose({ code: 4000 });
+	ws.send({ type: "startGame", payload: {} });
+	expect(sockets).toHaveLength(1);
+	window.dispatchEvent(new Event("focus"));
+	expect(sockets).toHaveLength(2);
 });

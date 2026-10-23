@@ -7,7 +7,6 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/coder/websocket"
 	"slf/internal/game"
 )
 
@@ -360,7 +359,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	hub.mu.Unlock()
 
 	if old != nil && old != c {
-		_ = old.conn.Close(websocket.StatusNormalClosure, "replaced by reconnect")
+		go old.conn.Close(statusReplaced, "replaced by reconnect")
 	}
 
 	c.send("sessionCreated", game.SessionCreatedPayload{
