@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -215,12 +216,18 @@ func spaHandler(dir string) http.Handler {
 		}
 		name := path
 		accept := r.Header.Get("Accept-Encoding")
+		var best [2]string
+		bestQ := 0.0
 		for _, enc := range [][2]string{{"br", ".br"}, {"gzip", ".gz"}} {
-			if _, ok := etags[path+enc[1]]; ok && strings.Contains(accept, enc[0]) {
-				h.Set("Content-Encoding", enc[0])
-				path += enc[1]
-				break
+			if _, ok := etags[path+enc[1]]; ok {
+				if q := encodingQ(accept, enc[0]); q > bestQ {
+					best, bestQ = enc, q
+				}
 			}
+		}
+		if bestQ > 0 {
+			h.Set("Content-Encoding", best[0])
+			path += best[1]
 		}
 		f, err := os.Open(path)
 		if err != nil {
@@ -231,4 +238,27 @@ func spaHandler(dir string) http.Handler {
 		h.Set("ETag", etags[path])
 		http.ServeContent(w, r, name, time.Time{}, f)
 	})
+}
+
+// encodingQ returns the quality an Accept-Encoding header gives enc (0 = refused).
+func encodingQ(accept, enc string) float64 {
+	star := 0.0
+	for _, part := range strings.Split(accept, ",") {
+		name, params, _ := strings.Cut(part, ";")
+		q := 1.0
+		if p := strings.TrimSpace(params); p != "" {
+			v, ok := strings.CutPrefix(p, "q=")
+			if !ok {
+				continue
+			}
+			q, _ = strconv.ParseFloat(v, 64)
+		}
+		switch name = strings.TrimSpace(name); {
+		case strings.EqualFold(name, enc):
+			return q
+		case name == "*":
+			star = q
+		}
+	}
+	return star
 }

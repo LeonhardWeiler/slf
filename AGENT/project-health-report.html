@@ -31,11 +31,11 @@
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
-<strong>4</strong>
+<strong>3</strong>
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>19</strong>
+<strong>18</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">19 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">18 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -563,19 +563,6 @@
 <p class="accept">
 <b>Abnahme.</b> React-Profiler bei vielen Kategorien auf langsamem Gerät: Ticks rendern nicht alle Eingaben, Eingaben bleiben flüssig und Drafts überleben Reload.</p>
 </article>
-<article class="finding" id="HTTP-01" data-priority="P3" data-area="Protokoll">
-<h3>
-<span class="tag P3">P3</span> <span class="id">HTTP-01</span> Accept-Encoding wird per Teilstringsuche statt nach Qualitätswerten ausgewertet</h3>
-<p class="meta">Protokoll · Live reproduziert · Offen</p>
-<p>
-<b>Befund und Beleg.</b> spaHandler verwendet strings.Contains. Live bestätigt: Accept-Encoding: br;q=0,gzip;q=1 wird mit Content-Encoding: br beantwortet. Die explizite Ablehnung von Brotli wird ignoriert.</p>
-<p>
-<b>Auswirkung.</b> Ein Client oder Proxy kann eine Darstellung erhalten, die er ausdrücklich nicht akzeptiert. Übliche Browser senden meist einfache Listen; deshalb niedrige Priorität.</p>
-<p>
-<b>Empfohlene Änderung.</b> Encoding-Tokens samt q-Werten korrekt parsen oder bewährte Verhandlung nutzen. Cachevalidatoren müssen zur gewählten Representation passen; Vary erhalten.</p>
-<p class="accept">
-<b>Abnahme.</b> br;q=0 wird nie gewählt; Prioritäten, Groß-/Kleinschreibung, Wildcard und identity sind eindeutig getestet.</p>
-</article>
 <article class="finding" id="A11Y-03" data-priority="P3" data-area="UI/UX">
 <h3>
 <span class="tag P3">P3</span> <span class="id">A11Y-03</span> Mobile Eingabedarstellung und Overlay-Verhalten benötigen einen echten Gerätetest</h3>
@@ -620,10 +607,6 @@
 <tr>
 <td>OPS-01, SEC-04/05, CI-02</td>
 <td>Angrenzendes waentw/server-config/configuration.nix: nginx/slf/firewall; waentw/flake.nix: apps.deploy; waentw/.gitlab-ci.yml; aktive nginx.conf und systemd slf.service</td>
-</tr>
-<tr>
-<td>HTTP-01</td>
-<td>backend/cmd/server/main.go: spaHandler; frontend/src/lib/ws.ts: reloadIfUpdated</td>
 </tr>
 <tr>
 <td>UX-04</td>

@@ -34,6 +34,10 @@ func TestSpaHandlerPrecompressed(t *testing.T) {
 		{"/assets/plain.css", "br", "css", "", "text/css; charset=utf-8"},
 		{"/join/ABCD", "gzip", "index-gz", "gzip", "text/html; charset=utf-8"},
 		{"/", "br", "index", "", "text/html; charset=utf-8"},
+		{"/assets/a.js", "br;q=0, gzip;q=1", "js-gz", "gzip", "text/javascript; charset=utf-8"},
+		{"/assets/a.js", "BR;q=0.5, gzip;q=0.8", "js-gz", "gzip", "text/javascript; charset=utf-8"},
+		{"/assets/a.js", "*", "js-br", "br", "text/javascript; charset=utf-8"},
+		{"/assets/a.js", "*;q=0, identity", "js", "", "text/javascript; charset=utf-8"},
 	} {
 		r := httptest.NewRequest(http.MethodGet, tc.path, nil)
 		r.Header.Set("Accept-Encoding", tc.accept)
