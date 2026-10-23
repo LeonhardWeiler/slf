@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>16</strong>
+<strong>15</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>21</strong>
+<strong>20</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -275,7 +275,7 @@
 <tr>
 <td>Daten &amp; Recovery</td>
 <td>Kein DB-Zwang; idle-only Persistenz passt zum erklärten Produkt. Snapshot-Atomarität und Aufnahme-/Shutdown-Grenzen fehlen.</td>
-<td>OPS-02/03, CODE-02</td>
+<td>OPS-03, CODE-02</td>
 </tr>
 <tr>
 <td>Performance &amp; Skalierung</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">21 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">20 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -393,19 +393,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="OPS-02" data-priority="P2" data-area="Betrieb">
-<h3>
-<span class="tag P2">P2</span> <span class="id">OPS-02</span> Snapshot-Speicherung ist weder atomar noch fehlertolerant beim Laden</h3>
-<p class="meta">Betrieb · Lokal + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Save überschreibt lobbies.json direkt mit os.WriteFile. Load entfernt die Datei vor json.Unmarshal und validiert die deserialisierten Lobby-Strukturen kaum. Lokal an einer isolierten Kopie bestätigt: beschädigtes JSON liefert einen Fehler und die ursprüngliche Datei ist bereits gelöscht. Vorhandener Restore-Test deckt den erfolgreichen Lobby-Fall ab.</p>
-<p>
-<b>Auswirkung.</b> Abbruch beim Schreiben kann den einzigen Snapshot beschädigen; ein Parsefehler vernichtet zusätzlich das Diagnose-/Recovery-Artefakt. Leere oder strukturell unerwartete Einträge können weitere Fehler auslösen.</p>
-<p>
-<b>Empfohlene Änderung.</b> In temporäre Datei schreiben, synchronisieren und atomar umbenennen. Erst vollständig parsen und validieren, dann übernehmen und Datei entfernen/archivieren. Schema-Version, Größenlimits und aussagekräftige Fehler ergänzen.</p>
-<p class="accept">
-<b>Abnahme.</b> Beschädigter, abgeschnittener oder unbekannt versionierter Snapshot bleibt zur Diagnose erhalten; vorheriger gültiger Snapshot überlebt einen simulierten Schreibabbruch.</p>
 </article>
 <article class="finding" id="OPS-03" data-priority="P2" data-area="Betrieb">
 <h3>
@@ -660,7 +647,7 @@
 <td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
 </tr>
 <tr>
-<td>OPS-02/03/04</td>
+<td>OPS-03/04</td>
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>

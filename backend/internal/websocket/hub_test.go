@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -206,5 +208,22 @@ func TestLobbyFullIgnoresLeftPlayersUpToHistoryCap(t *testing.T) {
 	add(1, true)
 	if !lobbyFull(lobby) {
 		t.Fatal("the history cap must bound the lobby")
+	}
+}
+
+func TestLoadKeepsBrokenSnapshot(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "lobbies.json")
+	os.WriteFile(path, []byte(`[{"code":"123456","players":{"p":null}},{"code":`), 0o600)
+	if err := NewHub().Load(path); err == nil {
+		t.Fatal("a truncated snapshot must fail to load")
+	}
+	if _, err := os.Stat(path + ".broken"); err != nil {
+		t.Fatal("the broken snapshot must be kept")
+	}
+
+	os.WriteFile(path, []byte(`[null,{"code":""},{"code":"123456","players":{"p":null}}]`), 0o600)
+	h := NewHub()
+	if err := h.Load(path); err != nil || len(h.rooms.All()) != 0 {
+		t.Fatalf("invalid entries must be skipped: err=%v", err)
 	}
 }

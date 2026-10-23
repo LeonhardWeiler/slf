@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"time"
 
 	"slf/internal/game"
@@ -63,10 +66,27 @@ func (h *Hub) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0o600)
+	tmp := path + ".tmp"
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	_, err = f.Write(data)
+	if err == nil {
+		err = f.Sync()
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		os.Remove(tmp)
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
-// Load restores the lobbies written by Save and removes the file.
+// Load restores the lobbies written by Save and removes the file. A file that
+// does not parse is kept as path.broken.
 func (h *Hub) Load(path string) error {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -75,11 +95,18 @@ func (h *Hub) Load(path string) error {
 	if err != nil {
 		return err
 	}
-	os.Remove(path)
 	var saved []savedLobby
 	if err := json.Unmarshal(data, &saved); err != nil {
-		return err
+		os.Rename(path, path+".broken")
+		return fmt.Errorf("parse %s: %w", path, err)
 	}
+	os.Remove(path)
+	saved = slices.DeleteFunc(saved, func(s savedLobby) bool {
+		if s.Lobby == nil || s.Code == "" || len(s.Players) == 0 {
+			return true
+		}
+		return slices.ContainsFunc(slices.Collect(maps.Values(s.Players)), func(p *game.Player) bool { return p == nil })
+	})
 	h.mu.Lock()
 	for _, s := range saved {
 		lobby := s.Lobby
