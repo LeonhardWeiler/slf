@@ -1,21 +1,12 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
-
-it("announces the final seconds", () => {
-	setup("guest", "Playing");
-	useRoomStore.getState().receive("gameState", {
-		roundId: "r3",
-		state: "Playing",
-		letter: "B",
-		usedLetters: ["B"],
-		remainingLetters: [],
-		endsAt: Date.now() + 3_500,
-		serverNow: Date.now(),
-		countdownRemaining: null,
-		categoryCount: 2,
-	});
-	render(<GameScreen />);
-	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
-});
+import {
+	afterAll,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+	spyOn,
+} from "bun:test";
 import {
 	act,
 	fireEvent,
@@ -24,19 +15,12 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme";
+import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
 import type { LobbyStatePayload, Player } from "@/types/events";
 
-const send = mock((_msg: unknown) => {});
-mock.module("@/lib/ws", () => ({
-	ws: {
-		send,
-		status: true,
-		onStatusChange: () => () => {},
-		on: () => {},
-		off: () => {},
-	},
-}));
+const send = spyOn(ws, "send").mockImplementation(() => {});
+afterAll(() => send.mockRestore());
 mock.module("@/lib/nav", () => ({
 	navigate: () => {},
 	usePath: () => "/join/abc123",
@@ -702,4 +686,20 @@ describe("Home join code", () => {
 		render(<Home />);
 		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
 	});
+});
+it("announces the final seconds", () => {
+	setup("guest", "Playing");
+	useRoomStore.getState().receive("gameState", {
+		roundId: "r3",
+		state: "Playing",
+		letter: "B",
+		usedLetters: ["B"],
+		remainingLetters: [],
+		endsAt: Date.now() + 3_500,
+		serverNow: Date.now(),
+		countdownRemaining: null,
+		categoryCount: 2,
+	});
+	render(<GameScreen />);
+	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
 });
