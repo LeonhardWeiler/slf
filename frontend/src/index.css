@@ -319,7 +319,8 @@
 	.toast-progress,
 	.animate-countdown-go,
 	.animate-flame,
-	.animate-highlight {
+	.animate-highlight,
+	.animate-pulse {
 		animation: none;
 	}
 }

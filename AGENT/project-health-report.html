@@ -31,11 +31,11 @@
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
-<strong>3</strong>
+<strong>2</strong>
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>13</strong>
+<strong>12</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -284,13 +284,13 @@
 </tr>
 <tr>
 <td>UI/UX &amp; Accessibility</td>
-<td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
-<td>A11Y-03</td>
+<td>Sauberes visuelles System, Modals und Themes. Iconbuttons benannt, Bewertungsaktionen nicht verschachtelt, 16-px-Eingaben mobil; Test auf realen Geräten offen.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
-<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Mobile Tastatur braucht bessere Verträge.</td>
-<td>A11Y-03</td>
+<td>Strict TypeScript, Lazy Chunks, deutsche Seitensprache und Formularlabels gut. Browser-Speicher mit Memory-Fallback.</td>
+<td>-</td>
 </tr>
 <tr>
 <td>Tests &amp; Wartung</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">13 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">12 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -498,19 +498,6 @@
 <p class="accept">
 <b>Abnahme.</b> React-Profiler bei vielen Kategorien auf langsamem Gerät: Ticks rendern nicht alle Eingaben, Eingaben bleiben flüssig und Drafts überleben Reload.</p>
 </article>
-<article class="finding" id="A11Y-03" data-priority="P3" data-area="UI/UX">
-<h3>
-<span class="tag P3">P3</span> <span class="id">A11Y-03</span> Mobile Eingabedarstellung und Overlay-Verhalten benötigen einen echten Gerätetest</h3>
-<p class="meta">UI/UX · Code; Gerätetest offen · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Inputs sind text-sm, typischerweise 14 px; auf iOS kann Fokus damit Autozoom auslösen. HostGraceBanner liegt fixed top-0 über dem Header. Einige sekundäre Copy-/Hilfsziele sind sehr klein. Reduced-Motion-Regeln für eigene Animationen sind vorhanden; die Tailwind-animate-pulse-Umrandung im Zeitnotfall ist darin nicht ausdrücklich enthalten.</p>
-<p>
-<b>Auswirkung.</b> Tastatur, Notch und kleine Touchziele können Bedienung erschweren; das Host-Banner kann Verlassen/Titel verdecken. Eine reine CSS-Viewportänderung simuliert weder iOS-Tastatur noch einen echten Screenreader. Keine pauschale WCAG-Verletzung allein aus 36-px-Buttons ableiten.</p>
-<p>
-<b>Empfohlene Änderung.</b> Inputs auf Mobilgeräten mindestens mit passender lesbarer Schrift gestalten; Host-Banner im Layout reservieren; effektive Touchzielabstände prüfen und Zeitnot-Puls bei reduced motion berücksichtigen.</p>
-<p class="accept">
-<b>Abnahme.</b> iOS Safari und Android mit Bildschirmtastatur, 200%-Zoom und reduced motion praktisch prüfen; Hauptaktionen bleiben sichtbar.</p>
-</article>
 <article class="finding" id="OBS-01" data-priority="P3" data-area="Datenschutz">
 <h3>
 <span class="tag P3">P3</span> <span class="id">OBS-01</span> Logdaten und Drafts brauchen eine explizite Aufbewahrungspolitik</h3>
@@ -550,10 +537,6 @@
 <tr>
 <td>OPS-04</td>
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
-</tr>
-<tr>
-<td>A11Y-03</td>
-<td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, handlesEnter; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>
 <td>CODE-01, PERF-03</td>
