@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>8</strong>
+<strong>7</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>9</strong>
+<strong>8</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -295,7 +295,7 @@
 <tr>
 <td>Tests &amp; Wartung</td>
 <td>Echte Backend-Integrationstests und reproduzierbare Buildgates. Browser-/Netz-/Cache-Grenzen noch nicht automatisiert.</td>
-<td>TEST-01, CI-01</td>
+<td>TEST-01</td>
 </tr>
 <tr>
 <td>Deployment &amp; Reproduzierbarkeit</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">9 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">8 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -420,19 +420,6 @@
 <p class="accept">
 <b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
 </article>
-<article class="finding" id="CI-01" data-priority="P2" data-area="Entwicklung">
-<h3>
-<span class="tag P2">P2</span> <span class="id">CI-01</span> Checks laufen erst nach Push auf master</h3>
-<p class="meta">Entwicklung · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> deploy.yml hat ausschließlich on.push.branches=[master]. Kein pull_request-Job, keine Audit-/Dependency-Update-Konfiguration. Nix führt Lint, Tests, Typprüfung und Build aus; -race ist dort kein fester Gate. Repository-/Org-Branch-Protection wurde nicht eingesehen.</p>
-<p>
-<b>Auswirkung.</b> Ein Fehler kann in master gelangen, bevor dieser Workflow ihn erkennt. Sicherheitslücken in gepinnten Inputs bleiben auch bei täglich grünem Build bestehen.</p>
-<p>
-<b>Empfohlene Änderung.</b> Prüfjob auch für Pull Requests, Deploy nur nach erfolgreichem master-Build. Minimal permissions, timeout-minutes und concurrency definieren; regelmäßige Lock-/Vulnerability-Prüfung ergänzen. Race-Tests gezielt in CI statt bei jedem lokalen Berichtlauf.</p>
-<p class="accept">
-<b>Abnahme.</b> Absichtlich fehlerhafter PR erhält vor Merge einen roten Check; Änderungen an Dependencies werden regelmäßig geprüft; Deploy kann nicht aus PR-Kontext triggern.</p>
-</article>
 <article class="finding" id="CI-02" data-priority="P2" data-area="Betrieb">
 <h3>
 <span class="tag P2">P2</span> <span class="id">CI-02</span> Deploy ist nicht an den exakt geprüften SLF-Commit gebunden</h3>
@@ -483,10 +470,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td>CI-01</td>
-<td>flake.lock; flake.nix; backend/go.mod; frontend/bun.lock; .github/workflows/deploy.yml</td>
-</tr>
 <tr>
 <td>OPS-01, SEC-04/05, CI-02</td>
 <td>Angrenzendes waentw/server-config/configuration.nix: nginx/slf/firewall; waentw/flake.nix: apps.deploy; waentw/.gitlab-ci.yml; aktive nginx.conf und systemd slf.service</td>
