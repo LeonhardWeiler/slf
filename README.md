@@ -109,7 +109,7 @@ frontend/
   src/lib/           WebSocket client, theme, session, validation
   src/types/         Shared event/payload types
 flake.nix            Nix package and dev shell (Go, Bun, air, ...)
-.github/workflows/   CI: nix build + deploy
+.github/workflows/   CI: checks + deploy
 ```
 
 ## Getting started
@@ -160,11 +160,12 @@ cd frontend && bun run lint && bun run test && bun run build
 
 ## Deployment on the server
 
-Live at https://slf.coprime.tech. A push to `master` runs
-`.github/workflows/deploy.yml`: it runs `nix build` (which runs all tests) and
-triggers the deploy pipeline of the server config, which pulls the newest
-`master` and switches the server. The flake's `packages.default` holds the
-binary in `bin/slf` and the frontend in `share/slf`.
+Live at https://slf.coprime.tech. `.github/workflows/deploy.yml` runs
+`nix build` (which runs all tests), the race tests, `govulncheck` and
+`bun audit` on every push, pull request and once a week. Only a green push to
+`master` triggers the deploy pipeline of the server config, which pulls the
+newest `master` and switches the server. The flake's `packages.default` holds
+the binary in `bin/slf` and the frontend in `share/slf`.
 
 The server reloads the service with `SIGHUP`: it refuses new games, waits until
 no lobby is mid-game (at most 1 h), closes all sockets, saves the idle lobbies
