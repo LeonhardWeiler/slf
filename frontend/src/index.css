@@ -331,6 +331,12 @@ body {
 	font-family: system-ui, -apple-system, sans-serif;
 }
 
+@media (min-width: 1024px) {
+	html {
+		font-size: 112.5%;
+	}
+}
+
 /* Inverted text selection: the highlight uses the current text colour as its
    background and the page background as its text colour (theme-aware, works in
    light and dark). */
