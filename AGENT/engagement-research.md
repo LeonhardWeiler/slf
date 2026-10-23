@@ -277,3 +277,16 @@ v3 (`engagement-lab/v3/`) antwortet darauf mit:
 4. **Mobile zuerst:** eine Spalte mit max. 460 px, Tippen über ein unsichtbares Eingabefeld, die Buchstaben erscheinen als Tiles.
 
 Was v3 testen soll: welcher Look, ob die Bewertung als Show Spaß macht statt nach Arbeit aussieht, und ob Rangliste und Podium Lust auf eine weitere Partie machen. Details in `engagement-lab/v3/NOTES.md`.
+
+## Iteration 4 nach dem dritten Spieltest (23.10.2026)
+
+Ergebnis von v3: Block gefällt am besten, ist aber nicht einzigartig. Papier ist schwer lesbar, der Ton zu leise. Gewünscht sind ein Look wie Duolingo (verspielt, rund, sauber, nicht futuristisch), Sofort-STOPP bei Enter auf dem letzten Feld, häufigere Farbwechsel, Vibration und die Funktionen des echten Spiels.
+
+v4 (`engagement-lab/v4/`) antwortet darauf mit:
+
+1. **Ein Look mit Maskottchen:** Der Buchstabe ist ein Spielstein mit Gesicht, der auf alles reagiert. Tiles haben Gewicht und eine 3D-Kante. Dazu Parallaxe, ein Hover-Feedback und ein Feder-Effekt beim Drücken.
+2. **Lauter und mit mehr Druck:** Limiter, Kick mit Sub, 16tel-Hi-Hats und eine eigene Hook.
+3. **Funktionen des echten Spiels:** Lobby mit Code, QR und Link. Host-Einstellungen, Flammen, Zusammenführen, Solo und später Beitritt. Kommentator, „Letzter Buchstabe“ und Host-Disconnect sind skizziert.
+4. **Bewertung als Host oder Spieler umschaltbar.** Ohne Entscheidung dauert sie etwa 1,5 s pro Kategorie.
+
+Details in `engagement-lab/v4/NOTES.md`.

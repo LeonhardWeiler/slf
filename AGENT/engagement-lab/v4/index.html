@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#46a8f2">
+  <title>Stadt Land Fluss · Versuch 04</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='10' width='52' height='50' rx='16' fill='%23d99a00'/%3E%3Crect x='6' y='4' width='52' height='50' rx='16' fill='%23ffc800'/%3E%3Ccircle cx='23' cy='22' r='5' fill='%23fff'/%3E%3Ccircle cx='41' cy='22' r='5' fill='%23fff'/%3E%3Ccircle cx='24' cy='23' r='2.4' fill='%233c3c4a'/%3E%3Ccircle cx='42' cy='23' r='2.4' fill='%233c3c4a'/%3E%3Cpath d='M24 38q8 7 16 0' stroke='%233c3c4a' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/fredoka.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="lobby">
+  <div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="app" id="app">
+    <header class="top">
+      <button type="button" class="chip-btn role" id="role" aria-label="Rolle"></button>
+      <span class="spacer"></span>
+      <button type="button" class="icon-btn" id="sound" aria-label="Ton"></button>
+      <button type="button" class="icon-btn" id="gear" aria-label="Einstellungen"></button>
+    </header>
+    <main class="stage" id="stage"></main>
+  </div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="slam" aria-hidden="true"></div>
+  <div id="toasts" aria-hidden="true"></div>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+  <label class="haptic" aria-hidden="true"><input type="checkbox" switch tabindex="-1"></label>
+  <dialog id="prefs" class="sheet" aria-label="Einstellungen">
+    <form method="dialog">
+      <div class="sheet-grip"></div>
+      <label class="pref"><span data-icon="music"></span><input type="range" id="music" min="0" max="100"></label>
+      <label class="pref"><span data-icon="sound"></span><input type="range" id="sfx" min="0" max="100"></label>
+      <div class="pref-row">
+        <button type="button" class="toggle" id="haptics" aria-label="Vibration"><span data-icon="vibrate"></span></button>
+        <button type="button" class="toggle" id="motion" aria-label="Weniger Bewegung"><span data-icon="motion"></span></button>
+        <button type="button" class="toggle" id="drop" aria-label="Host-Verbindung trennen"><span data-icon="wifi"></span></button>
+      </div>
+      <button type="submit" class="btn primary" aria-label="Schließen" data-icon="check"></button>
+    </form>
+  </dialog>
+  <script type="module" src="game.js"></script>
+</body>
+</html>
