@@ -23,7 +23,7 @@
 <span>bestätigte kritische Gesamtrisiken</span>
 </div>
 <div class="stat">
-<strong>3</strong>
+<strong>2</strong>
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>28</strong>
+<strong>27</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -265,7 +265,7 @@
 <tr>
 <td>Security &amp; Supply Chain</td>
 <td>Starke Basiskontrollen, aber veraltete Toolchain, Advisory-Lock und zu grobe Ressourcenbudgets.</td>
-<td>SEC-02 bis SEC-05, DATA-01</td>
+<td>SEC-02 bis SEC-05</td>
 </tr>
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">28 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">27 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -367,19 +367,6 @@
 <b>Empfohlene Änderung.</b> In server-config nginx worker_processes="auto" und ausreichend worker_connections, beispielsweise 4096, explizit setzen. Danach in einer isolierten Umgebung und anschließend kontrolliert über den vollständigen nginx-Pfad prüfen. <a href="https://nginx.org/en/docs/ngx_core_module.html#worker_connections">nginx-Dokumentation</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Mindestens 500 WSS-Spieler über den Proxy, gleichzeitig normale HTTP-Anfragen, keine Fehler wegen connection slots; aktive Konfiguration und Workerzahl kontrollieren.</p>
-</article>
-<article class="finding" id="DATA-01" data-priority="P1" data-area="Datenintegrität">
-<h3>
-<span class="tag P1">P1</span> <span class="id">DATA-01</span> Antwortlänge begrenzt den gespeicherten Rohwert nicht</h3>
-<p class="meta">Datenintegrität · Lokal reproduziert · Offen</p>
-<p>
-<b>Befund und Beleg.</b> storeAnswer prüft die Länge von game.Normalize(value), speichert aber &game.Answer{Value: value}. Lokal reproduziert: 60.000 führende Leerzeichen plus fünf Buchstaben werden angenommen und erscheinen mit storedLength=60005 im reviewState. Der 64-KiB-Read-Limit verhindert diese Nachricht nicht.</p>
-<p>
-<b>Auswirkung.</b> Die behauptete Grenze von 30 Zeichen schützt weder Speicher noch spätere Broadcasts. Viele solche Antworten können den 256-MiB-Service hart stoppen; die Kompression macht Leerzeichen auf dem Transport zusätzlich billig. Auch ohne Speichererschöpfung vervielfachen sich Review-Payloads. Ein tatsächlicher OOM wurde bewusst nicht ausgelöst.</p>
-<p>
-<b>Empfohlene Änderung.</b> Vor Speicherung Rohbytes und Runen begrenzen; mindestens trimmen und nur den begrenzten Wert aufbewahren. Pro Lobby ein realistisches Bytebudget ergänzen. Ablehnung für den Sender erkennbar machen, damit die UI keine erfolgreiche Speicherung suggeriert.</p>
-<p class="accept">
-<b>Abnahme.</b> 60-KB-Whitespace-Wert wird abgelehnt oder auf einen kurzen gespeicherten Wert reduziert. Mehrbyte-Zeichen, führende/folgende Leerzeichen und wiederholtes inputSync prüfen.</p>
 </article>
 <article class="finding" id="REL-03" data-priority="P1" data-area="Zuverlässigkeit">
 <h3>
@@ -743,7 +730,7 @@
 <td>backend/cmd/server/main.go: spaHandler; frontend/src/lib/ws.ts: reloadIfUpdated</td>
 </tr>
 <tr>
-<td>DATA-01, STATE-02/03</td>
+<td>STATE-02/03</td>
 <td>game_util.go: storeAnswer, buildGameState; game_handlers.go: beginCountdown, handleAnswerUpdate, handleInputSync, endRound; frontend/src/pages/game/GameScreen.tsx: flushAnswers, loadedRound, pendingAnswers</td>
 </tr>
 <tr>

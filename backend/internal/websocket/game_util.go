@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 
 	"slf/internal/game"
@@ -45,7 +46,7 @@ func storeAnswer(round *game.Round, playerID, catID, value string) {
 	if round.Answers[playerID] == nil {
 		round.Answers[playerID] = map[string]*game.Answer{}
 	}
-	round.Answers[playerID][catID] = &game.Answer{Value: value}
+	round.Answers[playerID][catID] = &game.Answer{Value: strings.TrimSpace(value)}
 }
 
 // answerFor returns a player's answer (answerID == playerID) for a category.

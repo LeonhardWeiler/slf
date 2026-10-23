@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -147,5 +148,21 @@ func TestLobbyPatchKeepsOnlyChangedPlayers(t *testing.T) {
 	}
 	if !slices.Equal(ids, []string{"b", "d"}) || !slices.Equal(p.Removed, []string{"c"}) {
 		t.Fatalf("players %v removed %v, want [b d] [c]", ids, p.Removed)
+	}
+}
+
+func TestStoreAnswerKeepsOnlyTrimmedValue(t *testing.T) {
+	round := &game.Round{Answers: map[string]map[string]*game.Answer{}}
+	storeAnswer(round, "p", "c", strings.Repeat(" ", 60000)+"Äpfel ")
+	if got := answerFor(round, "p", "c").Value; got != "Äpfel" {
+		t.Fatalf("stored %d bytes, want trimmed value", len(got))
+	}
+	storeAnswer(round, "p", "c", strings.Repeat("ß", 31))
+	if answerFor(round, "p", "c") != nil {
+		t.Fatal("a 31-rune answer must be dropped")
+	}
+	storeAnswer(round, "p", "c", strings.Repeat("ß", 30))
+	if answerFor(round, "p", "c") == nil {
+		t.Fatal("a 30-rune answer must be kept")
 	}
 }
