@@ -1044,3 +1044,29 @@ func TestCommentatorGetsRowDeltas(t *testing.T) {
 		t.Fatalf("second update: %v, want []", u.Player.FilledCategoryIDs)
 	}
 }
+
+func TestRebindingSocketFreesOldSeat(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("lobbyState")
+
+	if second := host.createLobby("Alice"); second == code || len(host.lastLobby.Players) != 1 {
+		t.Fatalf("second lobby %s with %d players", second, len(host.lastLobby.Players))
+	}
+	guest.waitFor("hostDisconnected")
+
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	if len(hub.clients) != 2 {
+		t.Fatalf("%d bound clients, want 2", len(hub.clients))
+	}
+	lobby, _ := hub.rooms.Get(code)
+	for _, p := range lobby.Players {
+		if p.IsHost && p.Connected {
+			t.Fatal("old host seat still connected")
+		}
+	}
+}

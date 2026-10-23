@@ -320,6 +320,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		hub.sendError(c, CodeInvalidSession, "Keine Session-ID")
 		return
 	}
+	hub.releaseSeat(c, sessionID)
 
 	hub.mu.Lock()
 	session, ok := hub.sessions[sessionID]
@@ -354,10 +355,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	// Replace any existing connection for this session with the new one. The old
 	// socket (if still lingering) is closed after unlocking; its onDisconnect is
 	// then a no-op thanks to the identity guard.
-	old := hub.clients[sessionID]
-	hub.clients[sessionID] = c
-	c.sessionID = sessionID
-	c.lobbyBase = ""
+	old := hub.bindLocked(c, sessionID)
 	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
 

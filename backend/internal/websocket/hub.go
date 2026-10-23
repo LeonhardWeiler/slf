@@ -145,25 +145,35 @@ func (h *Hub) addPending(c *Client) {
 }
 
 func (h *Hub) registerSession(c *Client, session *game.Session) {
+	h.releaseSeat(c, session.ID)
 	h.mu.Lock()
-	delete(h.pending, c)
-	// If this socket was already bound to a different session (abnormal - a client
-	// creating/joining again without leaving), release the old binding so its
-	// lobby doesn't linger with a phantom-connected player and can be reaped.
-	if old := c.sessionID; old != "" && old != session.ID && h.clients[old] == c {
-		delete(h.clients, old)
-		if s, ok := h.sessions[old]; ok {
-			if r, ok := h.rooms.Get(s.LobbyCode); ok {
-				if p, ok := r.Players[s.PlayerID]; ok {
-					p.Connected = false
-				}
-			}
-		}
-	}
-	h.clients[session.ID] = c
 	h.sessions[session.ID] = session
-	c.sessionID = session.ID
+	h.bindLocked(c, session.ID)
 	h.mu.Unlock()
+}
+
+// releaseSeat frees the seat a socket holds before it binds to another
+// session, exactly as if that connection had dropped.
+func (h *Hub) releaseSeat(c *Client, sessionID string) {
+	if c.sessionID == "" || c.sessionID == sessionID {
+		return
+	}
+	h.onDisconnect(c)
+	h.mu.Lock()
+	c.sessionID = ""
+	h.pending[c] = struct{}{}
+	h.mu.Unlock()
+}
+
+// bindLocked binds the socket to a session and returns the socket it replaces.
+// Caller must hold h.mu.
+func (h *Hub) bindLocked(c *Client, sessionID string) *Client {
+	old := h.clients[sessionID]
+	delete(h.pending, c)
+	h.clients[sessionID] = c
+	c.sessionID = sessionID
+	c.lobbyBase = ""
+	return old
 }
 
 func (h *Hub) onDisconnect(c *Client) {

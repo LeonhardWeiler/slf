@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>19</strong>
+<strong>18</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>24</strong>
+<strong>23</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">24 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">23 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -393,19 +393,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="STATE-04" data-priority="P2" data-area="Session">
-<h3>
-<span class="tag P2">P2</span> <span class="id">STATE-04</span> Mehrfaches Binden eines Sockets hinterlässt inkonsistente Lobby-Identitäten</h3>
-<p class="meta">Session · Lokal + Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> createLobby/joinLobby sind auch auf bereits gebundenen Clients erlaubt. registerSession entfernt die alte Clientbindung, markiert den alten Host aber nur offline und startet keine Host-Grace. Lokal bleiben nach drei createLobby-Aufrufen auf einem Socket alle drei Lobbys zunächst beitretbar. handleReconnect benutzt registerSession nicht und räumt eine vorherige Bindung/pending nicht vollständig auf.</p>
-<p>
-<b>Auswirkung.</b> Andere Spieler können in einer Lobby ohne aktiven Host hängen bleiben; Wiederbindung und spätere Disconnects passen nicht mehr zwingend zu den tatsächlichen Mitgliedschaften. Die Janitor-TTL löst eine verwaiste Lobby mit weiterhin verbundenen Gästen nicht.</p>
-<p>
-<b>Empfohlene Änderung.</b> Eine klare Invariante durchsetzen: pro Socket genau eine Session. Erneutes create/join entweder verweigern oder als vollständigen Leave mit Host-Grace ausführen. Reconnect durch dieselbe zentrale Bindungsfunktion führen, alte Einträge und pending bereinigen.</p>
-<p class="accept">
-<b>Abnahme.</b> Create→Create, Join→Join und Reconnect→Reconnect auf demselben Socket lassen keine Phantom-Hosts oder mehrfachen Clientmap-Einträge zurück.</p>
 </article>
 <article class="finding" id="STATE-05" data-priority="P2" data-area="Session">
 <h3>
@@ -695,7 +682,7 @@
 <td>frontend/src/lib/ws.ts: onopen, flush, scheduleReconnect, status; frontend/src/router.tsx: sessionCreated/lobbyState; backend/internal/websocket/handlers.go: handleReconnect</td>
 </tr>
 <tr>
-<td>SEC-02, STATE-04/05</td>
+<td>SEC-02, STATE-05</td>
 <td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
 </tr>
 <tr>
