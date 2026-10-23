@@ -1603,6 +1603,7 @@ body.urgent .bg i {
 .ans-word {
 	flex: 1;
 	min-width: 0;
+	position: relative;
 }
 .ans-word .tiles {
 	--s: 26px;
@@ -1621,8 +1622,8 @@ body.urgent .bg i {
 .ans.cracked .ans-word::after {
 	content: "";
 	position: absolute;
-	left: 56px;
-	right: 70px;
+	left: 8px;
+	right: 8px;
 	top: 50%;
 	height: 4px;
 	border-radius: 4px;
@@ -3200,4 +3201,22 @@ body.calm *::after {
 .crash {
 	min-height: 100svh;
 	gap: 24px;
+}
+@media (max-width: 520px) {
+	.ans-card:has(.thumbs) {
+		height: 104px;
+	}
+	.ans-front:has(.thumbs) {
+		flex-wrap: wrap;
+		align-content: center;
+		row-gap: 6px;
+	}
+	.ans-front .thumbs {
+		order: 9;
+		width: 100%;
+		justify-content: flex-end;
+	}
+}
+.over .podium-row {
+	margin-top: auto;
 }

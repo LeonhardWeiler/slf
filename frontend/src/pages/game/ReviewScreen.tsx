@@ -187,6 +187,7 @@ export function ReviewScreen() {
 						const down = votes.length - up;
 						const mine = a.votes?.[me ?? ""];
 						const doubted = down > 0 && !a.ruled;
+						const canVote = iVote && a.playerId !== me && !a.ruled;
 						return (
 							// biome-ignore lint/a11y/noStaticElementInteractions: merge pick, the buttons stay the keyboard path
 							// biome-ignore lint/a11y/useKeyWithClickEvents: merge pick, the buttons stay the keyboard path
@@ -231,9 +232,9 @@ export function ReviewScreen() {
 										<span className={`pts on ${ptsClass(a.pointsPreview)}`}>
 											{a.pointsPreview}
 										</span>
-										{a.value && (
+										{a.value && (canVote || down > 0 || isHost) && (
 											<span className="thumbs">
-												{iVote && a.playerId !== me && !a.ruled ? (
+												{canVote ? (
 													<>
 														<button
 															type="button"
