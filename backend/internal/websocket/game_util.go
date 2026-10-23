@@ -431,3 +431,9 @@ func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 func (hub *Hub) sendBuzzRejected(c *Client, reason string) {
 	c.send("buzzRejected", map[string]string{"reason": reason})
 }
+
+// inRound reports whether the lobby is playing the round with this id.
+func inRound(lobby *game.Lobby, roundID string) bool {
+	return lobby.State == game.StatePlaying && lobby.Game != nil &&
+		lobby.Game.Round != nil && lobby.Game.Round.ID == roundID
+}

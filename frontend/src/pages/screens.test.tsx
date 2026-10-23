@@ -186,7 +186,10 @@ describe("GameScreen", () => {
 		expect(buzz().disabled).toBe(false);
 
 		fireEvent.click(buzz());
-		expect(send).toHaveBeenCalledWith({ type: "buzz", payload: {} });
+		expect(send).toHaveBeenCalledWith({
+			type: "buzz",
+			payload: { roundId: "r1" },
+		});
 		expect(buzz().disabled).toBe(true);
 		expect(buzz().textContent).toBe("Gesendet…");
 	});

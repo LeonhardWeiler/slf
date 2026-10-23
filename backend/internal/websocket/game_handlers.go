@@ -157,6 +157,7 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 
 func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
+		RoundID    string `json:"roundId"`
 		CategoryID string `json:"categoryId"`
 		Value      string `json:"value"`
 	}
@@ -165,7 +166,7 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.mu.Lock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+	if !ok || !inRound(lobby, p.RoundID) {
 		hub.mu.Unlock()
 		return
 	}
@@ -199,15 +200,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.mu.Lock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
-		hub.mu.Unlock()
-		return
-	}
-	if isRoundSpectator(lobby, player) {
-		hub.mu.Unlock()
-		return
-	}
-	if lobby.Game.Round.ID != p.RoundID {
+	if !ok || !inRound(lobby, p.RoundID) || isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		return
 	}
@@ -227,6 +220,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 // host enabled the feature.
 func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
+		RoundID    string `json:"roundId"`
 		CategoryID string `json:"categoryId"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
@@ -235,8 +229,7 @@ func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !lobby.Settings.FlamesEnabled ||
-		lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+	if !ok || !lobby.Settings.FlamesEnabled || !inRound(lobby, p.RoundID) {
 		return
 	}
 	// A round spectator (commentator host or pending joiner) does not play, so
@@ -254,10 +247,16 @@ func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
 	lobby.Game.Round.Flames[session.PlayerID] = p.CategoryID
 }
 
-func handleBuzz(hub *Hub, c *Client) {
+func handleBuzz(hub *Hub, c *Client, raw json.RawMessage) {
+	var p struct {
+		RoundID string `json:"roundId"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return
+	}
 	hub.mu.Lock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || lobby.State != game.StatePlaying || lobby.Game == nil || lobby.Game.Round == nil {
+	if !ok || !inRound(lobby, p.RoundID) {
 		hub.mu.Unlock()
 		hub.sendBuzzRejected(c, "invalidState")
 		return

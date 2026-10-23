@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>21</strong>
+<strong>20</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>26</strong>
+<strong>25</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -260,7 +260,7 @@
 <tr>
 <td>Spielregeln &amp; Fairness</td>
 <td>Serverautorität, zentrale Teilnahmeprädikate und Union-Find-Scoring gut. Cutoff, Rundenzuordnung und versteckter Countdown undicht.</td>
-<td>STATE-02/03</td>
+<td>STATE-03</td>
 </tr>
 <tr>
 <td>Security &amp; Supply Chain</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">26 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">25 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -393,19 +393,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="STATE-02" data-priority="P2" data-area="Protokoll">
-<h3>
-<span class="tag P2">P2</span> <span class="id">STATE-02</span> answerUpdate ist nicht an eine Runde gebunden</h3>
-<p class="meta">Protokoll · Lokal reproduziert · Offen</p>
-<p>
-<b>Befund und Beleg.</b> inputSync enthält roundId und prüft ihn. answerUpdate, buzz und setFlame haben diese Bindung nicht. Lokal reproduziert: ein aus Runde 1 stammender answerUpdate wird während Runde 2 gespeichert; die Bewertung zeigt den alten Wert Zold-round beim neuen Buchstaben V.</p>
-<p>
-<b>Auswirkung.</b> Verzögerte Nachrichten und Reconnect-Outboxes können die neue Runde verschmutzen. Ein bloßer StatePlaying-Check reicht nicht, wenn beide betroffenen Phasen denselben Namen haben.</p>
-<p>
-<b>Empfohlene Änderung.</b> roundId für alle rundenbezogenen Commands verlangen und serverseitig abgleichen. Clients versehen bereits beim Erzeugen einer Aktion die Nachricht damit; beim Reconnect keine nachträgliche Umdeutung auf die aktuelle Runde.</p>
-<p class="accept">
-<b>Abnahme.</b> Alte Antworten, Flames und Buzzes aus vorheriger Runde bleiben wirkungslos; passendes inputSync ersetzt den aktuellen Eingabestand verlässlich.</p>
 </article>
 <article class="finding" id="STATE-03" data-priority="P2" data-area="Spielregeln">
 <h3>
@@ -717,7 +704,7 @@
 <td>backend/cmd/server/main.go: spaHandler; frontend/src/lib/ws.ts: reloadIfUpdated</td>
 </tr>
 <tr>
-<td>STATE-02/03</td>
+<td>STATE-03</td>
 <td>game_util.go: storeAnswer, buildGameState; game_handlers.go: beginCountdown, handleAnswerUpdate, handleInputSync, endRound; frontend/src/pages/game/GameScreen.tsx: flushAnswers, loadedRound, pendingAnswers</td>
 </tr>
 <tr>

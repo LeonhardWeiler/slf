@@ -341,8 +341,9 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 
 	host.send("startGame", map[string]any{})
 	var gs struct {
-		State  string `json:"state"`
-		Letter string `json:"letter"`
+		State   string `json:"state"`
+		Letter  string `json:"letter"`
+		RoundID string `json:"roundId"`
 	}
 	for gs.State != "Playing" {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
@@ -351,7 +352,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	// Alice (the playing host) submits a valid answer so the round has something to
 	// review - otherwise endRound would skip straight to the scoreboard.
 	for _, cat := range cats {
-		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": gs.Letter + "test"})
+		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": gs.Letter + "test", "roundId": gs.RoundID})
 	}
 
 	// Bob joins mid-round -> pending.
@@ -664,8 +665,9 @@ func TestFullRoundCycle(t *testing.T) {
 
 	// Countdown first, then Playing once the timer fires.
 	var gs struct {
-		State  string `json:"state"`
-		Letter string `json:"letter"`
+		State   string `json:"state"`
+		Letter  string `json:"letter"`
+		RoundID string `json:"roundId"`
 	}
 	json.Unmarshal(host.waitFor("gameState"), &gs)
 	if gs.State != "Countdown" {
@@ -681,9 +683,9 @@ func TestFullRoundCycle(t *testing.T) {
 
 	// Every category must be filled with a rule-valid answer to be able to buzz.
 	for _, cat := range cats {
-		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen"})
+		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen", "roundId": gs.RoundID})
 	}
-	host.send("buzz", map[string]any{})
+	host.send("buzz", map[string]any{"roundId": gs.RoundID})
 
 	var rs struct {
 		CategoryCount int `json:"categoryCount"`
@@ -808,7 +810,8 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 
 	host.send("startGame", map[string]any{})
 	var gs struct {
-		State string `json:"state"`
+		State   string `json:"state"`
+		RoundID string `json:"roundId"`
 	}
 	for gs.State != "Playing" {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
@@ -832,11 +835,11 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 
 	// Even if answers had slipped in, they must not affect the result: Alice is
 	// the only participant, so every category is hers alone -> 20 points each.
-	back.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen"})
+	back.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen", "roundId": gs.RoundID})
 	for _, cat := range cats {
-		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen"})
+		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen", "roundId": gs.RoundID})
 	}
-	host.send("buzz", map[string]any{})
+	host.send("buzz", map[string]any{"roundId": gs.RoundID})
 	host.waitFor("reviewState")
 	host.send("finishReview", map[string]any{})
 
@@ -929,17 +932,20 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 
 	host.send("startGame", map[string]any{})
 	var gs struct {
-		State  string `json:"state"`
-		Letter string `json:"letter"`
+		State   string `json:"state"`
+		Letter  string `json:"letter"`
+		RoundID string `json:"roundId"`
 	}
 	for gs.State != "Playing" {
 		json.Unmarshal(host.waitFor("gameState"), &gs)
 	}
-	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test"})
+	host.send("buzz", map[string]any{"roundId": "stale"})
+	host.send("answerUpdate", map[string]any{"categoryId": cats[2].ID, "value": gs.Letter + "stale", "roundId": "stale"})
+	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test", "roundId": gs.RoundID})
 	// Solo may stop with empty fields.
-	host.send("buzz", map[string]any{})
+	host.send("buzz", map[string]any{"roundId": gs.RoundID})
 	// An answer right after the buzz is still taken (answerGrace).
-	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": gs.Letter + "late"})
+	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": gs.Letter + "late", "roundId": gs.RoundID})
 
 	type soloRow struct {
 		CategoryID string `json:"categoryId"`
@@ -954,7 +960,7 @@ func TestSoloRoundSkipsScoreboard(t *testing.T) {
 	if rs.EndReason != "buzz" {
 		t.Fatalf("expected endReason buzz, got %q", rs.EndReason)
 	}
-	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 || !rs.Solo[1].Valid {
+	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 || !rs.Solo[1].Valid || rs.Solo[2].Valid {
 		t.Fatalf("unexpected solo rows %+v", rs.Solo)
 	}
 
@@ -1017,9 +1023,12 @@ func TestCommentatorGetsRowDeltas(t *testing.T) {
 	guest.sessionID = sc.SessionID
 
 	host.send("startGame", map[string]any{})
-	host.waitFor("commentatorState")
+	var cs struct {
+		RoundID string `json:"roundId"`
+	}
+	json.Unmarshal(host.waitFor("commentatorState"), &cs)
 	for _, v := range []string{"Aachen", "Aachener", ""} {
-		guest.send("answerUpdate", map[string]any{"categoryId": cat, "value": v})
+		guest.send("answerUpdate", map[string]any{"categoryId": cat, "value": v, "roundId": cs.RoundID})
 	}
 	var u struct {
 		Player struct {

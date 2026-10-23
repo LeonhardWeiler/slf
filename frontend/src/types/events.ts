@@ -230,7 +230,10 @@ export type ClientEvent =
 	  }
 	| { type: "kickPlayer"; payload: { playerId: string } }
 	| { type: "startGame"; payload: Record<string, never> }
-	| { type: "answerUpdate"; payload: { categoryId: string; value: string } }
+	| {
+			type: "answerUpdate";
+			payload: { roundId: string; categoryId: string; value: string };
+	  }
 	| {
 			type: "inputSync";
 			payload: {
@@ -238,9 +241,9 @@ export type ClientEvent =
 				answers: { categoryId: string; value: string }[];
 			};
 	  }
-	| { type: "buzz"; payload: Record<string, never> }
+	| { type: "buzz"; payload: { roundId: string } }
 	| { type: "endRound"; payload: Record<string, never> }
-	| { type: "setFlame"; payload: { categoryId: string } }
+	| { type: "setFlame"; payload: { roundId: string; categoryId: string } }
 	| {
 			type: "setAnswerValidity";
 			payload: { answerId: string; valid: boolean; categoryId?: string };

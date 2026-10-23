@@ -141,7 +141,10 @@ export function GameScreen() {
 		const pending = pendingAnswers.current;
 		pendingAnswers.current = {};
 		for (const [categoryId, value] of Object.entries(pending)) {
-			ws.send({ type: "answerUpdate", payload: { categoryId, value } });
+			ws.send({
+				type: "answerUpdate",
+				payload: { roundId, categoryId, value },
+			});
 		}
 	}
 
@@ -175,7 +178,10 @@ export function GameScreen() {
 
 		sendInputSync(roundId, saved);
 		if (savedFlame) {
-			ws.send({ type: "setFlame", payload: { categoryId: savedFlame } });
+			ws.send({
+				type: "setFlame",
+				payload: { roundId, categoryId: savedFlame },
+			});
 		}
 	}, [roundId]);
 
@@ -217,7 +223,7 @@ export function GameScreen() {
 	function handleBuzz() {
 		flushAnswers(); // server must have the latest answers before the buzz check
 		buzz();
-		ws.send({ type: "buzz", payload: {} });
+		ws.send({ type: "buzz", payload: { roundId } });
 	}
 
 	async function handleEndRound() {
@@ -292,7 +298,7 @@ export function GameScreen() {
 		} catch {
 			/* ignore quota errors */
 		}
-		ws.send({ type: "setFlame", payload: { categoryId: next } });
+		ws.send({ type: "setFlame", payload: { roundId, categoryId: next } });
 	}
 
 	// ---- Countdown phase ----
