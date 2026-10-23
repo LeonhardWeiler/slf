@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"log/slog"
+	"slices"
 	"time"
 
 	"slf/internal/game"
@@ -89,14 +90,12 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		hub.broadcastLobbyState(lobby)
 		return
 	}
-	letter, remaining := game.PickRandomLetter(g.RemainingLetters)
+	letter := game.PickRandomLetter(g.RemainingLetters)
 	if letter == "" {
 		hub.mu.Unlock()
 		hub.endGame(lobby, "AlphabetFinished")
 		return
 	}
-	g.RemainingLetters = remaining
-	g.UsedLetters = append(g.UsedLetters, letter)
 	// A new round begins -> any mid-game joiners who were waiting as spectators
 	// become full participants now and score from this round on.
 	for _, p := range lobby.Players {
@@ -133,6 +132,8 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 		return
 	}
 	setLobbyState(lobby, game.StatePlaying)
+	g.RemainingLetters = slices.DeleteFunc(slices.Clone(g.RemainingLetters), func(l string) bool { return l == g.Round.Letter })
+	g.UsedLetters = append(g.UsedLetters, g.Round.Letter)
 	g.Round.StartedAt = time.Now()
 	var endsAt time.Time
 	if lobby.Settings.TimeLimit != nil {

@@ -35,18 +35,12 @@ func AlphabetExcluding(excluded []string) []string {
 	return letters
 }
 
-// PickRandomLetter draws a random letter from remaining and returns it together
-// with the reduced remaining slice.
-func PickRandomLetter(remaining []string) (string, []string) {
+// PickRandomLetter draws a random letter from remaining.
+func PickRandomLetter(remaining []string) string {
 	if len(remaining) == 0 {
-		return "", remaining
+		return ""
 	}
-	i := rand.Intn(len(remaining))
-	letter := remaining[i]
-	next := make([]string, 0, len(remaining)-1)
-	next = append(next, remaining[:i]...)
-	next = append(next, remaining[i+1:]...)
-	return letter, next
+	return remaining[rand.Intn(len(remaining))]
 }
 
 // Normalize trims, uppercases the first rune and lowercases the rest (SRS 5.5).

@@ -114,7 +114,7 @@ func TestBeginCountdownRechecksState(t *testing.T) {
 	h.beginCountdown(lobby, game.StateLobby)
 	first := lobby.Game.Round
 	h.beginCountdown(lobby, game.StateLobby)
-	if lobby.Game.Round != first || len(lobby.Game.UsedLetters) != 1 {
+	if lobby.Game.Round != first {
 		t.Fatal("a second start from a stale state began another round")
 	}
 }
@@ -164,5 +164,28 @@ func TestStoreAnswerKeepsOnlyTrimmedValue(t *testing.T) {
 	storeAnswer(round, "p", "c", strings.Repeat("ß", 30))
 	if answerFor(round, "p", "c") == nil {
 		t.Fatal("a 30-rune answer must be kept")
+	}
+}
+
+func TestHiddenCountdownKeepsLetterOutOfLists(t *testing.T) {
+	h := NewHub()
+	lobby := &game.Lobby{
+		Code:     "123456",
+		State:    game.StateLobby,
+		Settings: game.Settings{HostPlays: true},
+		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}},
+		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
+	}
+	h.rooms.Create(lobby)
+
+	h.beginCountdown(lobby, game.StateLobby)
+	p := buildGameState(lobby)
+	if p.Letter != "" || len(p.UsedLetters) != 0 || len(p.RemainingLetters) != 2 {
+		t.Fatalf("countdown leaks the letter: %+v", p)
+	}
+	h.beginPlaying(lobby, lobby.Game.Round.ID)
+	p = buildGameState(lobby)
+	if !slices.Equal(p.UsedLetters, []string{p.Letter}) || len(p.RemainingLetters) != 1 || p.RemainingLetters[0] == p.Letter {
+		t.Fatalf("playing lists wrong: %+v", p)
 	}
 }
