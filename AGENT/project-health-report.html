@@ -23,7 +23,7 @@
 <span>bestätigte kritische Gesamtrisiken</span>
 </div>
 <div class="stat">
-<strong>2</strong>
+<strong>1</strong>
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>27</strong>
+<strong>26</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -255,7 +255,7 @@
 <tr>
 <td>Architektur &amp; Einfachheit</td>
 <td>Passender modularer Monolith; globale Mutex als solche vertretbar. Komplexität liegt im Nachrichten-/Reconnect-Lifecycle und Frontend-Zwischenzuständen.</td>
-<td>REL-03, CODE-01</td>
+<td>CODE-01</td>
 </tr>
 <tr>
 <td>Spielregeln &amp; Fairness</td>
@@ -270,7 +270,7 @@
 <tr>
 <td>Zuverlässigkeit &amp; Offline</td>
 <td>Automatischer Reconnect vorhanden, Session-ready-/Outbox-Vertrag unvollständig.</td>
-<td>REL-03/04, UX-04</td>
+<td>REL-04, UX-04</td>
 </tr>
 <tr>
 <td>Daten &amp; Recovery</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">27 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">26 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -367,19 +367,6 @@
 <b>Empfohlene Änderung.</b> In server-config nginx worker_processes="auto" und ausreichend worker_connections, beispielsweise 4096, explizit setzen. Danach in einer isolierten Umgebung und anschließend kontrolliert über den vollständigen nginx-Pfad prüfen. <a href="https://nginx.org/en/docs/ngx_core_module.html#worker_connections">nginx-Dokumentation</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Mindestens 500 WSS-Spieler über den Proxy, gleichzeitig normale HTTP-Anfragen, keine Fehler wegen connection slots; aktive Konfiguration und Workerzahl kontrollieren.</p>
-</article>
-<article class="finding" id="REL-03" data-priority="P1" data-area="Zuverlässigkeit">
-<h3>
-<span class="tag P1">P1</span> <span class="id">REL-03</span> Reconnect spielt ausstehende Aktionen vor der Session-Bindung ab</h3>
-<p class="meta">Zuverlässigkeit · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> WSClient.onopen ruft flush() vor resolve() auf. Erst der anschließende connect().then(...) sendet reconnect. Der Server bindet eine Verbindung über c.sessionID; sessionId im Umschlag autorisiert normale Aktionen nicht. Bei Halb-Offen-Verbindungen fehlt außerdem ein Client-Heartbeat. GameScreen lädt/synchronisiert Drafts nur einmal pro roundId.</p>
-<p>
-<b>Auswirkung.</b> Während einer Unterbrechung gepufferte Antworten oder Hostaktionen werden auf der neuen, noch ungebundenen Verbindung abgewiesen oder still verworfen. Nach Wiederverbindung derselben Runde erfolgt kein vollständiger inputSync. Der Server-Heartbeat kann einen defekten Pfad erst nach ungefähr 25–50 Sekunden entdecken.</p>
-<p>
-<b>Empfohlene Änderung.</b> Transport-open und Session-ready als getrennte Zustände führen. Zuerst reconnect, sessionCreated abwarten, dann einen vollständigen Rundensnapshot der lokalen Eingaben synchronisieren und zulässige Aktionen freigeben. Outbox begrenzen und veraltete/phasenfremde Aktionen verwerfen. Heartbeat/Timeout für echte Verbindungsbereitschaft ergänzen.</p>
-<p class="accept">
-<b>Abnahme.</b> Offline tippen, Verbindung erneuern, gleiche Runde fortsetzen: Server und Draft stimmen überein. Keine INVALID_SESSION-Aktionen vor Session-ready; kein später abgespielter Buzz aus einer alten Phase.</p>
 </article>
 <article class="finding" id="SEC-02" data-priority="P2" data-area="Sicherheit">
 <h3>
@@ -734,7 +721,7 @@
 <td>game_util.go: storeAnswer, buildGameState; game_handlers.go: beginCountdown, handleAnswerUpdate, handleInputSync, endRound; frontend/src/pages/game/GameScreen.tsx: flushAnswers, loadedRound, pendingAnswers</td>
 </tr>
 <tr>
-<td>REL-03/04, UX-04</td>
+<td>REL-04, UX-04</td>
 <td>frontend/src/lib/ws.ts: onopen, flush, scheduleReconnect, status; frontend/src/router.tsx: sessionCreated/lobbyState; backend/internal/websocket/handlers.go: handleReconnect</td>
 </tr>
 <tr>

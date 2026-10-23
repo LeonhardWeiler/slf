@@ -63,9 +63,7 @@ class WSClient {
 			this.reconnectTimer = null;
 		}
 		this.reconnectAttempts = 0;
-		void this.connect().then(() => {
-			if (getSessionId()) this.send({ type: "reconnect", payload: {} });
-		});
+		void this.connect();
 	};
 
 	// Idempotent: repeated calls (e.g. React StrictMode's double-invoked effect)
@@ -102,6 +100,11 @@ class WSClient {
 				this.opened = true;
 				this.reconnectAttempts = 0; // reset backoff after a successful connect
 				this.notifyStatus(true);
+				// Bind the session before replaying the outbox: the server rejects
+				// actions on a socket that is not bound yet.
+				if (getSessionId()) {
+					this.outbox.unshift({ type: "reconnect", payload: {} });
+				}
 				this.flush();
 				beat = setInterval(() => {
 					socket.send(JSON.stringify({ type: "ping", payload: {} }));
@@ -195,11 +198,7 @@ class WSClient {
 		this.reconnectAttempts++;
 		this.reconnectTimer = setTimeout(() => {
 			this.reconnectTimer = null;
-			void this.connect().then(() => {
-				if (getSessionId()) {
-					this.send({ type: "reconnect", payload: {} });
-				}
-			});
+			void this.connect();
 		}, delay);
 	}
 

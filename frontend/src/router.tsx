@@ -25,7 +25,7 @@ export function Router() {
 	const setSession = useLobbyStore((s) => s.setSession);
 	const setHostGrace = useLobbyStore((s) => s.setHostGrace);
 	const reset = useLobbyStore((s) => s.reset);
-	const pendingReconnect = useRef(false);
+	const pendingReconnect = useRef(getSessionId() !== null);
 
 	// Toast on connection transitions. The very first successful connect stays
 	// silent, and a "disconnected" status is only announced as a *loss* once a
@@ -54,11 +54,8 @@ export function Router() {
 	}, []);
 
 	useEffect(() => {
-		void ws.connect().then(() => {
-			if (getSessionId()) {
-				pendingReconnect.current = true;
-				ws.send({ type: "reconnect", payload: {} });
-			}
+		ws.onStatusChange((connected) => {
+			if (connected && getSessionId()) pendingReconnect.current = true;
 		});
 
 		ws.on("sessionCreated", (payload) => {
