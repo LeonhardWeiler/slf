@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>13</strong>
+<strong>12</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>17</strong>
+<strong>16</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -285,7 +285,7 @@
 <tr>
 <td>UI/UX &amp; Accessibility</td>
 <td>Sauberes visuelles System, Modals und Themes. Konkrete Namen-/Nested-Control-Fehler, Solo- und Erklärungsbedarf; reale Geräte offen.</td>
-<td>A11Y-02, A11Y-03, UX-01, UX-04</td>
+<td>A11Y-03, UX-01, UX-04</td>
 </tr>
 <tr>
 <td>Frontend-/Browserkompatibilität</td>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">17 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">16 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -432,19 +432,6 @@
 <b>Empfohlene Änderung.</b> LISTEN_ADDR konfigurierbar machen und in Produktion 127.0.0.1:8080 verwenden; für LAN-Entwicklung weiterhin explizit alle Interfaces zulassen. Tailnet-ACLs und Deploy-Zugänge gesondert prüfen.</p>
 <p class="accept">
 <b>Abnahme.</b> Produktion bindet nur Loopback; nginx erreicht den Dienst, anderer Tailnet-Host erreicht Port 8080 nicht direkt.</p>
-</article>
-<article class="finding" id="A11Y-02" data-priority="P2" data-area="UI/UX">
-<h3>
-<span class="tag P2">P2</span> <span class="id">A11Y-02</span> Der Hinzufügen-Button in der Lobby hat keinen zugänglichen Namen</h3>
-<p class="meta">UI/UX · Browser + axe · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Der submit-Button für neue Kategorien enthält nur ein Plus-SVG und weder Text noch aria-label/title. axe-core bestätigt button-name auf button[type=submit]. Biome erkennt diesen komponentenübergreifenden Fehler nicht. Home und die untersuchte Spielrunde hatten in der eingeschränkten axe-Regelauswahl keine Treffer.</p>
-<p>
-<b>Auswirkung.</b> Die Aktion ist für assistive Technik nicht verständlich. axe stuft den einzelnen Regelverstoß critical ein; im Gesamtsystem ist das ein P2-Bedienbarkeitsproblem, kein kritischer Security-Befund.</p>
-<p>
-<b>Empfohlene Änderung.</b> aria-label="Kategorie hinzufügen" oder sichtbaren Text ergänzen. Gleichartige Iconaktionen gezielt prüfen und durch kleine semantische Komponententests absichern.</p>
-<p class="accept">
-<b>Abnahme.</b> Der Button ist unter dem erwarteten Namen per role auffindbar; axe button-name bleibt in der Lobby ohne Treffer.</p>
 </article>
 <article class="finding" id="UX-01" data-priority="P2" data-area="UI/UX">
 <h3>
@@ -608,7 +595,7 @@
 <td>backend/internal/websocket/persist.go: Save, Load, Drain; backend/cmd/server/main.go: healthz, Signalpfad, Shutdown</td>
 </tr>
 <tr>
-<td>A11Y-02, UX-01</td>
+<td>UX-01</td>
 <td>frontend/src/pages/Lobby.tsx: Kategorieformular, Einstellungen, Layout; pages/game/*.tsx; lib/utils.ts: pressProps, isTypingTarget; components/HostGraceBanner.tsx, CommentatorBoard.tsx</td>
 </tr>
 <tr>

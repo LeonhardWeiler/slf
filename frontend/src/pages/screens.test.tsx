@@ -242,6 +242,21 @@ describe("Lobby", () => {
 		expect(screen.getByText("60 s · Flammen · ohne Q Y")).toBeDefined();
 		expect(screen.queryByText("Einstellungen")).toBeNull();
 	});
+
+	it("names every host button", () => {
+		setup("host", "Lobby");
+		render(<Lobby />);
+		expect(
+			screen.getByRole("button", { name: "Kategorie hinzufügen" }),
+		).toBeDefined();
+		for (const b of screen.getAllByRole("button")) {
+			const name =
+				b.textContent?.trim() ||
+				b.getAttribute("aria-label") ||
+				b.getAttribute("title");
+			expect(name).toBeTruthy();
+		}
+	});
 });
 
 describe("review validity", () => {

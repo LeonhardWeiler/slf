@@ -525,13 +525,18 @@ export function Lobby() {
 													// stays exactly where the name span sat (no horizontal jump).
 													className="h-8! border-0! px-0! shadow-none! focus-visible:ring-0!"
 												/>
-												<Button type="submit" size="icon-xs">
+												<Button
+													type="submit"
+													size="icon-xs"
+													aria-label="Speichern"
+												>
 													<Check className="h-4 w-4" />
 												</Button>
 												<Button
 													type="button"
 													variant="ghost"
 													size="icon-xs"
+													aria-label="Abbrechen"
 													onClick={() => setEditingId(null)}
 												>
 													<X className="h-4 w-4" />
@@ -595,6 +600,7 @@ export function Lobby() {
 										<Button
 											type="submit"
 											size="icon-sm"
+											aria-label="Kategorie hinzufügen"
 											disabled={!newCategory.trim()}
 										>
 											<Plus className="h-4 w-4" />
