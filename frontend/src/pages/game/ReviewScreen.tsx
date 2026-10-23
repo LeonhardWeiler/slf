@@ -165,16 +165,8 @@ export function ReviewScreen() {
 										: "Flamme +5"
 									: undefined;
 							return (
-								// biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch
 								<div
 									key={a.answerId}
-									role={clickable ? "button" : toggles ? "switch" : undefined}
-									aria-checked={toggles ? a.valid : undefined}
-									{...(clickable
-										? pressProps(() => mergeInto(a.answerId))
-										: toggles
-											? pressProps(() => setValid(a.answerId, !a.valid))
-											: {})}
 									className={cn(
 										"rounded-md px-3 py-2.5 transition-colors",
 										isAnchor
@@ -182,56 +174,67 @@ export function ReviewScreen() {
 											: a.valid
 												? "bg-green-500/10"
 												: "bg-muted/50",
-										toggles && "cursor-pointer",
 										clickable &&
-											"cursor-pointer ring-1 ring-primary/40 hover:ring-2 hover:ring-primary active:ring-2 active:ring-primary",
+											"ring-1 ring-primary/40 hover:ring-2 hover:ring-primary active:ring-2 active:ring-primary",
 									)}
 								>
-									<div className="flex items-center justify-between gap-3">
-										<div className="min-w-0">
-											<span className="text-xs text-muted-foreground">
-												{playerName(a.playerId)}
-											</span>
-											<div className="flex items-center gap-1.5">
-												<p
-													className={cn(
-														"text-lg font-medium truncate",
-														a.valid
-															? "text-foreground"
-															: "line-through text-muted-foreground",
-													)}
-												>
-													{a.value || "-"}
-												</p>
-												{a.flamed && (
-													<span
-														className="animate-flame shrink-0 text-orange-500"
-														title="Flamme: Wette auf die einzige Antwort (+5 / 0)"
+									{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch */}
+									<div
+										role={clickable ? "button" : toggles ? "switch" : undefined}
+										aria-checked={toggles ? a.valid : undefined}
+										{...(clickable
+											? pressProps(() => mergeInto(a.answerId))
+											: toggles
+												? pressProps(() => setValid(a.answerId, !a.valid))
+												: {})}
+										className={cn((clickable || toggles) && "cursor-pointer")}
+									>
+										<div className="flex items-center justify-between gap-3">
+											<div className="min-w-0">
+												<span className="text-xs text-muted-foreground">
+													{playerName(a.playerId)}
+												</span>
+												<div className="flex items-center gap-1.5">
+													<p
+														className={cn(
+															"text-lg font-medium truncate",
+															a.valid
+																? "text-foreground"
+																: "line-through text-muted-foreground",
+														)}
 													>
-														<Flame className="h-4 w-4 fill-orange-500" />
-													</span>
+														{a.value || "-"}
+													</p>
+													{a.flamed && (
+														<span
+															className="animate-flame shrink-0 text-orange-500"
+															title="Flamme: Wette auf die einzige Antwort (+5 / 0)"
+														>
+															<Flame className="h-4 w-4 fill-orange-500" />
+														</span>
+													)}
+												</div>
+												{merged && (
+													<p className="text-xs text-muted-foreground">
+														↳ zusammengeführt mit {playerName(a.mergedInto)}
+													</p>
+												)}
+												{reason && (
+													<p className="text-xs text-muted-foreground">
+														{reason}
+													</p>
 												)}
 											</div>
-											{merged && (
-												<p className="text-xs text-muted-foreground">
-													↳ zusammengeführt mit {playerName(a.mergedInto)}
-												</p>
-											)}
-											{reason && (
-												<p className="text-xs text-muted-foreground">
-													{reason}
-												</p>
-											)}
-										</div>
-										<div className="flex items-center gap-3 shrink-0">
-											<span
-												className={cn(
-													"text-lg font-bold tabular-nums w-8 text-right",
-													a.valid ? "" : "text-muted-foreground",
-												)}
-											>
-												{a.pointsPreview}
-											</span>
+											<div className="flex items-center gap-3 shrink-0">
+												<span
+													className={cn(
+														"text-lg font-bold tabular-nums w-8 text-right",
+														a.valid ? "" : "text-muted-foreground",
+													)}
+												>
+													{a.pointsPreview}
+												</span>
+											</div>
 										</div>
 									</div>
 
@@ -244,10 +247,7 @@ export function ReviewScreen() {
 													<Button
 														variant="ghost"
 														size="xs"
-														onClick={(e) => {
-															e.stopPropagation();
-															unmerge(a.answerId);
-														}}
+														onClick={() => unmerge(a.answerId)}
 													>
 														<Link2Off className="h-3.5 w-3.5 mr-1" />
 														Trennen
@@ -257,10 +257,7 @@ export function ReviewScreen() {
 														<Button
 															variant="outline"
 															size="xs"
-															onClick={(e) => {
-																e.stopPropagation();
-																setMergeAnchor(null);
-															}}
+															onClick={() => setMergeAnchor(null)}
 														>
 															<X className="h-3.5 w-3.5 mr-1" />
 															Abbrechen
@@ -273,10 +270,7 @@ export function ReviewScreen() {
 													<Button
 														variant="ghost"
 														size="xs"
-														onClick={(e) => {
-															e.stopPropagation();
-															setMergeAnchor(a.answerId);
-														}}
+														onClick={() => setMergeAnchor(a.answerId)}
 													>
 														<Link2 className="h-3.5 w-3.5 mr-1" />
 														Zusammenführen

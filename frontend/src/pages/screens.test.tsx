@@ -590,6 +590,16 @@ describe("review merge", () => {
 			screen.getByText("Antwort antippen, die gleich „Tahn“ ist"),
 		).toBeDefined();
 	});
+
+	it("keeps the merge buttons out of the validity switch", () => {
+		setup("host", "Reviewing");
+		useGameStore.getState().setReview(review("Tahn", "Tan"));
+		render(<ReviewScreen />);
+		for (const sw of screen.getAllByRole("switch")) {
+			expect(sw.querySelector("button")).toBeNull();
+		}
+		expect(screen.getAllByText("Zusammenführen")).toHaveLength(2);
+	});
 });
 
 describe("review end reason", () => {
