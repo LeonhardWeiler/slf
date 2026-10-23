@@ -61,7 +61,10 @@ func main() {
 		log.Printf("Serving frontend from %s", staticDir)
 	}
 
-	addr := "0.0.0.0:8080"
+	addr := os.Getenv("LISTEN_ADDR")
+	if addr == "" {
+		addr = "0.0.0.0:8080"
+	}
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: mux,
