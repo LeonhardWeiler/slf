@@ -200,7 +200,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
-	if len(lobby.Players) >= maxPlayersPerLobby {
+	if lobbyFull(lobby) {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeValidationError, "Lobby ist voll")
 		return
@@ -303,12 +303,12 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
-	playerCount := len(lobby.Players)
+	full := lobbyFull(lobby)
 	hub.mu.Unlock()
 
 	// A running game is joinable now (the joiner waits as a spectator and plays
 	// from the next round), so only a full lobby is reported as unavailable.
-	if playerCount >= maxPlayersPerLobby {
+	if full {
 		respond(false, "full")
 		return
 	}

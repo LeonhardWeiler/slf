@@ -189,3 +189,22 @@ func TestHiddenCountdownKeepsLetterOutOfLists(t *testing.T) {
 		t.Fatalf("playing lists wrong: %+v", p)
 	}
 }
+
+func TestLobbyFullIgnoresLeftPlayersUpToHistoryCap(t *testing.T) {
+	lobby := &game.Lobby{Players: map[string]*game.Player{}}
+	add := func(n int, left bool) {
+		for range n {
+			id := generateID()
+			lobby.Players[id] = &game.Player{ID: id, Left: left}
+		}
+	}
+	add(maxPlayersPerLobby-1, false)
+	add(maxPlayersPerLobby, true)
+	if lobbyFull(lobby) {
+		t.Fatal("left players must not take active seats")
+	}
+	add(1, true)
+	if !lobbyFull(lobby) {
+		t.Fatal("the history cap must bound the lobby")
+	}
+}

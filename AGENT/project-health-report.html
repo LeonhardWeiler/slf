@@ -27,7 +27,7 @@
 <span>P1 · vor nächstem verlässlichen Release</span>
 </div>
 <div class="stat">
-<strong>18</strong>
+<strong>17</strong>
 <span>P2 · gezielt einplanen</span>
 </div>
 <div class="stat">
@@ -35,7 +35,7 @@
 <span>P3 · Optimierung / Pflege</span>
 </div>
 <div class="stat">
-<strong>23</strong>
+<strong>22</strong>
 <span>offene, gruppierte Findings</span>
 </div>
 </div>
@@ -354,7 +354,7 @@
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button>
 </label>
 </form>
-<p id="filter-count" class="meta" role="status">23 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">22 Findings sichtbar.</p>
 <article class="finding" id="OPS-01" data-priority="P1" data-area="Betrieb">
 <h3>
 <span class="tag P1">P1</span> <span class="id">OPS-01</span> nginx begrenzt die dokumentierte Kapazität auf deutlich unter 500 WebSockets</h3>
@@ -393,19 +393,6 @@
 <b>Empfohlene Änderung.</b> Abhängigkeiten samt Lock aktualisieren, Advisory-Voraussetzungen einzeln prüfen und Nix-outputHash nachziehen. Verbleibende nicht erreichbare Treffer begründet dokumentieren. <a href="https://github.com/advisories/GHSA-p6vx-979v-rg4c">Seroval-Advisory</a>, <a href="https://github.com/advisories/GHSA-rq7h-c2jc-7f22">Vite-Advisory</a>.</p>
 <p class="accept">
 <b>Abnahme.</b> Audit erneut ausführen; keine unbegründet offenen Treffer. SPA- und QR-Flows nach Dependency-Update prüfen.</p>
-</article>
-<article class="finding" id="STATE-05" data-priority="P2" data-area="Session">
-<h3>
-<span class="tag P2">P2</span> <span class="id">STATE-05</span> Ausgetretene Spieler verbrauchen bis zum nächsten Spiel weiterhin Plätze</h3>
-<p class="meta">Session · Code · Offen</p>
-<p>
-<b>Befund und Beleg.</b> Join und checkLobby prüfen len(lobby.Players) gegen 200. Während eines laufenden Spiels werden ausgetretene oder gekickte Spieler als Left für die Rangliste behalten; resetForNewGame entfernt sie erst später.</p>
-<p>
-<b>Auswirkung.</b> Wiederholtes Austreten und Beitreten kann eine eigentlich kleine laufende Lobby als voll erscheinen lassen. Die sichtbare aktive Spielerzahl stimmt dann nicht mit der Join-Entscheidung überein.</p>
-<p>
-<b>Empfohlene Änderung.</b> Aktive Mitgliedschaften und historische Ranglisteneinträge getrennt zählen oder die Platzprüfung auf aktive Spieler beziehen, mit eigenem begrenzten Historienbudget.</p>
-<p class="accept">
-<b>Abnahme.</b> Nach vielen Join/Leave-Zyklen können echte neue Mitspieler weiterhin beitreten; alte Punkte bleiben korrekt und der Speicher bleibt begrenzt.</p>
 </article>
 <article class="finding" id="REL-04" data-priority="P2" data-area="Session">
 <h3>
@@ -682,7 +669,7 @@
 <td>frontend/src/lib/ws.ts: onopen, flush, scheduleReconnect, status; frontend/src/router.tsx: sessionCreated/lobbyState; backend/internal/websocket/handlers.go: handleReconnect</td>
 </tr>
 <tr>
-<td>SEC-02, STATE-05</td>
+<td>SEC-02</td>
 <td>client.go: rate/backoff, ServeWS; hub.go: Ressourcenlimits, registerSession, reapAbandoned; handlers.go: create/join/check/reconnect/leave/kick</td>
 </tr>
 <tr>

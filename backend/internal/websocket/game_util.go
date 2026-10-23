@@ -437,3 +437,15 @@ func inRound(lobby *game.Lobby, roundID string) bool {
 	return lobby.State == game.StatePlaying && lobby.Game != nil &&
 		lobby.Game.Round != nil && lobby.Game.Round.ID == roundID
 }
+
+// lobbyFull reports whether a lobby takes no more joiners. Players who left
+// mid-game stay for the standings and count only against the larger cap.
+func lobbyFull(lobby *game.Lobby) bool {
+	active := 0
+	for _, p := range lobby.Players {
+		if !p.Left {
+			active++
+		}
+	}
+	return active >= maxPlayersPerLobby || len(lobby.Players) >= 2*maxPlayersPerLobby
+}
