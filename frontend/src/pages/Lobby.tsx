@@ -510,7 +510,7 @@ export function Lobby() {
 									>
 										{isHost && editingId === cat.id ? (
 											<form
-												className="flex items-center gap-2 w-full"
+												className="grid w-full grid-cols-[minmax(0,1fr)_1.75rem_1.75rem] items-center gap-2"
 												onSubmit={(e) => {
 													e.preventDefault();
 													saveEdit();
@@ -520,13 +520,18 @@ export function Lobby() {
 													value={editingValue}
 													onChange={(e) => setEditingValue(e.target.value)}
 													maxLength={30}
+													aria-label="Kategoriename"
+													onKeyDown={(e) => {
+														if (e.key === "Escape") setEditingId(null);
+													}}
 													autoFocus
 													// Seamless inline edit: no border/extra padding so the text
 													// stays exactly where the name span sat (no horizontal jump).
-													className="h-8! border-0! px-0! shadow-none! focus-visible:ring-0!"
+													className="min-w-0 h-8! border-0! px-0! shadow-none!"
 												/>
 												<Button
 													type="submit"
+													variant="ghost"
 													size="icon-xs"
 													aria-label="Speichern"
 												>
@@ -534,7 +539,7 @@ export function Lobby() {
 												</Button>
 												<Button
 													type="button"
-													variant="ghost"
+													variant="ghost-destructive"
 													size="icon-xs"
 													aria-label="Abbrechen"
 													onClick={() => setEditingId(null)}
