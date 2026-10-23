@@ -26,7 +26,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen, Modal } from "@/components/Modal";
 import { InfoHint } from "@/components/InfoHint";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
+import { useRoomStore, useIsHost } from "@/store/room";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
@@ -100,10 +100,10 @@ function usePlayerPresence(
 }
 
 export function Lobby() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
-	const reset = useLobbyStore((s) => s.reset);
-	const setSelfLeaving = useLobbyStore((s) => s.setSelfLeaving);
+	const lobby = useRoomStore((s) => s.lobby);
+	const myPlayerId = useRoomStore((s) => s.myPlayerId);
+	const reset = useRoomStore((s) => s.reset);
+	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 

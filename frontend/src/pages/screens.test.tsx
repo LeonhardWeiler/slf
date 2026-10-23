@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, mock } from "bun:test";
 
 it("announces the final seconds", () => {
 	setup("guest", "Playing");
-	useGameStore.getState().setGame({
+	useRoomStore.getState().receive("gameState", {
 		roundId: "r3",
 		state: "Playing",
 		letter: "B",
@@ -24,8 +24,7 @@ import {
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "@/lib/theme";
-import { useGameStore } from "@/store/game";
-import { useLobbyStore } from "@/store/lobby";
+import { useRoomStore } from "@/store/room";
 import type { LobbyStatePayload, Player } from "@/types/events";
 
 const send = mock((_msg: unknown) => {});
@@ -67,7 +66,7 @@ const player = (id: string, isHost: boolean): Player => ({
 });
 
 function setup(me: string, state: LobbyStatePayload["state"]) {
-	useLobbyStore.setState({
+	useRoomStore.setState({
 		myPlayerId: me,
 		lobby: {
 			lobbyCode: "123456",
@@ -94,7 +93,6 @@ function setup(me: string, state: LobbyStatePayload["state"]) {
 beforeEach(() => {
 	send.mockClear();
 	localStorage.clear();
-	useGameStore.getState().resetGame();
 });
 
 describe("Room", () => {
@@ -111,7 +109,7 @@ describe("Room", () => {
 
 describe("RoundResultScreen", () => {
 	beforeEach(() => {
-		useGameStore.getState().setResult({
+		useRoomStore.getState().receive("roundResult", {
 			letter: "A",
 			scores: [],
 			ranking: [
@@ -150,8 +148,8 @@ describe("RoundResultScreen", () => {
 		const { container, unmount } = render(<RoundResultScreen />);
 		expect(container.querySelectorAll(".lucide-trophy").length).toBe(1);
 		unmount();
-		const result = useGameStore.getState().result!;
-		useGameStore.getState().setResult({
+		const result = useRoomStore.getState().result!;
+		useRoomStore.getState().receive("roundResult", {
 			...result,
 			ranking: [
 				{ playerId: "host", rank: 1, score: 0 },
@@ -164,8 +162,8 @@ describe("RoundResultScreen", () => {
 
 	it("explains an empty round", () => {
 		setup("guest", "RoundResult");
-		const result = useGameStore.getState().result!;
-		useGameStore.getState().setResult({ ...result, empty: true });
+		const result = useRoomStore.getState().result!;
+		useRoomStore.getState().receive("roundResult", { ...result, empty: true });
 		render(<RoundResultScreen />);
 		expect(screen.getByText("Niemand hat etwas eingetragen.")).toBeDefined();
 	});
@@ -182,7 +180,7 @@ describe("RoundResultScreen", () => {
 describe("GameScreen", () => {
 	it("gates the buzz on valid answers and shows it pending", () => {
 		setup("guest", "Playing");
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -225,7 +223,7 @@ describe("GameScreen", () => {
 
 	it("resends all answers when the session reconnects", () => {
 		setup("guest", "Playing");
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -241,7 +239,7 @@ describe("GameScreen", () => {
 			target: { value: "Berlin" },
 		});
 		send.mockClear();
-		act(() => useLobbyStore.getState().setSession("s1", "guest"));
+		act(() => useRoomStore.getState().setSession("s1", "guest"));
 		expect(send).toHaveBeenCalledWith({
 			type: "inputSync",
 			payload: {
@@ -254,7 +252,7 @@ describe("GameScreen", () => {
 	it("drops the broken parts of a stored draft", () => {
 		setup("guest", "Playing");
 		localStorage.setItem("slf:answers:r2", '{"c1":"Bonn","c2":null}');
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r2",
 			state: "Playing",
 			letter: "B",
@@ -276,8 +274,8 @@ describe("GameScreen", () => {
 describe("Lobby", () => {
 	it("shows a guest only the settings that differ from the default", () => {
 		setup("guest", "Lobby");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: {
 				...lobby,
 				settings: {
@@ -312,7 +310,7 @@ describe("Lobby", () => {
 describe("review validity", () => {
 	it("toggles a multiplayer answer by tapping its row", () => {
 		setup("host", "Reviewing");
-		useGameStore.getState().setReview({
+		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
 			letter: "B",
 			categoryId: "c1",
@@ -354,7 +352,7 @@ describe("review validity", () => {
 
 	it("toggles a solo answer by tapping its row", () => {
 		setup("guest", "Reviewing");
-		useGameStore.getState().setReview({
+		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
 			letter: "B",
 			categoryId: "c1",
@@ -380,8 +378,8 @@ describe("review validity", () => {
 describe("Lobby players", () => {
 	it("lists you, then the host, then the rest alphabetically", () => {
 		setup("guest", "Lobby");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: {
 				...lobby,
 				players: [
@@ -404,8 +402,8 @@ describe("Lobby players", () => {
 describe("Lobby letters", () => {
 	it("folds the letter grid behind a summary of the excluded letters", () => {
 		setup("host", "Lobby");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: {
 				...lobby,
 				settings: { ...lobby.settings, excludedLetters: ["X", "Q"] },
@@ -451,13 +449,15 @@ describe("GameScreen timer", () => {
 			countdownRemaining: null,
 			categoryCount: 2,
 		};
-		useGameStore.getState().setGame(game);
+		useRoomStore.getState().receive("gameState", game);
 		const { unmount } = render(<GameScreen />);
 		expect(screen.queryByText(/^\d+:\d\d$/)).toBeNull();
 		unmount();
-		useGameStore
-			.getState()
-			.setGame({ ...game, roundId: "r2", endsAt: Date.now() + 51_000 });
+		useRoomStore.getState().receive("gameState", {
+			...game,
+			roundId: "r2",
+			endsAt: Date.now() + 51_000,
+		});
 		render(<GameScreen />);
 		expect(screen.getByText(/^0:5\d$/)).toBeDefined();
 	});
@@ -466,7 +466,7 @@ describe("GameScreen timer", () => {
 describe("GameScreen field hint", () => {
 	it("marks a wrong first letter at the field right away", () => {
 		setup("guest", "Playing");
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -492,11 +492,11 @@ describe("GameScreen field hint", () => {
 describe("GameScreen solo", () => {
 	it("lets a solo player stop with empty fields and hides the end button", () => {
 		setup("host", "Playing");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: { ...lobby, solo: true, players: [player("host", true)] },
 		});
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -517,11 +517,11 @@ describe("GameScreen solo", () => {
 describe("GameScreen flames", () => {
 	it("explains the flame bet only in the first round with flames", () => {
 		setup("guest", "Playing");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: { ...lobby, settings: { ...lobby.settings, flamesEnabled: true } },
 		});
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -547,14 +547,14 @@ describe("GameScreen flames", () => {
 describe("last-letter mode", () => {
 	it("says the answer ends on the letter", () => {
 		setup("guest", "Playing");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: {
 				...lobby,
 				settings: { ...lobby.settings, lastLetterMode: true },
 			},
 		});
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "S",
@@ -573,7 +573,7 @@ describe("last-letter mode", () => {
 describe("GameScreen countdown", () => {
 	it("puts a shown letter big above a small count", () => {
 		setup("guest", "Countdown");
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Countdown",
 			letter: "K",
@@ -593,8 +593,8 @@ describe("GameScreen countdown", () => {
 describe("GameScreen pending joiner", () => {
 	it("tells a mid-game joiner when they play", () => {
 		setup("guest", "Playing");
-		const lobby = useLobbyStore.getState().lobby!;
-		useLobbyStore.setState({
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
 			lobby: {
 				...lobby,
 				players: [
@@ -603,7 +603,7 @@ describe("GameScreen pending joiner", () => {
 				],
 			},
 		});
-		useGameStore.getState().setGame({
+		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
 			state: "Playing",
 			letter: "B",
@@ -643,12 +643,12 @@ describe("review merge", () => {
 
 	it("offers merging only for 2 different valid answers", () => {
 		setup("host", "Reviewing");
-		useGameStore.getState().setReview(review("Tahn", "tahn "));
+		useRoomStore.getState().receive("reviewState", review("Tahn", "tahn "));
 		const { unmount } = render(<ReviewScreen />);
 		expect(screen.queryByText("Zusammenführen")).toBeNull();
 		unmount();
 
-		useGameStore.getState().setReview(review("Tahn", "Tan"));
+		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
 		render(<ReviewScreen />);
 		fireEvent.click(screen.getAllByText("Zusammenführen")[0]);
 		expect(
@@ -658,7 +658,7 @@ describe("review merge", () => {
 
 	it("keeps the merge buttons out of the validity switch", () => {
 		setup("host", "Reviewing");
-		useGameStore.getState().setReview(review("Tahn", "Tan"));
+		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
 		render(<ReviewScreen />);
 		for (const sw of screen.getAllByRole("switch")) {
 			expect(sw.querySelector("button")).toBeNull();
@@ -670,7 +670,7 @@ describe("review merge", () => {
 describe("review end reason", () => {
 	it("says the time ran out", () => {
 		setup("guest", "Reviewing");
-		useGameStore.getState().setReview({
+		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
 			letter: "B",
 			categoryId: "c1",
@@ -688,17 +688,17 @@ describe("review end reason", () => {
 describe("host grace banner", () => {
 	it("sits in the screen flow under the header", () => {
 		setup("guest", "Lobby");
-		useLobbyStore.setState({ hostGrace: 30 });
+		useRoomStore.setState({ hostGrace: 30 });
 		render(<Lobby />);
 		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
 		expect(banner.closest(".fixed")).toBeNull();
-		useLobbyStore.setState({ hostGrace: null });
+		useRoomStore.setState({ hostGrace: null });
 	});
 });
 
 describe("Home join code", () => {
 	it("uses a descriptive placeholder instead of a sample code", () => {
-		useLobbyStore.setState({ lobby: null });
+		useRoomStore.setState({ lobby: null });
 		render(<Home />);
 		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
 	});

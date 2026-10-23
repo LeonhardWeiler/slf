@@ -6,9 +6,7 @@ import type { ServerEvent } from "@/types/events";
 // server is authoritative, so a message that does not match the expected shape
 // is dropped rather than fed into the store as malformed state.
 //
-// Note: z.object() ignores unknown keys, so the top-level `stateVersion`
-// envelope field (and any extra server fields) are tolerated and simply not
-// surfaced to the handlers.
+// Note: z.object() ignores unknown keys, so extra server fields are tolerated.
 
 const gameStateEnum = z.enum([
 	"Lobby",
@@ -206,7 +204,10 @@ const serverEventSchema = z.discriminatedUnion("type", [
 
 // Parses and validates a raw server message. Returns the typed event, or null
 // if the JSON is malformed or does not match any known event schema.
-export function parseServerEvent(raw: string): ServerEvent | null {
+// stateVersion is 0 when the server sent none.
+export function parseServerEvent(
+	raw: string,
+): (ServerEvent & { stateVersion: number }) | null {
 	let json: unknown;
 	try {
 		json = JSON.parse(raw);
@@ -220,5 +221,9 @@ export function parseServerEvent(raw: string): ServerEvent | null {
 		}
 		return null;
 	}
-	return result.data as ServerEvent;
+	const v = (json as { stateVersion?: unknown }).stateVersion;
+	return {
+		...(result.data as ServerEvent),
+		stateVersion: typeof v === "number" ? v : 0,
+	};
 }

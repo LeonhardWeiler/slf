@@ -4,8 +4,7 @@ import { ws } from "@/lib/ws";
 import { cn } from "@/lib/utils";
 import { storage } from "@/lib/storage";
 import { answersKey, clearDrafts, flameKey } from "@/lib/session";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore, useIsHost } from "@/store/room";
 import {
 	validateAnswers,
 	ruleIssue,
@@ -102,13 +101,13 @@ function RoundClock({ endsAt }: { endsAt: number }) {
 }
 
 export function GameScreen() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
-	const game = useGameStore((s) => s.game);
-	const buzzRejected = useGameStore((s) => s.buzzRejected);
-	const buzzing = useGameStore((s) => s.buzzing);
-	const buzz = useGameStore((s) => s.buzz);
-	const commentator = useGameStore((s) => s.commentator);
+	const lobby = useRoomStore((s) => s.lobby);
+	const myPlayerId = useRoomStore((s) => s.myPlayerId);
+	const game = useRoomStore((s) => s.game);
+	const buzzRejected = useRoomStore((s) => s.buzzRejected);
+	const buzzing = useRoomStore((s) => s.buzzing);
+	const buzz = useRoomStore((s) => s.buzz);
+	const commentator = useRoomStore((s) => s.commentator);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 
@@ -192,7 +191,7 @@ export function GameScreen() {
 
 	// Every reconnect resends all answers: ones sent just before the socket died
 	// may never have reached the server.
-	const sessionEpoch = useLobbyStore((s) => s.sessionEpoch);
+	const sessionEpoch = useRoomStore((s) => s.sessionEpoch);
 	const syncedEpoch = useRef(sessionEpoch);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new session
 	useEffect(() => {

@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore, useIsHost } from "@/store/room";
 import { handlesEnter } from "@/lib/utils";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -13,9 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function RoundResultScreen() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
-	const result = useGameStore((s) => s.result);
+	const lobby = useRoomStore((s) => s.lobby);
+	const myPlayerId = useRoomStore((s) => s.myPlayerId);
+	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 
@@ -68,13 +67,7 @@ export function RoundResultScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [isHost]);
 
-	if (!lobby || !result) {
-		return (
-			<div className="min-h-svh bg-background flex items-center justify-center">
-				<p className="text-muted-foreground">Ergebnis wird geladen…</p>
-			</div>
-		);
-	}
+	if (!lobby || !result) return null;
 
 	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
 	const playerName = (id: string) => playerOf(id)?.name ?? "?";

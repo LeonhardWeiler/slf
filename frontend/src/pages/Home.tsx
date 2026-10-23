@@ -5,7 +5,7 @@ import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { consumeForcedLeave } from "@/lib/forcedLeave";
 import type { LobbyCheckPayload } from "@/types/events";
-import { useLobbyStore } from "@/store/lobby";
+import { useRoomStore } from "@/store/room";
 import { useToastStore } from "@/store/toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -42,7 +42,7 @@ const preloadRoom = () => import("@/pages/Room");
 export function Home() {
 	// Home renders on both `/` (no code) and `/join/:code`.
 	const path = usePath();
-	const lobby = useLobbyStore((s) => s.lobby);
+	const lobby = useRoomStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
 	// Counter of error toasts: a new *error* (validation or server error) means the
 	// pending submit failed -> stop the spinner. Info toasts (e.g. a reconnect

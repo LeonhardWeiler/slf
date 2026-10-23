@@ -1,11 +1,9 @@
 import { useEffect, useRef, lazy, Suspense } from "react";
 import { joinCode, Navigate, navigate, usePath } from "@/lib/nav";
 import { ws } from "@/lib/ws";
-import type { LobbyStatePayload } from "@/types/events";
 import { getSessionId } from "@/lib/session";
 import { markForcedLeave } from "@/lib/forcedLeave";
-import { applyLobbyPatch, useLobbyStore } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore } from "@/store/room";
 import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
 import { Toaster } from "@/components/Toaster";
@@ -21,10 +19,9 @@ export function Router() {
 	// Individual selectors instead of destructuring the whole store: otherwise
 	// the root layout (and with it the entire routed tree) re-renders on every
 	// unrelated lobby-store change - e.g. the per-second hostGrace countdown.
-	const setLobby = useLobbyStore((s) => s.setLobby);
-	const setSession = useLobbyStore((s) => s.setSession);
-	const setHostGrace = useLobbyStore((s) => s.setHostGrace);
-	const reset = useLobbyStore((s) => s.reset);
+	const setSession = useRoomStore((s) => s.setSession);
+	const setHostGrace = useRoomStore((s) => s.setHostGrace);
+	const reset = useRoomStore((s) => s.reset);
 	const pendingReconnect = useRef(getSessionId() !== null);
 
 	// Toast on connection transitions. The very first successful connect stays
@@ -66,18 +63,22 @@ export function Router() {
 			setSession(payload.sessionId, payload.playerId);
 		});
 
-		const onLobby = (payload: LobbyStatePayload) => {
-			pendingReconnect.current = false;
-			setLobby(payload);
-			// Snapshot also carries the host-grace countdown, so a client that joins or
-			// reconnects mid-grace sees the shared banner too (not just via the event).
-			setHostGrace(payload.hostGraceSeconds ?? null);
-		};
-		ws.on("lobbyState", onLobby);
-		ws.on("lobbyPatch", (payload) => {
-			const lobby = applyLobbyPatch(useLobbyStore.getState().lobby, payload);
-			if (lobby) onLobby(lobby);
-		});
+		const roomEvents = [
+			"lobbyState",
+			"lobbyPatch",
+			"gameState",
+			"reviewState",
+			"roundResult",
+			"commentatorState",
+			"commentatorUpdate",
+		] as const;
+		for (const type of roomEvents) {
+			ws.on(type, (payload, version) => {
+				if (type === "lobbyState" || type === "lobbyPatch")
+					pendingReconnect.current = false;
+				useRoomStore.getState().receive(type, payload, version);
+			});
+		}
 
 		ws.on("error", (payload) => {
 			// A failed reconnect whose cause is a stale session/lobby means the stored
@@ -116,8 +117,7 @@ export function Router() {
 		ws.on("playerKicked", (payload) => {
 			// Only react if *we* were the one kicked (the host also receives a
 			// fresh lobbyState without the kicked player).
-			if (payload.playerId === useLobbyStore.getState().myPlayerId) {
-				useGameStore.getState().resetGame();
+			if (payload.playerId === useRoomStore.getState().myPlayerId) {
 				markForcedLeave();
 				reset();
 				// Leave the lobby's /join/:code URL for the start screen.
@@ -127,10 +127,9 @@ export function Router() {
 		});
 
 		ws.on("lobbyClosed", (payload) => {
-			useGameStore.getState().resetGame();
 			// The host receives this echo too when they close the lobby by leaving -
 			// but shouldn't be told it was closed when they did it themselves.
-			const { selfLeaving, setSelfLeaving } = useLobbyStore.getState();
+			const { selfLeaving, setSelfLeaving } = useRoomStore.getState();
 			reset();
 			// The host who left already navigated away themselves; everyone else is
 			// pulled off the lobby's /join/:code URL back to the start screen.
@@ -157,25 +156,10 @@ export function Router() {
 			setHostGrace(null);
 		});
 
-		ws.on("gameState", (payload) => {
-			useGameStore.getState().setGame(payload);
-		});
-		ws.on("reviewState", (payload) => {
-			useGameStore.getState().setReview(payload);
-		});
-		ws.on("commentatorState", (payload) => {
-			useGameStore.getState().setCommentator(payload);
-		});
-		ws.on("commentatorUpdate", (payload) => {
-			useGameStore.getState().updateCommentator(payload);
-		});
-		ws.on("roundResult", (payload) => {
-			useGameStore.getState().setResult(payload);
-		});
 		ws.on("buzzRejected", (payload) => {
-			useGameStore.getState().setBuzzRejected(payload.reason);
+			useRoomStore.getState().setBuzzRejected(payload.reason);
 		});
-	}, [setLobby, setSession, setHostGrace, reset]);
+	}, [setSession, setHostGrace, reset]);
 
 	return (
 		<>
@@ -195,7 +179,7 @@ export function Router() {
 // anyone not yet in a lobby. Any other path bounces back to `/`.
 function Routes() {
 	const path = usePath();
-	const inLobby = useLobbyStore((s) => s.lobby != null);
+	const inLobby = useRoomStore((s) => s.lobby != null);
 	if (path === "/") return <Home key="index" />;
 	if (joinCode(path) === null) return <Navigate to="/" />;
 	if (!inLobby) return <Home key="join" />;

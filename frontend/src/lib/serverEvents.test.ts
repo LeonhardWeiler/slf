@@ -111,7 +111,7 @@ describe("parseServerEvent", () => {
 		}
 	});
 
-	it("tolerates an extra top-level envelope field (stateVersion)", () => {
+	it("passes the stateVersion through", () => {
 		const ev = parseServerEvent(
 			JSON.stringify({
 				type: "lobbyCheck",
@@ -120,5 +120,14 @@ describe("parseServerEvent", () => {
 			}),
 		);
 		expect(ev?.type).toBe("lobbyCheck");
+		expect(ev?.stateVersion).toBe(7);
+		expect(
+			parseServerEvent(
+				JSON.stringify({
+					type: "lobbyCheck",
+					payload: { lobbyCode: "abc123", available: true },
+				}),
+			)?.stateVersion,
+		).toBe(0);
 	});
 });

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import { useLobbyStore } from "@/store/lobby";
+import { useRoomStore } from "@/store/room";
 
 // Shared, prominent countdown shown to everyone while the host is disconnected.
 // The lobby closes when it reaches zero unless the host reconnects (SRS 4.6/8.5).
 export function HostGraceBanner() {
-	const hostGrace = useLobbyStore((s) => s.hostGrace);
+	const hostGrace = useRoomStore((s) => s.hostGrace);
 	const [remaining, setRemaining] = useState<number | null>(null);
 	// Absolute local deadline we tick down to. Kept in a ref so an interim
 	// lobbyState broadcast that re-sends hostGrace can't reset our smooth

@@ -12,6 +12,7 @@ const silent = new Set<ClientEvent["type"]>(["answerUpdate", "leaveLobby"]);
 
 type EventHandler<T extends ServerEvent["type"]> = (
 	payload: Extract<ServerEvent, { type: T }>["payload"],
+	version: number,
 ) => void;
 
 type HandlerMap = {
@@ -149,7 +150,7 @@ class WSClient {
 				const handler = this.handlers[msg.type];
 				if (handler) {
 					// @ts-expect-error dynamic dispatch
-					handler(msg.payload);
+					handler(msg.payload, msg.stateVersion);
 				}
 			};
 

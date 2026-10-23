@@ -1,7 +1,6 @@
 import { Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore, useIsHost } from "@/store/room";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
@@ -9,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function GameOverScreen() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
-	const result = useGameStore((s) => s.result);
+	const lobby = useRoomStore((s) => s.lobby);
+	const myPlayerId = useRoomStore((s) => s.myPlayerId);
+	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 
 	if (!lobby) return null;

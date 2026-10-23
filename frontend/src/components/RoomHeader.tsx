@@ -4,8 +4,7 @@ import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
 import { ws } from "@/lib/ws";
 import { markForcedLeave } from "@/lib/forcedLeave";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore, useIsHost } from "@/store/room";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
@@ -13,9 +12,9 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 
 export function RoomHeader({ title }: { title: string }) {
-	const reset = useLobbyStore((s) => s.reset);
-	const lobby = useLobbyStore((s) => s.lobby);
-	const setSelfLeaving = useLobbyStore((s) => s.setSelfLeaving);
+	const reset = useRoomStore((s) => s.reset);
+	const lobby = useRoomStore((s) => s.lobby);
+	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 	const [copied, setCopied] = useState(false);
@@ -58,7 +57,6 @@ export function RoomHeader({ title }: { title: string }) {
 		// server's own lobbyClosed echo.
 		setSelfLeaving(true);
 		ws.send({ type: "leaveLobby", payload: {} });
-		useGameStore.getState().resetGame();
 		markForcedLeave();
 		reset();
 		navigate("/");

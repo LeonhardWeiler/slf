@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { ws } from "@/lib/ws";
 import { cn, handlesEnter, pressProps } from "@/lib/utils";
-import { useLobbyStore } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore } from "@/store/room";
 import { ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { RoundLetter } from "@/components/RoundLetter";
@@ -13,10 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function SoloReviewScreen() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const myPlayerId = useLobbyStore((s) => s.myPlayerId);
-	const review = useGameStore((s) => s.review);
-	const lettersLeft = useGameStore((s) => s.game?.remainingLetters.length);
+	const lobby = useRoomStore((s) => s.lobby);
+	const myPlayerId = useRoomStore((s) => s.myPlayerId);
+	const review = useRoomStore((s) => s.review);
+	const lettersLeft = useRoomStore((s) => s.game?.remainingLetters.length);
 	const { confirm, dialog } = useConfirm();
 
 	useEffect(() => {
@@ -34,13 +33,7 @@ export function SoloReviewScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	if (!lobby || !review?.solo) {
-		return (
-			<div className="min-h-svh bg-background flex items-center justify-center">
-				<p className="text-muted-foreground">Bewertung wird geladen…</p>
-			</div>
-		);
-	}
+	if (!lobby || !review?.solo) return null;
 
 	const rows = review.solo;
 	const roundPoints = rows.reduce((sum, r) => sum + r.points, 0);

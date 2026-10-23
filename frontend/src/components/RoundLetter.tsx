@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useLobbyStore } from "@/store/lobby";
+import { useRoomStore } from "@/store/room";
 
 export function RoundLetter({
 	letter,
@@ -8,7 +8,7 @@ export function RoundLetter({
 	letter: string;
 	className: string;
 }) {
-	const lastLetter = useLobbyStore((s) => s.lobby?.settings.lastLetterMode);
+	const lastLetter = useRoomStore((s) => s.lobby?.settings.lastLetterMode);
 	return (
 		<div className="flex items-baseline gap-3">
 			<span className={cn("font-black", className)}>{letter}</span>

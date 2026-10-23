@@ -10,8 +10,7 @@ import {
 	Bell,
 } from "lucide-react";
 import { cn, handlesEnter, isTypingTarget, pressProps } from "@/lib/utils";
-import { useLobbyStore, useIsHost } from "@/store/lobby";
-import { useGameStore } from "@/store/game";
+import { useRoomStore, useIsHost } from "@/store/room";
 import { normalize, ruleIssue } from "@/lib/answerValidation";
 import { RoomHeader } from "@/components/RoomHeader";
 import { RoundLetter } from "@/components/RoundLetter";
@@ -19,8 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function ReviewScreen() {
-	const lobby = useLobbyStore((s) => s.lobby);
-	const review = useGameStore((s) => s.review);
+	const lobby = useRoomStore((s) => s.lobby);
+	const review = useRoomStore((s) => s.review);
 
 	// The answer picked as the merge target ("group anchor"). While set, the
 	// host merges by clicking another answer's row directly (no second button).
@@ -67,13 +66,7 @@ export function ReviewScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [isHost, isFirst, isLast, mergeAnchor]);
 
-	if (!lobby || !review) {
-		return (
-			<div className="min-h-svh bg-background flex items-center justify-center">
-				<p className="text-muted-foreground">Bewertung wird geladen…</p>
-			</div>
-		);
-	}
+	if (!lobby || !review) return null;
 
 	const playerName = (id: string) =>
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
