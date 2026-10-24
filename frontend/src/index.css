@@ -2291,6 +2291,10 @@ body.urgent .bg::after {
 	box-shadow: 0 8px 0 var(--gold-d);
 	-webkit-text-stroke-color: var(--gold-d);
 }
+.slam.big b {
+	font-size: 110px;
+	padding: 10px 40px;
+}
 .tip,
 .toast,
 .modal {
