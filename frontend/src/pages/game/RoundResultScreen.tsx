@@ -95,11 +95,11 @@ export function RoundResultScreen() {
 			animate(el, [{ translate: `0 ${dy}px` }, { translate: "0 0" }], {
 				duration: 700,
 			});
+			if (dy > 0 && result.ranking[0]?.playerId === id)
+				setTimeout(() => sound.crown(), 450);
 			if (id === myPlayerId && dy > 0) {
 				sound.whoosh();
 				haptic([15, 30, 40]);
-				if (result.ranking[0]?.playerId === id)
-					setTimeout(() => sound.fanfare(), 450);
 			}
 		}
 	}, [sorted, result, myPlayerId]);

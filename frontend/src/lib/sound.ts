@@ -423,6 +423,28 @@ class Sound {
 		this.noise(1.2, 0.08, { t: t + 0.48, type: "highpass", f: 5000 });
 		this.tone(70, 0.6, 0.5, { t: t + 0.48, glide: 35 });
 	}
+	crown() {
+		const t = this.now;
+		for (const [i, c] of [0, 4, 7, 12, 16, 19, 24].entries())
+			this.bell(72 + c, 0.6, 0.06, t + i * 0.035);
+		for (const c of [0, 4, 7, 11])
+			for (const d of [-6, 6])
+				this.tone(hz(60 + c), 1.6, 0.03, {
+					t: t + 0.25,
+					type: "triangle",
+					cut: 2400,
+					detune: d,
+					attack: 0.06,
+				});
+		this.bell(96, 1.4, 0.05, t + 0.3);
+		this.noise(1.4, 0.04, {
+			t: t + 0.25,
+			type: "highpass",
+			f: 7000,
+			attack: 0.1,
+		});
+		this.tone(80, 0.5, 0.35, { t: t + 0.25, glide: 40 });
+	}
 	note(m: number, g = 0.05) {
 		this.tone(hz(m), 0.08, g, { type: "triangle" });
 	}
