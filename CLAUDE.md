@@ -94,11 +94,11 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   idle lobbies are saved to `$STATE_DIRECTORY/lobbies.json` and restored on
   start (`persist.go`). The client reloads on reconnect when `index.html`
   references a new build (`ws.ts`).
-- **Sprint** (`Settings.Sprint`): one round over a shuffled letter sequence
+- **Sprint** (every solo game, `beginCountdown`): one round over a shuffled letter sequence
   (`Round.Letters`); prompt `pos` is letter `pos/n`, category `pos%n`, sent as
   `sprintWord`. Answers are keyed `letter:categoryId`. Review and scoring walk
   `Round.Slots` (fixed in `finishPlaying`; classic = one slot per category, key
-  = categoryId), so a sprint reuses voting, solo review and scoring unchanged.
+  = categoryId), so a sprint reuses solo review and scoring unchanged.
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
   next round start (`beginCountdown`).

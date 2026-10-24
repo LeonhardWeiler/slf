@@ -14,19 +14,16 @@ in RAM.
 - **Live review**: players vote answers down with thumbs; a category moves
   on when the host skips or once everyone taps done; the host can override and
   merge identical answers
-- **Solo**: alone in a lobby, STOPP ends the round even with empty fields, the
-  review is one screen where tapping an answer toggles it, the round points
-  update live in a sticky bar, and there is no scoreboard between rounds; the
-  game ends with your total. As soon as someone joins, the normal flow is back
+- **Solo**: alone in a lobby you play a sprint: one round, one letter and
+  category at a time; Enter takes a word, an empty Enter or the skip button
+  moves on, STOPP or the time limit ends it. The review is one screen where
+  tapping an answer toggles it; the game ends with your total. As soon as
+  someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
   - **Commentator host**: the host does not play and instead sees a live
     overview of which categories each player has filled in
   - **Last letter instead of first**: answers must _end_ with the letter instead
     of starting with it
-  - **Sprint**: one timed round (45 s, 75 s or no limit), one letter and
-    category at a time; Enter takes a word, an empty Enter or the skip button
-    moves on. Every player gets the same letter sequence; review and scoring
-    run per letter+category with the classic rules
 - **Scoring** by classic rules (see below)
 - **Reconnect**: a reload, tab close or brief connection drop lead back into the
   game; as soon as the network or tab is back, the client reconnects immediately
