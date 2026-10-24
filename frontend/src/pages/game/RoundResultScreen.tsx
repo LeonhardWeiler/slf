@@ -225,7 +225,7 @@ export function RoundResultScreen() {
 										r.rank
 									)}
 								</span>
-								<Av id={r.playerId} name={playerName(r.playerId)} />
+								<Av id={r.playerId} name={playerName(r.playerId)} tip={false} />
 								<span className="name">
 									{playerName(r.playerId)}
 									<PlayerStatus player={p} />

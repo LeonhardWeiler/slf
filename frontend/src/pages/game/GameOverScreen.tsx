@@ -130,7 +130,12 @@ export function GameOverScreen() {
 								className={`fourth${r.playerId === myPlayerId ? " me" : ""}`}
 							>
 								<b>{r.rank}</b>
-								<Av id={r.playerId} name={playerName(r.playerId)} size="sm" />
+								<Av
+									id={r.playerId}
+									name={playerName(r.playerId)}
+									size="sm"
+									tip={false}
+								/>
 								<span className="name">
 									{playerName(r.playerId)}
 									<PlayerStatus player={playerOf(r.playerId)} />

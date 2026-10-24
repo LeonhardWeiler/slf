@@ -362,18 +362,20 @@ export function Av({
 	size = "",
 	children,
 	className = "",
+	tip = true,
 }: {
 	id: string;
 	name: string;
 	size?: "" | "sm" | "big";
 	children?: ReactNode;
 	className?: string;
+	tip?: boolean;
 }) {
 	return (
 		<span
 			className={`av ${size} ${className}`}
 			style={{ "--pc": playerColor(id) } as React.CSSProperties}
-			data-tip={name}
+			data-tip={tip ? name : undefined}
 		>
 			{children ?? [...name][0]}
 		</span>

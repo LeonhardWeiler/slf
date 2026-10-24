@@ -246,7 +246,7 @@ export function Lobby() {
 							data-seat={player.id}
 							className={`seat${leaving ? " leaving" : ""}${player.connected ? "" : " off"}${player.id === myPlayerId ? " me" : ""}`}
 						>
-							<Av id={player.id} name={player.name} size="big">
+							<Av id={player.id} name={player.name} size="big" tip={false}>
 								{player.id === myPlayerId ? <Star /> : undefined}
 							</Av>
 							{player.isHost && (
