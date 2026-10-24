@@ -11,7 +11,8 @@ in RAM.
 - **Host controls**: create/edit/delete categories, time limit, enable/disable
   letters, remove players, end the running round
 - **Round flow**: countdown -> answers -> buzzing -> review -> result
-- **Live review** by the host, including merging identical answers
+- **Live review**: players vote answers down with thumbs and advance together;
+  the host can override and merge identical answers
 - **Solo**: alone in a lobby, STOPP ends the round even with empty fields, the
   review is one screen where tapping an answer toggles it, the round points
   update live in a sticky bar, and there is no scoreboard between rounds; the
@@ -22,6 +23,10 @@ in RAM.
   - **Last letter instead of first**: answers must _end_ with the letter instead
     of starting with it
   - **Flames**: bet once per round on being the "only answer" (+5, see below)
+  - **Sprint**: one timed round (45 s, 75 s or no limit), one letter and
+    category at a time; Enter takes a word, an empty Enter or the skip button
+    moves on. Every player gets the same letter sequence; review and scoring
+    run per letter+category with the classic rules
 - **Scoring** by classic rules (see below)
 - **Reconnect**: a reload, tab close or brief connection drop lead back into the
   game; as soon as the network or tab is back, the client reconnects immediately

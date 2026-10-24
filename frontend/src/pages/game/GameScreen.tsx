@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eye, Flame, Hand, Loader2, Square } from "lucide-react";
+import {
+	Check,
+	Eye,
+	Flame,
+	Hand,
+	Loader2,
+	SkipForward,
+	Square,
+} from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { haptic, shiftPalette, slam } from "@/lib/feel";
@@ -8,6 +16,7 @@ import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
 import { answersKey, clearDrafts, flameKey } from "@/lib/session";
 import { useRoomStore, useIsHost } from "@/store/room";
+import type { GameStatePayload, LobbyStatePayload } from "@/types/events";
 import {
 	validateAnswers,
 	ruleIssue,
@@ -322,6 +331,28 @@ export function GameScreen() {
 
 	if (!game) return null;
 
+	if (game.letters?.length && !isSpectator)
+		return (
+			<>
+				<RoomHeader>
+					{isHost && !lobby.solo && (
+						<IconBtn tip="Runde beenden" onClick={handleEndRound}>
+							<Square />
+						</IconBtn>
+					)}
+				</RoomHeader>
+				<Sprint
+					key={game.roundId}
+					lobby={lobby}
+					game={game}
+					letters={game.letters}
+					onStop={lobby.solo ? handleBuzz : undefined}
+					buzzing={buzzing}
+				/>
+				{dialog}
+			</>
+		);
+
 	const categories = lobby.categories;
 	const playingPlayers = lobby.players.filter(
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
@@ -512,6 +543,184 @@ export function GameScreen() {
 			</section>
 			{dialog}
 		</>
+	);
+}
+
+// Sprint shows one prompt at a time: letter letters[pos / n] with category
+// pos % n. Enter takes the word, Enter on an empty field skips the prompt.
+function Sprint({
+	lobby,
+	game,
+	letters,
+	onStop,
+	buzzing,
+}: {
+	lobby: LobbyStatePayload;
+	game: GameStatePayload;
+	letters: string[];
+	onStop?: () => void;
+	buzzing: boolean;
+}) {
+	const cats = lobby.categories;
+	const n = cats.length;
+	const last = lobby.settings.lastLetterMode;
+	const [pos, setPos] = useState(game.sprintPos ?? 0);
+	const [words, setWords] = useState<string[]>(game.sprintWords ?? []);
+	const [streak, setStreak] = useState(0);
+	const [value, setValue] = useState("");
+	const card = useRef<HTMLLabelElement>(null);
+
+	useEffect(() => {
+		if (game.sprintPos === undefined) return;
+		setPos(game.sprintPos);
+		setWords(game.sprintWords ?? []);
+	}, [game.sprintPos, game.sprintWords]);
+
+	const done = pos >= letters.length * n;
+	const letter = letters[(Math.min(pos, letters.length * n - 1) / n) | 0];
+	const cat = cats[pos % n];
+
+	function advance(word: string) {
+		ws.send({
+			type: "sprintWord",
+			payload: { roundId: game.roundId, pos, value: word },
+		});
+		const next = pos + 1;
+		const run = word ? streak + 1 : 0;
+		setPos(next);
+		setValue("");
+		if (word) {
+			setWords((w) => [...w, word]);
+			sound.word(run);
+			haptic(15);
+			mood("happy", 600);
+			fx.at(card.current, { n: 12, speed: 5 });
+		} else {
+			sound.whoosh();
+			mood("blink", 300);
+		}
+		if (next % n === 0) {
+			if (run >= n) {
+				sound.clear();
+				slam(`${n}/${n}`, "clear");
+				mood("cheer", 1400);
+			}
+			shiftPalette();
+			setStreak(0);
+		} else setStreak(run);
+	}
+
+	function onEnter() {
+		if (done) return;
+		const word = value.trim();
+		if (!word) return advance("");
+		if (ruleIssue(word, letter, last)) {
+			const el = card.current;
+			el?.classList.remove("wrong");
+			void el?.offsetWidth;
+			el?.classList.add("wrong");
+			sound.crunch();
+			haptic([30, 40, 30]);
+			mood("sad", 800);
+			return;
+		}
+		advance(word);
+	}
+
+	return (
+		<section className="screen play sprint">
+			<div className="hud">
+				<Mascot
+					size="letter"
+					letter={last ? `…${letter}` : letter}
+					base={done ? "happy" : undefined}
+				/>
+				<div className="hud-mid">
+					<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
+				</div>
+				<b key={words.length} className="sprint-count" data-tip="Wörter">
+					{words.length}
+				</b>
+			</div>
+
+			<div className="rounds" aria-hidden="true">
+				{cats.map((c, i) => (
+					<i
+						key={c.id}
+						className={
+							i < pos % n || done ? "done" : i === pos % n ? "now" : ""
+						}
+					/>
+				))}
+			</div>
+
+			{done ? (
+				<Mascot size="huge" base="cheer" />
+			) : (
+				<label key={pos} ref={card} className="card sprint-card">
+					<span className="cat">{cat.name}</span>
+					<Tiles
+						value={value}
+						letter={letter}
+						last={last}
+						live
+						ghost={value ? undefined : last ? `…${letter}` : letter}
+					/>
+					<input
+						className="answer"
+						value={value}
+						onChange={(e) => {
+							if ([...e.target.value].length > [...value].length)
+								sound.key([...e.target.value].length - 1);
+							setValue(e.target.value);
+						}}
+						onKeyDown={(e) => {
+							if (e.key !== "Enter" || e.repeat) return;
+							e.preventDefault();
+							onEnter();
+						}}
+						maxLength={30}
+						autoComplete="off"
+						autoCapitalize="words"
+						spellCheck={false}
+						enterKeyHint="next"
+						// biome-ignore lint/a11y/noAutofocus: each prompt is typed right away
+						autoFocus
+						aria-label={`${cat.name} mit ${letter}`}
+					/>
+				</label>
+			)}
+
+			{!done && (
+				<IconBtn tip="Überspringen" onClick={() => advance("")}>
+					<SkipForward />
+				</IconBtn>
+			)}
+
+			<div className="chips">
+				{words.slice(-6).map((w, i) => (
+					<span
+						// biome-ignore lint/suspicious/noArrayIndexKey: words repeat
+						key={words.length - 6 + i}
+						className="word-chip"
+					>
+						{w}
+					</span>
+				))}
+			</div>
+
+			{onStop && (
+				<Btn
+					kind="stop"
+					className="armed"
+					data-tip="STOPP"
+					onClick={() => !buzzing && onStop()}
+				>
+					{buzzing ? <Loader2 className="spin" /> : <Hand />}
+					<span>STOPP</span>
+				</Btn>
+			)}
+		</section>
 	);
 }
 

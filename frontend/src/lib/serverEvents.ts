@@ -37,6 +37,7 @@ const settingsSchema = z.object({
 	hostPlays: z.boolean(),
 	lastLetterMode: z.boolean(),
 	flamesEnabled: z.boolean(),
+	sprint: z._default(z.optional(z.boolean()), false),
 });
 
 const lobbyStatePayload = z.object({
@@ -67,6 +68,9 @@ const gameStatePayload = z.object({
 	serverNow: z.number(),
 	countdownRemaining: z.nullable(z.number()),
 	categoryCount: z.number(),
+	letters: z._default(z.nullish(z.array(z.string())), null),
+	sprintPos: z.optional(z.number()),
+	sprintWords: z.optional(z.array(z.string())),
 });
 
 const reviewAnswerSchema = z.object({
@@ -95,6 +99,8 @@ const reviewStatePayload = z.object({
 		z.nullish(
 			z.array(
 				z.object({
+					key: z._default(z.optional(z.string()), ""),
+					letter: z._default(z.optional(z.string()), ""),
 					categoryId: z.string(),
 					value: z.string(),
 					valid: z.boolean(),

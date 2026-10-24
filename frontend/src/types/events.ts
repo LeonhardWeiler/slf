@@ -30,6 +30,7 @@ export interface Settings {
 	hostPlays: boolean;
 	lastLetterMode: boolean;
 	flamesEnabled: boolean;
+	sprint: boolean;
 }
 
 // A lobbyState whose players are only the changed ones; removed lists the
@@ -94,6 +95,9 @@ export interface GameStatePayload {
 	serverNow: number;
 	countdownRemaining: number | null;
 	categoryCount: number;
+	letters?: string[] | null;
+	sprintPos?: number;
+	sprintWords?: string[];
 }
 
 export interface ReviewAnswer {
@@ -127,6 +131,8 @@ export interface ReviewStatePayload {
 }
 
 export interface SoloRow {
+	key: string;
+	letter: string;
 	categoryId: string;
 	value: string;
 	valid: boolean;
@@ -232,6 +238,7 @@ export type ClientEvent =
 				hostPlays: boolean;
 				lastLetterMode: boolean;
 				flamesEnabled: boolean;
+				sprint: boolean;
 			};
 	  }
 	| { type: "kickPlayer"; payload: { playerId: string } }
@@ -248,6 +255,10 @@ export type ClientEvent =
 			};
 	  }
 	| { type: "buzz"; payload: { roundId: string } }
+	| {
+			type: "sprintWord";
+			payload: { roundId: string; pos: number; value: string };
+	  }
 	| { type: "endRound"; payload: Record<string, never> }
 	| { type: "setFlame"; payload: { roundId: string; categoryId: string } }
 	| {

@@ -66,6 +66,7 @@ function setup(me: string, state: LobbyStatePayload["state"]) {
 				hostPlays: true,
 				lastLetterMode: false,
 				flamesEnabled: false,
+				sprint: false,
 			},
 			state,
 			solo: false,
@@ -165,6 +166,44 @@ describe("RoundResultScreen", () => {
 });
 
 describe("GameScreen", () => {
+	it("walks the sprint prompts and refuses a wrong word", () => {
+		setup("guest", "Playing");
+		useRoomStore.getState().receive("gameState", {
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+			letters: ["B", "K"],
+		});
+		render(<GameScreen />);
+		send.mockClear();
+		const enter = (label: string, value: string) => {
+			const input = screen.getByLabelText(label);
+			fireEvent.change(input, { target: { value } });
+			fireEvent.keyDown(input, { key: "Enter" });
+		};
+		enter("Stadt mit B", "Aachen");
+		expect(send).not.toHaveBeenCalled();
+		enter("Stadt mit B", "Berlin");
+		enter("Land mit B", "");
+		enter("Stadt mit K", "Köln");
+		expect(send.mock.calls.map((c) => c[0])).toEqual([
+			{
+				type: "sprintWord",
+				payload: { roundId: "r1", pos: 0, value: "Berlin" },
+			},
+			{ type: "sprintWord", payload: { roundId: "r1", pos: 1, value: "" } },
+			{ type: "sprintWord", payload: { roundId: "r1", pos: 2, value: "Köln" } },
+		]);
+		expect(screen.getByLabelText("Land mit K")).not.toBeNull();
+		expect(document.querySelector(".sprint-count")?.textContent).toBe("2");
+	});
+
 	it("gates the buzz on valid answers and shows it pending", () => {
 		setup("guest", "Playing");
 		useRoomStore.getState().receive("gameState", {
@@ -356,8 +395,22 @@ describe("review validity", () => {
 			categoryCount: 2,
 			answers: [],
 			solo: [
-				{ categoryId: "c1", value: "Bonn", valid: false, points: 0 },
-				{ categoryId: "c2", value: "", valid: false, points: 0 },
+				{
+					key: "c1",
+					letter: "B",
+					categoryId: "c1",
+					value: "Bonn",
+					valid: false,
+					points: 0,
+				},
+				{
+					key: "c2",
+					letter: "B",
+					categoryId: "c2",
+					value: "",
+					valid: false,
+					points: 0,
+				},
 			],
 			ready: null,
 			voters: null,

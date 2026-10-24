@@ -15,6 +15,7 @@ import {
 	Star,
 	Timer,
 	X,
+	Zap,
 } from "lucide-react";
 import { Navigate } from "@/lib/nav";
 import type { Player, Settings } from "@/types/events";
@@ -45,6 +46,7 @@ const QrCode = lazy(() =>
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
+const SPRINT_STEPS: (number | null)[] = [45, 75, null];
 
 // Keeps players briefly rendered after they leave so the row can fade out
 // instead of snapping away. Present players carry fresh data (name/connection
@@ -207,6 +209,7 @@ export function Lobby() {
 				hostPlays: patch.hostPlays ?? s.hostPlays,
 				lastLetterMode: patch.lastLetterMode ?? s.lastLetterMode,
 				flamesEnabled: patch.flamesEnabled ?? s.flamesEnabled,
+				sprint: patch.sprint ?? s.sprint,
 			},
 		});
 	}
@@ -332,7 +335,7 @@ export function Lobby() {
 					<div className="row">
 						<Timer />
 						<Slider
-							steps={TIME_STEPS}
+							steps={s.sprint ? SPRINT_STEPS : TIME_STEPS}
 							value={s.timeLimit}
 							label="Zeitlimit"
 							format={(v) => (v === null ? "∞" : `${v}s`)}
@@ -342,19 +345,30 @@ export function Lobby() {
 
 					<div className="row modes">
 						<Toggle
+							on={s.sprint}
+							tip="Sprint: ein Wort nach dem anderen"
+							onChange={(sprint) =>
+								updateSettings({ sprint, timeLimit: sprint ? 45 : null })
+							}
+						>
+							<Zap />
+						</Toggle>
+						<Toggle
 							on={!s.hostPlays}
 							tip="Host kommentiert nur"
 							onChange={(v) => updateSettings({ hostPlays: !v })}
 						>
 							<Mic />
 						</Toggle>
-						<Toggle
-							on={s.flamesEnabled}
-							tip="Flammen: Wette auf eine einzigartige Antwort"
-							onChange={(flamesEnabled) => updateSettings({ flamesEnabled })}
-						>
-							<Flame />
-						</Toggle>
+						{!s.sprint && (
+							<Toggle
+								on={s.flamesEnabled}
+								tip="Flammen: Wette auf eine einzigartige Antwort"
+								onChange={(flamesEnabled) => updateSettings({ flamesEnabled })}
+							>
+								<Flame />
+							</Toggle>
+						)}
 						<Toggle
 							on={s.lastLetterMode}
 							tip="Antwort endet mit dem Buchstaben"

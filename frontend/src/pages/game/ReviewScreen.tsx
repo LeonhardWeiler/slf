@@ -96,7 +96,8 @@ export function ReviewScreen() {
 
 	const playerName = (id: string) =>
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	const category = lobby.categories[idx]?.name ?? "";
+	const category =
+		lobby.categories.find((c) => c.id === review.categoryId)?.name ?? "";
 	const last = lobby.settings.lastLetterMode;
 	const canMerge =
 		new Set(
@@ -145,9 +146,10 @@ export function ReviewScreen() {
 					<div className="hud-mid">
 						<h2 className="cat-title">{category}</h2>
 						<div className="rounds">
-							{lobby.categories.map((c, i) => (
+							{Array.from({ length: review.categoryCount }, (_, i) => (
 								<i
-									key={c.id}
+									// biome-ignore lint/suspicious/noArrayIndexKey: one dot per slot
+									key={i}
 									className={i < idx ? "done" : i === idx ? "now" : ""}
 								/>
 							))}

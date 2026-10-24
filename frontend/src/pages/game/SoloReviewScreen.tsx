@@ -101,7 +101,7 @@ export function SoloReviewScreen() {
 				<div className="solo-list">
 					{rows.map((r, i) => (
 						<button
-							key={r.categoryId}
+							key={r.key}
 							type="button"
 							className={`solo-row${i < shown ? " in" : ""}${r.valid ? "" : " cracked"}`}
 							role="switch"
@@ -115,14 +115,14 @@ export function SoloReviewScreen() {
 									: categoryName(r.categoryId)
 							}
 							disabled={!r.value}
-							onClick={() => setValid(r.categoryId, !r.valid)}
+							onClick={() => setValid(r.key, !r.valid)}
 						>
 							<span className="ans-word">
 								<small>{categoryName(r.categoryId)}</small>
 								{r.value ? (
 									<Tiles
 										value={r.value}
-										letter={review.letter}
+										letter={r.letter}
 										last={lobby.settings.lastLetterMode}
 										max={26}
 									/>

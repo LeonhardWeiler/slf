@@ -50,6 +50,7 @@ export function Shell({ children }: { children: ReactNode }) {
 	const calm = usePrefs((s) => s.calm);
 	const code = useRoomStore((s) => s.lobby?.lobbyCode ?? "");
 	const state = useRoomStore((s) => s.lobby?.state);
+	const sprint = useRoomStore((s) => !!s.game?.letters?.length);
 	const used = useRoomStore(
 		(s) => (s.game?.usedLetters ?? s.result?.usedLetters)?.length,
 	);
@@ -70,10 +71,15 @@ export function Shell({ children }: { children: ReactNode }) {
 	}, [code, used, state]);
 
 	useEffect(() => {
-		sound.scene = state ? SCENES[state] : "lobby";
+		sound.scene =
+			sprint && state === "Playing"
+				? "sprint"
+				: state
+					? SCENES[state]
+					: "lobby";
 		sound.layer = 0;
 		shiftPalette();
-	}, [state]);
+	}, [state, sprint]);
 
 	useEffect(() => {
 		let queued = false;

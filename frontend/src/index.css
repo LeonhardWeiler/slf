@@ -3220,3 +3220,36 @@ body.calm *::after {
 .over .podium-row {
 	margin-top: auto;
 }
+.sprint-count {
+	min-width: 52px;
+	padding: 6px 10px;
+	border-radius: 14px;
+	background: var(--card);
+	box-shadow: 0 4px 0 var(--line);
+	font-size: 26px;
+	text-align: center;
+	animation: pop-in 0.3s var(--spring);
+}
+.sprint-card {
+	width: 100%;
+	animation: screen-in 0.25s var(--spring);
+}
+.sprint-card .tiles {
+	--s: 40px;
+	min-height: 48px;
+}
+.sprint .chips {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 6px;
+	margin-top: auto;
+}
+.word-chip {
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: var(--card);
+	box-shadow: 0 3px 0 var(--line);
+	font-weight: 800;
+	animation: pop-in 0.3s var(--spring);
+}
