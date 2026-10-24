@@ -52,6 +52,33 @@ const PALETTES: Record<World, Palette[]> = {
 let world: World = "candy";
 let palette = 0;
 
+// drift is ease-in-out cut into n flat steps of a third of a pixel each; a
+// background blob needs a new frame per step, not per display refresh.
+function drift(n: number) {
+	const bez = (a: number, b: number, t: number) =>
+		3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+	const ease = (x: number) => {
+		let lo = 0;
+		let hi = 1;
+		for (let k = 0; k < 30; k++) {
+			const m = (lo + hi) / 2;
+			if (bez(0.42, 0.58, m) < x) lo = m;
+			else hi = m;
+		}
+		return bez(0, 1, lo);
+	};
+	const pts = [];
+	for (let i = 0; i < n; i++) {
+		const v = i === 0 ? 0 : i === n - 1 ? 1 : ease((i + 0.5) / n);
+		pts.push(`${+v.toFixed(4)} ${+((i / n) * 100).toFixed(3)}%`);
+		pts.push(`${+v.toFixed(4)} ${+(((i + 1) / n) * 100).toFixed(3)}%`);
+	}
+	return `linear(${pts})`;
+}
+const driftRule = document.createElement("style");
+driftRule.textContent = `.bg i{animation-timing-function:${drift(240)}}`;
+document.head.append(driftRule);
+
 // favicon is the mascot face in the body colour and corner radius of the world.
 function favicon(body: string, rx: number) {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="10" width="52" height="50" rx="${rx}" fill="#0004"/><rect x="6" y="10" width="52" height="50" rx="${rx}" fill="${body}" opacity=".6"/><rect x="6" y="4" width="52" height="50" rx="${rx}" fill="${body}"/><circle cx="23" cy="22" r="5" fill="#fff"/><circle cx="41" cy="22" r="5" fill="#fff"/><circle cx="24" cy="23" r="2.4" fill="#3c3c4a"/><circle cx="42" cy="23" r="2.4" fill="#3c3c4a"/><path d="M24 38q8 7 16 0" stroke="#3c3c4a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
