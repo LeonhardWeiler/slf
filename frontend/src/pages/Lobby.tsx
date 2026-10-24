@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
 	Check,
-	Copy,
 	Crown,
 	Hourglass,
 	Link as LinkIcon,
@@ -451,12 +450,6 @@ export function Lobby() {
 					</ErrorBoundary>
 					<CodeTiles code={lobbyCode} small />
 					<div className="row">
-						<IconBtn
-							tip="Link kopieren"
-							onClick={(e) => copyLink(e.currentTarget)}
-						>
-							<Copy />
-						</IconBtn>
 						{canShare && (
 							<IconBtn tip="Teilen" onClick={(e) => shareLink(e.currentTarget)}>
 								<Share2 />
