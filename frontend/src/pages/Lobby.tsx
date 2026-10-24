@@ -327,7 +327,7 @@ export function Lobby() {
 						</form>
 					</div>
 
-					<div className="row" data-tip="Zeitlimit pro Runde">
+					<div className="pref" data-tip="Zeitlimit pro Runde">
 						<Timer />
 						<Slider
 							steps={s.sprint ? SPRINT_STEPS : TIME_STEPS}
