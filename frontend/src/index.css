@@ -1941,7 +1941,7 @@ body.urgent .bg i {
 	padding: 0;
 	list-style: none;
 	display: grid;
-	gap: 8px;
+	gap: 14px;
 }
 .rank {
 	--pc: #ccc;
