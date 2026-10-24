@@ -57,6 +57,50 @@ func answerFor(round *game.Round, playerID, catID string) *game.Answer {
 	return nil
 }
 
+func sprintKey(letter, catID string) string {
+	return letter + ":" + catID
+}
+
+// roundSlots lists what review walks through: every category with the round
+// letter, or in a sprint every letter+category pair a player answered.
+// Caller must hold hub.mu.
+func roundSlots(lobby *game.Lobby) []game.Slot {
+	r := lobby.Game.Round
+	var slots []game.Slot
+	if r.Letters == nil {
+		for _, c := range lobby.Categories {
+			slots = append(slots, game.Slot{Letter: r.Letter, CategoryID: c.ID, Key: c.ID})
+		}
+		return slots
+	}
+	for _, l := range r.Letters {
+		for _, c := range lobby.Categories {
+			key := sprintKey(l, c.ID)
+			for pid, byCat := range r.Answers {
+				if byCat[key] != nil && playsThisRound(lobby, lobby.Players[pid]) {
+					slots = append(slots, game.Slot{Letter: l, CategoryID: c.ID, Key: key})
+					break
+				}
+			}
+		}
+	}
+	return slots
+}
+
+// sprintProgress returns a player's next sprint prompt and their words so far.
+// Caller must hold hub.mu.
+func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
+	r, n := lobby.Game.Round, len(lobby.Categories)
+	pos := r.Pos[pid]
+	words := []string{}
+	for i := 0; i < pos; i++ {
+		if a := r.Answers[pid][sprintKey(r.Letters[i/n], lobby.Categories[i%n].ID)]; a != nil {
+			words = append(words, a.Value)
+		}
+	}
+	return &pos, words
+}
+
 // flamedFor returns the set of players who flamed the given category this round.
 func flamedFor(round *game.Round, catID string) map[string]bool {
 	out := map[string]bool{}
@@ -266,6 +310,7 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 		RemainingLetters: g.RemainingLetters,
 		CategoryCount:    len(lobby.Categories),
 		ServerNow:        time.Now().UnixMilli(),
+		Letters:          r.Letters,
 	}
 	if lobby.State == game.StateCountdown {
 		rem := countdownSeconds - int(time.Since(r.StartedAt).Seconds())
@@ -291,25 +336,25 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	r := lobby.Game.Round
 	idx := r.ReviewIndex
-	if idx < 0 || idx >= len(lobby.Categories) {
+	if idx < 0 || idx >= len(r.Slots) {
 		idx = 0
 	}
-	cat := lobby.Categories[idx]
+	slot := r.Slots[idx]
 
 	var solo []game.SoloRow
 	if p := soloPlayer(lobby); p != nil {
-		solo = make([]game.SoloRow, 0, len(lobby.Categories))
-		for _, c := range lobby.Categories {
-			row := game.SoloRow{CategoryID: c.ID}
-			if a := scoredCategory(lobby, c.ID)[p.ID]; a != nil {
+		solo = make([]game.SoloRow, 0, len(r.Slots))
+		for _, s := range r.Slots {
+			row := game.SoloRow{Key: s.Key, Letter: s.Letter, CategoryID: s.CategoryID}
+			if a := scoredCategory(lobby, s.Key)[p.ID]; a != nil {
 				row.Value, row.Valid, row.Points = a.Value, a.Counts(), a.Points
 			}
 			solo = append(solo, row)
 		}
 	}
 
-	perCat := scoredCategory(lobby, cat.ID)
-	flamed := flamedFor(r, cat.ID)
+	perCat := scoredCategory(lobby, slot.Key)
+	flamed := flamedFor(r, slot.Key)
 
 	answers := make([]game.ReviewAnswer, 0, len(perCat))
 	for pid, a := range perCat {
@@ -341,10 +386,10 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 
 	return game.ReviewStatePayload{
 		RoundID:       r.ID,
-		Letter:        r.Letter,
-		CategoryID:    cat.ID,
+		Letter:        slot.Letter,
+		CategoryID:    slot.CategoryID,
 		CategoryIndex: idx,
-		CategoryCount: len(lobby.Categories),
+		CategoryCount: len(r.Slots),
 		Answers:       answers,
 		BuzzedBy:      r.BuzzedBy,
 		EndReason:     r.EndReason,
@@ -443,7 +488,7 @@ func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
 func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
-	if lobby.Game == nil || lobby.Game.Round == nil || len(lobby.Categories) == 0 {
+	if lobby.Game == nil || lobby.Game.Round == nil || len(lobby.Game.Round.Slots) == 0 {
 		return
 	}
 	hub.broadcastLocked(lobby, "reviewState", buildReviewState(lobby))

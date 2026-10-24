@@ -1194,3 +1194,91 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 		t.Fatalf("expected the next category, got %+v", rs)
 	}
 }
+
+func TestSprintRound(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	cats := host.lastLobby.Categories
+	bob := dial(t, srv)
+	bob.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+	}
+	json.Unmarshal(bob.waitFor("sessionCreated"), &sc)
+	bob.sessionID = sc.SessionID
+
+	excluded := []string{}
+	for r := 'C'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded, "sprint": true})
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State   string   `json:"state"`
+		RoundID string   `json:"roundId"`
+		Letters []string `json:"letters"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+	if len(gs.Letters) != 2 {
+		t.Fatalf("expected the sprint letters A and B, got %v", gs.Letters)
+	}
+	a, b := gs.Letters[0], gs.Letters[1]
+	word := func(c *testConn, pos int, value string) {
+		c.send("sprintWord", map[string]any{"roundId": gs.RoundID, "pos": pos, "value": value})
+	}
+	word(host, 0, a+"stadt")
+	word(host, 1, "")
+	word(host, 2, a+"fluss")
+	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": a + "land", "roundId": gs.RoundID})
+	word(bob, 0, a+"stadt")
+	word(bob, 0, a+"again")
+	word(bob, 3, a+"wrong")
+	word(bob, 3, b+"x")
+	bob.send("ping", map[string]any{})
+	bob.waitFor("pong")
+
+	again := dial(t, srv)
+	again.sessionID = bob.sessionID
+	again.send("reconnect", map[string]any{})
+	var replay struct {
+		SprintPos   int      `json:"sprintPos"`
+		SprintWords []string `json:"sprintWords"`
+	}
+	json.Unmarshal(again.waitFor("gameState"), &replay)
+	if replay.SprintPos != 4 || len(replay.SprintWords) != 2 || replay.SprintWords[1] != b+"x" {
+		t.Fatalf("unexpected replay %+v", replay)
+	}
+
+	host.send("endRound", map[string]any{})
+	var rs struct {
+		Letter        string `json:"letter"`
+		CategoryID    string `json:"categoryId"`
+		CategoryCount int    `json:"categoryCount"`
+		Answers       []any  `json:"answers"`
+	}
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if rs.CategoryCount != 3 || rs.Letter != a || rs.CategoryID != cats[0].ID || len(rs.Answers) != 2 {
+		t.Fatalf("unexpected first slot %+v", rs)
+	}
+
+	host.send("finishReview", map[string]any{})
+	var res struct {
+		Scores []struct {
+			RoundPoints int `json:"roundPoints"`
+		} `json:"scores"`
+		RemainingLetters []string `json:"remainingLetters"`
+		IsGameOver       bool     `json:"isGameOver"`
+	}
+	json.Unmarshal(host.waitFor("roundResult"), &res)
+	if len(res.RemainingLetters) != 0 || len(res.Scores) != 2 || res.Scores[0].RoundPoints != 25 || res.Scores[1].RoundPoints != 25 {
+		t.Fatalf("unexpected result %+v", res)
+	}
+	host.send("startNextRound", map[string]any{})
+	json.Unmarshal(host.waitFor("roundResult"), &res)
+	if !res.IsGameOver {
+		t.Fatal("a sprint is a single round")
+	}
+}

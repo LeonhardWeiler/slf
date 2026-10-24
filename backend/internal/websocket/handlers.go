@@ -42,6 +42,8 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleBuzz(hub, c, msg.Payload)
 	case "endRound":
 		handleEndRound(hub, c)
+	case "sprintWord":
+		handleSprintWord(hub, c, msg.Payload)
 	case "setFlame":
 		handleSetFlame(hub, c, msg.Payload)
 	case "setAnswerValidity":
@@ -584,6 +586,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		HostPlays                 *bool    `json:"hostPlays"`
 		LastLetterMode            *bool    `json:"lastLetterMode"`
 		FlamesEnabled             *bool    `json:"flamesEnabled"`
+		Sprint                    *bool    `json:"sprint"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
@@ -637,6 +640,9 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if p.FlamesEnabled != nil {
 		lobby.Settings.FlamesEnabled = *p.FlamesEnabled
+	}
+	if p.Sprint != nil {
+		lobby.Settings.Sprint = *p.Sprint
 	}
 	hub.mu.Unlock()
 

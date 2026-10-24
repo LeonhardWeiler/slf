@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"log/slog"
+	"math/rand"
 	"slices"
 	"time"
 
@@ -106,7 +107,15 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		Letter:    letter,
 		Answers:   map[string]map[string]*game.Answer{},
 		Flames:    map[string]string{},
+		Pos:       map[string]int{},
 		StartedAt: time.Now(),
+	}
+	if lobby.Settings.Sprint {
+		round.Letters = slices.Clone(g.RemainingLetters)
+		rand.Shuffle(len(round.Letters), func(i, j int) {
+			round.Letters[i], round.Letters[j] = round.Letters[j], round.Letters[i]
+		})
+		round.Letter = round.Letters[0]
 	}
 	g.Round = round
 	setLobbyState(lobby, game.StateCountdown)
@@ -134,6 +143,9 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 	setLobbyState(lobby, game.StatePlaying)
 	g.RemainingLetters = slices.DeleteFunc(slices.Clone(g.RemainingLetters), func(l string) bool { return l == g.Round.Letter })
 	g.UsedLetters = append(g.UsedLetters, g.Round.Letter)
+	if g.Round.Letters != nil {
+		g.RemainingLetters = []string{}
+	}
 	g.Round.StartedAt = time.Now()
 	var endsAt time.Time
 	if lobby.Settings.TimeLimit != nil {
@@ -167,7 +179,7 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.mu.Lock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !inRound(lobby, p.RoundID) {
+	if !ok || !inRound(lobby, p.RoundID) || lobby.Game.Round.Letters != nil {
 		hub.mu.Unlock()
 		return
 	}
@@ -201,7 +213,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.mu.Lock()
 	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !inRound(lobby, p.RoundID) || isRoundSpectator(lobby, player) {
+	if !ok || !inRound(lobby, p.RoundID) || isRoundSpectator(lobby, player) || lobby.Game.Round.Letters != nil {
 		hub.mu.Unlock()
 		return
 	}
@@ -213,6 +225,37 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	hub.notifyRowLocked(lobby, player, before)
 	hub.mu.Unlock()
+}
+
+// handleSprintWord takes the player's word for sprint prompt pos; an empty
+// value skips the prompt. Prompts only move forward.
+func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
+	var p struct {
+		RoundID string `json:"roundId"`
+		Pos     int    `json:"pos"`
+		Value   string `json:"value"`
+	}
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return
+	}
+	hub.mu.Lock()
+	defer hub.mu.Unlock()
+	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
+	if !ok || !inRound(lobby, p.RoundID) || isRoundSpectator(lobby, player) {
+		return
+	}
+	r, n := lobby.Game.Round, len(lobby.Categories)
+	if r.Letters == nil || p.Pos < r.Pos[player.ID] || p.Pos >= len(r.Letters)*n {
+		return
+	}
+	letter := r.Letters[p.Pos/n]
+	if p.Value != "" && !game.IsRuleValid(letter, p.Value, lobby.Settings.LastLetterMode) {
+		return
+	}
+	r.Pos[player.ID] = p.Pos + 1
+	if p.Value != "" {
+		storeAnswer(r, player.ID, sprintKey(letter, lobby.Categories[p.Pos%n].ID), p.Value)
+	}
 }
 
 // handleSetFlame records (or clears, when categoryId is empty) the player's
@@ -348,15 +391,19 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	}
 	// Default validity: rule-conforming answers start valid (SRS 6.4). Done before
 	// the empty-round check so scoring is correct on the direct-to-scoreboard path.
-	for _, byCat := range g.Round.Answers {
-		for _, ans := range byCat {
-			ans.Valid = game.IsRuleValid(g.Round.Letter, ans.Value, lobby.Settings.LastLetterMode)
+	g.Round.Slots = roundSlots(lobby)
+	for _, s := range g.Round.Slots {
+		for _, byCat := range g.Round.Answers {
+			if ans := byCat[s.Key]; ans != nil {
+				ans.Valid = game.IsRuleValid(s.Letter, ans.Value, lobby.Settings.LastLetterMode)
+			}
 		}
 	}
 	// No active player submitted an answer (players who already left are ignored):
 	// skip the review screen entirely and go directly to the scoreboard. A solo
-	// player has no scoreboard and sees the round in review instead.
-	if !hasActiveSubmission(lobby) && soloPlayer(lobby) == nil {
+	// player has no scoreboard and sees the round in review instead, unless a
+	// sprint left nothing to review.
+	if !hasActiveSubmission(lobby) && (soloPlayer(lobby) == nil || len(g.Round.Slots) == 0) {
 		result := hub.scoreAndFinishRound(lobby)
 		result.Empty = true
 		g.LastResult = &result
@@ -386,8 +433,8 @@ func (hub *Hub) mutateReview(c *Client, hostOnly bool, fn func(lobby *game.Lobby
 		return nil
 	}
 	curCat := ""
-	if idx := lobby.Game.Round.ReviewIndex; idx >= 0 && idx < len(lobby.Categories) {
-		curCat = lobby.Categories[idx].ID
+	if r := lobby.Game.Round; r.ReviewIndex >= 0 && r.ReviewIndex < len(r.Slots) {
+		curCat = r.Slots[r.ReviewIndex].Key
 	}
 	changed := fn(lobby, player, curCat)
 	hub.mu.Unlock()
@@ -467,7 +514,7 @@ func advanceIfReady(lobby *game.Lobby) bool {
 	if voters == 0 {
 		return false
 	}
-	if r.ReviewIndex >= len(lobby.Categories)-1 {
+	if r.ReviewIndex >= len(r.Slots)-1 {
 		return true
 	}
 	r.ReviewIndex++
@@ -544,7 +591,7 @@ func handleUnmergeAnswers(hub *Hub, c *Client, raw json.RawMessage) {
 func handleNextCategory(hub *Hub, c *Client) {
 	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, _ string) bool {
 		r := lobby.Game.Round
-		if r.ReviewIndex < len(lobby.Categories)-1 {
+		if r.ReviewIndex < len(r.Slots)-1 {
 			r.ReviewIndex++
 			r.Ready = nil
 			return true
@@ -611,8 +658,8 @@ func (hub *Hub) finishReview(lobby *game.Lobby) {
 func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 	round := lobby.Game.Round
 	roundPoints := map[string]int{}
-	for _, cat := range lobby.Categories {
-		for pid, ans := range scoredCategory(lobby, cat.ID) {
+	for _, s := range round.Slots {
+		for pid, ans := range scoredCategory(lobby, s.Key) {
 			roundPoints[pid] += ans.Points
 		}
 	}
@@ -734,7 +781,11 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 	switch lobby.State {
 	case game.StateCountdown, game.StatePlaying:
 		if lobby.Game != nil && lobby.Game.Round != nil {
-			c.sendV("gameState", buildGameState(lobby), lobby.Version)
+			gs := buildGameState(lobby)
+			if me := hub.playerForLocked(c); me != nil && gs.Letters != nil {
+				gs.SprintPos, gs.SprintWords = sprintProgress(lobby, me.ID)
+			}
+			c.sendV("gameState", gs, lobby.Version)
 			// A reconnecting/joining spectator (commentator host or pending
 			// mid-game joiner) also gets the current fill overview so its board
 			// is populated right away.
@@ -743,7 +794,7 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 			}
 		}
 	case game.StateReviewing:
-		if lobby.Game != nil && lobby.Game.Round != nil && len(lobby.Categories) > 0 {
+		if lobby.Game != nil && lobby.Game.Round != nil && len(lobby.Game.Round.Slots) > 0 {
 			c.sendV("reviewState", buildReviewState(lobby), lobby.Version)
 		}
 	case game.StateRoundResult, game.StateGameOver:

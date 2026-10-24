@@ -40,6 +40,8 @@ type Settings struct {
 	// FlamesEnabled lets each player bet, once per round, that their answer for a
 	// category is unique (a "flame"): if right +5, if wrong 0.
 	FlamesEnabled bool `json:"flamesEnabled"`
+	// Sprint plays one timed round over a letter sequence, one prompt at a time.
+	Sprint bool `json:"sprint"`
 }
 
 type Lobby struct {
@@ -124,6 +126,20 @@ type Round struct {
 	EndReason string `json:"-"`
 	// Ready holds the voters done with the category under review.
 	Ready map[string]bool `json:"-"`
+	// Letters is the sprint letter sequence, nil in a classic round. Prompt n
+	// is letter Letters[n/len(categories)] with category n%len(categories).
+	Letters []string `json:"-"`
+	// Pos is each player's next sprint prompt.
+	Pos map[string]int `json:"-"`
+	// Slots are the letter+category pairs under review, fixed when play ends.
+	Slots []Slot `json:"-"`
+}
+
+// Slot is one reviewed letter+category pair; Key indexes Round.Answers.
+type Slot struct {
+	Letter     string
+	CategoryID string
+	Key        string
 }
 
 // Game is a sequence of rounds over a fresh alphabet within one lobby.
@@ -198,6 +214,12 @@ type GameStatePayload struct {
 	ServerNow          int64    `json:"serverNow"`          // unix ms at send time
 	CountdownRemaining *int     `json:"countdownRemaining"` // seconds, null when Playing
 	CategoryCount      int      `json:"categoryCount"`
+	// Letters is the sprint letter sequence, empty in a classic round.
+	Letters []string `json:"letters"`
+	// SprintPos and SprintWords are the receiver's sprint progress, sent only
+	// on replay.
+	SprintPos   *int     `json:"sprintPos,omitempty"`
+	SprintWords []string `json:"sprintWords,omitempty"`
 }
 
 type ReviewAnswer struct {
@@ -234,6 +256,8 @@ type ReviewStatePayload struct {
 }
 
 type SoloRow struct {
+	Key        string `json:"key"`
+	Letter     string `json:"letter"`
 	CategoryID string `json:"categoryId"`
 	Value      string `json:"value"`
 	Valid      bool   `json:"valid"`
