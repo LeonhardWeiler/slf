@@ -329,7 +329,10 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 				Einstellungen
 			</h2>
 			<div className="prefs">
-				<label className="pref" data-tip="Musik">
+				<label
+					className="pref"
+					data-tip="Musik: Lautstärke der Hintergrundmusik"
+				>
 					<Music />
 					<input
 						type="range"
@@ -343,7 +346,10 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 						}}
 					/>
 				</label>
-				<label className="pref" data-tip="Effekte">
+				<label
+					className="pref"
+					data-tip="Effekte: Lautstärke der Klicks und Spielgeräusche"
+				>
 					<Waves />
 					<input
 						type="range"
@@ -361,14 +367,14 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 				<div className="row" style={{ justifyContent: "center" }}>
 					<Toggle
 						on={p.haptics}
-						tip="Vibration"
+						tip="Vibration: kurzes Rütteln bei jeder Aktion (Handy)"
 						onChange={(haptics) => prefs.set({ haptics })}
 					>
 						<Hand />
 					</Toggle>
 					<Toggle
 						on={!p.calm}
-						tip="Animationen"
+						tip="Animationen: Partikel, Wackeln und Bewegung"
 						onChange={(on) => prefs.set({ calm: !on })}
 					>
 						<Zap />

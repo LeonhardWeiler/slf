@@ -330,7 +330,7 @@ export function Lobby() {
 						</form>
 					</div>
 
-					<div className="row">
+					<div className="row" data-tip="Zeitlimit pro Runde">
 						<Timer />
 						<Slider
 							steps={s.sprint ? SPRINT_STEPS : TIME_STEPS}
@@ -344,7 +344,7 @@ export function Lobby() {
 					<div className="row modes">
 						<Toggle
 							on={s.sprint}
-							tip="Sprint: ein Wort nach dem anderen"
+							tip="Sprint: eine Runde, ein Wort nach dem anderen"
 							onChange={(sprint) =>
 								updateSettings({ sprint, timeLimit: sprint ? 45 : null })
 							}
@@ -353,21 +353,21 @@ export function Lobby() {
 						</Toggle>
 						<Toggle
 							on={!s.hostPlays}
-							tip="Host kommentiert nur"
+							tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"
 							onChange={(v) => updateSettings({ hostPlays: !v })}
 						>
 							<Mic />
 						</Toggle>
 						<Toggle
 							on={s.lastLetterMode}
-							tip="Antwort endet mit dem Buchstaben"
+							tip="Letzter Buchstabe: Antworten müssen mit dem Buchstaben enden statt beginnen"
 							onChange={(lastLetterMode) => updateSettings({ lastLetterMode })}
 						>
 							<b>…A</b>
 						</Toggle>
 						<Toggle
 							on={s.showLetterDuringCountdown}
-							tip="Buchstabe schon im Countdown"
+							tip="Buchstabe schon im Countdown zeigen"
 							onChange={(showLetterDuringCountdown) =>
 								updateSettings({ showLetterDuringCountdown })
 							}
@@ -377,7 +377,12 @@ export function Lobby() {
 					</div>
 
 					{/* biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons */}
-					<div className="letters" role="group" aria-label="Buchstaben">
+					<div
+						className="letters"
+						role="group"
+						aria-label="Buchstaben"
+						data-tip="Buchstaben, die gezogen werden können"
+					>
 						{ALPHABET.map((letter) => (
 							<button
 								key={letter}

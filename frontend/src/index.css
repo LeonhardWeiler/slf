@@ -2269,7 +2269,7 @@ body.urgent .app {
 }
 .tip {
 	position: fixed;
-	z-index: 60;
+	z-index: 80;
 	max-width: min(260px, calc(100vw - 16px));
 	padding: 6px 12px;
 	border-radius: 12px;

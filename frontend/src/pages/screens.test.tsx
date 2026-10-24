@@ -319,7 +319,7 @@ describe("Lobby", () => {
 		expect(
 			screen
 				.getByRole("button", {
-					name: "Antwort endet mit dem Buchstaben",
+					name: "Letzter Buchstabe: Antworten müssen mit dem Buchstaben enden statt beginnen",
 				})
 				.getAttribute("aria-pressed"),
 		).toBe("true");
