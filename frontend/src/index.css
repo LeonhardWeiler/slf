@@ -2899,14 +2899,22 @@ body.calm *::after {
 	border-radius: 28px;
 	font-size: 72px;
 	line-height: 1;
-	box-shadow: 0 6px 0 var(--gold-d);
+	background: linear-gradient(160deg, #ffe066, var(--gold) 55%);
+	color: #fff;
+	-webkit-text-stroke: 6px #b07a00;
+	paint-order: stroke fill;
+	box-shadow:
+		0 6px 0 var(--gold-d),
+		0 12px 18px rgb(0 0 0 / 0.12);
 	animation:
 		pop-in 0.4s var(--spring),
-		nudge 0.5s var(--spring) 2.4s;
+		nudge 0.5s var(--spring) 2.7s;
 }
 .hero .solo-total svg {
 	width: 56px;
 	height: 56px;
+	stroke: #b07a00;
+	stroke-width: 2.5;
 }
 .crash {
 	min-height: 100svh;
@@ -2918,6 +2926,12 @@ body.calm *::after {
 .over.solo {
 	justify-content: center;
 	gap: 24px;
+}
+.over.solo .center {
+	flex: none;
+}
+.over.solo .end-stats {
+	order: 1;
 }
 .over.solo .end-actions {
 	margin-top: 0;

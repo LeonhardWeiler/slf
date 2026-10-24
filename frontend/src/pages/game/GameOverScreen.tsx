@@ -36,9 +36,7 @@ export function GameOverScreen() {
 	useEffect(() => {
 		const at = (ms: number, f: () => void) => setTimeout(f, ms);
 		const ids = solo
-			? Array.from({ length: 12 }, (_, i) =>
-					at(300 + i * 120, () => sound.slot(i)),
-				)
+			? []
 			: [3, 2, 1].map((place, i) =>
 					at(500 + i * 700, () => {
 						setUp(4 - place);
@@ -52,7 +50,7 @@ export function GameOverScreen() {
 					}),
 				);
 		ids.push(
-			at(solo ? 1900 : 2600, () => {
+			at(solo ? 2700 : 2600, () => {
 				if (solo) {
 					sound.stamp(20);
 					mood("cheer", 1500);
@@ -93,7 +91,11 @@ export function GameOverScreen() {
 						{solo && <Mascot size="big" base="happy" />}
 						<span className="solo-total">
 							<Star />
-							<CountUp value={score} durationMs={solo ? 1600 : 2400} />
+							<CountUp
+								value={score}
+								durationMs={solo ? 2600 : 2400}
+								rattle={solo}
+							/>
 						</span>
 					</div>
 				)}
