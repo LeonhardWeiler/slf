@@ -1040,7 +1040,7 @@ body.urgent .bg i {
 	background: #fff;
 	box-shadow:
 		0 3px 0 var(--line),
-		0 0 0 3px var(--you);
+		inset 0 0 0 2px rgb(60 60 74 / 0.3);
 }
 .cat-chip.add {
 	color: var(--soft);
@@ -1402,7 +1402,6 @@ body.urgent .bg i {
 .card:focus-within {
 	border-color: var(--you);
 	box-shadow: 0 5px 0 #84d8ff;
-	margin-block: 6px;
 }
 .card.locked {
 	border-color: var(--good);

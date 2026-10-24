@@ -553,14 +553,14 @@ describe("Lobby letters", () => {
 		});
 		fireEvent.click(
 			screen.getByRole("button", {
-				name: "Ohne seltene Buchstaben C, J, Q, X, Y",
+				name: "Ohne seltene Buchstaben J, Q, X, Y, Z",
 			}),
 		);
 		expect(send).toHaveBeenLastCalledWith({
 			type: "updateSettings",
 			payload: {
 				...lobby.settings,
-				excludedLetters: ["C", "J", "Q", "X", "Y"],
+				excludedLetters: ["J", "Q", "X", "Y", "Z"],
 			},
 		});
 	});

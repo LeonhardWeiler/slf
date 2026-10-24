@@ -42,7 +42,7 @@ const QrCode = lazy(() =>
 );
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const RARE = ["C", "J", "Q", "X", "Y"];
+const RARE = ["J", "Q", "X", "Y", "Z"];
 const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
 const MAX_CATEGORIES = 20;
 const WIDE_CATEGORIES = 8;
@@ -487,8 +487,8 @@ export function Lobby() {
 							{ v: "all", label: "A–Z", tip: "Alle Buchstaben" },
 							{
 								v: "common",
-								label: "–CJQXY",
-								tip: "Ohne seltene Buchstaben C, J, Q, X, Y",
+								label: "–JQXYZ",
+								tip: "Ohne seltene Buchstaben J, Q, X, Y, Z",
 							},
 						]}
 					/>
