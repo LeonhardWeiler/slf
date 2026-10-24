@@ -94,8 +94,10 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   start (`persist.go`). The client reloads on reconnect when `index.html`
   references a new build (`ws.ts`).
 - **Sprint** (every solo game, `beginCountdown`): one round over a shuffled letter sequence
-  (`Round.Letters`); prompt `pos` is letter `pos/n`, category `pos%n`, sent as
-  `sprintWord`. Answers are keyed `letter:categoryId`. Review and scoring walk
+  (`Round.Letters`, `sprintLetters`: one cycle untimed, which ends the round
+  after the last prompt; with a time limit enough shuffled cycles to outlast
+  it); prompt `pos` is letter `pos/n`, category `pos%n`, sent as
+  `sprintWord`. Answers are keyed `letterIndex:categoryId`. Review and scoring walk
   `Round.Slots` (fixed in `finishPlaying`; classic = one slot per category, key
   = categoryId), so a sprint reuses scoring unchanged. A rejoin replays
   `sprintWords`, one entry per prompt, "" for a skipped one.

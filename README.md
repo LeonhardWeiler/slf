@@ -16,8 +16,9 @@ in RAM.
   merge identical answers
 - **Solo**: alone in a lobby you play a sprint: one round, one letter and
   category at a time; Enter takes a word, an empty Enter, Shift+Enter or the
-  skip button moves on, STOPP or the time limit ends it. Finished words stack up with
-  their points; there is no review, the game ends with your total. As soon as
+  skip button moves on. With a time limit the letters repeat until the time
+  runs out; without one every letter comes once. STOPP ends it early.
+  Finished words stack up with their points; there is no review, the game ends with your total. As soon as
   someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
   - **Commentator host**: the host does not play and instead sees a live
