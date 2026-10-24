@@ -1207,7 +1207,8 @@ func TestSoloSprint(t *testing.T) {
 		t.Fatalf("unexpected replay %+v", replay)
 	}
 
-	again.send("endRound", map[string]any{})
+	again.send("sprintWord", map[string]any{"roundId": gs.RoundID, "pos": 4, "value": ""})
+	again.send("sprintWord", map[string]any{"roundId": gs.RoundID, "pos": 5, "value": ""})
 	var res struct {
 		IsGameOver bool `json:"isGameOver"`
 		Ranking    []struct {
@@ -1216,7 +1217,7 @@ func TestSoloSprint(t *testing.T) {
 	}
 	json.Unmarshal(again.waitFor("roundResult"), &res)
 	if !res.IsGameOver {
-		t.Fatal("a sprint is a single round")
+		t.Fatal("an untimed sprint ends after the last prompt")
 	}
 	want := 5 * (game.WordValue(a+"stadt") + game.WordValue(a+"fluss") + game.WordValue(b+"x"))
 	if res.Ranking[0].Score != want {

@@ -3,7 +3,6 @@ package websocket
 import (
 	"encoding/json"
 	"log/slog"
-	"math/rand"
 	"slices"
 	"time"
 
@@ -110,10 +109,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		StartedAt: time.Now(),
 	}
 	if soloPlayer(lobby) != nil {
-		round.Letters = slices.Clone(g.RemainingLetters)
-		rand.Shuffle(len(round.Letters), func(i, j int) {
-			round.Letters[i], round.Letters[j] = round.Letters[j], round.Letters[i]
-		})
+		round.Letters = sprintLetters(g.RemainingLetters, len(lobby.Categories), lobby.Settings.TimeLimit)
 		round.Letter = round.Letters[0]
 	}
 	g.Round = round
@@ -253,7 +249,10 @@ func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	r.Pos[player.ID] = p.Pos + 1
 	if p.Value != "" {
-		storeAnswer(r, player.ID, sprintKey(letter, lobby.Categories[p.Pos%n].ID), p.Value)
+		storeAnswer(r, player.ID, sprintKey(p.Pos/n, lobby.Categories[p.Pos%n].ID), p.Value)
+	}
+	if r.Pos[player.ID] == len(r.Letters)*n {
+		go hub.endRound(lobby, r.ID, "timeout", "")
 	}
 }
 

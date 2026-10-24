@@ -11,6 +11,24 @@ import (
 	"slf/internal/game"
 )
 
+func TestSprintLetters(t *testing.T) {
+	letters := []string{"A", "B", "C"}
+	if got := sprintLetters(letters, 2, nil); len(got) != 3 {
+		t.Fatalf("untimed: each letter once, got %v", got)
+	}
+	limit := 60
+	got := sprintLetters(letters, 2, &limit)
+	if len(got)*2 <= limit*4 {
+		t.Fatalf("timed: %d prompts cannot outlast %ds", len(got)*2, limit)
+	}
+	for i := 0; i+3 <= len(got); i += 3 {
+		c := slices.Sorted(slices.Values(got[i : i+3]))
+		if !slices.Equal(c, letters) {
+			t.Fatalf("cycle %d is not a shuffle: %v", i/3, got[i:i+3])
+		}
+	}
+}
+
 func TestReapAbandoned(t *testing.T) {
 	h := NewHub()
 

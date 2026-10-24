@@ -4,7 +4,9 @@ import (
 	"cmp"
 	"encoding/json"
 	"log/slog"
+	"math/rand/v2"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,8 +59,26 @@ func answerFor(round *game.Round, playerID, catID string) *game.Answer {
 	return nil
 }
 
-func sprintKey(letter, catID string) string {
-	return letter + ":" + catID
+// sprintKey keys a sprint answer by its index in Round.Letters, since a timed
+// sprint repeats letters.
+func sprintKey(i int, catID string) string {
+	return strconv.Itoa(i) + ":" + catID
+}
+
+// sprintLetters shuffles the letters once without a time limit. With one it
+// repeats shuffled cycles so the prompts outlast the clock at four a second.
+func sprintLetters(letters []string, n int, limit *int) []string {
+	cycles := 1
+	if limit != nil {
+		cycles = *limit*4/(len(letters)*max(1, n)) + 1
+	}
+	var out []string
+	for range cycles {
+		c := slices.Clone(letters)
+		rand.Shuffle(len(c), func(i, j int) { c[i], c[j] = c[j], c[i] })
+		out = append(out, c...)
+	}
+	return out
 }
 
 // roundSlots lists what review walks through: every category with the round
@@ -73,9 +93,9 @@ func roundSlots(lobby *game.Lobby) []game.Slot {
 		}
 		return slots
 	}
-	for _, l := range r.Letters {
+	for i, l := range r.Letters {
 		for _, c := range lobby.Categories {
-			key := sprintKey(l, c.ID)
+			key := sprintKey(i, c.ID)
 			for pid, byCat := range r.Answers {
 				if byCat[key] != nil && playsThisRound(lobby, lobby.Players[pid]) {
 					slots = append(slots, game.Slot{Letter: l, CategoryID: c.ID, Key: key})
@@ -96,7 +116,7 @@ func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
 	words := []string{}
 	for i := 0; i < pos; i++ {
 		w := ""
-		if a := r.Answers[pid][sprintKey(r.Letters[i/n], lobby.Categories[i%n].ID)]; a != nil {
+		if a := r.Answers[pid][sprintKey(i/n, lobby.Categories[i%n].ID)]; a != nil {
 			w = a.Value
 		}
 		words = append(words, w)
