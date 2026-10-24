@@ -357,14 +357,16 @@ export function Home() {
 
 	return (
 		<>
-			<TopBar>
-				{streak > 0 && (
-					<span className="badge streak" data-tip="Tage in Folge">
-						<Flame />
-						{streak}
-					</span>
-				)}
-			</TopBar>
+			<TopBar
+				start={
+					streak > 0 && (
+						<span className="badge streak" data-tip="Tage in Folge">
+							<Flame />
+							{streak}
+						</span>
+					)
+				}
+			/>
 			<section className="screen home">
 				<div className="hero">
 					<Mascot size="big" />

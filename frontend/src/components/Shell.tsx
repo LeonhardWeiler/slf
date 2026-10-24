@@ -307,24 +307,33 @@ function Tip({ text, x, y }: { text: string; x: number; y: number }) {
 	);
 }
 
-// TopBar is the row on top of every screen; sound and settings sit at its end.
-export function TopBar({ children }: { children?: ReactNode }) {
+// TopBar is the row on top of every screen: `start` on the left, `children`
+// centred, sound and settings on the right.
+export function TopBar({
+	start,
+	children,
+}: {
+	start?: ReactNode;
+	children?: ReactNode;
+}) {
 	const on = usePrefs((s) => s.sound);
 	const [open, setOpen] = useState(false);
 	return (
 		<header className="top">
-			{children}
-			<span className="spacer" />
-			<IconBtn
-				tip={on ? "Ton aus" : "Ton an"}
-				aria-pressed={on}
-				onClick={() => sound.setOn(!on)}
-			>
-				{on ? <Volume2 /> : <VolumeX />}
-			</IconBtn>
-			<IconBtn tip="Einstellungen" onClick={() => setOpen(true)}>
-				<Settings />
-			</IconBtn>
+			<div className="top-start">{start}</div>
+			<div className="top-mid">{children}</div>
+			<div className="top-end">
+				<IconBtn
+					tip={on ? "Ton aus" : "Ton an"}
+					aria-pressed={on}
+					onClick={() => sound.setOn(!on)}
+				>
+					{on ? <Volume2 /> : <VolumeX />}
+				</IconBtn>
+				<IconBtn tip="Einstellungen" onClick={() => setOpen(true)}>
+					<Settings />
+				</IconBtn>
+			</div>
 			{open && <PrefsSheet onClose={() => setOpen(false)} />}
 		</header>
 	);

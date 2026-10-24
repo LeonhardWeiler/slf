@@ -56,13 +56,19 @@ export function RoomHeader({
 	}
 
 	return (
-		<TopBar>
-			<IconBtn
-				tip={isHost ? "Lobby schließen" : "Verlassen"}
-				onClick={handleLeave}
-			>
-				<DoorOpen />
-			</IconBtn>
+		<TopBar
+			start={
+				<>
+					<IconBtn
+						tip={isHost ? "Lobby schließen" : "Verlassen"}
+						onClick={handleLeave}
+					>
+						<DoorOpen />
+					</IconBtn>
+					<ConnectionBadge />
+				</>
+			}
+		>
 			{code && !noCode && (
 				<button
 					type="button"
@@ -74,7 +80,6 @@ export function RoomHeader({
 					<CodeTiles code={code} small />
 				</button>
 			)}
-			<ConnectionBadge />
 			{children}
 			<HostGraceBanner />
 			{dialog}
