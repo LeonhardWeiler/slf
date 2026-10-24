@@ -77,8 +77,10 @@ func TestSpaHandlerCaching(t *testing.T) {
 		h.ServeHTTP(w, r)
 		return w.Result()
 	}
-	if res := get("/assets/gone.js", ""); res.StatusCode != http.StatusNotFound {
-		t.Errorf("missing asset: status %d, want 404", res.StatusCode)
+	for _, p := range []string{"/assets/gone.js", "/.well-known/ai-catalog.json"} {
+		if res := get(p, ""); res.StatusCode != http.StatusNotFound {
+			t.Errorf("%s: status %d, want 404", p, res.StatusCode)
+		}
 	}
 	res := get("/", "")
 	etag := res.Header.Get("ETag")

@@ -173,7 +173,7 @@ func securityHeaders(h http.Header) {
 
 // spaHandler serves static files from dir and falls back to index.html for
 // paths that do not map to an existing file (single-page-app routing), except
-// under /assets/, where a missing chunk is a 404. A precompressed sibling (.br,
+// under /assets/ or for a file name with an extension, which is a 404. A precompressed sibling (.br,
 // .gz from the build) is served when the client accepts it. Every file carries
 // a content-hash ETag and no Last-Modified: the Nix store pins all mtimes to
 // 1970, so a date never changes across deploys.
@@ -202,7 +202,7 @@ func spaHandler(dir string) http.Handler {
 		asset := strings.HasPrefix(r.URL.Path, "/assets/")
 		path := filepath.Join(dir, filepath.Clean(r.URL.Path))
 		if _, ok := etags[path]; !ok {
-			if asset {
+			if asset || filepath.Ext(path) != "" {
 				http.NotFound(w, r)
 				return
 			}
