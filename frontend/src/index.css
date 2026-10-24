@@ -1354,7 +1354,7 @@ body.urgent .bg i {
 	}
 	.screen.lobby,
 	.screen.result,
-	.screen.sprint {
+	.screen.play {
 		max-width: 760px;
 		margin: 0 auto;
 		width: 100%;
@@ -1363,9 +1363,6 @@ body.urgent .bg i {
 		max-width: 1040px;
 		margin: 0 auto;
 		width: 100%;
-	}
-	.cards {
-		grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
 	}
 	.btn.stop,
 	.btn.next {
