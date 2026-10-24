@@ -289,7 +289,6 @@ export function Lobby() {
 									maxLength={30}
 									spellCheck={false}
 									aria-label={`Kategorie ${cat.name}`}
-									size={Math.max(3, [...cat.name].length)}
 									onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
 									onBlur={(e) => saveCategory(cat.id, cat.name, e.target.value)}
 								/>
@@ -322,7 +321,6 @@ export function Lobby() {
 								value={newCategory}
 								onChange={(e) => setNewCategory(e.target.value)}
 								maxLength={30}
-								size={Math.max(3, [...newCategory].length)}
 								aria-label="Neue Kategorie"
 								spellCheck={false}
 								enterKeyHint="done"
@@ -341,7 +339,7 @@ export function Lobby() {
 						/>
 					</div>
 
-					<div className="row modes">
+					<div className="modes">
 						<Toggle
 							on={s.sprint}
 							tip="Sprint: eine Runde, ein Wort nach dem anderen"

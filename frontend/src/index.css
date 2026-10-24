@@ -954,10 +954,11 @@ body.urgent .bg i {
 }
 .panel {
 	width: 100%;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-	padding: 14px;
+	display: grid;
+	grid-template-areas: "cats" "time" "modes";
+	align-content: start;
+	gap: 16px;
+	padding: 16px;
 	border-radius: var(--rc);
 	background: var(--card);
 	box-shadow: var(--panel-shadow);
@@ -973,25 +974,40 @@ body.urgent .bg i {
 	display: none;
 }
 .cats-edit {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
+	grid-area: cats;
+	display: grid;
+	gap: 8px;
+}
+.panel > .pref {
+	grid-area: time;
+}
+.panel > .modes {
+	grid-area: modes;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+	gap: 8px;
+}
+@media (min-width: 720px) {
+	.panel {
+		grid-template-columns: 1fr 1fr;
+		grid-template-areas: "cats time" "cats modes";
+		column-gap: 24px;
+	}
 }
 .cat-chip {
 	position: relative;
-	display: inline-flex;
+	display: flex;
 	align-items: center;
-	gap: 4px;
-	height: 40px;
-	padding: 0 10px;
+	gap: 6px;
+	height: 44px;
+	padding: 0 8px 0 14px;
 	border-radius: 14px;
 	background: #f2f2f7;
 	box-shadow: 0 3px 0 var(--line);
 }
 .cat-chip input {
-	width: 7ch;
-	min-width: 3ch;
-	field-sizing: content;
+	flex: 1;
+	min-width: 0;
 	border: 0;
 	background: none;
 	outline: 0;
@@ -1012,8 +1028,8 @@ body.urgent .bg i {
 .chip-x {
 	display: grid;
 	place-items: center;
-	width: 22px;
-	height: 22px;
+	width: 30px;
+	height: 30px;
 	border-radius: 50%;
 	color: var(--soft);
 }
@@ -1113,9 +1129,6 @@ body.urgent .bg i {
 }
 .toggle[aria-pressed="true"]::after {
 	scale: 1;
-}
-.modes {
-	justify-content: center;
 }
 .go {
 	margin-top: auto;
@@ -2899,9 +2912,6 @@ body.urgent .app {
 .pref > svg {
 	flex: none;
 	margin-bottom: 17px;
-}
-.cat-chip.add input {
-	width: 9ch;
 }
 
 body.calm *,
