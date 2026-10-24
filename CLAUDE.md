@@ -53,7 +53,7 @@ the `nodeModules` `outputHash` in `flake.nix`.
 - The server is the single source of truth: rules/scoring/state live only on the
   server; every incoming message is validated with Zod (`frontend/src/lib/serverEvents.ts`).
 - `frontend/src/lib/answerValidation.ts` **mirrors** the backend engine rules
-  (`backend/internal/game/engine.go`); keep both in sync when changing either one
+  and word values (`backend/internal/game/engine.go`); keep both in sync when changing either one
   (`bun test` covers this). Mind the JS/Go semantics gap: Go maps case rune by
   rune and counts runes, JS `toUpperCase()` expands (`ß` -> `SS`) and `.length`
   counts UTF-16 units. Use the file's `mapCase`/`upperRunes` helpers and

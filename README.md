@@ -73,14 +73,20 @@ in RAM.
   server invalidates the session, so a replayed id cannot bring the player back.
   Only a tab close/connection drop remains re-joinable.
 
-### Scoring (per category)
+### Scoring
 
-| Points | Condition                                              |
-| -----: | ------------------------------------------------------ |
-|      0 | invalid or empty                                       |
-|      5 | valid, but the same answer as another player           |
-|     10 | valid, unique answer                                   |
-|     20 | only valid answer in the category                      |
+An answer is worth 50 plus 5 × its German Scrabble letter values (`Berlin` =
+95). That word value is multiplied per category:
+
+| Factor | Condition                                    |
+| -----: | -------------------------------------------- |
+|      0 | invalid, empty or struck                     |
+|   1.5x | valid, but the same answer as another player |
+|   2.5x | valid, unique answer                         |
+|     5x | only valid answer in the category            |
+
+The first to buzz gets +200. Filling every category in 2 or more rounds in a
+row adds a combo of +10 % per round (max +50 %) on the round's points.
 
 During review the host can mark answers as valid/invalid and merge answers that
 mean the same thing (they then count as one group).
