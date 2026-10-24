@@ -1731,11 +1731,12 @@ body.urgent .bg i {
 	font-size: 19px;
 	font-weight: 700;
 	color: #fff;
-	scale: 0;
+	animation: pts-in 0.35s var(--spring);
 }
-.pts.on {
-	scale: 1;
-	transition: scale 0.35s var(--spring);
+@keyframes pts-in {
+	from {
+		scale: 0;
+	}
 }
 .pts.p0 {
 	background: #c9c9d4;
@@ -1917,7 +1918,6 @@ body.urgent .bg i {
 	color: var(--soft);
 }
 .solo-row .pts {
-	scale: 1;
 	background: var(--gold);
 	box-shadow: 0 3px 0 var(--gold-d);
 }

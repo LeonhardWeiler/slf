@@ -130,7 +130,7 @@ export function SoloReviewScreen() {
 									<span className="empty">–</span>
 								)}
 							</span>
-							<span className="pts">{r.points}</span>
+							<CountUp value={r.points} className="pts" />
 						</button>
 					))}
 				</div>

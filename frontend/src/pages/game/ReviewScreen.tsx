@@ -18,6 +18,7 @@ import { handlesEnter, isTypingTarget } from "@/lib/utils";
 import { normalize } from "@/lib/answerValidation";
 import { useRoomStore, useIsHost } from "@/store/room";
 import type { ReviewAnswer } from "@/types/events";
+import { CountUp } from "@/components/CountUp";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Av, Btn, IconBtn, Mascot, playerColor, Tiles } from "@/components/kit";
 
@@ -264,9 +265,10 @@ export function ReviewScreen() {
 												<span className="empty">–</span>
 											)}
 										</div>
-										<span className={`pts on ${ptsClass(a.pointsPreview)}`}>
-											{a.pointsPreview}
-										</span>
+										<CountUp
+											value={a.pointsPreview}
+											className={`pts ${ptsClass(a.pointsPreview)}`}
+										/>
 										{down > 0 && (
 											<span className="tally" data-tip={`${down} dagegen`}>
 												<ThumbsDown />
