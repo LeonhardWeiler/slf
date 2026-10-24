@@ -353,13 +353,15 @@ export function Lobby() {
 					</div>
 
 					<div className="modes">
-						<Toggle
-							on={!s.hostPlays}
-							tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"
-							onChange={(v) => updateSettings({ hostPlays: !v })}
-						>
-							<Eye />
-						</Toggle>
+						{(activePlayers.length > 1 || !s.hostPlays) && (
+							<Toggle
+								on={!s.hostPlays}
+								tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"
+								onChange={(v) => updateSettings({ hostPlays: !v })}
+							>
+								<Eye />
+							</Toggle>
+						)}
 						<Toggle
 							on={s.lastLetterMode}
 							tip="Letzter Buchstabe: Antworten müssen mit dem Buchstaben enden statt beginnen"

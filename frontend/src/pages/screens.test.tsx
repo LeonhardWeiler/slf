@@ -520,6 +520,35 @@ describe("Lobby players", () => {
 	});
 });
 
+describe("Lobby commentator toggle", () => {
+	const toggle = () => document.querySelector('[data-tip^="Host kommentiert"]');
+
+	it("shows only with a second player, or while it is on", () => {
+		setup("host", "Lobby");
+		const lobby = useRoomStore.getState().lobby!;
+		const { rerender } = render(<Lobby />);
+		expect(toggle()).not.toBeNull();
+		act(() =>
+			useRoomStore.setState({
+				lobby: { ...lobby, players: [player("host", true)] },
+			}),
+		);
+		rerender(<Lobby />);
+		expect(toggle()).toBeNull();
+		act(() =>
+			useRoomStore.setState({
+				lobby: {
+					...lobby,
+					players: [player("host", true)],
+					settings: { ...lobby.settings, hostPlays: false },
+				},
+			}),
+		);
+		rerender(<Lobby />);
+		expect(toggle()).not.toBeNull();
+	});
+});
+
 describe("Lobby time limit", () => {
 	it("maps slider steps to server settings, including unlimited", () => {
 		setup("host", "Lobby");
