@@ -905,6 +905,7 @@ body.urgent .bg i {
 }
 .kick {
 	position: absolute;
+	z-index: 4;
 	top: -6px;
 	right: -6px;
 	width: 24px;
