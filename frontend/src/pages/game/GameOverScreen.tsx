@@ -145,7 +145,7 @@ export function GameOverScreen() {
 									tip={false}
 								/>
 								<span className="name">
-									{playerName(r.playerId)}
+									<span className="rank-name">{playerName(r.playerId)}</span>
 									<PlayerStatus player={playerOf(r.playerId)} />
 								</span>
 								<b>{r.score}</b>

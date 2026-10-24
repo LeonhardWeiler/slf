@@ -237,7 +237,7 @@ export function RoundResultScreen() {
 								</span>
 								<Av id={r.playerId} name={playerName(r.playerId)} tip={false} />
 								<span className="name">
-									{playerName(r.playerId)}
+									<span className="rank-name">{playerName(r.playerId)}</span>
 									<PlayerStatus player={p} />
 									{p && p.combo >= 2 && (
 										<span

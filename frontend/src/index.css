@@ -1197,6 +1197,7 @@ body.urgent .bg i {
 }
 .hud-mid {
 	flex: 1;
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
@@ -1212,7 +1213,8 @@ body.urgent .bg i {
 	gap: 5px;
 }
 .rounds i {
-	width: 22px;
+	flex: 0 1 22px;
+	min-width: 4px;
 	height: 8px;
 	border-radius: 8px;
 	background: rgb(255 255 255 / 0.45);
@@ -1225,7 +1227,7 @@ body.urgent .bg i {
 	box-shadow: 0 2px 0 var(--gold-d);
 }
 .rounds.big i {
-	width: 34px;
+	flex-basis: 34px;
 	height: 12px;
 }
 .fuse {
@@ -1482,6 +1484,7 @@ body.urgent .bg i {
 }
 .board-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	gap: 6px;
 	padding: 10px;
@@ -1490,7 +1493,7 @@ body.urgent .bg i {
 	box-shadow: 0 4px 0 var(--line);
 }
 .cell {
-	flex: 1;
+	flex: 1 0 28px;
 	height: 40px;
 	display: grid;
 	place-items: center;
@@ -1900,7 +1903,7 @@ body.urgent .bg i {
 	--w: 0;
 	position: relative;
 	display: grid;
-	grid-template-columns: 30px 36px 1fr auto auto 26px;
+	grid-template-columns: 30px 36px minmax(0, 1fr) auto auto 26px;
 	grid-template-areas: "pos av name gain total ready" "pos av bar bar bar ready";
 	align-items: center;
 	column-gap: 10px;
@@ -2118,25 +2121,15 @@ body.urgent .bg i {
 	border-radius: 16px;
 	background: rgb(255 255 255 / 0.8);
 }
-.fourth.me {
-	outline: 3px solid var(--you);
-}
-.best-word {
-	width: 100%;
+.fourth .name {
+	flex: 1;
+	min-width: 0;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 10px 12px;
-	border-radius: 20px;
-	background: #fff;
-	box-shadow: 0 5px 0 var(--line);
+	gap: 6px;
 }
-.best-word .cat {
-	color: var(--soft);
-}
-.best-word .tiles {
-	flex: 1;
-	--s: 28px;
+.fourth.me {
+	outline: 3px solid var(--you);
 }
 .end-actions {
 	margin-top: auto;
@@ -2301,6 +2294,11 @@ body.urgent .bg::after {
 .slam.big b {
 	font-size: 110px;
 	padding: 10px 40px;
+}
+.tip,
+.toast,
+.modal {
+	overflow-wrap: anywhere;
 }
 .tip {
 	position: fixed;
@@ -2901,7 +2899,8 @@ body.calm *::after {
 .answers.merging .ans.twin {
 	cursor: default;
 }
-.seat-name {
+.seat-name,
+.rank-name {
 	max-width: 100%;
 	overflow: hidden;
 	text-overflow: ellipsis;
