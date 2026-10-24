@@ -1038,6 +1038,21 @@ body.urgent .bg i {
 	width: 14px;
 	height: 14px;
 }
+.cat-chip input {
+	text-decoration: line-through 2px transparent;
+	transition:
+		text-decoration-color 0.2s,
+		color 0.2s;
+}
+@media (hover: hover) {
+	.chip-x:hover {
+		color: var(--bad);
+	}
+	.cat-chip:has(.chip-x:hover) input {
+		color: var(--soft);
+		text-decoration-color: var(--bad);
+	}
+}
 .row {
 	display: flex;
 	align-items: center;
