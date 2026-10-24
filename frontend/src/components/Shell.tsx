@@ -85,13 +85,55 @@ export function Shell({ children }: { children: ReactNode }) {
 	}, [state, sprint]);
 
 	useEffect(() => {
-		let queued = false;
 		let tipTimer = 0;
 		let press = 0;
 		let pressed: Element | null = null;
 		let swallow = false;
 		let grab: { el: HTMLElement; x: number; y: number } | null = null;
 		const st = document.documentElement.style;
+		// Pointer targets, eased each frame: the front follows instantly unless it
+		// glides after a jump (pointer re-entered, new touch), the background lags.
+		const look = { x: innerWidth / 2, y: innerHeight / 3 };
+		const par = { x: 0, y: 0 };
+		const eye = { ...look };
+		const fg = { ...par };
+		const bg = { ...par };
+		let glide = false;
+		let raf = 0;
+		let last = 0;
+		function ease(
+			cur: { x: number; y: number },
+			to: { x: number; y: number },
+			a: number,
+		) {
+			cur.x += (to.x - cur.x) * a;
+			cur.y += (to.y - cur.y) * a;
+			return Math.abs(to.x - cur.x) + Math.abs(to.y - cur.y);
+		}
+		function frame(t: number) {
+			const dt = last ? Math.min(64, t - last) : 16;
+			last = t;
+			const a = glide ? 1 - Math.exp(-dt / 90) : 1;
+			const left =
+				ease(eye, look, a) / 50 +
+				ease(fg, par, a) +
+				ease(bg, par, 1 - Math.exp(-dt / 260));
+			if (glide && Math.abs(eye.x - look.x) + Math.abs(fg.x - par.x) < 0.5)
+				glide = false;
+			st.setProperty("--px", fg.x.toFixed(3));
+			st.setProperty("--py", fg.y.toFixed(3));
+			st.setProperty("--bx", bg.x.toFixed(3));
+			st.setProperty("--by", bg.y.toFixed(3));
+			lookAt(eye.x, eye.y);
+			raf = left > 0.002 ? requestAnimationFrame(frame) : 0;
+			if (!raf) last = 0;
+		}
+		function kick() {
+			if (!raf) raf = requestAnimationFrame(frame);
+		}
+		function onOut(e: PointerEvent) {
+			if (!e.relatedTarget) glide = true;
+		}
 
 		function showTip(el: Element) {
 			const text = el.getAttribute("data-tip");
@@ -101,27 +143,18 @@ export function Shell({ children }: { children: ReactNode }) {
 		}
 		function onMove(e: PointerEvent) {
 			if (e.pointerType === "mouse") {
-				st.setProperty(
-					"--px",
-					clamp((e.clientX / innerWidth - 0.5) * 2).toFixed(3),
-				);
-				st.setProperty(
-					"--py",
-					clamp((e.clientY / innerHeight - 0.5) * 2).toFixed(3),
-				);
+				par.x = clamp((e.clientX / innerWidth - 0.5) * 2);
+				par.y = clamp((e.clientY / innerHeight - 0.5) * 2);
 			}
+			look.x = e.clientX;
+			look.y = e.clientY;
+			kick();
 			if (grab) {
 				const x = band(e.clientX - grab.x);
 				const y = band(e.clientY - grab.y);
 				grab.el.style.translate = `${x.toFixed(1)}px ${y.toFixed(1)}px`;
 				grab.el.style.rotate = `${(x * 0.5).toFixed(1)}deg`;
 			}
-			if (queued) return;
-			queued = true;
-			requestAnimationFrame(() => {
-				queued = false;
-				lookAt(e.clientX, e.clientY);
-			});
 		}
 		function onOver(e: PointerEvent) {
 			if (e.pointerType !== "mouse") return;
@@ -132,6 +165,12 @@ export function Shell({ children }: { children: ReactNode }) {
 		}
 		function onDown(e: PointerEvent) {
 			sound.start();
+			if (e.pointerType !== "mouse") {
+				glide = true;
+				look.x = e.clientX;
+				look.y = e.clientY;
+				kick();
+			}
 			const t = e.target as Element;
 			const btn = t.closest("button, [role=button], [role=switch]");
 			const g = t.closest<HTMLElement>(GRAB);
@@ -187,8 +226,9 @@ export function Shell({ children }: { children: ReactNode }) {
 		}
 		function onTilt(e: DeviceOrientationEvent) {
 			if (e.gamma == null || e.beta == null) return;
-			st.setProperty("--px", clamp(e.gamma / 25).toFixed(3));
-			st.setProperty("--py", clamp((e.beta - 45) / 25).toFixed(3));
+			par.x = clamp(e.gamma / 25);
+			par.y = clamp((e.beta - 45) / 25);
+			kick();
 		}
 		function onVisible() {
 			if (document.hidden) sound.pause();
@@ -196,6 +236,7 @@ export function Shell({ children }: { children: ReactNode }) {
 		}
 		addEventListener("pointermove", onMove, { passive: true });
 		addEventListener("pointerover", onOver);
+		addEventListener("pointerout", onOut);
 		addEventListener("pointerdown", onDown, true);
 		addEventListener("pointerup", onUp);
 		addEventListener("pointercancel", onUp);
@@ -205,7 +246,9 @@ export function Shell({ children }: { children: ReactNode }) {
 		document.addEventListener("visibilitychange", onVisible);
 		return () => {
 			removeEventListener("pointermove", onMove);
+			cancelAnimationFrame(raf);
 			removeEventListener("pointerover", onOver);
+			removeEventListener("pointerout", onOut);
 			removeEventListener("pointerdown", onDown, true);
 			removeEventListener("pointerup", onUp);
 			removeEventListener("pointercancel", onUp);
