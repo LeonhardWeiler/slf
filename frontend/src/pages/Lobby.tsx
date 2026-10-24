@@ -177,10 +177,11 @@ export function Lobby() {
 		setNewCategory(next);
 	}
 
-	function saveCategory(id: string, before: string, value: string) {
-		const name = value.trim();
+	function saveCategory(id: string, before: string, input: HTMLInputElement) {
+		const name = input.value.trim();
 		if (name && name !== before)
 			ws.send({ type: "editCategory", payload: { categoryId: id, name } });
+		else input.value = before;
 	}
 
 	async function kickPlayer(id: string, name: string, el: Element | null) {
@@ -290,7 +291,7 @@ export function Lobby() {
 									spellCheck={false}
 									aria-label={`Kategorie ${cat.name}`}
 									onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-									onBlur={(e) => saveCategory(cat.id, cat.name, e.target.value)}
+									onBlur={(e) => saveCategory(cat.id, cat.name, e.target)}
 								/>
 								{lobby.categories.length > 1 && (
 									<button

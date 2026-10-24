@@ -281,7 +281,7 @@ body.urgent .bg i {
 		.toggle,
 		.seg button,
 		.lt,
-		.cat-chip,
+		.cat-chip.add,
 		.mode-pick button,
 		.chip,
 		.link-btn,
@@ -315,7 +315,7 @@ body.urgent .bg i {
 	.toggle,
 	.seg button,
 	.lt,
-	.cat-chip,
+	.cat-chip.add,
 	.mode-pick button,
 	.chip,
 	.link-btn,
@@ -1015,6 +1015,7 @@ body.urgent .bg i {
 	user-select: text;
 }
 .cat-chip:focus-within {
+	background: #fff;
 	box-shadow:
 		0 3px 0 var(--line),
 		0 0 0 3px var(--you);

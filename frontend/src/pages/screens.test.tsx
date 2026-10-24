@@ -337,6 +337,23 @@ describe("Lobby", () => {
 });
 
 describe("Lobby categories", () => {
+	it("renames on blur and restores a cleared name", () => {
+		setup("host", "Lobby");
+		render(<Lobby />);
+		const input = screen.getByRole("textbox", {
+			name: "Kategorie Stadt",
+		}) as HTMLInputElement;
+		fireEvent.change(input, { target: { value: " " } });
+		fireEvent.blur(input);
+		expect(input.value).toBe("Stadt");
+		fireEvent.change(input, { target: { value: "Ort" } });
+		fireEvent.blur(input);
+		expect(send).toHaveBeenLastCalledWith({
+			type: "editCategory",
+			payload: { categoryId: "c1", name: "Ort" },
+		});
+	});
+
 	it("adds a category from the + row and drops an empty one on blur", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
