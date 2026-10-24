@@ -306,18 +306,22 @@ export function Home() {
 		errorId?: string,
 	) => (
 		<form onSubmit={onSubmit}>
-			<Tiles value={name} live max={40} className="name-tiles" />
-			<label className={`field${joinError && errorId ? " bad" : ""}`}>
-				<User />
+			<label
+				className={`card name-card${joinError && errorId ? " wrong" : ""}`}
+			>
+				<span className="cat">
+					<User /> Dein Name
+				</span>
+				<Tiles value={name} live max={40} ghost="Name" />
 				<input
+					className="answer"
+					aria-label="Dein Name"
 					value={name}
 					onChange={(e) => {
 						setJoinError(null);
 						setName(e.target.value);
 						sound.key([...e.target.value].length);
 					}}
-					aria-label="Dein Name"
-					placeholder="Name"
 					maxLength={20}
 					aria-invalid={errorId ? joinError != null : undefined}
 					aria-describedby={joinError && errorId ? errorId : undefined}

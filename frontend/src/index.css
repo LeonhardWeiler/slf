@@ -2667,6 +2667,10 @@ body.urgent .bg::after {
 	justify-content: center;
 	gap: 22px;
 }
+.home > :last-child:not(.hero) {
+	min-height: 180px;
+	align-content: start;
+}
 .home .choices {
 	display: grid;
 	gap: 14px;
@@ -2892,10 +2896,12 @@ body.calm *::after {
 	border: 0;
 	background: none;
 }
-.name-tiles {
-	min-height: 44px;
+.name-card {
 	width: 100%;
-	justify-content: center;
+	min-width: 0;
+}
+.name-card .tiles {
+	min-height: 52px;
 }
 .code-in.bad span {
 	border-color: var(--bad);
