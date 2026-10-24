@@ -34,14 +34,17 @@ function typedValue(value: string, letter: string, last: boolean) {
 	);
 }
 
-// floatGain pops the points a keystroke earned above the card.
+// floatGain pops the points a keystroke earned above the last typed tile.
 function floatGain(el: Element | null, gain: number) {
 	if (gain > 0)
-		floatText(
-			el,
-			`+${gain}`,
-			gain >= WORD_BONUS ? "pts-float c3" : "pts-float",
-		);
+		requestAnimationFrame(() => {
+			const tiles = el?.querySelectorAll(".tile:not(.ghost)");
+			floatText(
+				tiles?.length ? tiles[tiles.length - 1] : el,
+				`+${gain}`,
+				gain >= WORD_BONUS ? "pts-float c3" : "pts-float",
+			);
+		});
 }
 
 // Local ticking timer that counts down from `seconds`, restarting whenever
@@ -405,7 +408,8 @@ export function GameScreen() {
 										),
 									0,
 								)}
-								durationMs={300}
+								durationMs={1200}
+								rattle
 								className="live-score"
 							/>
 						)}
@@ -649,7 +653,8 @@ function Sprint({
 								lettersValue(value),
 							)
 						}
-						durationMs={300}
+						durationMs={1200}
+						rattle
 						className="live-score"
 					/>
 					<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />

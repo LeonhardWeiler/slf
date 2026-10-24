@@ -364,6 +364,10 @@ class Sound {
 	nope() {
 		this.tone(220, 0.14, 0.12, { type: "square", glide: 150, cut: 900 });
 	}
+	count(p: number) {
+		this.noise(0.015, 0.05, { type: "bandpass", f: 2400 + p * 2400, q: 5 });
+		this.tone(700 + p * 900, 0.025, 0.03, { type: "square", cut: 2500 });
+	}
 	tick(n = 0) {
 		this.tone(1400 + n * 24, 0.025, 0.06, { type: "triangle" });
 	}
