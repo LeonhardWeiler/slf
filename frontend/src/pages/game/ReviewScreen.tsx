@@ -12,18 +12,22 @@ import {
 	X,
 } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { bounce, haptic } from "@/lib/feel";
+import { bounce, haptic, slam } from "@/lib/feel";
 import { sound } from "@/lib/sound";
 import { handlesEnter, isTypingTarget } from "@/lib/utils";
-import { normalize } from "@/lib/answerValidation";
+import { BUZZ_BONUS, normalize, wordValue } from "@/lib/answerValidation";
 import { useRoomStore, useIsHost } from "@/store/room";
 import type { ReviewAnswer } from "@/types/events";
 import { CountUp } from "@/components/CountUp";
 import { RoomHeader } from "@/components/RoomHeader";
 import { Av, Btn, IconBtn, Mascot, playerColor, Tiles } from "@/components/kit";
 
-const ptsClass = (p: number) =>
-	p >= 20 ? "p20" : p >= 10 ? "p10" : p > 0 ? "p5" : "p0";
+// ptsClass colours an answer by its multiplier (shared, unique, only one).
+function ptsClass(a: ReviewAnswer) {
+	if (a.pointsPreview <= 0) return "p0";
+	const m = a.pointsPreview / wordValue(a.value);
+	return m >= 4 ? "p20" : m >= 2 ? "p10" : "p5";
+}
 
 export function ReviewScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -37,6 +41,11 @@ export function ReviewScreen() {
 	const count = review?.answers.length ?? 0;
 	const isFirst = idx <= 0;
 	const isLast = review ? idx >= review.categoryCount - 1 : false;
+
+	const buzzedRound = review?.buzzedBy === me ? review?.roundId : undefined;
+	useEffect(() => {
+		if (buzzedRound) slam(`+${BUZZ_BONUS}`, "win");
+	}, [buzzedRound]);
 
 	// Deal the answer cards one by one whenever a category opens.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: categoryIndex is the trigger
@@ -267,7 +276,7 @@ export function ReviewScreen() {
 										</div>
 										<CountUp
 											value={a.pointsPreview}
-											className={`pts ${ptsClass(a.pointsPreview)}`}
+											className={`pts ${ptsClass(a)}`}
 										/>
 										{down > 0 && (
 											<span className="tally" data-tip={`${down} dagegen`}>

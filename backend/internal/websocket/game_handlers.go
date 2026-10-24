@@ -330,6 +330,9 @@ func handleEndRound(hub *Hub, c *Client) {
 // keystrokes still in flight (client debounce + latency) are not lost.
 const answerGrace = 500 * time.Millisecond
 
+// buzzBonus goes to whoever buzzed the round.
+const buzzBonus = 200
+
 // endRound ends the playing phase after answerGrace. Idempotent via the
 // roundID, state and EndReason guard, so a late timer after a buzz is a no-op.
 func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason, buzzer string) {
@@ -637,15 +640,31 @@ func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 			}
 		}
 	}
-	for pid, pts := range points {
-		if pl, ok := lobby.Players[pid]; ok {
-			for _, p := range pts {
-				pl.Score += p
-			}
+	entries := map[string]game.ScoreEntry{}
+	for pid, pl := range lobby.Players {
+		if !playsThisRound(lobby, pl) {
+			continue
 		}
+		if len(points[pid]) == len(round.Slots) {
+			pl.Combo++
+		} else {
+			pl.Combo = 0
+		}
+		e := game.ScoreEntry{Points: points[pid]}
+		if round.BuzzedBy == pid {
+			e.Buzz = buzzBonus
+		}
+		sum := e.Buzz
+		for _, p := range e.Points {
+			sum += p
+		}
+		e.Combo = sum * max(0, min(50, 10*(pl.Combo-1))) / 100
+		e.RoundPoints = sum + e.Combo
+		pl.Score += e.RoundPoints
+		entries[pid] = e
 	}
 	setLobbyState(lobby, game.StateRoundResult)
-	result := buildRoundResult(lobby, round.Letter, points, false, "")
+	result := buildRoundResult(lobby, round.Letter, entries, false, "")
 	lobby.Game.LastResult = &result
 	return result
 }
@@ -707,6 +726,7 @@ func (hub *Hub) resetForNewGame(lobby *game.Lobby) {
 			continue
 		}
 		p.Score = 0
+		p.Combo = 0
 		// A fresh game/lobby has no waiting spectators: any mid-game joiner who is
 		// still pending becomes a normal member.
 		p.Pending = false

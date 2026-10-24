@@ -20,6 +20,7 @@ const player = (id: string, name: string, score = 0): Player => ({
 	left: false,
 	pending: false,
 	score,
+	combo: 0,
 });
 
 const lobby = (players: Player[]): LobbyStatePayload => ({

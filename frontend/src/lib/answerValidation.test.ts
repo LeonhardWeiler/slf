@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { Category } from "@/types/events";
-import { normalize, ruleIssue, validateAnswers } from "./answerValidation";
+import {
+	normalize,
+	ruleIssue,
+	validateAnswers,
+	wordValue,
+} from "./answerValidation";
 
 const invalid = (...a: Parameters<typeof ruleIssue>) =>
 	ruleIssue(...a) !== undefined;
@@ -122,5 +127,13 @@ describe("validateAnswers", () => {
 		);
 		expect(res.valid).toBe(false);
 		expect(res.reason).toBeUndefined();
+	});
+});
+
+describe("wordValue", () => {
+	it("matches engine.WordValue (same cases as TestWordValue)", () => {
+		expect(wordValue("Berlin")).toBe(50 + 5 * (3 + 1 + 1 + 2 + 1 + 1));
+		expect(wordValue(" qy-z ")).toBe(50 + 5 * (10 + 10 + 3));
+		expect(wordValue("Öß")).toBe(50 + 5 * (8 + 1));
 	});
 });

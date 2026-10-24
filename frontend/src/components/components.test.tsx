@@ -46,6 +46,7 @@ describe("PlayerStatus", () => {
 		left: false,
 		pending: false,
 		score: 0,
+		combo: 0,
 		...p,
 	});
 
@@ -78,6 +79,7 @@ describe("CommentatorBoard", () => {
 			left: false,
 			pending: false,
 			score: 0,
+			combo: 0,
 		};
 		render(
 			<CommentatorBoard

@@ -15,8 +15,10 @@ type Player struct {
 	// They wait as a spectator (seeing the fill overview, never buzzing/scoring)
 	// and are cleared to a full participant when the next round begins. Excluded
 	// from scoring, ranking and review while pending.
-	Pending  bool      `json:"pending"`
-	Score    int       `json:"score"`
+	Pending bool `json:"pending"`
+	Score   int  `json:"score"`
+	// Combo counts the rounds in a row the player filled every slot validly.
+	Combo    int       `json:"combo"`
 	JoinedAt time.Time `json:"joinedAt"`
 }
 
@@ -163,6 +165,7 @@ type LobbyPlayer struct {
 	// the client renders them a spectator view and hides them from the standings.
 	Pending bool `json:"pending"`
 	Score   int  `json:"score"`
+	Combo   int  `json:"combo"`
 }
 
 type LobbyStatePayload struct {
@@ -260,6 +263,9 @@ type ScoreEntry struct {
 	TotalPoints int    `json:"totalPoints"`
 	// Points lists the round's scoring answers in slot order.
 	Points []int `json:"points,omitempty"`
+	// Buzz is the first-buzz bonus, Combo the combo bonus on top of the round.
+	Buzz  int `json:"buzz,omitempty"`
+	Combo int `json:"combo,omitempty"`
 }
 
 type RankEntry struct {

@@ -398,6 +398,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 				Left:      p.Left,
 				Pending:   p.Pending,
 				Score:     p.Score,
+				Combo:     p.Combo,
 			},
 		})
 	}

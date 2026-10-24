@@ -47,6 +47,7 @@ const player = (id: string, isHost: boolean): Player => ({
 	left: false,
 	pending: false,
 	score: 0,
+	combo: 0,
 });
 
 function setup(me: string, state: LobbyStatePayload["state"]) {

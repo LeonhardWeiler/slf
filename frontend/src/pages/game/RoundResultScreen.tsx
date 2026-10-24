@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowRight, Crown, Flag, Hourglass, X } from "lucide-react";
+import { ArrowRight, Crown, Flag, Flame, Hourglass, X } from "lucide-react";
 import { animate, bounce, floatText, haptic, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
@@ -13,6 +13,18 @@ import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
 import { Av, Btn, IconBtn, Mascot, mood, playerColor } from "@/components/kit";
+import type { ScoreEntry } from "@/types/events";
+
+// stepsOf lists the gains a row counts up: every answer, then the bonuses.
+function stepsOf(s: ScoreEntry) {
+	return (
+		[
+			...s.points.map((p) => [p, `+${p}`]),
+			[s.buzz, `+${s.buzz} Erster!`],
+			[s.combo, `+${s.combo} Combo`],
+		] as [number, string][]
+	).filter(([p]) => p > 0);
+}
 
 export function RoundResultScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -32,7 +44,7 @@ export function RoundResultScreen() {
 		if (!result) return;
 		setStep(0);
 		setSorted(false);
-		const n = Math.max(0, ...result.scores.map((s) => s.points.length));
+		const n = Math.max(0, ...result.scores.map((s) => stepsOf(s).length));
 		const ids = [
 			...Array.from({ length: n }, (_, i) =>
 				setTimeout(() => setStep(i + 1), 700 + i * 280),
@@ -65,10 +77,10 @@ export function RoundResultScreen() {
 	useEffect(() => {
 		if (!step || !result) return;
 		for (const s of result.scores) {
-			const p = s.points[step - 1];
+			const st = stepsOf(s)[step - 1];
 			const row = rows.current.get(s.playerId);
-			if (!p || !row) continue;
-			floatText(row.querySelector(".gain"), `+${p}`, "pts-float");
+			if (!st || !row) continue;
+			floatText(row.querySelector(".gain"), st[1], "pts-float");
 			bounce(row.querySelector(".total"), 1.25, 220);
 			if (s.playerId === myPlayerId) {
 				sound.coin(step - 1);
@@ -154,9 +166,9 @@ export function RoundResultScreen() {
 			? total
 			: total -
 				roundPointsOf(id) +
-				(scoreOf(id)
-					?.points.slice(0, step)
-					.reduce((a, b) => a + b, 0) ?? 0);
+				(scoreOf(id) ? stepsOf(scoreOf(id) as ScoreEntry) : [])
+					.slice(0, step)
+					.reduce((a, [p]) => a + p, 0);
 	const order = sorted
 		? result.ranking
 		: result.ranking.toSorted(
@@ -229,6 +241,15 @@ export function RoundResultScreen() {
 								<span className="name">
 									{playerName(r.playerId)}
 									<PlayerStatus player={p} />
+									{p && p.combo >= 2 && (
+										<span
+											className="combo"
+											data-tip={`${p.combo} Runden alles ausgefüllt: +${Math.min(50, 10 * (p.combo - 1))} %`}
+										>
+											<Flame />
+											{p.combo}
+										</span>
+									)}
 								</span>
 								<span className="gain">+{gain}</span>
 								<CountUp value={now} durationMs={250} className="total" />

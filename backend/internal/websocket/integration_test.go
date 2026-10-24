@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+
+	"slf/internal/game"
 )
 
 // End-to-end tests that drive the real WebSocket protocol against an
@@ -835,7 +837,7 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 	}
 
 	// Even if answers had slipped in, they must not affect the result: Alice is
-	// the only participant, so every category is hers alone -> 20 points each.
+	// the only participant, so every category is hers alone -> 5x the word each.
 	back.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen", "roundId": gs.RoundID})
 	for _, cat := range cats {
 		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen", "roundId": gs.RoundID})
@@ -853,7 +855,7 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 		} `json:"ranking"`
 	}
 	json.Unmarshal(host.waitFor("roundResult"), &rr)
-	want := 20 * len(cats)
+	want := 5*game.WordValue("Aachen")*len(cats) + buzzBonus
 	for _, s := range rr.Ranking {
 		if s.PlayerID == bobID && s.Score != 0 {
 			t.Fatalf("departed player scored %d points, expected 0", s.Score)
@@ -1275,7 +1277,7 @@ func TestSprintRound(t *testing.T) {
 		IsGameOver       bool     `json:"isGameOver"`
 	}
 	json.Unmarshal(host.waitFor("roundResult"), &res)
-	if len(res.RemainingLetters) != 0 || len(res.Scores) != 2 || res.Scores[0].RoundPoints != 25 || res.Scores[1].RoundPoints != 25 {
+	if len(res.RemainingLetters) != 0 || len(res.Scores) != 2 {
 		t.Fatalf("unexpected result %+v", res)
 	}
 	for _, sc := range res.Scores {

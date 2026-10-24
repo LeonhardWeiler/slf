@@ -1,6 +1,9 @@
 package game
 
-import "testing"
+import (
+	"slices"
+	"testing"
+)
 
 func TestNormalize(t *testing.T) {
 	cases := map[string]string{
@@ -71,49 +74,46 @@ func mkAnswers(m map[string]string, validAll bool) map[string]*Answer {
 	return out
 }
 
+func TestWordValue(t *testing.T) {
+	for v, want := range map[string]int{"Berlin": 50 + 5*(3+1+1+2+1+1), " qy-z ": 50 + 5*(10+10+3), "Öß": 50 + 5*(8+1)} {
+		if got := WordValue(v); got != want {
+			t.Errorf("WordValue(%q) = %d, want %d", v, got, want)
+		}
+	}
+}
+
 func TestScoreCategory(t *testing.T) {
-	// Only one valid answer -> 20
-	a := mkAnswers(map[string]string{"p1": "Berlin"}, true)
-	ScoreCategory(a)
-	if a["p1"].Points != 20 {
-		t.Errorf("single valid: got %d want 20", a["p1"].Points)
+	ber, bre := WordValue("Berlin"), WordValue("Bremen")
+	pts := func(m map[string]*Answer, ids ...string) []int {
+		out := []int{}
+		for _, id := range ids {
+			out = append(out, m[id].Points)
+		}
+		return out
+	}
+	invalid := mkAnswers(map[string]string{"p1": "Berlin", "p2": "xyz"}, true)
+	invalid["p2"].Valid = false
+	merged := mkAnswers(map[string]string{"p1": "Muenchen", "p2": "München"}, true)
+	merged["p1"].MergedInto = "p2"
+	cases := []struct {
+		name string
+		in   map[string]*Answer
+		want []int
+	}{
+		{"single valid x5", mkAnswers(map[string]string{"p1": "Berlin"}, true), []int{ber * 5}},
+		{"two unique x2.5", mkAnswers(map[string]string{"p1": "Berlin", "p2": "Bremen"}, true), []int{ber * 5 / 2, bre * 5 / 2}},
+		{"two identical x1.5", mkAnswers(map[string]string{"p1": "Berlin", "p2": "berlin"}, true), []int{ber * 3 / 2, ber * 3 / 2}},
+		{"mixed", mkAnswers(map[string]string{"p1": "Berlin", "p2": "Berlin", "p3": "Bremen"}, true), []int{ber * 3 / 2, ber * 3 / 2, bre * 5 / 2}},
+		{"valid+invalid", invalid, []int{ber * 5, 0}},
+		{"merged spellings", merged, []int{WordValue("Muenchen") * 3 / 2, WordValue("München") * 3 / 2}},
 	}
 
-	// Two different valid answers -> 10 each
-	b := mkAnswers(map[string]string{"p1": "Berlin", "p2": "Bremen"}, true)
-	ScoreCategory(b)
-	if b["p1"].Points != 10 || b["p2"].Points != 10 {
-		t.Errorf("two unique: got %d/%d want 10/10", b["p1"].Points, b["p2"].Points)
-	}
-
-	// Two identical valid answers (auto-grouped) -> 5 each
-	c := mkAnswers(map[string]string{"p1": "Berlin", "p2": "berlin"}, true)
-	ScoreCategory(c)
-	if c["p1"].Points != 5 || c["p2"].Points != 5 {
-		t.Errorf("two identical: got %d/%d want 5/5", c["p1"].Points, c["p2"].Points)
-	}
-
-	// One valid + one invalid -> 20 and 0
-	d := mkAnswers(map[string]string{"p1": "Berlin", "p2": "xyz"}, true)
-	d["p2"].Valid = false
-	ScoreCategory(d)
-	if d["p1"].Points != 20 || d["p2"].Points != 0 {
-		t.Errorf("valid+invalid: got %d/%d want 20/0", d["p1"].Points, d["p2"].Points)
-	}
-
-	// Three players: two same, one different -> 5,5,10
-	e := mkAnswers(map[string]string{"p1": "Berlin", "p2": "Berlin", "p3": "Bremen"}, true)
-	ScoreCategory(e)
-	if e["p1"].Points != 5 || e["p2"].Points != 5 || e["p3"].Points != 10 {
-		t.Errorf("mixed: got %d/%d/%d want 5/5/10", e["p1"].Points, e["p2"].Points, e["p3"].Points)
-	}
-
-	// Explicit merge of different spellings -> grouped as 5
-	f := mkAnswers(map[string]string{"p1": "Muenchen", "p2": "München"}, true)
-	f["p1"].MergedInto = "p2"
-	ScoreCategory(f)
-	if f["p1"].Points != 5 || f["p2"].Points != 5 {
-		t.Errorf("merged spellings: got %d/%d want 5/5", f["p1"].Points, f["p2"].Points)
+	for _, c := range cases {
+		ScoreCategory(c.in)
+		ids := []string{"p1", "p2", "p3"}[:len(c.want)]
+		if got := pts(c.in, ids...); !slices.Equal(got, c.want) {
+			t.Errorf("%s: got %v want %v", c.name, got, c.want)
+		}
 	}
 }
 

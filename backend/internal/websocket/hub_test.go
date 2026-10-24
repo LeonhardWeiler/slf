@@ -252,3 +252,38 @@ func TestAddPendingCapsConnections(t *testing.T) {
 		t.Fatal("accepted above the cap")
 	}
 }
+
+func TestScoreAddsBuzzBonusAndCombo(t *testing.T) {
+	ans := func(v string) *game.Answer { return &game.Answer{Value: v, Valid: true} }
+	lobby := &game.Lobby{
+		Settings: game.Settings{HostPlays: true},
+		Players:  map[string]*game.Player{"a": {ID: "a"}, "b": {ID: "b"}},
+		Game: &game.Game{Round: &game.Round{
+			BuzzedBy: "a",
+			Slots:    []game.Slot{{Key: "c1"}, {Key: "c2"}},
+			Answers: map[string]map[string]*game.Answer{
+				"a": {"c1": ans("Aal"), "c2": ans("Affe")},
+				"b": {"c1": ans("Asow")},
+			},
+		}},
+	}
+	word := 5*game.WordValue("Affe") + game.WordValue("Aal")*5/2
+	h := NewHub()
+	for round, pct := range []int{0, 10, 20, 30, 40, 50, 50} {
+		lobby.State = game.StateReviewing
+		var a, b game.ScoreEntry
+		for _, s := range h.scoreAndFinishRound(lobby).Scores {
+			if s.PlayerID == "a" {
+				a = s
+			} else {
+				b = s
+			}
+		}
+		if a.Buzz != buzzBonus || a.Combo != (word+buzzBonus)*pct/100 || a.RoundPoints != word+buzzBonus+a.Combo {
+			t.Fatalf("round %d: buzzer entry %+v, want combo %d%%", round+1, a, pct)
+		}
+		if b.Buzz != 0 || b.Combo != 0 || lobby.Players["b"].Combo != 0 {
+			t.Fatalf("round %d: unfilled player got a bonus: %+v", round+1, b)
+		}
+	}
+}

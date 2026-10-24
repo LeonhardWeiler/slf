@@ -16,6 +16,8 @@ export interface Player {
 	// round: shown a spectator view, hidden from the standings until then.
 	pending: boolean;
 	score: number;
+	// Rounds in a row with every slot validly filled.
+	combo: number;
 }
 
 export interface Category {
@@ -141,6 +143,8 @@ export interface ScoreEntry {
 	roundPoints: number;
 	totalPoints: number;
 	points: number[];
+	buzz: number;
+	combo: number;
 }
 
 export interface RankEntry {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
-import { haptic, shiftPalette, slam } from "@/lib/feel";
+import { floatText, haptic, shiftPalette, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
@@ -13,12 +13,35 @@ import {
 	validateAnswers,
 	ruleIssue,
 	LENGTH_ISSUE,
+	lettersValue,
+	wordValue,
+	WORD_BONUS,
 } from "@/lib/answerValidation";
+import { CountUp } from "@/components/CountUp";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
 import { Av, Btn, IconBtn, Mascot, mood, Tiles } from "@/components/kit";
+
+// typedValue is what an answer adds to the live score: its letters, plus the
+// word bonus once it passes the rules. The real score is set in review.
+function typedValue(value: string, letter: string, last: boolean) {
+	if (value.trim() === "") return 0;
+	return (
+		lettersValue(value) + (ruleIssue(value, letter, last) ? 0 : WORD_BONUS)
+	);
+}
+
+// floatGain pops the points a keystroke earned above the card.
+function floatGain(el: Element | null, gain: number) {
+	if (gain > 0)
+		floatText(
+			el,
+			`+${gain}`,
+			gain >= WORD_BONUS ? "pts-float c3" : "pts-float",
+		);
+}
 
 // Local ticking timer that counts down from `seconds`, restarting whenever
 // `resetKey` changes. The server stays authoritative for phase transitions.
@@ -254,9 +277,18 @@ export function GameScreen() {
 
 	if (!lobby) return null;
 
-	function updateAnswer(categoryId: string, value: string) {
-		const before = [...(answers[categoryId] ?? "")].length;
+	function updateAnswer(categoryId: string, value: string, el: Element | null) {
+		const prev = answers[categoryId] ?? "";
+		const before = [...prev].length;
 		const len = [...value].length;
+		if (game) {
+			const last = lobby?.settings.lastLetterMode ?? false;
+			floatGain(
+				el,
+				typedValue(value, game.letter, last) -
+					typedValue(prev, game.letter, last),
+			);
+		}
 		if (len > before) {
 			sound.key(len - 1);
 			if (Math.random() < 0.25) mood("blink", 160);
@@ -360,6 +392,22 @@ export function GameScreen() {
 						letter={lastLetterMode ? `…${game.letter}` : game.letter}
 					/>
 					<div className="hud-mid">
+						{!isSpectator && (
+							<CountUp
+								value={categories.reduce(
+									(s, c) =>
+										s +
+										typedValue(
+											answers[c.id] ?? "",
+											game.letter,
+											lastLetterMode,
+										),
+									0,
+								)}
+								durationMs={300}
+								className="live-score"
+							/>
+						)}
 						<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
 					</div>
 					<div className="friends">
@@ -437,7 +485,13 @@ export function GameScreen() {
 											id={`cat-${cat.id}`}
 											className="answer"
 											value={value}
-											onChange={(e) => updateAnswer(cat.id, e.target.value)}
+											onChange={(e) =>
+												updateAnswer(
+													cat.id,
+													e.target.value,
+													e.currentTarget.parentElement,
+												)
+											}
 											onBlur={() =>
 												setTouched((t) => ({ ...t, [cat.id]: true }))
 											}
@@ -537,6 +591,7 @@ function Sprint({
 		setPos(next);
 		setValue("");
 		if (word) {
+			floatGain(card.current, WORD_BONUS);
 			setWords((w) => [...w, word]);
 			sound.word(run);
 			haptic(15);
@@ -583,6 +638,14 @@ function Sprint({
 					base={done ? "happy" : undefined}
 				/>
 				<div className="hud-mid">
+					<CountUp
+						value={words.reduce(
+							(s, w) => s + wordValue(w),
+							lettersValue(value),
+						)}
+						durationMs={300}
+						className="live-score"
+					/>
 					<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
 				</div>
 				<b key={words.length} className="sprint-count" data-tip="Wörter">
@@ -619,6 +682,10 @@ function Sprint({
 						onChange={(e) => {
 							if ([...e.target.value].length > [...value].length)
 								sound.key([...e.target.value].length - 1);
+							floatGain(
+								card.current,
+								lettersValue(e.target.value) - lettersValue(value),
+							);
 							setValue(e.target.value);
 						}}
 						onKeyDown={(e) => {

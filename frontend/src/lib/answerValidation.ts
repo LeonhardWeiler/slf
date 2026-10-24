@@ -124,3 +124,28 @@ export function validateAnswers(
 		),
 	};
 }
+
+// Mirror of engine.letterValues: German Scrabble tile values, any other letter 1.
+const LETTER_VALUES: Record<string, number> = Object.fromEntries(
+	Object.entries({ GHLO: 2, BMWZ: 3, CFKP: 4, ÄJÜV: 6, ÖX: 8, QY: 10 }).flatMap(
+		([letters, v]) => [...letters].map((l) => [l, v]),
+	),
+);
+
+export const WORD_BONUS = 50;
+// Mirror of the backend's buzzBonus for whoever buzzes the round.
+export const BUZZ_BONUS = 200;
+
+// 5 times the Scrabble value of every letter in the value.
+export function lettersValue(value: string): number {
+	return [...value.trim()].reduce(
+		(s, c) =>
+			/\p{L}/u.test(c) ? s + 5 * (LETTER_VALUES[mapCase(c, true)] ?? 1) : s,
+		0,
+	);
+}
+
+// Mirror of engine.WordValue: the letters plus the bonus for the finished word.
+export function wordValue(value: string): number {
+	return lettersValue(value) + WORD_BONUS;
+}

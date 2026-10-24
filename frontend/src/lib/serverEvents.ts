@@ -26,6 +26,7 @@ const playerSchema = z.object({
 	// Lenient default: tolerate a message from an older server without the field.
 	pending: z._default(z.optional(z.boolean()), false),
 	score: z.number(),
+	combo: z._default(z.optional(z.number()), 0),
 });
 
 const categorySchema = z.object({ id: z.string(), name: z.string() });
@@ -130,6 +131,8 @@ const roundResultPayload = z.object({
 			roundPoints: z.number(),
 			totalPoints: z.number(),
 			points: z._default(z.optional(z.array(z.number())), []),
+			buzz: z._default(z.optional(z.number()), 0),
+			combo: z._default(z.optional(z.number()), 0),
 		}),
 	),
 	ranking: z.array(

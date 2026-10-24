@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 // Alphabet without umlauts (SRS 5.4).
@@ -74,10 +75,33 @@ func IsRuleValid(letter, value string, lastLetter bool) bool {
 	return strings.HasPrefix(strings.ToUpper(n), upperLetter)
 }
 
-// ScoreCategory assigns points to every answer of one category in place
-// (SRS 7): 0 invalid/empty, 5 valid-but-shared, 10 unique valid, 20 only valid
-// answer in the category. Answers sharing a normalized value or linked via a
-// host merge count as the same group.
+// letterValues are the German Scrabble tile values; any other letter is 1.
+var letterValues = map[rune]int{
+	'G': 2, 'H': 2, 'L': 2, 'O': 2,
+	'B': 3, 'M': 3, 'W': 3, 'Z': 3,
+	'C': 4, 'F': 4, 'K': 4, 'P': 4,
+	'Ä': 6, 'J': 6, 'Ü': 6, 'V': 6,
+	'Ö': 8, 'X': 8,
+	'Q': 10, 'Y': 10,
+}
+
+// WordValue is the base score of a finished answer: 5 times the Scrabble value
+// of every letter, plus 50 for the word.
+func WordValue(value string) int {
+	v := 50
+	for _, r := range strings.ToUpper(strings.TrimSpace(value)) {
+		if !unicode.IsLetter(r) {
+			continue
+		}
+		v += 5 * max(1, letterValues[r])
+	}
+	return v
+}
+
+// ScoreCategory assigns points to every answer of one category in place:
+// 0 invalid/empty, else its WordValue times 1.5 when shared, 2.5 when unique
+// and 5 when it is the only valid answer in the category. Answers sharing a
+// normalized value or linked via a host merge count as the same group.
 func ScoreCategory(answers map[string]*Answer) {
 	valid := make([]string, 0, len(answers))
 	validSet := map[string]bool{}
@@ -139,14 +163,14 @@ func ScoreCategory(answers map[string]*Answer) {
 			a.Points = 0
 			continue
 		}
-		size := groupSize[find(pid)]
+		w := WordValue(a.Value)
 		switch {
-		case size > 1:
-			a.Points = 5
+		case groupSize[find(pid)] > 1:
+			a.Points = w * 3 / 2
 		case numGroups == 1:
-			a.Points = 20
+			a.Points = w * 5
 		default:
-			a.Points = 10
+			a.Points = w * 5 / 2
 		}
 	}
 }
