@@ -101,17 +101,6 @@ func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
 	return &pos, words
 }
 
-// flamedFor returns the set of players who flamed the given category this round.
-func flamedFor(round *game.Round, catID string) map[string]bool {
-	out := map[string]bool{}
-	for pid, fc := range round.Flames {
-		if fc == catID {
-			out[pid] = true
-		}
-	}
-	return out
-}
-
 // ---- round participation ----
 //
 // "Is this player in the round?" has three different answers depending on what
@@ -354,7 +343,6 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	}
 
 	perCat := scoredCategory(lobby, slot.Key)
-	flamed := flamedFor(r, slot.Key)
 
 	answers := make([]game.ReviewAnswer, 0, len(perCat))
 	for pid, a := range perCat {
@@ -365,7 +353,6 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			Valid:         a.Counts(),
 			MergedInto:    a.MergedInto,
 			PointsPreview: a.Points,
-			Flamed:        flamed[pid],
 			Votes:         a.Votes,
 			Ruled:         a.Ruled,
 		})
@@ -413,7 +400,7 @@ func scoredCategory(lobby *game.Lobby, catID string) map[string]*game.Answer {
 			perCat[pid] = a
 		}
 	}
-	game.ScoreCategory(perCat, flamedFor(r, catID))
+	game.ScoreCategory(perCat)
 	return perCat
 }
 

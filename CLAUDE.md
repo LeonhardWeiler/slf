@@ -86,7 +86,7 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   tab does not auto-reconnect, only on focus/visibility (`ws.replaced`).
 - **Solo** (`soloPlayer` in `game_util.go`: exactly 1 non-left player who is no
   spectator): buzz skips the fill and rule checks, review sends all rows at
-  once (`reviewState.solo`), flames are off, empty rounds are still reviewed,
+  once (`reviewState.solo`), empty rounds are still reviewed,
   and `finishReview` goes straight to the next round instead of `RoundResult`.
   A joiner ends solo on the spot.
 - **Deploy**: `SIGHUP` drains (no new games until no lobby is mid-game), then

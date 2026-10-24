@@ -106,7 +106,6 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		ID:        generateID(),
 		Letter:    letter,
 		Answers:   map[string]map[string]*game.Answer{},
-		Flames:    map[string]string{},
 		Pos:       map[string]int{},
 		StartedAt: time.Now(),
 	}
@@ -256,39 +255,6 @@ func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
 	if p.Value != "" {
 		storeAnswer(r, player.ID, sprintKey(letter, lobby.Categories[p.Pos%n].ID), p.Value)
 	}
-}
-
-// handleSetFlame records (or clears, when categoryId is empty) the player's
-// flame for this round - a bet that their answer for that category is unique.
-// At most one flame per player per round, only while playing and only when the
-// host enabled the feature.
-func handleSetFlame(hub *Hub, c *Client, raw json.RawMessage) {
-	var p struct {
-		RoundID    string `json:"roundId"`
-		CategoryID string `json:"categoryId"`
-	}
-	if err := json.Unmarshal(raw, &p); err != nil {
-		return
-	}
-	hub.mu.Lock()
-	defer hub.mu.Unlock()
-	session, lobby, player, ok := hub.lookupLocked(c.sessionID)
-	if !ok || !lobby.Settings.FlamesEnabled || !inRound(lobby, p.RoundID) {
-		return
-	}
-	// A round spectator (commentator host or pending joiner) does not play, so
-	// cannot flame. A solo answer is always the only one, so a flame is no bet.
-	if isRoundSpectator(lobby, player) || soloPlayer(lobby) != nil {
-		return
-	}
-	if p.CategoryID == "" {
-		delete(lobby.Game.Round.Flames, session.PlayerID)
-		return
-	}
-	if !categoryExists(lobby, p.CategoryID) {
-		return
-	}
-	lobby.Game.Round.Flames[session.PlayerID] = p.CategoryID
 }
 
 func handleBuzz(hub *Hub, c *Client, raw json.RawMessage) {

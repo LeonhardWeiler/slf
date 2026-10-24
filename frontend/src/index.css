@@ -254,7 +254,6 @@ body.urgent .bg i {
 .ans,
 .solo-row,
 .chip,
-.flame-btn,
 .link-btn,
 .decide button,
 .kick,
@@ -276,7 +275,6 @@ body.urgent .bg i {
 		.cat-chip,
 		.mode-pick button,
 		.chip,
-		.flame-btn,
 		.link-btn,
 		.decide button,
 		.solo-row
@@ -303,7 +301,6 @@ body.urgent .bg i {
 	.cat-chip,
 	.mode-pick button,
 	.chip,
-	.flame-btn,
 	.link-btn,
 	.decide button,
 	.solo-row,
@@ -1072,9 +1069,6 @@ body.urgent .bg i {
 	color: #ff9600;
 	box-shadow: 0 3px 0 #ffd88a;
 }
-.toggle[data-flag="flames"][aria-pressed="true"] svg {
-	fill: #ffc800;
-}
 .modes {
 	justify-content: center;
 }
@@ -1344,37 +1338,10 @@ body.urgent .bg i {
 .card.locked .lock {
 	scale: 1;
 }
-.flame-btn {
-	position: absolute;
-	z-index: 2;
-	right: 42px;
-	top: 6px;
-	width: 32px;
-	height: 30px;
-	display: grid;
-	place-items: center;
-	border-radius: 10px;
-	color: #d5d5df;
-}
-.card.locked .flame-btn {
-	right: 42px;
-}
-.flame-btn[aria-pressed="true"] {
-	color: #ff9600;
-	animation: flicker 0.6s ease-in-out infinite alternate;
-}
-.flame-btn[aria-pressed="true"] svg {
-	fill: #ffc800;
-}
 @keyframes flicker {
 	to {
 		transform: scale(1.15) rotate(5deg);
 	}
-}
-.card.flamed {
-	border-color: #ff9600;
-	box-shadow: 0 5px 0 #ffb84d;
-	background: linear-gradient(#fff, #fff7e6);
 }
 .btn.stop {
 	--b: #e5e5ee;
@@ -1436,10 +1403,6 @@ body.urgent .bg i {
 .float.count {
 	font-size: 44px;
 	-webkit-text-stroke-color: var(--bad-d);
-}
-.float.flame-float {
-	-webkit-text-stroke-color: #e06c00;
-	font-size: 30px;
 }
 .float.pts-float.c3,
 .float.pts-float.c4 {
@@ -1652,28 +1615,6 @@ body.urgent .bg i {
 }
 .answers.frozen .ans {
 	cursor: default;
-}
-.ans-flame {
-	color: #ff9600;
-	display: grid;
-	place-items: center;
-	transition:
-		transform 0.3s var(--spring),
-		opacity 0.4s,
-		filter 0.4s;
-}
-.ans-flame svg {
-	width: 24px;
-	height: 24px;
-	fill: #ffc800;
-}
-.ans-flame.win {
-	transform: scale(1.4) rotate(-8deg);
-}
-.ans-flame.out {
-	filter: grayscale(1);
-	opacity: 0.4;
-	transform: scale(0.7);
 }
 .pts {
 	min-width: 44px;

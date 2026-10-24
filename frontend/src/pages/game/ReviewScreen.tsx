@@ -6,7 +6,6 @@ import {
 	Clock,
 	Crown,
 	Flag,
-	Flame,
 	Gavel,
 	Link2,
 	Link2Off,
@@ -223,14 +222,6 @@ export function ReviewScreen() {
 												<span className="empty">–</span>
 											)}
 										</div>
-										{a.flamed && (
-											<span
-												className={`ans-flame${a.pointsPreview > 10 ? " win" : a.pointsPreview === 0 ? " out" : ""}`}
-												data-tip="Flamme"
-											>
-												<Flame />
-											</span>
-										)}
 										<span className={`pts on ${ptsClass(a.pointsPreview)}`}>
 											{a.pointsPreview}
 										</span>

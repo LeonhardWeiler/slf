@@ -1,20 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import {
-	Check,
-	Eye,
-	Flame,
-	Hand,
-	Loader2,
-	SkipForward,
-	Square,
-} from "lucide-react";
+import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { haptic, shiftPalette, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
-import { answersKey, clearDrafts, flameKey } from "@/lib/session";
+import { answersKey, clearDrafts } from "@/lib/session";
 import { useRoomStore, useIsHost } from "@/store/room";
 import type { GameStatePayload, LobbyStatePayload } from "@/types/events";
 import {
@@ -56,7 +48,6 @@ function sendInputSync(roundId: string, answers: Record<string, string>) {
 		},
 	});
 }
-const flameHintKey = "slf:flameHintSeen";
 
 // A stored draft is only trusted as a map of strings; anything else is dropped.
 function loadDraft(roundId: string): Record<string, string> {
@@ -90,20 +81,11 @@ export function GameScreen() {
 	const isSpectator =
 		(isHost && lobby?.settings.hostPlays === false) || isPending;
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
-	const flamesEnabled =
-		(lobby?.settings.flamesEnabled ?? false) && !lobby?.solo;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
 	// Categories the player has blurred at least once - a field only shows a red
 	// "invalid" border after it was left, not while still being typed in.
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
-	// The single category this player has "flamed" this round ("" = none).
-	const [flamed, setFlamed] = useState<string>("");
-	// The flame bet is explained once, in the first round that has flames.
-	const [showFlameHint] = useState(() => !storage.get(flameHintKey));
-	useEffect(() => {
-		if (flamesEnabled && showFlameHint) storage.set(flameHintKey, "1");
-	}, [flamesEnabled, showFlameHint]);
 	const loadedRound = useRef<string>("");
 	// Debounce buffer: latest value per category not yet sent to the server.
 	const pendingAnswers = useRef<Record<string, string>>({});
@@ -128,7 +110,7 @@ export function GameScreen() {
 		}
 	}
 
-	// Load saved draft answers (and flame) for this round and push them to the
+	// Load saved draft answers for this round and push them to the
 	// server so a reconnect mid-round restores progress (SRS 5.6 / 9.10).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only when roundId changes
 	useEffect(() => {
@@ -146,18 +128,9 @@ export function GameScreen() {
 		setAnswers(saved);
 		setTouched({});
 
-		const savedFlame = storage.get(flameKey(roundId)) ?? "";
-		setFlamed(savedFlame);
-
 		if (isSpectator) return; // the commentator host submits nothing
 
 		sendInputSync(roundId, saved);
-		if (savedFlame) {
-			ws.send({
-				type: "setFlame",
-				payload: { roundId, categoryId: savedFlame },
-			});
-		}
 	}, [roundId]);
 
 	// Every reconnect resends all answers: ones sent just before the socket died
@@ -297,20 +270,6 @@ export function GameScreen() {
 		if (!flushTimer.current) {
 			flushTimer.current = setTimeout(flushAnswers, 250);
 		}
-	}
-
-	function toggleFlame(categoryId: string, el: Element) {
-		const next = flamed === categoryId ? "" : categoryId;
-		setFlamed(next);
-		if (next) storage.set(flameKey(roundId), next);
-		else storage.remove(flameKey(roundId));
-		ws.send({ type: "setFlame", payload: { roundId, categoryId: next } });
-		if (next) {
-			sound.ignite();
-			fx.at(el, { n: 14, speed: 5, up: 3 });
-			haptic([10, 20, 25]);
-			mood("wow", 700);
-		} else sound.fizzle();
 	}
 
 	if (lobby.state === "Countdown") {
@@ -457,7 +416,7 @@ export function GameScreen() {
 								return (
 									<label
 										key={cat.id}
-										className={`card${isLocked(cat.id) ? " locked" : ""}${flamed === cat.id ? " flamed" : ""}`}
+										className={`card${isLocked(cat.id) ? " locked" : ""}`}
 										style={{ "--ci": idx } as React.CSSProperties}
 									>
 										<span className="cat">{cat.name}</span>
@@ -503,18 +462,6 @@ export function GameScreen() {
 											aria-invalid={showInvalid || undefined}
 										/>
 										{showInvalid && <span className="issue">{issue}</span>}
-										{flamesEnabled && (
-											<button
-												type="button"
-												className="flame-btn"
-												aria-pressed={flamed === cat.id}
-												aria-label="Flamme"
-												data-tip="Wette: einzige Antwort +5, sonst 0"
-												onClick={(e) => toggleFlame(cat.id, e.currentTarget)}
-											>
-												<Flame />
-											</button>
-										)}
 										<span className="lock">
 											<Check />
 										</span>

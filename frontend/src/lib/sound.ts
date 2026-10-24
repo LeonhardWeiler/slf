@@ -417,10 +417,6 @@ class Sound {
 		this.noise(0.5, 0.25, { type: "bandpass", f: 600, to: 3000, q: 0.7 });
 		this.tone(220, 0.25, 0.2, { type: "triangle", glide: 660 });
 	}
-	fizzle() {
-		this.noise(0.5, 0.18, { type: "highpass", f: 3000, to: 9000 });
-		this.tone(500, 0.35, 0.12, { type: "triangle", glide: 160 });
-	}
 	pop() {
 		this.tone(420, 0.12, 0.24, { glide: 900 });
 	}

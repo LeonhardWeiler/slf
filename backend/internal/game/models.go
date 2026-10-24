@@ -37,9 +37,6 @@ type Settings struct {
 	// LastLetterMode makes answers have to *end* with the drawn letter instead of
 	// starting with it (a "spice" the host can enable).
 	LastLetterMode bool `json:"lastLetterMode"`
-	// FlamesEnabled lets each player bet, once per round, that their answer for a
-	// category is unique (a "flame"): if right +5, if wrong 0.
-	FlamesEnabled bool `json:"flamesEnabled"`
 	// Sprint plays one timed round over a letter sequence, one prompt at a time.
 	Sprint bool `json:"sprint"`
 }
@@ -114,10 +111,6 @@ type Round struct {
 	StartedAt time.Time `json:"-"`
 	// ReviewIndex is the category currently under review.
 	ReviewIndex int `json:"-"`
-	// Flames maps a playerID to the categoryID they "flamed" this round (a bet
-	// that their answer is unique). At most one entry per player = one flame per
-	// round. Only meaningful when Settings.FlamesEnabled.
-	Flames map[string]string `json:"-"`
 	// BuzzedBy is the playerID of whoever buzzed to end the round; empty when the
 	// round ended by timeout or a host "end round". Surfaced in review so everyone
 	// sees who stopped the round.
@@ -223,16 +216,14 @@ type GameStatePayload struct {
 }
 
 type ReviewAnswer struct {
-	AnswerID      string `json:"answerId"` // = playerId (one answer per player/category)
-	PlayerID      string `json:"playerId"`
-	Value         string `json:"value"`
-	Valid         bool   `json:"valid"`
-	MergedInto    string `json:"mergedInto"`
-	PointsPreview int    `json:"pointsPreview"`
-	// Flamed is true when this player bet (flamed) that their answer is unique.
-	Flamed bool            `json:"flamed"`
-	Votes  map[string]bool `json:"votes"`
-	Ruled  bool            `json:"ruled"`
+	AnswerID      string          `json:"answerId"` // = playerId (one answer per player/category)
+	PlayerID      string          `json:"playerId"`
+	Value         string          `json:"value"`
+	Valid         bool            `json:"valid"`
+	MergedInto    string          `json:"mergedInto"`
+	PointsPreview int             `json:"pointsPreview"`
+	Votes         map[string]bool `json:"votes"`
+	Ruled         bool            `json:"ruled"`
 }
 
 type ReviewStatePayload struct {

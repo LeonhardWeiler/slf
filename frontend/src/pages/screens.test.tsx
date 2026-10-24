@@ -65,7 +65,6 @@ function setup(me: string, state: LobbyStatePayload["state"]) {
 				excludedLetters: [],
 				hostPlays: true,
 				lastLetterMode: false,
-				flamesEnabled: false,
 				sprint: false,
 			},
 			state,
@@ -305,7 +304,7 @@ describe("Lobby", () => {
 				settings: {
 					...lobby.settings,
 					timeLimit: 60,
-					flamesEnabled: true,
+					lastLetterMode: true,
 					excludedLetters: ["Y", "Q"],
 				},
 			},
@@ -315,7 +314,7 @@ describe("Lobby", () => {
 		expect(
 			screen
 				.getByRole("button", {
-					name: "Flammen: Wette auf eine einzigartige Antwort",
+					name: "Antwort endet mit dem Buchstaben",
 				})
 				.getAttribute("aria-pressed"),
 		).toBe("true");
@@ -353,7 +352,6 @@ describe("review validity", () => {
 					valid: true,
 					mergedInto: "",
 					pointsPreview: 25,
-					flamed: true,
 					votes: null,
 					ruled: false,
 				},
@@ -364,7 +362,6 @@ describe("review validity", () => {
 					valid: false,
 					mergedInto: "",
 					pointsPreview: 0,
-					flamed: false,
 					votes: null,
 					ruled: false,
 				},
@@ -374,7 +371,6 @@ describe("review validity", () => {
 			voters: null,
 		});
 		const { container } = render(<ReviewScreen />);
-		expect(container.querySelectorAll(".ans-flame").length).toBe(1);
 		expect(container.querySelectorAll(".ans.cracked").length).toBe(1);
 		fireEvent.click(
 			screen.getByRole("button", { name: "Als ungültig festlegen" }),
@@ -596,29 +592,6 @@ describe("GameScreen solo", () => {
 	});
 });
 
-describe("GameScreen flames", () => {
-	it("offers a flame per category", () => {
-		setup("guest", "Playing");
-		const lobby = useRoomStore.getState().lobby!;
-		useRoomStore.setState({
-			lobby: { ...lobby, settings: { ...lobby.settings, flamesEnabled: true } },
-		});
-		useRoomStore.getState().receive("gameState", {
-			roundId: "r1",
-			state: "Playing",
-			letter: "B",
-			usedLetters: ["B"],
-			remainingLetters: [],
-			endsAt: null,
-			serverNow: Date.now(),
-			countdownRemaining: null,
-			categoryCount: 2,
-		});
-		render(<GameScreen />);
-		expect(screen.getAllByRole("button", { name: "Flamme" }).length).toBe(2);
-	});
-});
-
 describe("last-letter mode", () => {
 	it("ghosts the letter at the end", () => {
 		setup("guest", "Playing");
@@ -707,7 +680,6 @@ describe("review merge", () => {
 		valid: true,
 		mergedInto: "",
 		pointsPreview: 10,
-		flamed: false,
 		votes: null,
 		ruled: false,
 	});

@@ -29,7 +29,6 @@ export interface Settings {
 	excludedLetters: string[];
 	hostPlays: boolean;
 	lastLetterMode: boolean;
-	flamesEnabled: boolean;
 	sprint: boolean;
 }
 
@@ -107,7 +106,6 @@ export interface ReviewAnswer {
 	valid: boolean;
 	mergedInto: string;
 	pointsPreview: number;
-	flamed: boolean;
 	// voter playerId -> thumbs-up (true) or thumbs-down.
 	votes: Record<string, boolean> | null;
 	// The host overrode the verdict; votes no longer count.
@@ -237,7 +235,6 @@ export type ClientEvent =
 				excludedLetters: string[];
 				hostPlays: boolean;
 				lastLetterMode: boolean;
-				flamesEnabled: boolean;
 				sprint: boolean;
 			};
 	  }
@@ -260,7 +257,6 @@ export type ClientEvent =
 			payload: { roundId: string; pos: number; value: string };
 	  }
 	| { type: "endRound"; payload: Record<string, never> }
-	| { type: "setFlame"; payload: { roundId: string; categoryId: string } }
 	| {
 			type: "setAnswerValidity";
 			payload: { answerId: string; valid: boolean; categoryId?: string };

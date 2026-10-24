@@ -36,7 +36,6 @@ const settingsSchema = z.object({
 	excludedLetters: z.array(z.string()),
 	hostPlays: z.boolean(),
 	lastLetterMode: z.boolean(),
-	flamesEnabled: z.boolean(),
 	sprint: z._default(z.optional(z.boolean()), false),
 });
 
@@ -80,7 +79,6 @@ const reviewAnswerSchema = z.object({
 	valid: z.boolean(),
 	mergedInto: z.string(),
 	pointsPreview: z.number(),
-	flamed: z.boolean(),
 	votes: z._default(z.nullish(z.record(z.string(), z.boolean())), null),
 	ruled: z._default(z.optional(z.boolean()), false),
 });

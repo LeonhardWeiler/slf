@@ -4,7 +4,6 @@ import {
 	Copy,
 	Crown,
 	Eye,
-	Flame,
 	Hourglass,
 	Link as LinkIcon,
 	Mic,
@@ -208,7 +207,6 @@ export function Lobby() {
 				excludedLetters: patch.excludedLetters ?? s.excludedLetters,
 				hostPlays: patch.hostPlays ?? s.hostPlays,
 				lastLetterMode: patch.lastLetterMode ?? s.lastLetterMode,
-				flamesEnabled: patch.flamesEnabled ?? s.flamesEnabled,
 				sprint: patch.sprint ?? s.sprint,
 			},
 		});
@@ -360,15 +358,6 @@ export function Lobby() {
 						>
 							<Mic />
 						</Toggle>
-						{!s.sprint && (
-							<Toggle
-								on={s.flamesEnabled}
-								tip="Flammen: Wette auf eine einzigartige Antwort"
-								onChange={(flamesEnabled) => updateSettings({ flamesEnabled })}
-							>
-								<Flame />
-							</Toggle>
-						)}
 						<Toggle
 							on={s.lastLetterMode}
 							tip="Antwort endet mit dem Buchstaben"

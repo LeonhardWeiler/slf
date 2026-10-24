@@ -44,8 +44,6 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 		handleEndRound(hub, c)
 	case "sprintWord":
 		handleSprintWord(hub, c, msg.Payload)
-	case "setFlame":
-		handleSetFlame(hub, c, msg.Payload)
 	case "setAnswerValidity":
 		handleSetAnswerValidity(hub, c, msg.Payload)
 	case "voteAnswer":
@@ -136,7 +134,6 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 			ExcludedLetters:           []string{},
 			HostPlays:                 true,
 			LastLetterMode:            false,
-			FlamesEnabled:             false,
 		},
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
@@ -419,7 +416,6 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		player.Connected = false
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			delete(lobby.Game.Round.Answers, player.ID)
-			delete(lobby.Game.Round.Flames, player.ID)
 		}
 		// Invalidate the session too (mirroring handleKickPlayer): leaving is a
 		// final exit, so the id must not stay usable. Without this a client that
@@ -585,7 +581,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		ExcludedLetters           []string `json:"excludedLetters"`
 		HostPlays                 *bool    `json:"hostPlays"`
 		LastLetterMode            *bool    `json:"lastLetterMode"`
-		FlamesEnabled             *bool    `json:"flamesEnabled"`
 		Sprint                    *bool    `json:"sprint"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
@@ -637,9 +632,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if p.LastLetterMode != nil {
 		lobby.Settings.LastLetterMode = *p.LastLetterMode
-	}
-	if p.FlamesEnabled != nil {
-		lobby.Settings.FlamesEnabled = *p.FlamesEnabled
 	}
 	if p.Sprint != nil {
 		lobby.Settings.Sprint = *p.Sprint
@@ -695,7 +687,6 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 		target.Connected = false
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			delete(lobby.Game.Round.Answers, p.PlayerID)
-			delete(lobby.Game.Round.Flames, p.PlayerID)
 		}
 	}
 	// Invalidate the session either way so the kicked player can't auto-reconnect

@@ -173,7 +173,7 @@ type lobbyStateDTO struct {
 	Settings struct {
 		TimeLimit       *int     `json:"timeLimit"`
 		ExcludedLetters []string `json:"excludedLetters"`
-		FlamesEnabled   bool     `json:"flamesEnabled"`
+		Sprint          bool     `json:"sprint"`
 		HostPlays       bool     `json:"hostPlays"`
 		LastLetterMode  bool     `json:"lastLetterMode"`
 	} `json:"settings"`
@@ -488,26 +488,26 @@ func TestUpdateSettingsPreservesOmittedBools(t *testing.T) {
 	host := dial(t, srv)
 	host.createLobby("Alice")
 
-	// Turn flames on with a full-ish payload.
+	// Turn sprint on with a full-ish payload.
 	host.send("updateSettings", map[string]any{
 		"timeLimit":      nil,
-		"flamesEnabled":  true,
+		"sprint":         true,
 		"hostPlays":      true,
 		"lastLetterMode": false,
 	})
 	ls := host.readLobby()
-	if !ls.Settings.FlamesEnabled {
-		t.Fatal("flamesEnabled should be true after enabling it")
+	if !ls.Settings.Sprint {
+		t.Fatal("sprint should be true after enabling it")
 	}
 
-	// A partial payload that omits flamesEnabled must not reset it to false.
+	// A partial payload that omits sprint must not reset it to false.
 	host.send("updateSettings", map[string]any{
 		"timeLimit":      nil,
 		"lastLetterMode": true,
 	})
 	ls = host.readLobby()
-	if !ls.Settings.FlamesEnabled {
-		t.Fatal("flamesEnabled must be preserved when omitted (bug-1)")
+	if !ls.Settings.Sprint {
+		t.Fatal("sprint must be preserved when omitted (bug-1)")
 	}
 	if !ls.Settings.LastLetterMode {
 		t.Fatal("lastLetterMode should now be true")
@@ -535,7 +535,7 @@ func TestUpdateSettingsPreservesTimeLimitAndLetters(t *testing.T) {
 	}
 
 	// A payload that omits both must leave them untouched (only toggles a bool).
-	host.send("updateSettings", map[string]any{"flamesEnabled": true})
+	host.send("updateSettings", map[string]any{"sprint": true})
 	ls = host.readLobby()
 	if ls.Settings.TimeLimit == nil || *ls.Settings.TimeLimit != 60 {
 		t.Fatalf("timeLimit must be preserved when omitted, got %v", ls.Settings.TimeLimit)

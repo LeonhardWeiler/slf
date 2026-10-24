@@ -22,7 +22,6 @@ in RAM.
     overview of which categories each player has filled in
   - **Last letter instead of first**: answers must _end_ with the letter instead
     of starting with it
-  - **Flames**: bet once per round on being the "only answer" (+5, see below)
   - **Sprint**: one timed round (45 s, 75 s or no limit), one letter and
     category at a time; Enter takes a word, an empty Enter or the skip button
     moves on. Every player gets the same letter sequence; review and scoring
@@ -81,11 +80,6 @@ in RAM.
 
 During review the host can mark answers as valid/invalid and merge answers that
 mean the same thing (they then count as one group).
-
-**Flames** (if enabled): once per round a player can "flame" a category, a bet
-that they hold the only valid answer there. If the bet pays off, it gives **+5**
-points (unique answer 10 -> 15, only valid 20 -> 25); with a shared or invalid
-answer the category counts **0**.
 
 ### Security
 
@@ -219,7 +213,7 @@ change at the same time and measures, per client, the time until the resulting
   scores, categories) go to `lobbies.json` and are deleted after the restart
   loaded them. Logs hold player names, lobby codes and state changes; session
   ids only as hashes. journald and the nginx access logs keep 14 days.
-- **Browser:** `sessionId` (until leaving), `theme`, `slf:flameHintSeen`, and
+- **Browser:** `sessionId` (until leaving), and
   the draft answers of the running round (deleted when the round ends or on
   leaving).
 
