@@ -76,13 +76,13 @@ export function Shell({ children }: { children: ReactNode }) {
 	}, [code, used, state]);
 
 	useEffect(() => {
-		sound.scene =
+		sound.setScene(
 			sprint && state === "Playing"
 				? "sprint"
 				: state
 					? SCENES[state]
-					: "lobby";
-		sound.layer = 0;
+					: "lobby",
+		);
 		shiftPalette();
 	}, [state, sprint]);
 

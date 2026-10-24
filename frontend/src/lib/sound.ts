@@ -11,6 +11,10 @@ export type Scene =
 export type Timbre = "candy" | "rubber";
 
 const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
+const pent = (n: number) => {
+	const i = Math.min(n, 12);
+	return 72 + [0, 2, 4, 7, 9][i % 5] + 12 * Math.floor(i / 5);
+};
 
 const SCENES: Record<
 	Scene,
@@ -57,11 +61,12 @@ interface NoiseOpts {
 }
 
 class Sound {
-	scene: Scene = "lobby";
+	private scene: Scene = "lobby";
 	timbre: Timbre = "candy";
 	layer = 0;
 	private ctx: AudioContext | null = null;
 	private music!: GainNode;
+	private section!: GainNode;
 	private sfx!: GainNode;
 	private noiseBuf!: AudioBuffer;
 	private step = 0;
@@ -79,6 +84,8 @@ class Sound {
 			const ctx = new A();
 			this.ctx = ctx;
 			this.music = ctx.createGain();
+			this.section = ctx.createGain();
+			this.section.connect(this.music);
 			this.sfx = ctx.createGain();
 			const limit = ctx.createDynamicsCompressor();
 			limit.threshold.value = -6;
@@ -107,6 +114,24 @@ class Sound {
 		const t = this.ctx.currentTime;
 		this.music.gain.setTargetAtTime(music, t, 0.05);
 		this.sfx.gain.setTargetAtTime(sfx, t, 0.05);
+	}
+
+	// setScene fades out what the old scene still has ringing and starts the
+	// new one on a fresh bar, so two grooves never overlap.
+	setScene(s: Scene) {
+		this.layer = 0;
+		if (s === this.scene) return;
+		this.scene = s;
+		const ctx = this.ctx;
+		if (!ctx) return;
+		const t = ctx.currentTime;
+		this.section.gain.setTargetAtTime(0, t, 0.12);
+		const old = this.section;
+		setTimeout(() => old.disconnect(), 3000);
+		this.section = ctx.createGain();
+		this.section.connect(this.music);
+		this.step = 0;
+		this.next = t + 0.3;
 	}
 
 	pause() {
@@ -149,7 +174,7 @@ class Sound {
 		osc
 			.connect(flt)
 			.connect(g)
-			.connect(o.bus === "music" ? this.music : this.sfx);
+			.connect(o.bus === "music" ? this.section : this.sfx);
 		osc.start(at);
 		osc.stop(at + dur + 0.03);
 	}
@@ -171,7 +196,7 @@ class Sound {
 		src
 			.connect(flt)
 			.connect(g)
-			.connect(o.bus === "music" ? this.music : this.sfx);
+			.connect(o.bus === "music" ? this.section : this.sfx);
 		src.start(at, Math.random() * 0.5);
 		src.stop(at + dur + 0.02);
 	}
@@ -225,7 +250,7 @@ class Sound {
 			if (s === 0) {
 				for (const c of chord)
 					for (const d of [-7, 7])
-						this.tone(hz(root + 12 + c), barLen * 1.15, 0.022, {
+						this.tone(hz(root + 12 + c), barLen, 0.022, {
 							t,
 							type: "triangle",
 							bus: "music",
@@ -284,8 +309,8 @@ class Sound {
 	}
 	word(k: number) {
 		const t = this.now;
-		for (const [i, c] of [0, 4, 7, 12].entries())
-			this.bell(84 + k * 2 + c, 0.35, 0.09, t + i * 0.05);
+		for (const [i, d] of [0, 2, 3, 5].entries())
+			this.bell(pent(5 + k + d), 0.35, 0.09, t + i * 0.05);
 		this.tone(90, 0.16, 0.25, { t, glide: 45 });
 	}
 	clear() {
@@ -343,14 +368,14 @@ class Sound {
 		this.tone(1400 + n * 24, 0.025, 0.06, { type: "triangle" });
 	}
 	coin(i: number) {
-		const m = 84 + 12 * Math.floor(i / 7) + [0, 2, 4, 5, 7, 9, 11][i % 7];
+		const m = pent(5 + i);
 		this.bell(m, 0.3, 0.09);
 		this.bell(m + 12, 0.2, 0.04, this.now + 0.04);
 	}
 	combo(n: number) {
 		const t = this.now;
-		for (const [i, c] of [0, 7, 12, 16].entries())
-			this.bell(84 + n * 2 + c, 0.3, 0.1, t + i * 0.05);
+		for (const [i, d] of [0, 3, 5, 7].entries())
+			this.bell(pent(5 + n + d), 0.3, 0.1, t + i * 0.05);
 	}
 	fanfare() {
 		const t = this.now;
