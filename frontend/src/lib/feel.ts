@@ -2,7 +2,7 @@ import { fx } from "./fx";
 import { prefs } from "./prefs";
 import { sound } from "./sound";
 
-export const WORLDS = ["candy", "wood", "rubber", "paper"] as const;
+export const WORLDS = ["candy", "rubber"] as const;
 export type World = (typeof WORLDS)[number];
 
 // [tile colours, background top, background bottom]
@@ -30,23 +30,6 @@ const PALETTES: Record<World, Palette[]> = {
 			"#9370ff",
 		],
 	],
-	wood: [
-		[
-			["#d9663a", "#c9a227", "#5f9e4b", "#3d7fb8", "#a64d79"],
-			"#f7dcae",
-			"#d9a066",
-		],
-		[
-			["#c4552d", "#e0b340", "#4f8f6f", "#6a5acd", "#d17a22"],
-			"#d7ecc4",
-			"#8fbf6a",
-		],
-		[
-			["#b8432e", "#d9a21b", "#2f7f8f", "#8a5a9e", "#5f9e4b"],
-			"#ffe0c2",
-			"#e8935a",
-		],
-	],
 	rubber: [
 		[
 			["#ff3d71", "#ffaa00", "#00c48c", "#0095ff", "#8c4bff"],
@@ -64,27 +47,16 @@ const PALETTES: Record<World, Palette[]> = {
 			"#ff4b8b",
 		],
 	],
-	paper: [
-		[
-			["#ef6f6c", "#f4a259", "#5b8e7d", "#7d8cc4", "#bc4b51"],
-			"#fdf3e1",
-			"#f2d7b6",
-		],
-		[
-			["#e76f51", "#2a9d8f", "#e9c46a", "#6d6875", "#f4a261"],
-			"#e3f1fb",
-			"#a9cfee",
-		],
-		[
-			["#5b8e7d", "#ef6f6c", "#7d8cc4", "#f4a259", "#bc4b51"],
-			"#fde2e4",
-			"#f5a3b0",
-		],
-	],
 };
 
 let world: World = "candy";
 let palette = 0;
+
+// favicon is the mascot face in the body colour and corner radius of the world.
+function favicon(body: string, rx: number) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect x="6" y="10" width="52" height="50" rx="${rx}" fill="#0004"/><rect x="6" y="10" width="52" height="50" rx="${rx}" fill="${body}" opacity=".6"/><rect x="6" y="4" width="52" height="50" rx="${rx}" fill="${body}"/><circle cx="23" cy="22" r="5" fill="#fff"/><circle cx="41" cy="22" r="5" fill="#fff"/><circle cx="24" cy="23" r="2.4" fill="#3c3c4a"/><circle cx="42" cy="23" r="2.4" fill="#3c3c4a"/><path d="M24 38q8 7 16 0" stroke="#3c3c4a" stroke-width="4" fill="none" stroke-linecap="round"/></svg>`;
+	return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
 
 function paint() {
 	const [tiles, bg1, bg2] = PALETTES[world][palette];
@@ -95,6 +67,9 @@ function paint() {
 	document
 		.querySelector('meta[name="theme-color"]')
 		?.setAttribute("content", bg2);
+	document
+		.querySelector('link[rel="icon"]')
+		?.setAttribute("href", favicon(tiles[2], world === "rubber" ? 26 : 16));
 	fx.colors = [...tiles, "#ffffff"];
 }
 

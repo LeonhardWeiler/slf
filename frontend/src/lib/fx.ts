@@ -1,6 +1,6 @@
 import type { World } from "./feel";
 
-type Shape = "sq" | "dot" | "star" | "ribbon" | "chip" | "blob" | "tri";
+type Shape = "sq" | "dot" | "star" | "ribbon" | "blob";
 interface Part {
 	x: number;
 	y: number;
@@ -28,20 +28,10 @@ const SHAPES: Record<
 		rain: ["sq", "ribbon", "dot"],
 		gravity: 0.32,
 	},
-	wood: {
-		burst: ["chip", "chip", "sq"],
-		rain: ["chip", "ribbon"],
-		gravity: 0.42,
-	},
 	rubber: {
 		burst: ["blob", "blob", "dot"],
 		rain: ["blob", "dot"],
 		gravity: 0.5,
-	},
-	paper: {
-		burst: ["tri", "ribbon", "sq"],
-		rain: ["ribbon", "tri"],
-		gravity: 0.2,
 	},
 };
 
@@ -174,14 +164,6 @@ class Fx {
 			case "ribbon":
 				ctx.roundRect(-s / 2, -s / 6, s, s / 3, s / 6);
 				break;
-			case "chip":
-				ctx.roundRect(-s / 2, -s / 4, s, s / 2, 2);
-				break;
-			case "tri":
-				ctx.moveTo(0, -s / 2);
-				ctx.lineTo(s / 2, s / 2);
-				ctx.lineTo(-s / 2, s / 3);
-				break;
 			case "star":
 				for (let k = 0; k < 10; k++) {
 					const rr = k % 2 ? s * 0.22 : s * 0.55;
@@ -204,9 +186,6 @@ class Fx {
 				s * 0.11,
 			);
 			ctx.fill();
-		} else if (p.shape === "chip") {
-			ctx.fillStyle = "rgba(0,0,0,.15)";
-			ctx.fillRect(-s / 2, -1, s, 1.5);
 		}
 		ctx.restore();
 	}

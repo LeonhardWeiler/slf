@@ -8,7 +8,7 @@ export type Scene =
 	| "result"
 	| "sprint"
 	| "quiet";
-export type Timbre = "candy" | "wood" | "rubber" | "paper";
+export type Timbre = "candy" | "rubber";
 
 const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
 
@@ -208,17 +208,6 @@ class Sound {
 	private pluck(m: number, dur: number, gain: number, t = 0, bus: Bus = "sfx") {
 		const f = hz(m);
 		switch (this.timbre) {
-			case "wood":
-				this.tone(f, dur * 0.8, gain * 1.6, { t, bus });
-				this.tone(f * 4, dur * 0.18, gain * 0.5, { t, bus });
-				this.noise(0.012, gain * 0.8, {
-					t,
-					type: "bandpass",
-					f: f * 3,
-					q: 4,
-					bus,
-				});
-				return;
 			case "rubber":
 				this.tone(f * 0.94, dur * 1.1, gain * 1.5, {
 					t,
@@ -227,21 +216,6 @@ class Sound {
 					bus,
 				});
 				this.tone(f * 2, dur * 0.4, gain * 0.3, { t, type: "sine", bus });
-				return;
-			case "paper":
-				this.tone(f, dur * 1.3, gain * 1.2, {
-					t,
-					type: "triangle",
-					cut: 1800,
-					bus,
-				});
-				this.noise(0.04, gain * 0.7, {
-					t,
-					type: "bandpass",
-					f: 2400,
-					q: 1.2,
-					bus,
-				});
 				return;
 			default:
 				for (const d of [-8, 8])
@@ -263,23 +237,7 @@ class Sound {
 	}
 
 	private hat(t: number, loud: boolean) {
-		if (this.timbre === "wood")
-			this.noise(0.03, loud ? 0.22 : 0.1, {
-				t,
-				type: "bandpass",
-				f: 1900,
-				q: 6,
-				bus: "music",
-			});
-		else if (this.timbre === "paper")
-			this.noise(0.06, loud ? 0.12 : 0.05, {
-				t,
-				type: "bandpass",
-				f: 5000,
-				q: 0.5,
-				bus: "music",
-			});
-		else this.noise(0.028, loud ? 0.16 : 0.07, { t, f: 8500, bus: "music" });
+		this.noise(0.028, loud ? 0.16 : 0.07, { t, f: 8500, bus: "music" });
 	}
 
 	private clap(t: number, g = 0.3) {
@@ -323,7 +281,7 @@ class Sound {
 				for (const c of chord)
 					this.tone(hz(root + 24 + c), 0.11, 0.035, {
 						t,
-						type: this.timbre === "wood" ? "sine" : "square",
+						type: "square",
 						bus: "music",
 						cut: 2200,
 					});
