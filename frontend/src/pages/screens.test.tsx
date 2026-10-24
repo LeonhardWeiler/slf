@@ -328,14 +328,35 @@ describe("Lobby", () => {
 	it("names every host button", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
-		expect(
-			screen.getByRole("textbox", { name: "Neue Kategorie" }),
-		).toBeDefined();
 		for (const b of screen.getAllByRole("button")) {
 			expect(
 				b.textContent?.trim() || b.getAttribute("aria-label"),
 			).toBeTruthy();
 		}
+	});
+});
+
+describe("Lobby categories", () => {
+	it("adds a category from the + row and drops an empty one on blur", () => {
+		setup("host", "Lobby");
+		render(<Lobby />);
+		const add = () =>
+			screen.getByRole("button", { name: "Kategorie hinzufügen" });
+		fireEvent.click(add());
+		const input = screen.getByRole("textbox", { name: "Neue Kategorie" });
+		fireEvent.change(input, { target: { value: "  Tier " } });
+		fireEvent.blur(input);
+		expect(send).toHaveBeenLastCalledWith({
+			type: "addCategory",
+			payload: { name: "Tier" },
+		});
+		send.mockClear();
+		fireEvent.click(add());
+		fireEvent.blur(screen.getByRole("textbox", { name: "Neue Kategorie" }));
+		expect(send).not.toHaveBeenCalled();
+		expect(
+			screen.queryByRole("textbox", { name: "Neue Kategorie" }),
+		).toBeNull();
 	});
 });
 

@@ -101,7 +101,7 @@ export function Lobby() {
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
-	const [newCategory, setNewCategory] = useState("");
+	const [newCategory, setNewCategory] = useState<string | null>(null);
 	const [showQr, setShowQr] = useState(false);
 	const [showLetters, setShowLetters] = useState(false);
 	const [startHint, setStartHint] = useState(false);
@@ -168,13 +168,13 @@ export function Lobby() {
 		return <Navigate to="/" />;
 	}
 
-	function handleAddCategory(e: React.FormEvent) {
-		e.preventDefault();
-		const name = newCategory.trim();
-		if (!name) return;
-		ws.send({ type: "addCategory", payload: { name } });
-		setNewCategory("");
-		sound.word(1);
+	function addCategory(next: string | null) {
+		const name = newCategory?.trim();
+		if (name) {
+			ws.send({ type: "addCategory", payload: { name } });
+			sound.word(1);
+		}
+		setNewCategory(next);
 	}
 
 	function saveCategory(id: string, before: string, value: string) {
@@ -311,21 +311,37 @@ export function Lobby() {
 								)}
 							</span>
 						))}
-						<form
-							className="cat-chip add"
-							onSubmit={handleAddCategory}
-							data-tip="Kategorie hinzufügen"
-						>
-							<Plus />
-							<input
-								value={newCategory}
-								onChange={(e) => setNewCategory(e.target.value)}
-								maxLength={30}
-								aria-label="Neue Kategorie"
-								spellCheck={false}
-								enterKeyHint="done"
-							/>
-						</form>
+						{newCategory === null ? (
+							<button
+								type="button"
+								className="cat-chip add"
+								aria-label="Kategorie hinzufügen"
+								data-tip="Kategorie hinzufügen"
+								onClick={() => setNewCategory("")}
+							>
+								<Plus />
+							</button>
+						) : (
+							<form
+								className="cat-chip"
+								onSubmit={(e) => {
+									e.preventDefault();
+									addCategory("");
+								}}
+							>
+								<input
+									value={newCategory}
+									onChange={(e) => setNewCategory(e.target.value)}
+									onBlur={() => addCategory(null)}
+									maxLength={30}
+									aria-label="Neue Kategorie"
+									spellCheck={false}
+									enterKeyHint="done"
+									// biome-ignore lint/a11y/noAutofocus: opened by the + button
+									autoFocus
+								/>
+							</form>
+						)}
 					</div>
 
 					<div className="pref" data-tip="Zeitlimit pro Runde">
