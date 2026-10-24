@@ -65,6 +65,7 @@ export function Shell({ children }: { children: ReactNode }) {
 		(s) => (s.game?.usedLetters ?? s.result?.usedLetters)?.length,
 	);
 	const round = useRef(0);
+	const tracked = useRef(0);
 	if (state === "Lobby" || !state) round.current = 0;
 	else if (used !== undefined) round.current = used;
 
@@ -79,8 +80,11 @@ export function Shell({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		const w = worldFor(code, round.current);
 		setWorld(w);
-		if (state === "Countdown")
+		if (state !== "Playing") tracked.current = 0;
+		else if (tracked.current !== round.current) {
+			tracked.current = round.current;
 			ws.send({ type: "track", payload: { ev: "world", value: w } });
+		}
 	}, [code, used, state]);
 
 	useEffect(() => {
