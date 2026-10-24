@@ -31,7 +31,6 @@ mock.module("@/lib/nav", () => ({
 const { GameScreen } = await import("@/pages/game/GameScreen");
 const { RoundResultScreen } = await import("@/pages/game/RoundResultScreen");
 const { ReviewScreen } = await import("@/pages/game/ReviewScreen");
-const { SoloReviewScreen } = await import("@/pages/game/SoloReviewScreen");
 const { GameOverScreen } = await import("@/pages/game/GameOverScreen");
 const { Lobby } = await import("@/pages/Lobby");
 const { renderScreen } = await import("@/pages/Room");
@@ -80,13 +79,12 @@ beforeEach(() => {
 
 describe("Room", () => {
 	it("maps each lobby state to its screen", () => {
-		expect(renderScreen("Lobby", false).type).toBe(Lobby);
-		expect(renderScreen("Countdown", false).type).toBe(GameScreen);
-		expect(renderScreen("Playing", false).type).toBe(GameScreen);
-		expect(renderScreen("Reviewing", false).type).toBe(ReviewScreen);
-		expect(renderScreen("Reviewing", true).type).toBe(SoloReviewScreen);
-		expect(renderScreen("RoundResult", false).type).toBe(RoundResultScreen);
-		expect(renderScreen("GameOver", false).type).toBe(GameOverScreen);
+		expect(renderScreen("Lobby").type).toBe(Lobby);
+		expect(renderScreen("Countdown").type).toBe(GameScreen);
+		expect(renderScreen("Playing").type).toBe(GameScreen);
+		expect(renderScreen("Reviewing").type).toBe(ReviewScreen);
+		expect(renderScreen("RoundResult").type).toBe(RoundResultScreen);
+		expect(renderScreen("GameOver").type).toBe(GameOverScreen);
 	});
 });
 
@@ -408,7 +406,6 @@ describe("review validity", () => {
 					ruled: false,
 				},
 			],
-			solo: null,
 			ready: null,
 			voters: null,
 		});
@@ -443,7 +440,6 @@ describe("review validity", () => {
 					ruled: false,
 				},
 			],
-			solo: null,
 			ready: null,
 			voters: ["guest", "host"],
 		});
@@ -452,46 +448,6 @@ describe("review validity", () => {
 		expect(send).toHaveBeenCalledWith({
 			type: "voteAnswer",
 			payload: { answerId: "host", vote: -1 },
-		});
-	});
-
-	it("toggles a solo answer by tapping its row", () => {
-		setup("guest", "Reviewing");
-		useRoomStore.getState().receive("reviewState", {
-			roundId: "r1",
-			letter: "B",
-			categoryId: "c1",
-			categoryIndex: 0,
-			categoryCount: 2,
-			answers: [],
-			solo: [
-				{
-					key: "c1",
-					letter: "B",
-					categoryId: "c1",
-					value: "Bonn",
-					valid: false,
-					points: 0,
-				},
-				{
-					key: "c2",
-					letter: "B",
-					categoryId: "c2",
-					value: "",
-					valid: false,
-					points: 0,
-				},
-			],
-			ready: null,
-			voters: null,
-		});
-		render(<SoloReviewScreen />);
-		const rows = screen.getAllByRole("switch") as HTMLButtonElement[];
-		expect(rows.map((r) => r.disabled)).toEqual([false, true]);
-		fireEvent.click(rows[0]);
-		expect(send).toHaveBeenCalledWith({
-			type: "setAnswerValidity",
-			payload: { answerId: "guest", valid: true, categoryId: "c1" },
 		});
 	});
 });
@@ -808,7 +764,6 @@ describe("review merge", () => {
 		categoryIndex: 0,
 		categoryCount: 2,
 		answers: [answer("host", a), answer("guest", b)],
-		solo: null,
 		ready: null,
 		voters: null,
 		endsAt: null,
@@ -858,7 +813,6 @@ describe("review end reason", () => {
 			categoryCount: 2,
 			answers: [],
 			endReason: "timeout",
-			solo: null,
 			ready: null,
 			voters: null,
 		});

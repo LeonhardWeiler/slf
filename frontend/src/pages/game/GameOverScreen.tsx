@@ -87,7 +87,7 @@ export function GameOverScreen() {
 	return (
 		<>
 			<RoomHeader />
-			<section className="screen over">
+			<section className={`screen over${solo ? " solo" : ""}`}>
 				{played && (
 					<div className="center hero">
 						{solo && <Mascot size="big" base="happy" />}

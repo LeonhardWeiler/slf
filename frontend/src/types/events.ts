@@ -122,19 +122,8 @@ export interface ReviewStatePayload {
 	// playerId of whoever buzzed to end the round; empty on timeout / host-ended.
 	buzzedBy?: string;
 	endReason?: string;
-	// Every category with the solo player's answer; null unless solo.
-	solo: SoloRow[] | null;
 	ready: string[] | null;
 	voters: string[] | null;
-}
-
-export interface SoloRow {
-	key: string;
-	letter: string;
-	categoryId: string;
-	value: string;
-	valid: boolean;
-	points: number;
 }
 
 export interface ScoreEntry {

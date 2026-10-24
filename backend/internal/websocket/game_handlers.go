@@ -350,7 +350,8 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason, buzzer string) {
 // finishPlaying freezes the answers. When at least one active player submitted
 // something it moves into review; when no active (non-left, non-spectator) player
 // submitted anything there is nothing to review, so it scores straight away and
-// jumps to the scoreboard.
+// jumps to the scoreboard. A solo round is scored straight away too: a sprint
+// refuses rule-breaking words as they are typed.
 func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	hub.mu.Lock()
 	g := lobby.Game
@@ -368,15 +369,16 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 			}
 		}
 	}
-	// No active player submitted an answer (players who already left are ignored):
-	// skip the review screen entirely and go directly to the scoreboard. A solo
-	// player has no scoreboard and sees the round in review instead, unless a
-	// sprint left nothing to review.
-	if !hasActiveSubmission(lobby) && (soloPlayer(lobby) == nil || len(g.Round.Slots) == 0) {
+	solo, empty := soloPlayer(lobby) != nil, !hasActiveSubmission(lobby)
+	if solo || empty {
 		result := hub.scoreAndFinishRound(lobby)
-		result.Empty = true
+		result.Empty = empty
 		g.LastResult = &result
 		hub.mu.Unlock()
+		if solo {
+			hub.nextRound(lobby)
+			return
+		}
 		hub.broadcastLobbyState(lobby)
 		hub.broadcastTo(lobby, "roundResult", result)
 		return
@@ -497,16 +499,11 @@ func handleSetAnswerValidity(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
 		AnswerID string `json:"answerId"`
 		Valid    bool   `json:"valid"`
-		// CategoryID is optional; the solo review rates every category at once.
-		CategoryID string `json:"categoryId"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		return
 	}
 	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, catID string) bool {
-		if p.CategoryID != "" {
-			catID = p.CategoryID
-		}
 		if ans := answerFor(lobby.Game.Round, p.AnswerID, catID); ans != nil {
 			ans.Valid, ans.Ruled = p.Valid, true
 			return true
@@ -606,8 +603,8 @@ func handleFinishReview(hub *Hub, c *Client) {
 	hub.finishReview(lobby)
 }
 
-// finishReview scores the round and shows the result, or in solo starts the
-// next round straight away. Idempotent: only the first call scores.
+// finishReview scores the round and shows the result. Idempotent: only the
+// first call scores.
 func (hub *Hub) finishReview(lobby *game.Lobby) {
 	hub.mu.Lock()
 	if lobby.State != game.StateReviewing || lobby.Game == nil || lobby.Game.Round == nil {
@@ -615,13 +612,8 @@ func (hub *Hub) finishReview(lobby *game.Lobby) {
 		return
 	}
 	result := hub.scoreAndFinishRound(lobby)
-	solo := soloPlayer(lobby) != nil
 	hub.mu.Unlock()
 
-	if solo {
-		hub.nextRound(lobby)
-		return
-	}
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastTo(lobby, "roundResult", result)
 }

@@ -133,6 +133,8 @@ const LETTER_VALUES: Record<string, number> = Object.fromEntries(
 );
 
 export const WORD_BONUS = 50;
+// Mirror of ScoreCategory's factor for the only valid answer, so every solo word.
+export const ALONE = 5;
 // Mirror of the backend's buzzBonus for whoever buzzes the round.
 export const BUZZ_BONUS = 200;
 

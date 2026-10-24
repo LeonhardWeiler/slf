@@ -265,7 +265,6 @@ body.urgent .bg i {
 .seat,
 .mode-pick button,
 .ans,
-.solo-row,
 .chip,
 .link-btn,
 .decide button,
@@ -296,7 +295,7 @@ body.urgent .bg i {
 		filter: brightness(1.06);
 		transform: scale(1.03);
 	}
-	:is(.card, .ans, .rank, .solo-row, .fourth, .board-row):hover {
+	:is(.card, .ans, .rank, .fourth, .board-row):hover {
 		filter: brightness(1.03);
 	}
 	.seat:hover {
@@ -328,7 +327,6 @@ body.urgent .bg i {
 	.chip,
 	.link-btn,
 	.decide button,
-	.solo-row,
 	.ans,
 	.kick,
 	.chip-x
@@ -1351,9 +1349,7 @@ body.urgent .bg i {
 		margin: 0 auto;
 		width: 100%;
 	}
-	.screen.review,
-	.screen.solo-review,
-	.screen.sprint-review {
+	.screen.review {
 		max-width: 1040px;
 		margin: 0 auto;
 		width: 100%;
@@ -1367,8 +1363,7 @@ body.urgent .bg i {
 	}
 }
 @media (min-width: 1000px) {
-	.answers,
-	.solo-list {
+	.answers {
 		grid-template-columns: 1fr 1fr;
 		align-items: start;
 	}
@@ -1725,11 +1720,6 @@ body.urgent .bg i {
 	box-shadow: 0 5px 0 var(--gold-d);
 	background: #fffbe9;
 }
-.ans.solo-win .ans-front {
-	border-color: var(--gold);
-	box-shadow: 0 5px 0 var(--gold-d);
-	animation: nudge 0.8s ease-in-out 2;
-}
 .answers.frozen .ans {
 	cursor: default;
 }
@@ -1877,19 +1867,6 @@ body.urgent .bg i {
 }
 
 /* ---------- solo ---------- */
-.solo-bar {
-	width: 100%;
-	display: flex;
-	align-items: center;
-	gap: 12px;
-}
-.solo-bar > b {
-	flex: 1;
-	font-size: 44px;
-	color: #fff;
-	-webkit-text-stroke: 6px rgb(0 0 0 / 0.15);
-	paint-order: stroke fill;
-}
 .solo-total {
 	display: flex;
 	align-items: center;
@@ -1902,48 +1879,6 @@ body.urgent .bg i {
 }
 .solo-total svg {
 	fill: currentColor;
-}
-.solo-list {
-	width: 100%;
-	display: grid;
-	gap: 8px;
-}
-.solo-row {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	min-height: 64px;
-	padding: 0 12px;
-	border-radius: var(--rc);
-	background: var(--card);
-	border: 2px solid var(--line);
-	box-shadow: 0 5px 0 var(--line);
-	text-align: left;
-	opacity: 0;
-	transform: translateX(-30px);
-}
-.solo-row.in {
-	opacity: 1;
-	transform: none;
-}
-.solo-row > svg {
-	color: var(--soft);
-}
-.solo-row .pts {
-	background: var(--gold);
-	box-shadow: 0 3px 0 var(--gold-d);
-}
-.solo-row.cracked .pts {
-	background: #c9c9d4;
-	box-shadow: 0 3px 0 #a9a9b8;
-	opacity: 0.5;
-}
-.solo-row.cracked .ans-word {
-	filter: grayscale(1);
-	opacity: 0.45;
-}
-.solo-row .ans-word .tiles {
-	--s: 26px;
 }
 
 /* ---------- result ---------- */
@@ -2319,7 +2254,7 @@ body.urgent .app {
 		transform: translateY(-34px) scale(1.08, 0.94);
 	}
 }
-[data-world="rubber"] :is(.card, .panel, .seat, .rank, .ans-front, .solo-row) {
+[data-world="rubber"] :is(.card, .panel, .seat, .rank, .ans-front) {
 	box-shadow:
 		0 8px 0 var(--line),
 		inset 0 -6px 0 rgb(0 0 0 / 0.04);
@@ -3090,6 +3025,13 @@ body.calm *::after {
 .over .podium-row {
 	margin-top: auto;
 }
+.over.solo {
+	justify-content: center;
+	gap: 24px;
+}
+.over.solo .end-actions {
+	margin-top: 0;
+}
 .sprint-count {
 	min-width: 52px;
 	padding: 6px 10px;
@@ -3108,24 +3050,46 @@ body.calm *::after {
 	--s: 40px;
 	min-height: 48px;
 }
-.sprint .chips {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 6px;
-	margin-top: auto;
+.sprint-done {
+	width: 100%;
+	display: grid;
+	gap: 8px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
-.word-chip {
-	padding: 4px 10px;
-	border-radius: 999px;
+.sprint-done li {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 10px 8px 14px;
+	border-radius: var(--rc);
 	background: var(--card);
-	box-shadow: 0 3px 0 var(--line);
+	box-shadow: 0 4px 0 var(--line);
+	animation: screen-in 0.3s var(--spring);
+}
+.sprint-done .cat {
+	width: 58px;
+	flex: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--soft);
+	font-size: 13px;
 	font-weight: 800;
-	animation: pop-in 0.3s var(--spring);
+}
+.sprint-done .tiles {
+	flex: 1;
+	min-width: 0;
+}
+.sprint .btn.stop {
+	position: sticky;
+	bottom: max(14px, env(safe-area-inset-bottom));
+	z-index: 2;
 }
 
 /* ---------- push, never overlap ---------- */
-:is(.card, .ans, .rank, .solo-row, .fourth, .board-row, .seat) {
+:is(.card, .ans, .rank, .fourth, .board-row, .seat) {
 	transition:
 		transform 0.22s var(--spring),
 		translate 0.5s var(--spring),

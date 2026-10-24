@@ -4,7 +4,6 @@ import { phaseReady, useRoomStore } from "@/store/room";
 import { Lobby } from "./Lobby";
 import { GameScreen } from "./game/GameScreen";
 import { ReviewScreen } from "./game/ReviewScreen";
-import { SoloReviewScreen } from "./game/SoloReviewScreen";
 import { RoundResultScreen } from "./game/RoundResultScreen";
 import { GameOverScreen } from "./game/GameOverScreen";
 
@@ -15,7 +14,6 @@ export function Room() {
 	// from re-rendering on every other lobby-store change (the child screens read
 	// the full lobby themselves).
 	const state = useRoomStore((s) => s.lobby?.state);
-	const solo = useRoomStore((s) => s.lobby?.solo ?? false);
 	const ready = useRoomStore(phaseReady);
 
 	if (!state) {
@@ -30,16 +28,16 @@ export function Room() {
 		);
 	}
 
-	return renderScreen(state, solo);
+	return renderScreen(state);
 }
 
-export function renderScreen(state: string, solo: boolean) {
+export function renderScreen(state: string) {
 	switch (state) {
 		case "Countdown":
 		case "Playing":
 			return <GameScreen />;
 		case "Reviewing":
-			return solo ? <SoloReviewScreen /> : <ReviewScreen />;
+			return <ReviewScreen />;
 		case "RoundResult":
 			return <RoundResultScreen />;
 		case "GameOver":

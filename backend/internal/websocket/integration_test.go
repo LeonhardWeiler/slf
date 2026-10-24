@@ -846,10 +846,8 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 		host.send("answerUpdate", map[string]any{"categoryId": cat.ID, "value": "Aachen", "roundId": gs.RoundID})
 	}
 	host.send("buzz", map[string]any{"roundId": gs.RoundID})
-	host.waitFor("reviewState")
-	host.send("finishReview", map[string]any{})
 
-	// Alice is now alone, so the solo flow skips the scoreboard; with letter A
+	// Alice is now alone, so the round is scored without review; with letter A
 	// used up the game ends and the final ranking carries the totals.
 	var rr struct {
 		Ranking []struct {
@@ -1186,22 +1184,11 @@ func TestSoloSprint(t *testing.T) {
 		SprintWords []string `json:"sprintWords"`
 	}
 	json.Unmarshal(again.waitFor("gameState"), &replay)
-	if replay.SprintPos != 4 || len(replay.SprintWords) != 3 || replay.SprintWords[2] != b+"x" {
+	if replay.SprintPos != 4 || len(replay.SprintWords) != 4 || replay.SprintWords[1] != "" || replay.SprintWords[3] != b+"x" {
 		t.Fatalf("unexpected replay %+v", replay)
 	}
 
 	again.send("endRound", map[string]any{})
-	var rs struct {
-		Solo []struct {
-			Points int `json:"points"`
-		} `json:"solo"`
-	}
-	json.Unmarshal(again.waitFor("reviewState"), &rs)
-	if len(rs.Solo) != 3 {
-		t.Fatalf("expected one row per word, got %+v", rs.Solo)
-	}
-
-	again.send("finishReview", map[string]any{})
 	var res struct {
 		IsGameOver bool `json:"isGameOver"`
 		Ranking    []struct {

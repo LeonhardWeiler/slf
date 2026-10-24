@@ -87,16 +87,19 @@ func roundSlots(lobby *game.Lobby) []game.Slot {
 	return slots
 }
 
-// sprintProgress returns a player's next sprint prompt and their words so far.
+// sprintProgress returns a player's next sprint prompt and their word for each
+// prompt before it, "" where they skipped.
 // Caller must hold hub.mu.
 func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
 	r, n := lobby.Game.Round, len(lobby.Categories)
 	pos := r.Pos[pid]
 	words := []string{}
 	for i := 0; i < pos; i++ {
+		w := ""
 		if a := r.Answers[pid][sprintKey(r.Letters[i/n], lobby.Categories[i%n].ID)]; a != nil {
-			words = append(words, a.Value)
+			w = a.Value
 		}
+		words = append(words, w)
 	}
 	return &pos, words
 }
@@ -327,18 +330,6 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	}
 	slot := r.Slots[idx]
 
-	var solo []game.SoloRow
-	if p := soloPlayer(lobby); p != nil {
-		solo = make([]game.SoloRow, 0, len(r.Slots))
-		for _, s := range r.Slots {
-			row := game.SoloRow{Key: s.Key, Letter: s.Letter, CategoryID: s.CategoryID}
-			if a := scoredCategory(lobby, s.Key)[p.ID]; a != nil {
-				row.Value, row.Valid, row.Points = a.Value, a.Counts(), a.Points
-			}
-			solo = append(solo, row)
-		}
-	}
-
 	perCat := scoredCategory(lobby, slot.Key)
 
 	answers := make([]game.ReviewAnswer, 0, len(perCat))
@@ -377,7 +368,6 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		Answers:       answers,
 		BuzzedBy:      r.BuzzedBy,
 		EndReason:     r.EndReason,
-		Solo:          solo,
 		Ready:         ready,
 		Voters:        voters,
 	}

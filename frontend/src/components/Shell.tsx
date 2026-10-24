@@ -31,7 +31,7 @@ const SCENES: Record<GameState, Scene> = {
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 const band = (d: number) => 8 * Math.tanh(d / 40);
 const GRAB =
-	"button, [role=switch], .card, .ans, .rank, .seat, .solo-row, .fourth, .av, .tile, .word-chip, .pts";
+	"button, [role=switch], .card, .ans, .rank, .seat, .fourth, .av, .tile, .pts";
 
 function lookAt(x: number, y: number) {
 	for (const m of document.querySelectorAll<HTMLElement>(".mascot")) {

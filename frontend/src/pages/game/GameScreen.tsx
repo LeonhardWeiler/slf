@@ -15,6 +15,7 @@ import {
 	LENGTH_ISSUE,
 	lettersValue,
 	wordValue,
+	ALONE,
 	WORD_BONUS,
 } from "@/lib/answerValidation";
 import { CountUp } from "@/components/CountUp";
@@ -549,6 +550,7 @@ export function GameScreen() {
 
 // Sprint shows one prompt at a time: letter letters[pos / n] with category
 // pos % n. Enter takes the word, Enter on an empty field skips the prompt.
+// words[i] is the word for prompt i, "" where it was skipped.
 function Sprint({
 	lobby,
 	game,
@@ -578,6 +580,7 @@ function Sprint({
 	}, [game.sprintPos, game.sprintWords]);
 
 	const done = pos >= letters.length * n;
+	const count = words.filter(Boolean).length;
 	const letter = letters[(Math.min(pos, letters.length * n - 1) / n) | 0];
 	const cat = cats[pos % n];
 
@@ -590,9 +593,9 @@ function Sprint({
 		const run = word ? streak + 1 : 0;
 		setPos(next);
 		setValue("");
+		setWords((w) => [...w, word]);
 		if (word) {
-			floatGain(card.current, WORD_BONUS);
-			setWords((w) => [...w, word]);
+			floatGain(card.current, ALONE * WORD_BONUS);
 			sound.word(run);
 			haptic(15);
 			mood("happy", 600);
@@ -639,17 +642,20 @@ function Sprint({
 				/>
 				<div className="hud-mid">
 					<CountUp
-						value={words.reduce(
-							(s, w) => s + wordValue(w),
-							lettersValue(value),
-						)}
+						value={
+							ALONE *
+							words.reduce(
+								(s, w) => s + (w ? wordValue(w) : 0),
+								lettersValue(value),
+							)
+						}
 						durationMs={300}
 						className="live-score"
 					/>
 					<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
 				</div>
-				<b key={words.length} className="sprint-count" data-tip="Wörter">
-					{words.length}
+				<b key={count} className="sprint-count" data-tip="Wörter">
+					{count}
 				</b>
 			</div>
 
@@ -684,7 +690,7 @@ function Sprint({
 								sound.key([...e.target.value].length - 1);
 							floatGain(
 								card.current,
-								lettersValue(e.target.value) - lettersValue(value),
+								ALONE * (lettersValue(e.target.value) - lettersValue(value)),
 							);
 							setValue(e.target.value);
 						}}
@@ -711,17 +717,26 @@ function Sprint({
 				</IconBtn>
 			)}
 
-			<div className="chips">
-				{words.slice(-6).map((w, i) => (
-					<span
-						// biome-ignore lint/suspicious/noArrayIndexKey: words repeat
-						key={words.length - 6 + i}
-						className="word-chip"
-					>
-						{w}
-					</span>
-				))}
-			</div>
+			<ol className="sprint-done">
+				{words
+					.map(
+						(w, i) =>
+							w && (
+								// biome-ignore lint/suspicious/noArrayIndexKey: one row per prompt
+								<li key={i}>
+									<span className="cat">{cats[i % n].name}</span>
+									<Tiles
+										value={w}
+										letter={letters[(i / n) | 0]}
+										last={last}
+										max={24}
+									/>
+									<b className="pts p20">{ALONE * wordValue(w)}</b>
+								</li>
+							),
+					)
+					.reverse()}
+			</ol>
 
 			{onStop && (
 				<Btn

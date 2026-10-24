@@ -92,21 +92,6 @@ const reviewStatePayload = z.object({
 	// Optional/lenient: an older server without this field must not drop the event.
 	buzzedBy: z.optional(z.string()),
 	endReason: z.optional(z.string()),
-	solo: z._default(
-		z.nullish(
-			z.array(
-				z.object({
-					key: z._default(z.optional(z.string()), ""),
-					letter: z._default(z.optional(z.string()), ""),
-					categoryId: z.string(),
-					value: z.string(),
-					valid: z.boolean(),
-					points: z.number(),
-				}),
-			),
-		),
-		null,
-	),
 	ready: z._default(z.nullish(z.array(z.string())), null),
 	voters: z._default(z.nullish(z.array(z.string())), null),
 });
