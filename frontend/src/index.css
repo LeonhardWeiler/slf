@@ -826,6 +826,12 @@ body.urgent .bg i {
 	-webkit-text-stroke: 3px color-mix(in srgb, var(--c), black 40%);
 	paint-order: stroke fill;
 }
+.code span,
+.tile,
+.av,
+.pts {
+	touch-action: none;
+}
 .code span:nth-child(odd) {
 	rotate: -3deg;
 }
