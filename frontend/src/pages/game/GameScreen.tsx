@@ -776,9 +776,15 @@ function Fuse({
 			const m = left();
 			setMs(m);
 			const s = Math.ceil(m / 1000);
-			if (s !== last && s <= 5 && s > 0) {
-				sound.tick(5 - s);
-				haptic(12);
+			if (s !== last && s <= 5 && last > 0) {
+				if (s === 0) {
+					sound.boom();
+					haptic(60);
+				} else {
+					if (s > 3) sound.tick(5 - s);
+					else sound.beep(s);
+					haptic(12);
+				}
 			}
 			last = s;
 		}, 100);

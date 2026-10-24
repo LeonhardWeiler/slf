@@ -57,6 +57,7 @@ interface NoiseOpts {
 	f?: number;
 	to?: number;
 	q?: number;
+	attack?: number;
 	bus?: Bus;
 }
 
@@ -191,7 +192,8 @@ class Sound {
 		flt.frequency.setValueAtTime(o.f ?? 6000, at);
 		if (o.to) flt.frequency.exponentialRampToValueAtTime(o.to, at + dur);
 		flt.Q.value = o.q ?? 0.8;
-		g.gain.setValueAtTime(gain, at);
+		g.gain.setValueAtTime(o.attack ? 0.0001 : gain, at);
+		if (o.attack) g.gain.exponentialRampToValueAtTime(gain, at + o.attack);
 		g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
 		src
 			.connect(flt)
@@ -363,6 +365,25 @@ class Sound {
 	}
 	nope() {
 		this.tone(220, 0.14, 0.12, { type: "square", glide: 150, cut: 900 });
+	}
+	beep(n: number) {
+		this.tone([1175, 988, 880][n - 1], 0.14, 0.12, {
+			type: "square",
+			cut: 2600,
+		});
+		if (n === 3)
+			this.noise(3, 0.07, {
+				type: "bandpass",
+				f: 250,
+				to: 5000,
+				q: 1.2,
+				attack: 2.9,
+			});
+	}
+	boom() {
+		this.tone(90, 0.8, 0.6, { glide: 30 });
+		this.noise(0.9, 0.3, { type: "highpass", f: 3000, to: 900 });
+		this.noise(0.4, 0.25, { type: "lowpass", f: 700 });
 	}
 	count(p: number) {
 		this.noise(0.015, 0.05, { type: "bandpass", f: 2400 + p * 2400, q: 5 });
