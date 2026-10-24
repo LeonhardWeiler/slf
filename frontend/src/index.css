@@ -276,16 +276,23 @@ body.urgent .bg i {
 		.mode-pick button,
 		.chip,
 		.link-btn,
-		.decide button,
-		.solo-row
+		.decide button
 	):not(:disabled):hover {
 		filter: brightness(1.06);
 		transform: translateY(-1px) scale(1.03);
 	}
-	.seat:hover,
-	.card:hover,
-	.ans:hover {
-		transform: scale(1.015);
+	:is(.card, .ans, .rank, .solo-row, .fourth, .board-row):hover {
+		margin-block: 4px;
+		filter: brightness(1.03);
+	}
+	.seat:hover {
+		transform: translateY(-4px) rotate(-2deg);
+	}
+	:is(.av, .tile, .pts, .word-chip, .code span, .rounds i):hover {
+		transform: translateY(-3px) rotate(-4deg) scale(1.08);
+	}
+	.fuse:hover b {
+		scale: 1.3;
 	}
 	.mascot:hover .m-body {
 		transform: rotate(-4deg) scale(1.04);
@@ -1243,17 +1250,35 @@ body.urgent .bg i {
 }
 @media (min-width: 720px) {
 	.app {
-		max-width: 860px;
+		max-width: 1180px;
 	}
 	.screen.lobby,
-	.screen.review,
 	.screen.result,
-	.screen.solo-review,
-	.screen.sprint,
-	.screen.sprint-review {
-		max-width: 560px;
+	.screen.sprint {
+		max-width: 640px;
 		margin: 0 auto;
 		width: 100%;
+	}
+	.screen.review,
+	.screen.solo-review,
+	.screen.sprint-review {
+		max-width: 1040px;
+		margin: 0 auto;
+		width: 100%;
+	}
+	.cards {
+		grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+	}
+	.btn.stop,
+	.btn.next {
+		width: min(100%, 560px);
+	}
+}
+@media (min-width: 1000px) {
+	.answers,
+	.solo-list {
+		grid-template-columns: 1fr 1fr;
+		align-items: start;
 	}
 }
 .card {
@@ -1283,7 +1308,7 @@ body.urgent .bg i {
 .card:focus-within {
 	border-color: var(--you);
 	box-shadow: 0 5px 0 #84d8ff;
-	transform: scale(1.02);
+	margin-block: 6px;
 }
 .card.locked {
 	border-color: var(--good);
@@ -2175,7 +2200,7 @@ body.urgent .app {
 	--rb: 30px;
 	--ri: 22px;
 	--rm: 48%;
-	--press: scale(1.08, 0.82);
+	--press: translateY(3px) scale(0.94, 0.86);
 	--panel-shadow: 0 8px 0 rgb(0 0 0 / 0.1);
 }
 [data-world="rubber"] .bg i {
@@ -2202,8 +2227,7 @@ body.urgent .app {
 		inset 0 calc(var(--s) * -0.1) 0 rgb(0 0 0 / 0.12),
 		inset 0 calc(var(--s) * 0.08) 0 rgb(255 255 255 / 0.35);
 }
-[data-world="rubber"] .btn:not(:disabled):active,
-[data-world="rubber"] .ans:active {
+[data-world="rubber"] .btn:not(:disabled):active {
 	transition-timing-function: cubic-bezier(0.2, 2.4, 0.4, 1);
 }
 
@@ -3024,4 +3048,51 @@ body.calm *::after {
 	box-shadow: 0 3px 0 var(--line);
 	font-weight: 800;
 	animation: pop-in 0.3s var(--spring);
+}
+
+/* ---------- push, never overlap ---------- */
+:is(.card, .ans, .rank, .solo-row, .fourth, .board-row, .seat) {
+	transition:
+		transform 0.22s var(--spring),
+		translate 0.5s var(--spring),
+		rotate 0.5s var(--spring),
+		margin 0.3s var(--spring),
+		border-color 0.2s,
+		box-shadow 0.2s,
+		filter 0.15s,
+		background-color 0.2s;
+}
+:is(
+	.av,
+	.tile,
+	.pts,
+	.word-chip,
+	.code span,
+	.rounds i,
+	.btn,
+	.icon-btn,
+	.toggle,
+	.chip,
+	.lt,
+	.cat-chip
+) {
+	transition:
+		transform 0.22s var(--spring),
+		translate 0.5s var(--spring),
+		rotate 0.5s var(--spring),
+		filter 0.15s,
+		box-shadow 0.15s,
+		background-color 0.2s;
+}
+:is(.card, .rank, .fourth, .board-row):active {
+	transform: scale(0.98);
+	transition-duration: 0.06s;
+}
+.held {
+	z-index: 3;
+}
+.review-clock {
+	align-self: stretch;
+	height: 12px;
+	margin-block: 4px;
 }
