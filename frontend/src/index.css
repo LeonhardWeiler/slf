@@ -1034,8 +1034,8 @@ body.urgent .bg i {
 .cat-chip:focus-within {
 	background: #fff;
 	box-shadow:
-		0 3px 0 var(--line),
-		inset 0 0 0 2px rgb(60 60 74 / 0.3);
+		0 0 0 2px var(--line),
+		0 4px 0 var(--line);
 }
 .cat-chip.add {
 	color: var(--soft);
