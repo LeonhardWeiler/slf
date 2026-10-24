@@ -36,10 +36,6 @@
 	--press: translateY(3px) scale(0.95);
 	--panel-shadow: 0 5px 0 rgb(0 0 0 / 0.08);
 	--px: 0;
-	--py: 0;
-	--bx: 0;
-	--by: 0;
-	--drift: 0deg;
 }
 * {
 	box-sizing: border-box;
@@ -113,14 +109,19 @@ input {
 	position: fixed;
 	inset: -10%;
 	z-index: -1;
-	filter: hue-rotate(var(--drift));
-	background:
-		radial-gradient(
-			circle at calc(50% + var(--bx) * 35%) calc(40% + var(--by) * 35%),
-			rgb(255 255 255 / 0.45),
-			transparent 45%
-		),
-		linear-gradient(160deg, var(--bg1), var(--bg2));
+	background: linear-gradient(160deg, var(--bg1), var(--bg2));
+}
+.bg::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(
+		circle closest-side,
+		rgb(255 255 255 / 0.45),
+		transparent
+	);
+	transform: translate(var(--sx, 0), var(--sy, 0)) scale(var(--ss, 1));
+	will-change: transform;
 }
 .bg i {
 	position: absolute;
