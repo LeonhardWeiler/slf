@@ -118,6 +118,9 @@ export function Slider<T>({
 			style={{ "--f": last ? idx / last : 0 } as React.CSSProperties}
 		>
 			<output aria-hidden="true">{format(steps[idx])}</output>
+			<div className="rail" aria-hidden="true">
+				<i />
+			</div>
 			<input
 				type="range"
 				min={0}

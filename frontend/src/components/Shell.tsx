@@ -14,8 +14,10 @@ import { prefs, usePrefs } from "@/lib/prefs";
 import { sound, type Scene } from "@/lib/sound";
 import { useRoomStore } from "@/store/room";
 import type { GameState } from "@/types/events";
-import { Btn, IconBtn, Toggle } from "@/components/kit";
+import { Btn, IconBtn, Slider, Toggle } from "@/components/kit";
 import { Modal } from "@/components/Modal";
+
+const VOLUME = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 const SCENES: Record<GameState, Scene> = {
 	Lobby: "lobby",
@@ -329,41 +331,36 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 				Einstellungen
 			</h2>
 			<div className="prefs">
-				<label
-					className="pref"
-					data-tip="Musik: Lautstärke der Hintergrundmusik"
-				>
+				<div className="pref" data-tip="Musik: Lautstärke der Hintergrundmusik">
 					<Music />
-					<input
-						type="range"
-						min={0}
-						max={100}
-						value={Math.round(p.music * 100)}
-						aria-label="Musik"
-						onChange={(e) => {
-							prefs.set({ music: Number(e.target.value) / 100 });
+					<Slider
+						steps={VOLUME}
+						value={Math.round(p.music * 10)}
+						label="Musik"
+						format={(v) => `${v * 10}%`}
+						onChange={(v) => {
+							prefs.set({ music: v / 10 });
 							sound.levels();
 						}}
 					/>
-				</label>
-				<label
+				</div>
+				<div
 					className="pref"
 					data-tip="Effekte: Lautstärke der Klicks und Spielgeräusche"
 				>
 					<Waves />
-					<input
-						type="range"
-						min={0}
-						max={100}
-						value={Math.round(p.sfx * 100)}
-						aria-label="Effekte"
-						onChange={(e) => {
-							prefs.set({ sfx: Number(e.target.value) / 100 });
+					<Slider
+						steps={VOLUME}
+						value={Math.round(p.sfx * 10)}
+						label="Effekte"
+						format={(v) => `${v * 10}%`}
+						onChange={(v) => {
+							prefs.set({ sfx: v / 10 });
 							sound.levels();
+							sound.word(2);
 						}}
-						onPointerUp={() => sound.word(2)}
 					/>
-				</label>
+				</div>
 				<div className="row" style={{ justifyContent: "center" }}>
 					<Toggle
 						on={p.haptics}

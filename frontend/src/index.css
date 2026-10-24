@@ -264,7 +264,9 @@ body.urgent .bg i {
 		transform 0.22s var(--spring),
 		filter 0.15s,
 		box-shadow 0.15s,
-		background-color 0.2s;
+		background-color 0.2s,
+		border-color 0.2s,
+		color 0.2s;
 }
 @media (hover: hover) {
 	:is(
@@ -1059,24 +1061,43 @@ body.urgent .bg i {
 	paint-order: stroke fill;
 }
 .toggle {
-	height: 44px;
-	min-width: 56px;
-	padding: 0 12px;
+	position: relative;
+	height: 52px;
+	min-width: 60px;
+	padding: 0 14px;
 	display: inline-grid;
 	place-items: center;
-	border-radius: 14px;
-	background: #f2f2f7;
+	border: 2px solid var(--line);
+	border-radius: var(--ri);
+	background: #fff;
 	color: var(--soft);
-	box-shadow: 0 3px 0 var(--line);
+	box-shadow: 0 4px 0 var(--line);
 }
 .toggle svg {
-	width: 22px;
-	height: 22px;
+	width: 24px;
+	height: 24px;
+}
+.toggle::after {
+	content: "";
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	width: 14px;
+	height: 14px;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	background: var(--good);
+	scale: 0;
+	transition: scale 0.25s var(--spring);
 }
 .toggle[aria-pressed="true"] {
-	background: #fff4d6;
-	color: #ff9600;
-	box-shadow: 0 3px 0 #ffd88a;
+	border-color: var(--gold-d);
+	background: var(--gold);
+	color: #fff;
+	box-shadow: 0 4px 0 var(--gold-d);
+}
+.toggle[aria-pressed="true"]::after {
+	scale: 1;
 }
 .modes {
 	justify-content: center;
@@ -2414,73 +2435,94 @@ body.urgent .app {
 	background: #fff;
 	color: var(--you);
 }
+@property --f {
+	syntax: "<number>";
+	inherits: true;
+	initial-value: 0;
+}
 .slider {
 	--f: 0;
+	--k: 34px;
+	--x: calc(var(--k) / 2 + (100% - var(--k)) * var(--f));
 	position: relative;
 	flex: 1;
 	min-width: 160px;
-	padding-top: 34px;
+	padding-top: 38px;
+	transition: --f 0.32s var(--spring);
+}
+.rail {
+	position: relative;
+	height: 16px;
+	margin: 9px 0;
+	border-radius: 16px;
+	background: #ececf3;
+	box-shadow: inset 0 3px 0 rgb(0 0 0 / 0.07);
+}
+.rail::before {
+	content: "";
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: var(--x);
+	border-radius: inherit;
+	background: var(--gold);
+	box-shadow: inset 0 -4px 0 var(--gold-d);
+}
+.rail i {
+	position: absolute;
+	top: 50%;
+	left: var(--x);
+	width: var(--k);
+	height: var(--k);
+	translate: -50% -50%;
+	border-radius: calc(var(--k) * var(--rt) + 4px);
+	background: #fff;
+	box-shadow:
+		0 4px 0 var(--gold-d),
+		inset 0 0 0 5px var(--gold);
+	transition: scale 0.2s var(--spring);
 }
 .slider input {
 	-webkit-appearance: none;
 	appearance: none;
-	display: block;
+	position: absolute;
+	left: 0;
+	top: 38px;
 	width: 100%;
-	height: 34px;
+	height: var(--k);
 	margin: 0;
-	background: none;
+	opacity: 0;
 	touch-action: none;
-}
-.slider input::-webkit-slider-runnable-track {
-	height: 16px;
-	border-radius: 16px;
-	background: linear-gradient(
-		90deg,
-		var(--gold) calc(var(--f) * 100%),
-		#ececf3 0
-	);
-	box-shadow: inset 0 3px 0 rgb(0 0 0 / 0.07);
-}
-.slider input::-moz-range-track {
-	height: 16px;
-	border-radius: 16px;
-	background: linear-gradient(
-		90deg,
-		var(--gold) calc(var(--f) * 100%),
-		#ececf3 0
-	);
 }
 .slider input::-webkit-slider-thumb {
 	-webkit-appearance: none;
-	width: 34px;
-	height: 34px;
-	margin-top: -9px;
-	border: 0;
-	border-radius: calc(34px * var(--rt) + 4px);
-	background: #fff;
-	box-shadow:
-		0 4px 0 var(--gold-d),
-		inset 0 0 0 5px var(--gold);
-	transition: transform 0.2s var(--spring);
+	width: var(--k);
+	height: var(--k);
 }
 .slider input::-moz-range-thumb {
-	width: 34px;
-	height: 34px;
+	width: var(--k);
+	height: var(--k);
 	border: 0;
-	border-radius: calc(34px * var(--rt) + 4px);
-	background: #fff;
-	box-shadow:
-		0 4px 0 var(--gold-d),
-		inset 0 0 0 5px var(--gold);
 }
-.slider input:active::-webkit-slider-thumb {
-	transform: scale(1.2, 0.9);
+.slider:hover .rail i {
+	scale: 1.08;
+}
+.slider.hit .rail i,
+.slider:has(input:active) .rail i {
+	scale: 1.2 0.9;
+}
+.slider:has(input:focus-visible) .rail i {
+	outline: 3px solid var(--you);
+	outline-offset: 2px;
+}
+.slider:has(input:disabled) {
+	opacity: 0.5;
 }
 .slider output {
 	position: absolute;
 	top: 0;
-	left: calc(17px + (100% - 34px) * var(--f));
+	left: var(--x);
 	translate: -50% 0;
+	transform-origin: 50% 100%;
 	min-width: 44px;
 	padding: 3px 8px;
 	border-radius: 10px;
@@ -2488,6 +2530,8 @@ body.urgent .app {
 	color: #fff;
 	text-align: center;
 	font-size: 15px;
+	line-height: 20px;
+	white-space: nowrap;
 	transition: scale 0.15s var(--spring);
 }
 .slider output::after {
@@ -2500,13 +2544,14 @@ body.urgent .app {
 	border-bottom: 0;
 	border-top-color: var(--ink);
 }
-.slider.hit output {
-	scale: 1.25;
+.slider.hit output,
+.slider:has(input:active) output {
+	scale: 1.2;
 }
 .ticks {
 	display: flex;
 	justify-content: space-between;
-	padding: 4px 13px 0;
+	padding: 4px calc(var(--k) / 2 - 2px) 0;
 }
 .ticks i {
 	width: 4px;
@@ -2818,15 +2863,13 @@ body.urgent .app {
 }
 .pref {
 	display: flex;
-	align-items: center;
+	align-items: end;
 	gap: 14px;
 	color: var(--soft);
 }
-.pref .slider {
-	padding-top: 0;
-}
-.pref .slider output {
-	display: none;
+.pref > svg {
+	flex: none;
+	margin-bottom: 17px;
 }
 .cat-chip.add input {
 	width: 9ch;
@@ -2871,11 +2914,6 @@ body.calm *::after {
 	-webkit-text-stroke: 3px var(--ink);
 	paint-order: stroke fill;
 	animation: rise 2s ease-out infinite;
-}
-.pref input {
-	flex: 1;
-	height: 30px;
-	accent-color: var(--good);
 }
 
 /* ---------- app glue ---------- */
@@ -3077,7 +3115,9 @@ body.calm *::after {
 		rotate 0.5s var(--spring),
 		filter 0.15s,
 		box-shadow 0.15s,
-		background-color 0.2s;
+		background-color 0.2s,
+		border-color 0.2s,
+		color 0.2s;
 }
 :is(.card, .rank, .fourth, .board-row):active {
 	transform: scale(0.98);
