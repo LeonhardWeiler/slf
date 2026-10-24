@@ -120,7 +120,9 @@ class Fx {
 
 	private add(p: Part) {
 		this.parts.push(p);
-		if (!this.raf && this.ctx) this.raf = requestAnimationFrame(this.draw);
+		if (this.raf || !this.ctx || !this.canvas) return;
+		this.canvas.hidden = false;
+		this.raf = requestAnimationFrame(this.draw);
 	}
 
 	private draw = () => {
@@ -144,6 +146,7 @@ class Fx {
 			this.paint(ctx, p);
 		}
 		this.raf = this.parts.length ? requestAnimationFrame(this.draw) : 0;
+		if (!this.raf && this.canvas) this.canvas.hidden = true;
 	};
 
 	private paint(ctx: CanvasRenderingContext2D, p: Part) {

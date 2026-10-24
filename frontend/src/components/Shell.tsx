@@ -296,7 +296,7 @@ export function Shell({ children }: { children: ReactNode }) {
 				))}
 			</div>
 			<main className="app">{children}</main>
-			<canvas id="fx" ref={canvas} />
+			<canvas id="fx" ref={canvas} hidden />
 			{tip && <Tip {...tip} />}
 		</>
 	);
