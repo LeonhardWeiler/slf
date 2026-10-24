@@ -12,6 +12,7 @@ import { fx } from "@/lib/fx";
 import { haptic, setWorld, shake, shiftPalette, worldFor } from "@/lib/feel";
 import { prefs, usePrefs } from "@/lib/prefs";
 import { sound, type Scene } from "@/lib/sound";
+import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
 import type { GameState } from "@/types/events";
 import { Btn, IconBtn, Slider, Toggle } from "@/components/kit";
@@ -76,7 +77,10 @@ export function Shell({ children }: { children: ReactNode }) {
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: a new round or phase re-reads round.current
 	useEffect(() => {
-		setWorld(worldFor(code, round.current));
+		const w = worldFor(code, round.current);
+		setWorld(w);
+		if (state === "Countdown")
+			ws.send({ type: "track", payload: { ev: "world", value: w } });
 	}, [code, used, state]);
 
 	useEffect(() => {
@@ -333,7 +337,14 @@ export function TopBar({
 				<IconBtn
 					tip={on ? "Ton aus" : "Ton an"}
 					aria-pressed={on}
-					onClick={() => sound.setOn(!on)}
+					onClick={() => {
+						if (on)
+							ws.send({
+								type: "track",
+								payload: { ev: "mute", scene: sound.scene },
+							});
+						sound.setOn(!on);
+					}}
 				>
 					{on ? <Volume2 /> : <VolumeX />}
 				</IconBtn>
@@ -364,6 +375,11 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 						onChange={(v) => {
 							prefs.set({ music: v / 10 });
 							sound.levels();
+							if (!v)
+								ws.send({
+									type: "track",
+									payload: { ev: "musicOff", scene: sound.scene },
+								});
 						}}
 					/>
 				</div>

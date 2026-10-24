@@ -24,6 +24,9 @@ export function RoomHeader({
 	const code = useRoomStore((s) => s.lobby?.lobbyCode ?? "").toUpperCase();
 	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
+	const playing = useRoomStore(
+		(s) => !!s.lobby && !["Lobby", "GameOver"].includes(s.lobby.state),
+	);
 	const { confirm, dialog } = useConfirm();
 
 	async function copyCode(el: HTMLElement) {
@@ -49,6 +52,11 @@ export function RoomHeader({
 		);
 		if (!confirmed) return;
 		setSelfLeaving(true);
+		if (playing)
+			ws.send({
+				type: "track",
+				payload: { ev: "leave", value: document.documentElement.dataset.world },
+			});
 		ws.send({ type: "leaveLobby", payload: {} });
 		markForcedLeave();
 		reset();

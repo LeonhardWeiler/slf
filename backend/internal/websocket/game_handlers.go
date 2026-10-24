@@ -60,7 +60,13 @@ func handleStartGame(hub *Hub, c *Client) {
 	lobby.Game = &game.Game{
 		RemainingLetters: letters,
 		UsedLetters:      []string{},
+		Mode:             "classic",
+		StartedAt:        time.Now(),
 	}
+	if soloPlayer(lobby) != nil {
+		lobby.Game.Mode = "solo"
+	}
+	hub.Stats.Add(gameEvent("start", lobby))
 	slog.Info("game started",
 		"lobby", lobby.Code, "players", len(lobby.Players), "letters", len(letters))
 	hub.mu.Unlock()
@@ -773,6 +779,9 @@ func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	result := buildRoundResult(lobby, "", nil, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result
+		e := gameEvent("end", lobby)
+		e.Reason = reason
+		hub.Stats.Add(e)
 	}
 	hub.mu.Unlock()
 

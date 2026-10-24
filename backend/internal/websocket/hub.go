@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"slf/internal/game"
+	"slf/internal/stats"
 )
 
 // Resource caps to bound memory use. Deliberately far above any realistic game
@@ -47,6 +48,8 @@ type Hub struct {
 	hostGraceDuration time.Duration
 	// pingInterval spaces the server heartbeat; overridable in tests.
 	pingInterval time.Duration
+	// Stats records usage events; nil turns them off.
+	Stats *stats.Log
 	// draining refuses new games while the server waits to restart for an update.
 	draining bool
 	// closed refuses new sockets and messages once Shutdown began.

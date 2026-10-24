@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"slf/internal/stats"
 	"slf/internal/websocket"
 )
 
@@ -31,6 +32,22 @@ func main() {
 		if err := hub.Load(stateFile); err != nil {
 			log.Printf("Restoring lobbies failed: %v", err)
 		}
+		st, err := stats.Open(filepath.Join(dir, "events.jsonl"))
+		if err != nil {
+			log.Printf("Opening stats failed: %v", err)
+		} else {
+			hub.Stats = st
+		}
+	}
+	// STATS_ADDR serves the stats dashboard on its own listener.
+	if a := os.Getenv("STATS_ADDR"); a != "" && hub.Stats != nil {
+		go func() {
+			s := &http.Server{Addr: a, Handler: hub.Stats, ReadHeaderTimeout: 10 * time.Second}
+			log.Printf("Stats on %s", a)
+			if err := s.ListenAndServe(); err != nil {
+				log.Printf("Stats server: %v", err)
+			}
+		}()
 	}
 	hub.StartJanitor() // reap abandoned lobbies
 

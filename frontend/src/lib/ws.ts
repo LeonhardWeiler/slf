@@ -8,7 +8,11 @@ const queued = new Set<ClientEvent["type"]>([
 	"joinLobby",
 	"checkLobby",
 ]);
-const silent = new Set<ClientEvent["type"]>(["answerUpdate", "leaveLobby"]);
+const silent = new Set<ClientEvent["type"]>([
+	"answerUpdate",
+	"leaveLobby",
+	"track",
+]);
 
 type EventHandler<T extends ServerEvent["type"]> = (
 	payload: Extract<ServerEvent, { type: T }>["payload"],

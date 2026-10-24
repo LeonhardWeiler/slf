@@ -62,7 +62,7 @@ interface NoiseOpts {
 }
 
 class Sound {
-	private scene: Scene = "lobby";
+	scene: Scene = "lobby";
 	timbre: Timbre = "candy";
 	layer = 0;
 	private ctx: AudioContext | null = null;

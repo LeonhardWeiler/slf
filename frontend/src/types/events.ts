@@ -264,4 +264,12 @@ export type ClientEvent =
 	| { type: "startNextRound"; payload: Record<string, never> }
 	| { type: "endGame"; payload: Record<string, never> }
 	| { type: "returnToLobby"; payload: Record<string, never> }
-	| { type: "ping"; payload: Record<string, never> };
+	| { type: "ping"; payload: Record<string, never> }
+	| {
+			type: "track";
+			payload: {
+				ev: "world" | "leave" | "mute" | "musicOff";
+				value?: string;
+				scene?: string;
+			};
+	  };
