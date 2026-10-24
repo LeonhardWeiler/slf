@@ -8,7 +8,7 @@ in RAM.
 ## Features
 
 - **Lobbies** with a 6-character alphanumeric code, QR code and share link
-- **Host controls**: create/edit/delete categories, time limit, enable/disable
+- **Host controls**: create/edit/delete up to 20 categories, time limit, enable/disable
   letters, remove players, end the running round
 - **Round flow**: countdown -> answers -> buzzing -> review -> result
 - **Live review**: players vote answers down with thumbs; a category moves
