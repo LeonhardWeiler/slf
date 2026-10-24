@@ -2126,7 +2126,7 @@ body.urgent .bg i {
 	opacity: 1;
 	transform: none;
 }
-.step-av b {
+.step-pts {
 	font-size: 22px;
 	color: #fff;
 	-webkit-text-stroke: 5px rgb(0 0 0 / 0.2);
@@ -3066,11 +3066,22 @@ body.calm *::after {
 .rank .kick {
 	grid-area: ready;
 }
-.solo-score {
+.hero {
 	gap: 20px;
 }
-.solo-score .solo-total {
-	font-size: 64px;
+.hero .solo-total {
+	padding: 12px 22px;
+	border-radius: 28px;
+	font-size: 72px;
+	line-height: 1;
+	box-shadow: 0 6px 0 var(--gold-d);
+	animation:
+		pop-in 0.4s var(--spring),
+		nudge 0.5s var(--spring) 2.4s;
+}
+.hero .solo-total svg {
+	width: 56px;
+	height: 56px;
 }
 .crash {
 	min-height: 100svh;

@@ -29,6 +29,7 @@ export function GameOverScreen() {
 	const mode = `${solo ? "solo" : "multi"}-${lobby?.settings.sprint ? "sprint" : "classic"}`;
 	const score = lobby?.players.find((p) => p.id === myPlayerId)?.score ?? 0;
 	const won = result?.ranking[0]?.playerId === myPlayerId && score > 0;
+	const played = !!result?.ranking.some((r) => r.playerId === myPlayerId);
 
 	// Solo counts the total up; multiplayer raises third, second, then first.
 	// Then the personal record and the day streak land.
@@ -87,15 +88,16 @@ export function GameOverScreen() {
 		<>
 			<RoomHeader />
 			<section className="screen over">
-				{lobby.solo ? (
-					<div className="center solo-score">
-						<Mascot size="big" base="happy" />
+				{played && (
+					<div className="center hero">
+						{solo && <Mascot size="big" base="happy" />}
 						<span className="solo-total">
 							<Star />
-							<CountUp value={score} durationMs={1600} />
+							<CountUp value={score} durationMs={solo ? 1600 : 2400} />
 						</span>
 					</div>
-				) : (
+				)}
+				{!solo && (
 					<>
 						<div className="podium-row">
 							{ORDER.map((i) => {
@@ -117,7 +119,11 @@ export function GameOverScreen() {
 												name={playerName(r.playerId)}
 												size="big"
 											/>
-											<b>{r.score}</b>
+											<CountUp
+												value={up >= 3 - i ? r.score : 0}
+												durationMs={500}
+												className="step-pts"
+											/>
 										</div>
 										<div className="block">{r.rank}</div>
 									</div>
