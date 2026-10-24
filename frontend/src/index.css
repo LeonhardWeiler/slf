@@ -294,17 +294,19 @@ body.urgent .bg i {
 		.decide button
 	):not(:disabled):hover {
 		filter: brightness(1.06);
-		transform: translateY(-1px) scale(1.03);
+		transform: scale(1.03);
 	}
 	:is(.card, .ans, .rank, .solo-row, .fourth, .board-row):hover {
-		margin-block: 4px;
 		filter: brightness(1.03);
 	}
 	.seat:hover {
-		transform: translateY(-4px) rotate(-2deg);
+		transform: rotate(-2deg) scale(1.06);
 	}
-	:is(.av, .tile, .pts, .word-chip, .code span, .rounds i):hover {
-		transform: translateY(-3px) rotate(-4deg) scale(1.08);
+	:is(.av, .tile, .code span):hover {
+		transform: rotate(-4deg) scale(1.08);
+	}
+	:is(.pts, .word-chip, .rounds i):hover {
+		transform: scale(1.08);
 	}
 	.fuse:hover b {
 		scale: 1.3;
