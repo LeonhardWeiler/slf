@@ -3090,6 +3090,7 @@ body.calm *::after {
 }
 .held {
 	z-index: 3;
+	transition-property: transform, margin, filter, box-shadow;
 }
 .review-clock {
 	align-self: stretch;

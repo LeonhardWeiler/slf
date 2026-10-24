@@ -27,6 +27,9 @@ const SCENES: Record<GameState, Scene> = {
 };
 
 const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+const band = (d: number) => 8 * Math.tanh(d / 40);
+const GRAB =
+	"button, [role=switch], .card, .ans, .rank, .seat, .solo-row, .fourth, .av, .tile, .word-chip, .pts";
 
 function lookAt(x: number, y: number) {
 	for (const m of document.querySelectorAll<HTMLElement>(".mascot")) {
@@ -87,6 +90,7 @@ export function Shell({ children }: { children: ReactNode }) {
 		let press = 0;
 		let pressed: Element | null = null;
 		let swallow = false;
+		let grab: { el: HTMLElement; x: number; y: number } | null = null;
 		const st = document.documentElement.style;
 
 		function showTip(el: Element) {
@@ -106,6 +110,12 @@ export function Shell({ children }: { children: ReactNode }) {
 					clamp((e.clientY / innerHeight - 0.5) * 2).toFixed(3),
 				);
 			}
+			if (grab) {
+				const x = band(e.clientX - grab.x);
+				const y = band(e.clientY - grab.y);
+				grab.el.style.translate = `${x.toFixed(1)}px ${y.toFixed(1)}px`;
+				grab.el.style.rotate = `${(x * 0.5).toFixed(1)}deg`;
+			}
 			if (queued) return;
 			queued = true;
 			requestAnimationFrame(() => {
@@ -124,6 +134,11 @@ export function Shell({ children }: { children: ReactNode }) {
 			sound.start();
 			const t = e.target as Element;
 			const btn = t.closest("button, [role=button], [role=switch]");
+			const g = t.closest<HTMLElement>(GRAB);
+			if (g && !fx.calm && !t.closest("input, textarea")) {
+				grab = { el: g, x: e.clientX, y: e.clientY };
+				g.classList.add("held");
+			}
 			if (btn) {
 				if (
 					(btn as HTMLButtonElement).disabled ||
@@ -136,6 +151,9 @@ export function Shell({ children }: { children: ReactNode }) {
 					sound.tap();
 					haptic(8);
 				}
+			} else if (g) {
+				sound.pop();
+				haptic(5);
 			}
 			clearTimeout(press);
 			setTip(null);
@@ -150,6 +168,12 @@ export function Shell({ children }: { children: ReactNode }) {
 			}
 		}
 		function onUp() {
+			if (grab) {
+				grab.el.classList.remove("held");
+				grab.el.style.translate = "";
+				grab.el.style.rotate = "";
+				grab = null;
+			}
 			clearTimeout(press);
 			if (swallow) setTimeout(() => setTip(null), 1400);
 		}
