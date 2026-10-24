@@ -1148,6 +1148,9 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 		read()
 	}
 	carol.send("reviewReady", map[string]any{})
+	if rs := read(); rs.CategoryIndex != 0 || len(rs.Ready) != 3 {
+		t.Fatalf("the last tick must show before moving on, got %+v", rs)
+	}
 	if rs := read(); rs.CategoryIndex != 1 || len(rs.Ready) != 0 {
 		t.Fatalf("expected the next category, got %+v", rs)
 	}

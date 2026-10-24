@@ -447,8 +447,12 @@ func handleVoteAnswer(hub *Hub, c *Client, raw json.RawMessage) {
 
 // handleReviewReady toggles the caller's "done" mark for the category under
 // review. Once every voter is done the review moves on by itself.
+// reviewHold keeps the last ready tick on screen before the review moves on.
+const reviewHold = 700 * time.Millisecond
+
 func handleReviewReady(hub *Hub, c *Client) {
-	finish := false
+	var roundID string
+	var idx int
 	lobby := hub.mutateReview(c, false, func(lobby *game.Lobby, pl *game.Player, _ string) bool {
 		if !votesThisRound(lobby, pl) {
 			return false
@@ -458,17 +462,33 @@ func handleReviewReady(hub *Hub, c *Client) {
 			r.Ready = map[string]bool{}
 		}
 		r.Ready[pl.ID] = !r.Ready[pl.ID]
-		finish = advanceIfReady(lobby)
+		roundID, idx = r.ID, r.ReviewIndex
 		return true
 	})
 	if lobby == nil {
 		return
 	}
-	if finish {
-		hub.finishReview(lobby)
+	hub.broadcastReviewState(lobby)
+	time.AfterFunc(reviewHold, func() { hub.advanceReview(lobby, roundID, idx) })
+}
+
+// advanceReview moves on once all voters are still ready on the same category.
+func (hub *Hub) advanceReview(lobby *game.Lobby, roundID string, idx int) {
+	hub.mu.Lock()
+	g := lobby.Game
+	if lobby.State != game.StateReviewing || g == nil || g.Round == nil || g.Round.ID != roundID || g.Round.ReviewIndex != idx {
+		hub.mu.Unlock()
 		return
 	}
-	hub.broadcastReviewState(lobby)
+	before := g.Round.ReviewIndex
+	finish := advanceIfReady(lobby)
+	moved := g.Round.ReviewIndex != before
+	hub.mu.Unlock()
+	if finish {
+		hub.finishReview(lobby)
+	} else if moved {
+		hub.broadcastReviewState(lobby)
+	}
 }
 
 // advanceIfReady moves to the next category once all voters are done and
