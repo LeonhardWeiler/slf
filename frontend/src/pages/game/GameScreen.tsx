@@ -790,7 +790,7 @@ function Fuse({
 	}, [hot]);
 	if (endsAt === null)
 		return (
-			<div className="fuse endless" data-tip="Ohne Zeitlimit">
+			<div className="fuse endless">
 				<i />
 			</div>
 		);

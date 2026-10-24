@@ -335,6 +335,7 @@ export function Home() {
 			<div className="row">
 				<IconBtn
 					tip="Zurück"
+					data-tip={undefined}
 					onClick={() => {
 						setJoinError(null);
 						back();
@@ -346,7 +347,6 @@ export function Home() {
 					type="submit"
 					kind="primary"
 					aria-label="Los"
-					data-tip="Los"
 					disabled={!ready || !name.trim()}
 				>
 					{loading ? <Loader2 className="spin" /> : <ArrowRight />}
@@ -489,7 +489,12 @@ export function Home() {
 							</p>
 						)}
 						<div className="row">
-							<IconBtn tip="Zurück" onClick={back} disabled={checking}>
+							<IconBtn
+								tip="Zurück"
+								data-tip={undefined}
+								onClick={back}
+								disabled={checking}
+							>
 								<ArrowLeft />
 							</IconBtn>
 							<Btn

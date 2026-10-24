@@ -333,7 +333,7 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 				Einstellungen
 			</h2>
 			<div className="prefs">
-				<div className="pref" data-tip="Musik: Lautstärke der Hintergrundmusik">
+				<div className="pref" data-tip="Lautstärke der Hintergrundmusik">
 					<Music />
 					<Slider
 						steps={VOLUME}
@@ -346,10 +346,7 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 						}}
 					/>
 				</div>
-				<div
-					className="pref"
-					data-tip="Effekte: Lautstärke der Klicks und Spielgeräusche"
-				>
+				<div className="pref" data-tip="Lautstärke der Soundeffekte">
 					<Waves />
 					<Slider
 						steps={VOLUME}
@@ -366,14 +363,14 @@ function PrefsSheet({ onClose }: { onClose: () => void }) {
 				<div className="row" style={{ justifyContent: "center" }}>
 					<Toggle
 						on={p.haptics}
-						tip="Vibration: kurzes Rütteln bei jeder Aktion (Handy)"
+						tip="Vibration"
 						onChange={(haptics) => prefs.set({ haptics })}
 					>
 						<Hand />
 					</Toggle>
 					<Toggle
 						on={!p.calm}
-						tip="Animationen: Partikel, Wackeln und Bewegung"
+						tip="Animation"
 						onChange={(on) => prefs.set({ calm: !on })}
 					>
 						<Zap />

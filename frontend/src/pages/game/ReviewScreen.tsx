@@ -232,10 +232,8 @@ export function ReviewScreen() {
 										: undefined
 								}
 								data-tip={
-									canStrike && !mergeAnchor
-										? out
-											? "Antippen: gilt wieder"
-											: "Antippen: streichen"
+									canStrike && !mergeAnchor && out
+										? "Antippen: gilt wieder"
 										: undefined
 								}
 								onClick={(e) => {

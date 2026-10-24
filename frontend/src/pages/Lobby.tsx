@@ -319,7 +319,6 @@ export function Lobby() {
 								type="button"
 								className="cat-chip add"
 								aria-label="Kategorie hinzufügen"
-								data-tip="Kategorie hinzufügen"
 								onClick={() => setNewCategory("")}
 							>
 								<Plus />
@@ -347,7 +346,7 @@ export function Lobby() {
 						)}
 					</div>
 
-					<div className="pref" data-tip="Zeitlimit pro Runde">
+					<div className="pref">
 						<Timer />
 						<Slider
 							steps={TIME_STEPS}
@@ -362,7 +361,7 @@ export function Lobby() {
 						{(activePlayers.length > 1 || !s.hostPlays) && (
 							<Toggle
 								on={!s.hostPlays}
-								tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"
+								tip="Host kommentiert nur"
 								onChange={(v) => updateSettings({ hostPlays: !v })}
 							>
 								<Eye />
@@ -370,7 +369,7 @@ export function Lobby() {
 						)}
 						<Toggle
 							on={s.lastLetterMode}
-							tip="Letzter Buchstabe: Antworten müssen mit dem Buchstaben enden statt beginnen"
+							tip="Letzter Buchstabe"
 							onChange={(lastLetterMode) => updateSettings({ lastLetterMode })}
 						>
 							<b>…A</b>
@@ -379,7 +378,7 @@ export function Lobby() {
 							type="button"
 							className="toggle"
 							aria-pressed={s.excludedLetters.length > 0}
-							data-tip="Buchstaben auswählen, die gezogen werden können"
+							data-tip="Buchstaben auswählen"
 							aria-label="Buchstaben auswählen"
 							onClick={() => setShowLetters(true)}
 						>
@@ -494,12 +493,7 @@ export function Lobby() {
 						]}
 					/>
 					{/* biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons */}
-					<div
-						className="letters"
-						role="group"
-						aria-label="Buchstaben"
-						data-tip="Buchstaben, die gezogen werden können"
-					>
+					<div className="letters" role="group" aria-label="Buchstaben">
 						{ALPHABET.map((letter) => (
 							<button
 								key={letter}
