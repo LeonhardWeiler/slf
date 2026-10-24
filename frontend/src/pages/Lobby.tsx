@@ -465,7 +465,6 @@ export function Lobby() {
 					role="dialog"
 					labelledBy="letters-title"
 					onClose={() => setShowLetters(false)}
-					bottom
 				>
 					<h2 id="letters-title" className="sr-only">
 						Buchstaben

@@ -327,8 +327,7 @@ export function TopBar({
 function PrefsSheet({ onClose }: { onClose: () => void }) {
 	const p = usePrefs();
 	return (
-		<Modal role="dialog" labelledBy="prefs-title" onClose={onClose} bottom>
-			<span className="sheet-grip" />
+		<Modal role="dialog" labelledBy="prefs-title" onClose={onClose}>
 			<h2 id="prefs-title" className="sr-only">
 				Einstellungen
 			</h2>

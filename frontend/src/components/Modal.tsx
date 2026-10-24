@@ -1,4 +1,5 @@
 import { type ReactNode, type RefObject, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 // Count of currently-open modals. Global keyboard shortcuts on the game screens
 // (Enter to start the next round / buzz, Ctrl/Cmd+C to copy the code) query
@@ -16,8 +17,6 @@ interface ModalProps {
 	onClose: () => void;
 	// Receives focus on open; defaults to the first focusable element.
 	initialFocus?: RefObject<HTMLElement | null>;
-	// Slides in from the bottom as a sheet instead of a centred card.
-	bottom?: boolean;
 	children: ReactNode;
 }
 
@@ -30,7 +29,6 @@ export function Modal({
 	describedBy,
 	onClose,
 	initialFocus,
-	bottom,
 	children,
 }: ModalProps) {
 	const dialogRef = useRef<HTMLDivElement>(null);
@@ -83,11 +81,11 @@ export function Modal({
 		};
 	}, []);
 
-	return (
+	return createPortal(
 		// biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; keyboard is covered by the Escape handler
 		// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar - Escape closes via the window listener above
 		<div
-			className={`modal-back${bottom ? " bottom" : ""}`}
+			className="modal-back"
 			onClick={(e) => {
 				if (e.target === e.currentTarget) onCloseRef.current();
 			}}
@@ -99,10 +97,11 @@ export function Modal({
 				aria-modal="true"
 				aria-labelledby={labelledBy}
 				aria-describedby={describedBy}
-				className={bottom ? "sheet" : "modal"}
+				className="modal"
 			>
 				{children}
 			</div>
-		</div>
+		</div>,
+		document.body,
 	);
 }
