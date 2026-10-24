@@ -2618,14 +2618,23 @@ body.urgent .app {
 	text-align: center;
 	text-shadow: 0 2px 0 rgb(0 0 0 / 0.12);
 }
+.code-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
 .code-in {
 	position: relative;
+	flex: 1;
+	min-width: 0;
 	display: flex;
 	gap: 6px;
 	justify-content: center;
 }
 .code-in span {
-	width: 46px;
+	flex: 1;
+	max-width: 46px;
 	height: 56px;
 	display: grid;
 	place-items: center;

@@ -430,48 +430,57 @@ export function Home() {
 
 				{step === "joinCode" && (
 					<form onSubmit={submitJoinCode}>
-						<label className={`code-in${joinError ? " bad" : ""}`}>
-							{Array.from({ length: 6 }, (_, i) => (
-								<span
-									// biome-ignore lint/suspicious/noArrayIndexKey: a slot is its position
-									key={i}
-									className={
-										i < code.length ? "on" : i === code.length ? "cur" : ""
-									}
-									style={
-										{ "--c": `var(--t${(i % 5) + 1})` } as React.CSSProperties
-									}
-								>
-									{code[i] ?? ""}
-								</span>
-							))}
-							<input
-								value={code}
-								onChange={(e) => {
-									setJoinError(null);
-									const next = e.target.value
-										.toUpperCase()
-										.replace(/[^A-Z0-9]/g, "")
-										.slice(0, 6);
-									if (next.length > code.length) sound.slot(next.length);
-									else if (next.length < code.length) sound.poof();
-									setCode(next);
-									if (next.length === 6) checkCode(next);
-								}}
-								aria-label="Lobbycode"
-								aria-invalid={joinError != null}
-								aria-describedby={joinError ? "code-error" : undefined}
-								disabled={checking}
-								autoCapitalize="characters"
-								autoCorrect="off"
-								spellCheck={false}
-								maxLength={6}
-								// biome-ignore lint/a11y/noAutofocus: each step focuses its only field
-								autoFocus
-								autoComplete="off"
-								enterKeyHint="go"
-							/>
-						</label>
+						<div className="code-row">
+							<label className={`code-in${joinError ? " bad" : ""}`}>
+								{Array.from({ length: 6 }, (_, i) => (
+									<span
+										// biome-ignore lint/suspicious/noArrayIndexKey: a slot is its position
+										key={i}
+										className={
+											i < code.length ? "on" : i === code.length ? "cur" : ""
+										}
+										style={
+											{ "--c": `var(--t${(i % 5) + 1})` } as React.CSSProperties
+										}
+									>
+										{code[i] ?? ""}
+									</span>
+								))}
+								<input
+									value={code}
+									onChange={(e) => {
+										setJoinError(null);
+										const next = e.target.value
+											.toUpperCase()
+											.replace(/[^A-Z0-9]/g, "")
+											.slice(0, 6);
+										if (next.length > code.length) sound.slot(next.length);
+										else if (next.length < code.length) sound.poof();
+										setCode(next);
+										if (next.length === 6) checkCode(next);
+									}}
+									aria-label="Lobbycode"
+									aria-invalid={joinError != null}
+									aria-describedby={joinError ? "code-error" : undefined}
+									disabled={checking}
+									autoCapitalize="characters"
+									autoCorrect="off"
+									spellCheck={false}
+									maxLength={6}
+									// biome-ignore lint/a11y/noAutofocus: each step focuses its only field
+									autoFocus
+									autoComplete="off"
+									enterKeyHint="go"
+								/>
+							</label>
+							<IconBtn
+								tip="QR-Code scannen"
+								onClick={() => goTo("scan")}
+								disabled={checking || !connected}
+							>
+								<ScanLine />
+							</IconBtn>
+						</div>
 						{joinError && (
 							<p id="code-error" role="alert" className="err">
 								{joinError}
@@ -480,13 +489,6 @@ export function Home() {
 						<div className="row">
 							<IconBtn tip="Zurück" onClick={back} disabled={checking}>
 								<ArrowLeft />
-							</IconBtn>
-							<IconBtn
-								tip="QR-Code scannen"
-								onClick={() => goTo("scan")}
-								disabled={checking || !connected}
-							>
-								<ScanLine />
 							</IconBtn>
 							<Btn
 								type="submit"
