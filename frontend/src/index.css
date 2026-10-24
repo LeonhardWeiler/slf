@@ -104,11 +104,108 @@ input {
 	pointer-events: none;
 }
 
+/* ---------- background ---------- */
+.bg {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+.bg i {
+	position: absolute;
+	border-radius: 50%;
+	background: rgb(255 255 255 / 0.22);
+	box-shadow: inset 0 -12px 0 rgb(0 0 0 / 0.04);
+	translate: calc(var(--bx, 0) * var(--d) * -1px)
+		calc(var(--by, 0) * var(--d) * -1px);
+	animation: float 14s ease-in-out infinite alternate;
+	will-change: transform, translate;
+}
+.bg i:nth-child(1) {
+	--d: 30;
+	width: 220px;
+	height: 220px;
+	left: -6%;
+	top: 6%;
+}
+.bg i:nth-child(2) {
+	--d: 14;
+	width: 90px;
+	height: 90px;
+	left: 72%;
+	top: 12%;
+	animation-duration: 11s;
+}
+.bg i:nth-child(3) {
+	--d: 40;
+	width: 300px;
+	height: 300px;
+	left: 64%;
+	top: 62%;
+	animation-duration: 17s;
+}
+.bg i:nth-child(4) {
+	--d: 10;
+	width: 50px;
+	height: 50px;
+	left: 20%;
+	top: 72%;
+	animation-duration: 9s;
+}
+.bg i:nth-child(5) {
+	--d: 22;
+	width: 130px;
+	height: 130px;
+	left: 40%;
+	top: 36%;
+	border-radius: 34%;
+	animation-duration: 13s;
+	animation-direction: alternate-reverse;
+}
+.bg i:nth-child(6) {
+	--d: 8;
+	width: 36px;
+	height: 36px;
+	left: 88%;
+	top: 44%;
+	border-radius: 30%;
+}
+.bg i:nth-child(7) {
+	--d: 18;
+	width: 70px;
+	height: 70px;
+	left: 6%;
+	top: 46%;
+	border-radius: 30%;
+	animation-duration: 10s;
+	animation-direction: alternate-reverse;
+}
+.bg i:nth-child(8) {
+	--d: 26;
+	width: 160px;
+	height: 160px;
+	left: 26%;
+	top: 88%;
+	animation-duration: 15s;
+}
+@keyframes float {
+	from {
+		transform: translate(-16px, 10px) rotate(-10deg);
+	}
+	to {
+		transform: translate(16px, -30px) rotate(10deg);
+	}
+}
+body.urgent .bg i {
+	animation-duration: 2.5s;
+}
+
 /* ---------- shell ---------- */
 :root {
 	--z: 1;
 }
 .app {
+	position: relative;
 	zoom: var(--z);
 	max-width: 560px;
 	margin: 0 auto;
