@@ -15,8 +15,8 @@ in RAM.
   on when the host skips or once everyone taps done; the host can override and
   merge identical answers
 - **Solo**: alone in a lobby you play a sprint: one round, one letter and
-  category at a time; Enter takes a word, an empty Enter or the skip button
-  moves on, STOPP or the time limit ends it. Finished words stack up with
+  category at a time; Enter takes a word, an empty Enter, Shift+Enter or the
+  skip button moves on, STOPP or the time limit ends it. Finished words stack up with
   their points; there is no review, the game ends with your total. As soon as
   someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
