@@ -1962,8 +1962,8 @@ body.urgent .bg i {
 }
 .rank.me {
 	box-shadow:
-		0 5px 0 #84d8ff,
-		0 0 0 3px var(--you);
+		inset 0 0 0 3px var(--you),
+		0 5px 0 #84d8ff;
 }
 .rank.up {
 	animation: nudge 0.6s ease-in-out 2;
