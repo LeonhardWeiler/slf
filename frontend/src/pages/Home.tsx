@@ -367,7 +367,7 @@ export function Home() {
 			</TopBar>
 			<section className="screen home">
 				<div className="hero">
-					<Mascot size="big" letter={step === "joinName" ? code[0] : "S"} />
+					<Mascot size="big" />
 				</div>
 
 				{step !== "start" && showOffline && (
