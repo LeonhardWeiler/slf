@@ -232,6 +232,13 @@ export function Shell({ children }: { children: ReactNode }) {
 			par.y = clamp((e.beta - 45) / 25);
 			kick();
 		}
+		const vv = window.visualViewport;
+		function onViewport() {
+			if (vv)
+				document.documentElement.style.setProperty("--vh", `${vv.height}px`);
+		}
+		onViewport();
+		vv?.addEventListener("resize", onViewport);
 		function onVisible() {
 			if (document.hidden) sound.pause();
 			else sound.start();
@@ -257,6 +264,7 @@ export function Shell({ children }: { children: ReactNode }) {
 			removeEventListener("click", onClick, true);
 			removeEventListener("deviceorientation", onTilt);
 			document.removeEventListener("visibilitychange", onVisible);
+			vv?.removeEventListener("resize", onViewport);
 		};
 	}, []);
 
