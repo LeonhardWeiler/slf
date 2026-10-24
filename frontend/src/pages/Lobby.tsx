@@ -44,6 +44,8 @@ const QrCode = lazy(() =>
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const RARE = ["C", "J", "Q", "X", "Y"];
 const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
+const MAX_CATEGORIES = 20;
+const WIDE_CATEGORIES = 8;
 
 // Keeps players briefly rendered after they leave so the row can fade out
 // instead of snapping away. Present players carry fresh data (name/connection
@@ -276,7 +278,10 @@ export function Lobby() {
 					))}
 				</div>
 
-				<div className={`panel${isHost ? "" : " locked"}`} inert={!isHost}>
+				<div
+					className={`panel${isHost ? "" : " locked"}${lobby.categories.length >= WIDE_CATEGORIES ? " many" : ""}`}
+					inert={!isHost}
+				>
 					<div className="cats-edit">
 						{lobby.categories.map((cat) => (
 							<span key={cat.id} className="cat-chip">
@@ -308,7 +313,8 @@ export function Lobby() {
 								)}
 							</span>
 						))}
-						{newCategory === null ? (
+						{lobby.categories.length >= MAX_CATEGORIES ? null : newCategory ===
+							null ? (
 							<button
 								type="button"
 								className="cat-chip add"

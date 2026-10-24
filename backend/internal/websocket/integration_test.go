@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -483,6 +484,21 @@ func TestDeleteAllCategoriesThenStartFails(t *testing.T) {
 	json.Unmarshal(host.waitFor("error"), &e)
 	if e.Code == "" {
 		t.Fatal("expected an error starting with no categories")
+	}
+}
+
+func TestCategoryLimit(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	for i := len(host.lastLobby.Categories); i < maxCategoriesPerLobby; i++ {
+		host.send("addCategory", map[string]any{"name": fmt.Sprintf("K%d", i)})
+		host.readLobby()
+	}
+	host.send("addCategory", map[string]any{"name": "zu viel"})
+	host.waitFor("error")
+	if n := len(host.lastLobby.Categories); n != maxCategoriesPerLobby {
+		t.Fatalf("got %d categories, want %d", n, maxCategoriesPerLobby)
 	}
 }
 

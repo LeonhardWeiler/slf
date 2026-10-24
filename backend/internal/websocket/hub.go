@@ -15,11 +15,13 @@ import (
 // Resource caps to bound memory use. Deliberately far above any realistic game
 // so normal players never hit them; they exist only to stop abuse.
 const (
-	maxLobbies            = 2000
-	maxConnections        = 2000
-	maxPlayersPerLobby    = 200
-	maxCategoriesPerLobby = 100
+	maxLobbies         = 2000
+	maxConnections     = 2000
+	maxPlayersPerLobby = 200
 )
+
+// maxCategoriesPerLobby is a game rule, mirrored as MAX_CATEGORIES in Lobby.tsx.
+const maxCategoriesPerLobby = 20
 
 // Abandoned-lobby reaper timing: a lobby with zero connected players for longer
 // than lobbyTTL is closed. Checked every janitorInterval.

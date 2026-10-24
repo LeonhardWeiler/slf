@@ -897,11 +897,23 @@ input {
 	grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
 	gap: 8px;
 }
+.panel.many {
+	grid-template-areas: "time" "modes" "cats";
+}
+.panel.many .cats-edit {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 @media (min-width: 720px) {
 	.panel {
 		grid-template-columns: 1fr 1fr;
 		grid-template-areas: "cats time" "cats modes";
 		column-gap: 24px;
+	}
+	.panel.many {
+		grid-template-areas: "time modes" "cats cats";
+	}
+	.panel.many .cats-edit {
+		grid-template-columns: repeat(4, minmax(0, 1fr));
 	}
 }
 .cat-chip {
