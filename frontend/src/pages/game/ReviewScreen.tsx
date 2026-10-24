@@ -6,11 +6,9 @@ import {
 	Clock,
 	Crown,
 	Flag,
-	Gavel,
 	Link2,
 	Link2Off,
 	ThumbsDown,
-	ThumbsUp,
 	X,
 } from "lucide-react";
 import { ws } from "@/lib/ws";
@@ -105,14 +103,26 @@ export function ReviewScreen() {
 				.map((a) => normalize(a.value)),
 		).size >= 2;
 
-	function vote(a: ReviewAnswer, up: boolean, el: Element) {
-		const mine = a.votes?.[me ?? ""];
-		const v = mine === up ? 0 : up ? 1 : -1;
-		ws.send({ type: "voteAnswer", payload: { answerId: a.answerId, vote: v } });
-		bounce(el, 1.25);
-		if (v === 1) sound.pop();
-		else if (v === -1) sound.crunch();
-		haptic(v === -1 ? [20, 30, 20] : 10);
+	// strike lets the host rule an answer out (or back in) and a voter doubt it.
+	function strike(a: ReviewAnswer, el: Element) {
+		let out: boolean;
+		if (isHost) {
+			out = a.valid;
+			ws.send({
+				type: "setAnswerValidity",
+				payload: { answerId: a.answerId, valid: !a.valid },
+			});
+		} else {
+			out = a.votes?.[me ?? ""] !== false;
+			ws.send({
+				type: "voteAnswer",
+				payload: { answerId: a.answerId, vote: out ? -1 : 0 },
+			});
+		}
+		bounce(el, 1.04);
+		if (out) sound.crunch();
+		else sound.pop();
+		haptic(out ? [20, 30, 20] : 10);
 	}
 
 	function toggleReady() {
@@ -184,21 +194,53 @@ export function ReviewScreen() {
 					{review.answers.map((a, i) => {
 						const merged = a.mergedInto !== "";
 						const votes = Object.values(a.votes ?? {});
-						const up = votes.filter(Boolean).length;
-						const down = votes.length - up;
-						const mine = a.votes?.[me ?? ""];
+						const down = votes.filter((v) => !v).length;
 						const doubted = down > 0 && !a.ruled;
-						const canVote = iVote && a.playerId !== me && !a.ruled;
+						const canStrike =
+							a.value !== "" &&
+							(isHost || (iVote && a.playerId !== me && !a.ruled));
+						const out = isHost ? !a.valid : a.votes?.[me ?? ""] === false;
 						return (
-							// biome-ignore lint/a11y/noStaticElementInteractions: merge pick, the buttons stay the keyboard path
-							// biome-ignore lint/a11y/useKeyWithClickEvents: merge pick, the buttons stay the keyboard path
+							// biome-ignore lint/a11y/useSemanticElements: the card holds its own buttons, so it cannot be a <button>
 							<div
 								key={a.answerId}
 								className={`ans${i < shown ? " dealt open" : ""}${a.valid ? "" : " cracked"}${doubted ? " doubt" : ""}${merged ? " linked" : ""}${mergeAnchor === a.answerId ? " twin" : ""}`}
 								style={
 									{ "--pc": playerColor(a.playerId) } as React.CSSProperties
 								}
-								onClick={() => mergeAnchor && pick(a)}
+								role="button"
+								tabIndex={canStrike ? 0 : -1}
+								aria-disabled={!canStrike}
+								aria-pressed={out}
+								aria-label={
+									canStrike
+										? isHost
+											? a.valid
+												? "Als ungültig festlegen"
+												: "Als gültig festlegen"
+											: "Gilt nicht"
+										: undefined
+								}
+								data-tip={
+									canStrike && !mergeAnchor
+										? out
+											? "Antippen: gilt wieder"
+											: "Antippen: streichen"
+										: undefined
+								}
+								onClick={(e) => {
+									if (mergeAnchor) pick(a);
+									else if (canStrike) strike(a, e.currentTarget);
+								}}
+								onKeyDown={(e) => {
+									if (
+										(e.key === "Enter" || e.key === " ") &&
+										e.target === e.currentTarget
+									) {
+										e.preventDefault();
+										e.currentTarget.click();
+									}
+								}}
 							>
 								<div className="ans-card">
 									<div className="ans-back">
@@ -225,72 +267,10 @@ export function ReviewScreen() {
 										<span className={`pts on ${ptsClass(a.pointsPreview)}`}>
 											{a.pointsPreview}
 										</span>
-										{a.value && (canVote || down > 0 || isHost) && (
-											<span className="thumbs">
-												{canVote ? (
-													<>
-														<button
-															type="button"
-															className="up"
-															aria-pressed={mine === true}
-															aria-label="Gilt"
-															data-tip="Gilt"
-															onClick={(e) => vote(a, true, e.currentTarget)}
-														>
-															<ThumbsUp />
-															{up > 0 && <small>{up}</small>}
-														</button>
-														<button
-															type="button"
-															className="down"
-															aria-pressed={mine === false}
-															aria-label="Gilt nicht"
-															data-tip="Gilt nicht"
-															onClick={(e) => vote(a, false, e.currentTarget)}
-														>
-															<ThumbsDown />
-															{down > 0 && <small>{down}</small>}
-														</button>
-													</>
-												) : (
-													down > 0 && (
-														<span
-															className="tally"
-															data-tip={`${up} dafür, ${down} dagegen`}
-														>
-															<ThumbsDown />
-															{down}
-														</span>
-													)
-												)}
-												{isHost && (
-													<button
-														type="button"
-														className="rule"
-														aria-pressed={a.ruled}
-														aria-label={
-															a.valid
-																? "Als ungültig festlegen"
-																: "Als gültig festlegen"
-														}
-														data-tip={
-															a.valid ? "Host: gilt nicht" : "Host: gilt"
-														}
-														onClick={(e) => {
-															ws.send({
-																type: "setAnswerValidity",
-																payload: {
-																	answerId: a.answerId,
-																	valid: !a.valid,
-																},
-															});
-															sound.stamp(a.valid ? 0 : 10);
-															bounce(e.currentTarget, 1.25);
-														}}
-													>
-														<Gavel />
-													</button>
-												)}
+										{down > 0 && (
+											<span className="tally" data-tip={`${down} dagegen`}>
+												<ThumbsDown />
+												{down}
 											</span>
 										)}
 										{isHost && merged && (
@@ -299,12 +279,13 @@ export function ReviewScreen() {
 												className="link-btn"
 												aria-label="Trennen"
 												data-tip={`Trennen von ${playerName(a.mergedInto)}`}
-												onClick={() =>
+												onClick={(e) => {
+													e.stopPropagation();
 													ws.send({
 														type: "unmergeAnswers",
 														payload: { answerId: a.answerId },
-													})
-												}
+													});
+												}}
 											>
 												<Link2Off />
 											</button>
@@ -312,7 +293,7 @@ export function ReviewScreen() {
 										{isHost &&
 											!merged &&
 											a.valid &&
-											(canMerge || mergeAnchor === a.answerId) &&
+											canMerge &&
 											!mergeAnchor && (
 												<button
 													type="button"

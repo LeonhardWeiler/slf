@@ -1756,19 +1756,15 @@ body.urgent .bg i {
 	paint-order: stroke fill;
 }
 .link-btn {
-	position: absolute;
-	z-index: 3;
-	right: -6px;
-	top: -10px;
-	width: 34px;
-	height: 34px;
+	width: 44px;
+	height: 44px;
+	flex: none;
 	display: grid;
 	place-items: center;
-	border-radius: 50%;
-	background: #fff;
+	border-radius: var(--ri);
+	background: #f0ebff;
 	color: #9370ff;
 	box-shadow: 0 3px 0 #c9b8ff;
-	animation: nudge 1s ease-in-out infinite;
 }
 .link-btn[aria-pressed="true"] {
 	background: #9370ff;
@@ -2850,43 +2846,6 @@ body.urgent .app {
 	font-size: 13px;
 	color: var(--bad-d);
 }
-.thumbs {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-.thumbs button {
-	width: 44px;
-	height: 44px;
-	display: grid;
-	place-items: center;
-	border-radius: var(--ri);
-	background: #f2f2f7;
-	color: var(--soft);
-	transition: transform 0.22s var(--spring);
-}
-.thumbs button:active {
-	transform: var(--press);
-}
-.thumbs .down[aria-pressed="true"] {
-	background: var(--bad);
-	color: #fff;
-	box-shadow: 0 4px 0 var(--bad-d);
-}
-.thumbs .up[aria-pressed="true"] {
-	background: var(--good);
-	color: #fff;
-	box-shadow: 0 4px 0 var(--good-d);
-}
-.thumbs .rule {
-	background: #fff4d6;
-	color: var(--gold-d);
-}
-.thumbs .rule[aria-pressed="true"] {
-	background: var(--gold);
-	color: #fff;
-	box-shadow: 0 4px 0 var(--gold-d);
-}
 .ready-row {
 	display: flex;
 	flex-wrap: wrap;
@@ -3008,18 +2967,14 @@ body.calm *::after {
 	animation: nope 0.35s;
 }
 
-.thumbs small,
 .tally {
 	font-size: 13px;
 	font-weight: 700;
-}
-.tally {
 	display: flex;
 	align-items: center;
 	gap: 3px;
 	color: var(--gold-d);
 }
-.thumbs svg,
 .tally svg {
 	width: 20px;
 	height: 20px;
@@ -3093,21 +3048,6 @@ body.calm *::after {
 .crash {
 	min-height: 100svh;
 	gap: 24px;
-}
-@media (max-width: 520px) {
-	.ans-card:has(.thumbs) {
-		height: 104px;
-	}
-	.ans-front:has(.thumbs) {
-		flex-wrap: wrap;
-		align-content: center;
-		row-gap: 6px;
-	}
-	.ans-front .thumbs {
-		order: 9;
-		width: 100%;
-		justify-content: flex-end;
-	}
 }
 .over .podium-row {
 	margin-top: auto;

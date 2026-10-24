@@ -423,6 +423,38 @@ describe("review validity", () => {
 		});
 	});
 
+	it("lets a voter doubt an answer by tapping its card", () => {
+		setup("guest", "Reviewing");
+		useRoomStore.getState().receive("reviewState", {
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			answers: [
+				{
+					answerId: "host",
+					playerId: "host",
+					value: "Bonn",
+					valid: true,
+					mergedInto: "",
+					pointsPreview: 25,
+					votes: null,
+					ruled: false,
+				},
+			],
+			solo: null,
+			ready: null,
+			voters: ["guest", "host"],
+		});
+		render(<ReviewScreen />);
+		fireEvent.click(screen.getByRole("button", { name: "Gilt nicht" }));
+		expect(send).toHaveBeenCalledWith({
+			type: "voteAnswer",
+			payload: { answerId: "host", vote: -1 },
+		});
+	});
+
 	it("toggles a solo answer by tapping its row", () => {
 		setup("guest", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {
