@@ -285,12 +285,20 @@ export function Tiles({
 	const prev = useRef<string[]>([]);
 	const [size, setSize] = useState(max);
 	useLayoutEffect(() => {
-		const w = box.current?.clientWidth || 260;
-		const cs = [...value];
-		const units = cs.reduce((u, c) => u + (c === " " ? 0.35 : 1), 0);
-		const gaps = 0.11 * Math.max(0, cs.length - 1);
-		setSize(Math.min(max, Math.floor(w / (Math.max(1, units) + gaps))));
-	}, [value, max]);
+		const el = box.current;
+		if (!el) return;
+		const fit = () => {
+			const cs = [...value];
+			const units = cs.reduce((u, c) => u + (c === " " ? 0.35 : 1), 0);
+			const gaps = 0.11 * Math.max(0, cs.length - (live ? 0 : 1));
+			const w = (el.clientWidth || 260) - (live ? 4 : 0);
+			setSize(Math.min(max, Math.floor(w / (Math.max(1, units) + gaps))));
+		};
+		fit();
+		const ro = new ResizeObserver(fit);
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, [value, max, live]);
 	useEffect(() => {
 		if (live && chars.length < prev.current.length) {
 			const tiles = box.current?.querySelectorAll(".tile:not(.ghost)");
