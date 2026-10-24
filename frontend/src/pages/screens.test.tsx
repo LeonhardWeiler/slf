@@ -477,7 +477,7 @@ describe("Lobby time limit", () => {
 });
 
 describe("Lobby letters", () => {
-	it("keeps letters visible and exposes selection and reset", () => {
+	it("opens a letter sheet with presets and single letters", () => {
 		setup("host", "Lobby");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -487,6 +487,9 @@ describe("Lobby letters", () => {
 			},
 		});
 		render(<Lobby />);
+		fireEvent.click(
+			screen.getByRole("button", { name: "Buchstaben auswählen" }),
+		);
 		expect(
 			screen.getByRole("button", { name: "Q" }).getAttribute("aria-pressed"),
 		).toBe("false");
@@ -497,6 +500,18 @@ describe("Lobby letters", () => {
 		expect(send).toHaveBeenLastCalledWith({
 			type: "updateSettings",
 			payload: { ...lobby.settings, excludedLetters: ["X"] },
+		});
+		fireEvent.click(
+			screen.getByRole("button", {
+				name: "Ohne seltene Buchstaben C, J, Q, X, Y",
+			}),
+		);
+		expect(send).toHaveBeenLastCalledWith({
+			type: "updateSettings",
+			payload: {
+				...lobby.settings,
+				excludedLetters: ["C", "J", "Q", "X", "Y"],
+			},
 		});
 	});
 });

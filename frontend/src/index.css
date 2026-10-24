@@ -1037,6 +1037,12 @@ body.urgent .bg i {
 	border-radius: 14px;
 	background: #f2f2f7;
 }
+.modal .seg {
+	justify-self: stretch;
+}
+.modal .seg button {
+	flex: 1;
+}
 .seg button {
 	min-width: 40px;
 	height: 34px;

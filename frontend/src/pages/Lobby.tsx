@@ -33,6 +33,7 @@ import {
 	CodeTiles,
 	IconBtn,
 	mood,
+	Seg,
 	Slider,
 	Toggle,
 } from "@/components/kit";
@@ -43,6 +44,7 @@ const QrCode = lazy(() =>
 );
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const RARE = ["C", "J", "Q", "X", "Y"];
 const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
 const SPRINT_STEPS: (number | null)[] = [45, 75, null];
 
@@ -101,6 +103,7 @@ export function Lobby() {
 	const { confirm, dialog } = useConfirm();
 	const [newCategory, setNewCategory] = useState("");
 	const [showQr, setShowQr] = useState(false);
+	const [showLetters, setShowLetters] = useState(false);
 	const [startHint, setStartHint] = useState(false);
 	const seen = useRef<Set<string> | null>(null);
 
@@ -362,29 +365,20 @@ export function Lobby() {
 						>
 							<b>…A</b>
 						</Toggle>
-					</div>
-
-					{/* biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons */}
-					<div
-						className="letters"
-						role="group"
-						aria-label="Buchstaben"
-						data-tip="Buchstaben, die gezogen werden können"
-					>
-						{ALPHABET.map((letter) => (
-							<button
-								key={letter}
-								type="button"
-								className="lt"
-								aria-pressed={!s.excludedLetters.includes(letter)}
-								onClick={(e) => {
-									toggleLetter(letter);
-									bounce(e.currentTarget, 1.2);
-								}}
-							>
-								{letter}
-							</button>
-						))}
+						<button
+							type="button"
+							className="toggle"
+							aria-pressed={s.excludedLetters.length > 0}
+							data-tip="Buchstaben auswählen, die gezogen werden können"
+							aria-label="Buchstaben auswählen"
+							onClick={() => setShowLetters(true)}
+						>
+							<b>
+								{s.excludedLetters.length
+									? ALPHABET.length - s.excludedLetters.length
+									: "A–Z"}
+							</b>
+						</button>
 					</div>
 				</div>
 
@@ -461,6 +455,69 @@ export function Lobby() {
 							<Check />
 						</Btn>
 					</div>
+				</Modal>
+			)}
+			{showLetters && (
+				<Modal
+					role="dialog"
+					labelledBy="letters-title"
+					onClose={() => setShowLetters(false)}
+					bottom
+				>
+					<h2 id="letters-title" className="sr-only">
+						Buchstaben
+					</h2>
+					<Seg
+						label="Auswahl"
+						value={
+							!s.excludedLetters.length
+								? "all"
+								: s.excludedLetters.length === RARE.length &&
+										RARE.every((l) => s.excludedLetters.includes(l))
+									? "common"
+									: ""
+						}
+						onChange={(v) =>
+							updateSettings({ excludedLetters: v === "all" ? [] : RARE })
+						}
+						options={[
+							{ v: "all", label: "A–Z", tip: "Alle Buchstaben" },
+							{
+								v: "common",
+								label: "–CJQXY",
+								tip: "Ohne seltene Buchstaben C, J, Q, X, Y",
+							},
+						]}
+					/>
+					{/* biome-ignore lint/a11y/useSemanticElements: a group of toggle buttons */}
+					<div
+						className="letters"
+						role="group"
+						aria-label="Buchstaben"
+						data-tip="Buchstaben, die gezogen werden können"
+					>
+						{ALPHABET.map((letter) => (
+							<button
+								key={letter}
+								type="button"
+								className="lt"
+								aria-pressed={!s.excludedLetters.includes(letter)}
+								onClick={(e) => {
+									toggleLetter(letter);
+									bounce(e.currentTarget, 1.2);
+								}}
+							>
+								{letter}
+							</button>
+						))}
+					</div>
+					<Btn
+						kind="primary"
+						aria-label="Fertig"
+						onClick={() => setShowLetters(false)}
+					>
+						<Check />
+					</Btn>
 				</Modal>
 			)}
 			{dialog}
