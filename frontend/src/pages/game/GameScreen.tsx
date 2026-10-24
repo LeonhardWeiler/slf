@@ -553,7 +553,8 @@ export function GameScreen() {
 }
 
 // Sprint shows one prompt at a time: letter letters[pos / n] with category
-// pos % n. Enter takes the word, Enter on an empty field skips the prompt.
+// pos % n. Enter takes the word, Enter on an empty field or Shift+Enter skips
+// the prompt.
 // words[i] is the word for prompt i, "" where it was skipped.
 function Sprint({
 	lobby,
@@ -678,48 +679,53 @@ function Sprint({
 			{done ? (
 				<Mascot size="huge" base="cheer" />
 			) : (
-				<label key={pos} ref={card} className="card sprint-card">
-					<span className="cat">{cat.name}</span>
-					<Tiles
-						value={value}
-						letter={letter}
-						last={last}
-						live
-						ghost={value ? undefined : last ? `…${letter}` : letter}
-					/>
-					<input
-						className="answer"
-						value={value}
-						onChange={(e) => {
-							if ([...e.target.value].length > [...value].length)
-								sound.key([...e.target.value].length - 1);
-							floatGain(
-								card.current,
-								ALONE * (lettersValue(e.target.value) - lettersValue(value)),
-							);
-							setValue(e.target.value);
-						}}
-						onKeyDown={(e) => {
-							if (e.key !== "Enter" || e.repeat) return;
-							e.preventDefault();
-							onEnter();
-						}}
-						maxLength={30}
-						autoComplete="off"
-						autoCapitalize="words"
-						spellCheck={false}
-						enterKeyHint="next"
-						// biome-ignore lint/a11y/noAutofocus: each prompt is typed right away
-						autoFocus
-						aria-label={`${cat.name} mit ${letter}`}
-					/>
-				</label>
-			)}
-
-			{!done && (
-				<IconBtn tip="Überspringen" onClick={() => advance("")}>
-					<SkipForward />
-				</IconBtn>
+				<div className="sprint-row">
+					<label key={pos} ref={card} className="card sprint-card">
+						<span className="cat">{cat.name}</span>
+						<Tiles
+							value={value}
+							letter={letter}
+							last={last}
+							live
+							ghost={value ? undefined : last ? `…${letter}` : letter}
+						/>
+						<input
+							className="answer"
+							value={value}
+							onChange={(e) => {
+								if ([...e.target.value].length > [...value].length)
+									sound.key([...e.target.value].length - 1);
+								floatGain(
+									card.current,
+									ALONE * (lettersValue(e.target.value) - lettersValue(value)),
+								);
+								setValue(e.target.value);
+							}}
+							onKeyDown={(e) => {
+								if (e.key !== "Enter" || e.repeat) return;
+								e.preventDefault();
+								if (e.shiftKey) advance("");
+								else onEnter();
+							}}
+							maxLength={30}
+							autoComplete="off"
+							autoCapitalize="words"
+							spellCheck={false}
+							enterKeyHint="next"
+							// biome-ignore lint/a11y/noAutofocus: each prompt is typed right away
+							autoFocus
+							aria-label={`${cat.name} mit ${letter}`}
+						/>
+					</label>
+					<IconBtn
+						tip="Überspringen (Shift+Enter)"
+						className="skip"
+						onMouseDown={(e) => e.preventDefault()}
+						onClick={() => advance("")}
+					>
+						<SkipForward />
+					</IconBtn>
+				</div>
 			)}
 
 			<ol className="sprint-done">

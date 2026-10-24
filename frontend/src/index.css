@@ -3043,8 +3043,15 @@ body.calm *::after {
 	text-align: center;
 	animation: pop-in 0.3s var(--spring);
 }
-.sprint-card {
+.sprint-row {
 	width: 100%;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.sprint-card {
+	flex: 1;
+	min-width: 0;
 	animation: screen-in 0.25s var(--spring);
 }
 .sprint-card .tiles {
