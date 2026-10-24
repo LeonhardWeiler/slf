@@ -12,6 +12,7 @@ import {
 	fireEvent,
 	render as rtlRender,
 	screen,
+	waitFor,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { ws } from "@/lib/ws";
@@ -126,10 +127,14 @@ describe("RoundResultScreen", () => {
 		expect(send).toHaveBeenCalledWith({ type: "startNextRound", payload: {} });
 	});
 
-	it("gives a crown only to a leader with points", () => {
+	it("gives a crown only to a leader with points", async () => {
 		setup("guest", "RoundResult");
 		const { container, unmount } = render(<RoundResultScreen />);
-		expect(container.querySelectorAll(".pos .lucide-crown").length).toBe(1);
+		await waitFor(
+			() =>
+				expect(container.querySelectorAll(".pos .lucide-crown").length).toBe(1),
+			{ timeout: 2000 },
+		);
 		unmount();
 		const result = useRoomStore.getState().result!;
 		useRoomStore.getState().receive("roundResult", {

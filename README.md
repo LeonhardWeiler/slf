@@ -37,6 +37,9 @@ in RAM.
 - **Host disconnect protection**: if the host loses the connection, all players
   see a 15-second countdown; if the host returns, the game continues, otherwise
   the lobby is closed (SRS 4.6/8.5)
+- **Round result**: every scoring answer lands as a coin, then the rows fly to
+  their new places; the final screen shows your record per mode and your day
+  streak (both kept in the browser)
 - Per-round worlds (shape, colour, particles, sound), music, haptics, keyboard controls
 
 ## Tech stack
@@ -214,9 +217,9 @@ change at the same time and measures, per client, the time until the resulting
   scores, categories) go to `lobbies.json` and are deleted after the restart
   loaded them. Logs hold player names, lobby codes and state changes; session
   ids only as hashes. journald and the nginx access logs keep 14 days.
-- **Browser:** `sessionId` (until leaving), and
-  the draft answers of the running round (deleted when the round ends or on
-  leaving).
+- **Browser:** `sessionId` (until leaving), the draft answers of the running
+  round (deleted when the round ends or on leaving), and `slf:stats` with your
+  best scores and day streak (only local, never sent).
 
 ## Deliberate decisions & known limitations
 

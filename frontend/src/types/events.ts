@@ -144,6 +144,7 @@ export interface ScoreEntry {
 	playerId: string;
 	roundPoints: number;
 	totalPoints: number;
+	points: number[];
 }
 
 export interface RankEntry {

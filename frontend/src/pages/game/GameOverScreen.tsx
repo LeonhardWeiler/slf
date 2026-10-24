@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Crown, Hourglass, RotateCcw, Star } from "lucide-react";
+import { Crown, Flame, Hourglass, RotateCcw, Star, Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
+import { haptic, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
+import { stats } from "@/lib/stats";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
@@ -17,25 +19,63 @@ export function GameOverScreen() {
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const [up, setUp] = useState(0);
+	const [end, setEnd] = useState<{
+		best: number;
+		fresh: boolean;
+		streak: number;
+		grew: boolean;
+	} | null>(null);
+	const solo = !!lobby?.solo;
+	const mode = `${solo ? "solo" : "multi"}-${lobby?.settings.sprint ? "sprint" : "classic"}`;
+	const score = lobby?.players.find((p) => p.id === myPlayerId)?.score ?? 0;
+	const won = result?.ranking[0]?.playerId === myPlayerId && score > 0;
 
-	// Third, second, then first rise; the winner lands with confetti.
+	// Solo counts the total up; multiplayer raises third, second, then first.
+	// Then the personal record and the day streak land.
 	useEffect(() => {
-		const ids = [3, 2, 1].map((place, i) =>
-			setTimeout(
-				() => {
-					setUp(4 - place);
-					sound.slot(i);
-					if (place === 1) {
+		const at = (ms: number, f: () => void) => setTimeout(f, ms);
+		const ids = solo
+			? Array.from({ length: 12 }, (_, i) =>
+					at(300 + i * 120, () => sound.slot(i)),
+				)
+			: [3, 2, 1].map((place, i) =>
+					at(500 + i * 700, () => {
+						setUp(4 - place);
+						sound.stamp(place === 1 ? 20 : 10);
+						haptic(20);
+						if (place === 1) {
+							sound.fanfare();
+							fx.rain();
+							mood("cheer", 2000);
+						}
+					}),
+				);
+		ids.push(
+			at(solo ? 1900 : 2600, () => {
+				if (solo) {
+					sound.stamp(20);
+					mood("cheer", 1500);
+				} else if (won) slam("SIEG!", "win big");
+				const best = stats.best(mode);
+				const before = stats.streak();
+				stats.record(mode, score);
+				const streak = stats.played();
+				const fresh = score > best;
+				const wait = won ? 1200 : 500;
+				setEnd({ best, fresh, streak, grew: streak > before });
+				if (fresh) {
+					setTimeout(() => {
+						slam("NEU!", "win");
+						fx.rain(160);
 						sound.fanfare();
-						fx.rain();
-						mood("cheer", 2000);
-					}
-				},
-				500 + i * 700,
-			),
+					}, wait);
+				}
+				if (streak > before)
+					setTimeout(() => sound.ignite(), wait + (fresh ? 900 : 0));
+			}),
 		);
 		return () => ids.forEach(clearTimeout);
-	}, []);
+	}, [solo, mode, score, won]);
 
 	if (!lobby) return null;
 
@@ -52,7 +92,7 @@ export function GameOverScreen() {
 						<Mascot size="big" base="happy" />
 						<span className="solo-total">
 							<Star />
-							<CountUp value={playerOf(myPlayerId ?? "")?.score ?? 0} />
+							<CountUp value={score} durationMs={1600} />
 						</span>
 					</div>
 				) : (
@@ -99,6 +139,24 @@ export function GameOverScreen() {
 							</div>
 						))}
 					</>
+				)}
+				{end && (
+					<div className="end-stats">
+						<span
+							className={`badge record${end.fresh ? " fresh" : ""}`}
+							data-tip="Rekord"
+						>
+							<Trophy />
+							{end.fresh ? "NEU!" : end.best}
+						</span>
+						<span
+							className={`badge streak${end.grew ? " grew" : ""}`}
+							data-tip="Tage in Folge"
+						>
+							<Flame />
+							{end.streak}
+						</span>
+					</div>
 				)}
 				<div className="end-actions">
 					{isHost ? (

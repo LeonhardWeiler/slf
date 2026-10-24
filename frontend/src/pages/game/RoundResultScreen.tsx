@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, Crown, Flag, Hourglass, X } from "lucide-react";
+import { animate, bounce, floatText, haptic, slam } from "@/lib/feel";
+import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
+import { stats } from "@/lib/stats";
 import { ws } from "@/lib/ws";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { handlesEnter } from "@/lib/utils";
@@ -17,21 +20,79 @@ export function RoundResultScreen() {
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
-	const [counted, setCounted] = useState(false);
+	const sprint = useRoomStore((s) => !!s.lobby?.settings.sprint);
+	const [step, setStep] = useState(0);
+	const [sorted, setSorted] = useState(false);
+	const rows = useRef(new Map<string, HTMLLIElement>());
+	const tops = useRef(new Map<string, number>());
 
-	// The round's points land a beat after the board appears.
+	// The board opens in the old order, every scoring answer lands as a coin,
+	// then the rows fly to their new places.
 	useEffect(() => {
-		const id = setTimeout(() => {
-			setCounted(true);
-			const mine =
-				result?.scores.find((s) => s.playerId === myPlayerId)?.roundPoints ?? 0;
-			if (mine > 0) {
-				sound.combo(Math.min(5, Math.ceil(mine / 10)));
-				mood("cheer", 1200);
-			} else sound.thud();
-		}, 700);
-		return () => clearTimeout(id);
-	}, [result, myPlayerId]);
+		if (!result) return;
+		setStep(0);
+		setSorted(false);
+		const n = Math.max(0, ...result.scores.map((s) => s.points.length));
+		const ids = [
+			...Array.from({ length: n }, (_, i) =>
+				setTimeout(() => setStep(i + 1), 700 + i * 280),
+			),
+			setTimeout(
+				() => {
+					const gain =
+						result.scores.find((s) => s.playerId === myPlayerId)?.roundPoints ??
+						0;
+					const key = `round-${sprint ? "sprint" : "classic"}`;
+					const best = stats.best(key);
+					stats.record(key, gain);
+					stats.played();
+					if (best > 0 && gain > best) {
+						slam("NEU!", "win");
+						fx.rain(60);
+						sound.fanfare();
+					} else if (gain > 0) mood("cheer", 1200);
+					else sound.thud();
+					for (const [id, el] of rows.current)
+						tops.current.set(id, el.getBoundingClientRect().top);
+					setSorted(true);
+				},
+				700 + n * 280 + 300,
+			),
+		];
+		return () => ids.forEach(clearTimeout);
+	}, [result, myPlayerId, sprint]);
+
+	useEffect(() => {
+		if (!step || !result) return;
+		for (const s of result.scores) {
+			const p = s.points[step - 1];
+			const row = rows.current.get(s.playerId);
+			if (!p || !row) continue;
+			floatText(row.querySelector(".gain"), `+${p}`, "pts-float");
+			bounce(row.querySelector(".total"), 1.25, 220);
+			if (s.playerId === myPlayerId) {
+				sound.coin(step - 1);
+				haptic(8);
+			}
+		}
+	}, [step, result, myPlayerId]);
+
+	useLayoutEffect(() => {
+		if (!sorted || !result) return;
+		for (const [id, el] of rows.current) {
+			const dy = (tops.current.get(id) ?? 0) - el.getBoundingClientRect().top;
+			if (!dy) continue;
+			animate(el, [{ translate: `0 ${dy}px` }, { translate: "0 0" }], {
+				duration: 700,
+			});
+			if (id === myPlayerId && dy > 0) {
+				sound.whoosh();
+				haptic([15, 30, 40]);
+				if (result.ranking[0]?.playerId === id)
+					setTimeout(() => sound.fanfare(), 450);
+			}
+		}
+	}, [sorted, result, myPlayerId]);
 
 	// Host can remove a player from the between-rounds standings (the points
 	// table). The server keeps them in the ranking marked "(verlassen)" (todo-4).
@@ -86,8 +147,24 @@ export function RoundResultScreen() {
 
 	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
 	const playerName = (id: string) => playerOf(id)?.name ?? "?";
-	const roundPointsOf = (id: string) =>
-		result.scores.find((s) => s.playerId === id)?.roundPoints ?? 0;
+	const scoreOf = (id: string) => result.scores.find((s) => s.playerId === id);
+	const roundPointsOf = (id: string) => scoreOf(id)?.roundPoints ?? 0;
+	const shown = (id: string, total: number) =>
+		sorted
+			? total
+			: total -
+				roundPointsOf(id) +
+				(scoreOf(id)
+					?.points.slice(0, step)
+					.reduce((a, b) => a + b, 0) ?? 0);
+	const order = sorted
+		? result.ranking
+		: result.ranking.toSorted(
+				(a, b) =>
+					b.score -
+					roundPointsOf(b.playerId) -
+					(a.score - roundPointsOf(a.playerId)),
+			);
 	const lettersLeft = result.remainingLetters.length;
 	const top = Math.max(1, ...result.ranking.map((r) => r.score));
 
@@ -119,23 +196,34 @@ export function RoundResultScreen() {
 					</div>
 				</div>
 				<ol className="ranking">
-					{result.ranking.map((r, i) => {
+					{order.map((r, i) => {
 						const gain = roundPointsOf(r.playerId);
+						const now = shown(r.playerId, r.score);
 						const p = playerOf(r.playerId);
 						return (
 							<li
 								key={r.playerId}
-								className={`rank${r.playerId === myPlayerId ? " me" : ""}${counted && gain > 0 ? " gaining" : ""}`}
+								ref={(el) => {
+									if (el) rows.current.set(r.playerId, el);
+									else rows.current.delete(r.playerId);
+								}}
+								className={`rank${r.playerId === myPlayerId ? " me" : ""}${now > r.score - gain ? " gaining" : ""}`}
 								style={
 									{
 										"--pc": playerColor(r.playerId),
-										"--w": counted ? r.score / top : (r.score - gain) / top,
+										"--w": now / top,
 										animationDelay: `${i * 70}ms`,
 									} as React.CSSProperties
 								}
 							>
 								<span className="pos">
-									{r.rank === 1 && r.score > 0 ? <Crown /> : r.rank}
+									{!sorted ? (
+										i + 1
+									) : r.rank === 1 && r.score > 0 ? (
+										<Crown />
+									) : (
+										r.rank
+									)}
 								</span>
 								<Av id={r.playerId} name={playerName(r.playerId)} />
 								<span className="name">
@@ -143,10 +231,7 @@ export function RoundResultScreen() {
 									<PlayerStatus player={p} />
 								</span>
 								<span className="gain">+{gain}</span>
-								<CountUp
-									value={counted ? r.score : r.score - gain}
-									className="total"
-								/>
+								<CountUp value={now} durationMs={250} className="total" />
 								{isHost && r.playerId !== myPlayerId && !p?.left && (
 									<button
 										type="button"

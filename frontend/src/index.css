@@ -3097,3 +3097,47 @@ body.calm *::after {
 	height: 12px;
 	margin-block: 4px;
 }
+.end-stats {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+}
+.badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 14px;
+	border-radius: 999px;
+	background: var(--card);
+	box-shadow: 0 4px 0 var(--line);
+	font-size: 22px;
+	font-weight: 800;
+	animation: pop-in 0.45s var(--spring) backwards;
+}
+.badge svg {
+	width: 24px;
+	height: 24px;
+}
+.badge.record svg {
+	color: var(--gold-d);
+}
+.badge.fresh {
+	background: var(--gold);
+	box-shadow: 0 4px 0 var(--gold-d);
+	color: #fff;
+	animation-delay: 0.5s;
+}
+.badge.fresh svg {
+	color: #fff;
+}
+.badge.streak {
+	color: #ff7a00;
+	animation-delay: 0.2s;
+}
+.badge.streak.grew svg {
+	animation: flicker 0.5s ease-in-out infinite alternate;
+}
+.top .badge {
+	font-size: 18px;
+	padding: 4px 12px;
+}

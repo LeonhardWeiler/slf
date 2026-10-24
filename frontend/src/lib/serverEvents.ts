@@ -132,6 +132,7 @@ const roundResultPayload = z.object({
 			playerId: z.string(),
 			roundPoints: z.number(),
 			totalPoints: z.number(),
+			points: z._default(z.optional(z.array(z.number())), []),
 		}),
 	),
 	ranking: z.array(

@@ -3,6 +3,7 @@ import { joinCode, Navigate, usePath } from "@/lib/nav";
 import {
 	ArrowLeft,
 	ArrowRight,
+	Flame,
 	Loader2,
 	LogIn,
 	Plus,
@@ -19,6 +20,7 @@ import { useToastStore } from "@/store/toast";
 import { Btn, CodeTiles, IconBtn, Mascot, Tiles } from "@/components/kit";
 import { TopBar } from "@/components/Shell";
 import { sound } from "@/lib/sound";
+import { stats } from "@/lib/stats";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // The QR scanner pulls in the sizeable qr-scanner library (+ worker); load it
@@ -44,6 +46,7 @@ export function Home() {
 	const path = usePath();
 	const lobby = useRoomStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
+	const [streak] = useState(stats.streak);
 	// Counter of error toasts: a new *error* (validation or server error) means the
 	// pending submit failed -> stop the spinner. Info toasts (e.g. a reconnect
 	// notice) don't bump it, so they no longer end the spinner prematurely.
@@ -354,7 +357,14 @@ export function Home() {
 
 	return (
 		<>
-			<TopBar />
+			<TopBar>
+				{streak > 0 && (
+					<span className="badge streak" data-tip="Tage in Folge">
+						<Flame />
+						{streak}
+					</span>
+				)}
+			</TopBar>
 			<section className="screen home">
 				<div className="hero">
 					<Mascot size="big" letter={step === "joinName" ? code[0] : "S"} />

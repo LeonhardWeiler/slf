@@ -387,6 +387,11 @@ class Sound {
 	tick(n = 0) {
 		this.tone(1200 + n * 18, 0.03, 0.14, { type: "triangle" });
 	}
+	coin(i: number) {
+		const m = 76 + 12 * Math.floor(i / 7) + [0, 2, 4, 5, 7, 9, 11][i % 7];
+		this.pluck(m, 0.14, 0.06);
+		this.pluck(m + 12, 0.1, 0.03, this.now + 0.04);
+	}
 	combo(n: number) {
 		const t = this.now;
 		for (const [i, c] of [0, 7, 12].entries())
