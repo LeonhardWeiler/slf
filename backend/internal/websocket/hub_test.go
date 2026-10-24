@@ -169,7 +169,7 @@ func TestStoreAnswerKeepsOnlyTrimmedValue(t *testing.T) {
 	}
 }
 
-func TestHiddenCountdownKeepsLetterOutOfLists(t *testing.T) {
+func TestCountdownShowsLetterAndPlayingMovesIt(t *testing.T) {
 	h := NewHub()
 	lobby := &game.Lobby{
 		Code:     "123456",
@@ -182,8 +182,8 @@ func TestHiddenCountdownKeepsLetterOutOfLists(t *testing.T) {
 
 	h.beginCountdown(lobby, game.StateLobby)
 	p := buildGameState(lobby)
-	if p.Letter != "" || len(p.UsedLetters) != 0 || len(p.RemainingLetters) != 2 {
-		t.Fatalf("countdown leaks the letter: %+v", p)
+	if p.Letter == "" || len(p.UsedLetters) != 0 || len(p.RemainingLetters) != 2 {
+		t.Fatalf("countdown view wrong: %+v", p)
 	}
 	h.beginPlaying(lobby, lobby.Game.Round.ID)
 	p = buildGameState(lobby)

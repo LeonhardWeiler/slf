@@ -32,7 +32,6 @@ const categorySchema = z.object({ id: z.string(), name: z.string() });
 
 const settingsSchema = z.object({
 	timeLimit: z.nullable(z.number()),
-	showLetterDuringCountdown: z.boolean(),
 	excludedLetters: z.array(z.string()),
 	hostPlays: z.boolean(),
 	lastLetterMode: z.boolean(),

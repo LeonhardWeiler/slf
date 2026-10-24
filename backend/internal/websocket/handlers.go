@@ -129,11 +129,10 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 			{ID: generateID(), Name: "Fluss"},
 		},
 		Settings: game.Settings{
-			TimeLimit:                 nil,
-			ShowLetterDuringCountdown: false,
-			ExcludedLetters:           []string{},
-			HostPlays:                 true,
-			LastLetterMode:            false,
+			TimeLimit:       nil,
+			ExcludedLetters: []string{},
+			HostPlays:       true,
+			LastLetterMode:  false,
 		},
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
@@ -576,12 +575,11 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	var p struct {
-		TimeLimit                 *int     `json:"timeLimit"`
-		ShowLetterDuringCountdown *bool    `json:"showLetterDuringCountdown"`
-		ExcludedLetters           []string `json:"excludedLetters"`
-		HostPlays                 *bool    `json:"hostPlays"`
-		LastLetterMode            *bool    `json:"lastLetterMode"`
-		Sprint                    *bool    `json:"sprint"`
+		TimeLimit       *int     `json:"timeLimit"`
+		ExcludedLetters []string `json:"excludedLetters"`
+		HostPlays       *bool    `json:"hostPlays"`
+		LastLetterMode  *bool    `json:"lastLetterMode"`
+		Sprint          *bool    `json:"sprint"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
@@ -623,9 +621,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if hasExcluded {
 		lobby.Settings.ExcludedLetters = excluded
-	}
-	if p.ShowLetterDuringCountdown != nil {
-		lobby.Settings.ShowLetterDuringCountdown = *p.ShowLetterDuringCountdown
 	}
 	if p.HostPlays != nil {
 		lobby.Settings.HostPlays = *p.HostPlays

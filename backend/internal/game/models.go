@@ -26,8 +26,7 @@ type Category struct {
 }
 
 type Settings struct {
-	TimeLimit                 *int `json:"timeLimit"`
-	ShowLetterDuringCountdown bool `json:"showLetterDuringCountdown"`
+	TimeLimit *int `json:"timeLimit"`
 	// ExcludedLetters are letters the host disabled; they are never drawn.
 	ExcludedLetters []string `json:"excludedLetters"`
 	// HostPlays controls whether the host participates. When false the host is a
@@ -201,8 +200,8 @@ type SessionCreatedPayload struct {
 // client-side in localStorage, SRS 5.6).
 type GameStatePayload struct {
 	RoundID            string   `json:"roundId"`
-	State              string   `json:"state"`  // "Countdown" | "Playing"
-	Letter             string   `json:"letter"` // "" while hidden during countdown
+	State              string   `json:"state"` // "Countdown" | "Playing"
+	Letter             string   `json:"letter"`
 	UsedLetters        []string `json:"usedLetters"`
 	RemainingLetters   []string `json:"remainingLetters"`
 	EndsAt             *int64   `json:"endsAt"`             // unix ms deadline, null = unlimited

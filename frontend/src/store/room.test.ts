@@ -29,7 +29,6 @@ const lobby = (players: Player[]): LobbyStatePayload => ({
 	categories: [],
 	settings: {
 		timeLimit: null,
-		showLetterDuringCountdown: false,
 		excludedLetters: [],
 		hostPlays: true,
 		lastLetterMode: false,

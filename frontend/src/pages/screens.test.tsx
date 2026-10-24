@@ -62,7 +62,6 @@ function setup(me: string, state: LobbyStatePayload["state"]) {
 			],
 			settings: {
 				timeLimit: null,
-				showLetterDuringCountdown: false,
 				excludedLetters: [],
 				hostPlays: true,
 				lastLetterMode: false,

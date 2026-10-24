@@ -25,7 +25,6 @@ export interface Category {
 
 export interface Settings {
 	timeLimit: number | null;
-	showLetterDuringCountdown: boolean;
 	excludedLetters: string[];
 	hostPlays: boolean;
 	lastLetterMode: boolean;
@@ -235,7 +234,6 @@ export type ClientEvent =
 			type: "updateSettings";
 			payload: {
 				timeLimit: number | null;
-				showLetterDuringCountdown: boolean;
 				excludedLetters: string[];
 				hostPlays: boolean;
 				lastLetterMode: boolean;

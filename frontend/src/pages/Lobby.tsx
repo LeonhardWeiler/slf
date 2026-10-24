@@ -3,7 +3,6 @@ import {
 	Check,
 	Copy,
 	Crown,
-	Eye,
 	Hourglass,
 	Link as LinkIcon,
 	Mic,
@@ -202,8 +201,6 @@ export function Lobby() {
 			payload: {
 				timeLimit:
 					patch.timeLimit !== undefined ? patch.timeLimit : s.timeLimit,
-				showLetterDuringCountdown:
-					patch.showLetterDuringCountdown ?? s.showLetterDuringCountdown,
 				excludedLetters: patch.excludedLetters ?? s.excludedLetters,
 				hostPlays: patch.hostPlays ?? s.hostPlays,
 				lastLetterMode: patch.lastLetterMode ?? s.lastLetterMode,
@@ -364,15 +361,6 @@ export function Lobby() {
 							onChange={(lastLetterMode) => updateSettings({ lastLetterMode })}
 						>
 							<b>…A</b>
-						</Toggle>
-						<Toggle
-							on={s.showLetterDuringCountdown}
-							tip="Buchstabe schon im Countdown zeigen"
-							onChange={(showLetterDuringCountdown) =>
-								updateSettings({ showLetterDuringCountdown })
-							}
-						>
-							<Eye />
 						</Toggle>
 					</div>
 

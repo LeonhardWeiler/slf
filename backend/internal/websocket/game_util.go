@@ -298,6 +298,7 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 		UsedLetters:      g.UsedLetters,
 		RemainingLetters: g.RemainingLetters,
 		CategoryCount:    len(lobby.Categories),
+		Letter:           r.Letter,
 		ServerNow:        time.Now().UnixMilli(),
 		Letters:          r.Letters,
 	}
@@ -307,11 +308,7 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 			rem = 0
 		}
 		p.CountdownRemaining = &rem
-		if lobby.Settings.ShowLetterDuringCountdown {
-			p.Letter = r.Letter
-		}
 	} else { // Playing
-		p.Letter = r.Letter
 		if lobby.Settings.TimeLimit != nil && !r.EndsAt.IsZero() {
 			endsAt := r.EndsAt.UnixMilli()
 			p.EndsAt = &endsAt

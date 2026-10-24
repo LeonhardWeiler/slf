@@ -129,11 +129,10 @@ func main() {
 		requestID.Store(int64(id))
 		for _, h := range hosts {
 			h.send(ctx, "updateSettings", map[string]any{
-				"timeLimit":                 id,
-				"showLetterDuringCountdown": false,
-				"excludedLetters":           []string{},
-				"hostPlays":                 true,
-				"lastLetterMode":            false,
+				"timeLimit":       id,
+				"excludedLetters": []string{},
+				"hostPlays":       true,
+				"lastLetterMode":  false,
 			})
 		}
 		deadline := time.After(3 * time.Second)
