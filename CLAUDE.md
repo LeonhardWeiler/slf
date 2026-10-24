@@ -101,6 +101,10 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   `Round.Slots` (fixed in `finishPlaying`; classic = one slot per category, key
   = categoryId), so a sprint reuses scoring unchanged. A rejoin replays
   `sprintWords`, one entry per prompt, "" for a skipped one.
+- **Stats** (`internal/stats`): game start/end and the client `track` message
+  (`world`, `leave`, `mute`, `musicOff`, whitelisted in `handleTrack`) append
+  anonymous events to `$STATE_DIRECTORY/events.jsonl`; `STATS_ADDR` serves the
+  dashboard on a separate listener (production: tailnet only).
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
   next round start (`beginCountdown`).

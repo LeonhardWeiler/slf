@@ -194,6 +194,7 @@ or `vendorHash` in `flake.nix`.
 | `LOG_LEVEL`          | `info`                      | `debug` \| `info` \| `warn` \| `error`                                                                                                                                                           |
 | `LOG_FORMAT`         | `text`                      | `text` \| `json`                                                                                                                                                                                 |
 | `STATE_DIRECTORY`    | -                           | Directory for `lobbies.json`; idle lobbies survive a restart. Empty = nothing is saved                                                                                                          |
+| `STATS_ADDR`         | -                           | Address of the stats dashboard (production: port 8090, open only on the tailnet). Needs `STATE_DIRECTORY`                                                                                         |
 | `LOG_FILE`           | -                           | additionally log to a file                                                                                                                                                                        |
 | `WS_ALLOWED_ORIGINS` | Same-origin + localhost/LAN | Additionally allowed WebSocket origins (comma-separated). By default same-origin as well as localhost/private LAN IPs are allowed; set this to allow the frontend from a **different** domain    |
 
@@ -220,7 +221,9 @@ change at the same time and measures, per client, the time until the resulting
 - **Server:** game state lives in memory. On a deploy, idle lobbies (names,
   scores, categories) go to `lobbies.json` and are deleted after the restart
   loaded them. Logs hold player names, lobby codes and state changes; session
-  ids only as hashes. journald and the nginx access logs keep 14 days.
+  ids only as hashes. `events.jsonl` holds anonymous usage events (game start
+  and end with mode, players, rounds, settings; chosen worlds, leaving mid-game,
+  muting per scene), no names or ids. journald and the nginx access logs keep 14 days.
 - **Browser:** `sessionId` (until leaving), the draft answers of the running
   round (deleted when the round ends or on leaving), and `slf:stats` with your
   best scores and day streak (only local, never sent).
