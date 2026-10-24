@@ -45,8 +45,6 @@ type Hub struct {
 	hostGraceDuration time.Duration
 	// pingInterval spaces the server heartbeat; overridable in tests.
 	pingInterval time.Duration
-	// reviewSlot is how long a slot is reviewed; each review action adds reviewBonus.
-	reviewSlot, reviewBonus time.Duration
 	// draining refuses new games while the server waits to restart for an update.
 	draining bool
 	// closed refuses new sockets and messages once Shutdown began.
@@ -62,8 +60,6 @@ func NewHub() *Hub {
 		hostGrace:         make(map[string]*time.Timer),
 		hostGraceDuration: hostGraceSeconds * time.Second,
 		pingInterval:      pingInterval,
-		reviewSlot:        8 * time.Second,
-		reviewBonus:       2 * time.Second,
 	}
 }
 

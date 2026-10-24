@@ -110,8 +110,6 @@ type Round struct {
 	StartedAt time.Time `json:"-"`
 	// ReviewIndex is the category currently under review.
 	ReviewIndex int `json:"-"`
-	// ReviewEndsAt is when the review moves past the current slot (zero in solo).
-	ReviewEndsAt time.Time `json:"-"`
 	// BuzzedBy is the playerID of whoever buzzed to end the round; empty when the
 	// round ended by timeout or a host "end round". Surfaced in review so everyone
 	// sees who stopped the round.
@@ -245,9 +243,6 @@ type ReviewStatePayload struct {
 	// Ready lists the voters done with this category; Voters all who may vote.
 	Ready  []string `json:"ready"`
 	Voters []string `json:"voters"`
-	// EndsAt is the unix ms when the review moves on; null in solo.
-	EndsAt    *int64 `json:"endsAt"`
-	ServerNow int64  `json:"serverNow"`
 }
 
 type SoloRow struct {

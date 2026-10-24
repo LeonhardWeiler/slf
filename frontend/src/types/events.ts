@@ -125,9 +125,6 @@ export interface ReviewStatePayload {
 	solo: SoloRow[] | null;
 	ready: string[] | null;
 	voters: string[] | null;
-	// Unix ms when the review moves on (local clock in the store); null in solo.
-	endsAt: number | null;
-	serverNow: number;
 }
 
 export interface SoloRow {

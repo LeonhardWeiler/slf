@@ -3190,11 +3190,6 @@ body.calm *::after {
 	z-index: 3;
 	transition-property: transform, margin, filter, box-shadow;
 }
-.review-clock {
-	align-self: stretch;
-	height: 12px;
-	margin-block: 4px;
-}
 .end-stats {
 	display: flex;
 	justify-content: center;
