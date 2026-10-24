@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowRight, Crown, Flag, Flame, Hourglass, X } from "lucide-react";
+import { ArrowRight, Crown, Flag, Flame, X } from "lucide-react";
 import { animate, bounce, floatText, haptic, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
@@ -271,7 +271,7 @@ export function RoundResultScreen() {
 						);
 					})}
 				</ol>
-				{isHost ? (
+				{isHost && (
 					<Btn
 						kind="next"
 						aria-label={lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
@@ -280,10 +280,6 @@ export function RoundResultScreen() {
 					>
 						{lettersLeft > 0 ? <ArrowRight /> : <Flag />}
 					</Btn>
-				) : (
-					<p className="waiting" data-tip="Warte auf den Host">
-						<Hourglass />
-					</p>
 				)}
 			</section>
 			{dialog}

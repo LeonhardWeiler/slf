@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
 	Check,
 	Crown,
-	Hourglass,
 	Link as LinkIcon,
 	Eye,
 	Play,
@@ -397,7 +396,7 @@ export function Lobby() {
 					</div>
 				</div>
 
-				{isHost ? (
+				{isHost && (
 					<>
 						<Btn
 							kind="primary"
@@ -424,10 +423,6 @@ export function Lobby() {
 							</p>
 						)}
 					</>
-				) : (
-					<p className="hint wait" data-tip="Warte auf den Host">
-						<Hourglass />
-					</p>
 				)}
 			</section>
 

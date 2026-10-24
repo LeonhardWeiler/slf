@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Crown, Flame, Hourglass, RotateCcw, Star, Trophy } from "lucide-react";
+import { Crown, Flame, RotateCcw, Star, Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { haptic, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
@@ -172,7 +172,7 @@ export function GameOverScreen() {
 					</div>
 				)}
 				<div className="end-actions">
-					{isHost ? (
+					{isHost && (
 						<Btn
 							kind="primary"
 							aria-label="Zurück zur Lobby"
@@ -181,10 +181,6 @@ export function GameOverScreen() {
 						>
 							<RotateCcw />
 						</Btn>
-					) : (
-						<p className="waiting" data-tip="Warte auf den Host">
-							<Hourglass />
-						</p>
 					)}
 				</div>
 			</section>

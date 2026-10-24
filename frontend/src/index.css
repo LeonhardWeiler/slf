@@ -2024,15 +2024,6 @@ body.urgent .bg i {
 	height: 15px;
 	stroke-width: 3.4;
 }
-.waiting {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 8px 14px;
-	border-radius: 16px;
-	background: rgb(255 255 255 / 0.6);
-	color: var(--soft);
-}
 #cont {
 	margin-top: auto;
 }

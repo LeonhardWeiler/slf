@@ -157,10 +157,9 @@ describe("RoundResultScreen", () => {
 		);
 	});
 
-	it("leaves a guest waiting without host actions", () => {
+	it("leaves a guest without host actions", () => {
 		setup("guest", "RoundResult");
 		render(<RoundResultScreen />);
-		expect(document.querySelector(".waiting")).not.toBeNull();
 		expect(screen.queryByRole("button", { name: "Nächste Runde" })).toBeNull();
 		expect(screen.queryByRole("button", { name: "host entfernen" })).toBeNull();
 	});
