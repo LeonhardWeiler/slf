@@ -2220,7 +2220,6 @@ body.urgent .bg::after {
 ):not(:disabled) {
 	cursor: pointer;
 }
-.field input,
 .cat-chip input {
 	cursor: text;
 	-webkit-user-select: text;
@@ -2548,45 +2547,6 @@ body.urgent .bg::after {
 }
 .ticks i.on {
 	background: var(--gold-d);
-}
-.field {
-	position: relative;
-	width: 100%;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 0 14px;
-	min-height: 60px;
-	border-radius: var(--rc);
-	background: var(--card);
-	border: 2px solid var(--line);
-	box-shadow: 0 5px 0 var(--line);
-	transition:
-		border-color 0.2s,
-		transform 0.2s var(--spring);
-}
-.field:focus-within {
-	border-color: var(--you);
-	transform: scale(1.02);
-}
-.field.bad {
-	border-color: var(--bad);
-	animation: nope 0.35s;
-}
-.field > svg {
-	color: var(--soft);
-}
-.field input {
-	flex: 1;
-	min-width: 0;
-	height: 56px;
-	border: 0;
-	outline: 0;
-	background: none;
-	font-size: 22px;
-}
-.field input::placeholder {
-	color: #c9c9d4;
 }
 .err {
 	margin: 0;
