@@ -286,9 +286,11 @@ export function Tiles({
 	const [size, setSize] = useState(max);
 	useLayoutEffect(() => {
 		const w = box.current?.clientWidth || 260;
-		const n = Math.max(1, chars.length);
-		setSize(Math.max(13, Math.min(max, Math.floor((w - 4 * (n - 1)) / n))));
-	}, [chars.length, max]);
+		const cs = [...value];
+		const units = cs.reduce((u, c) => u + (c === " " ? 0.35 : 1), 0);
+		const gaps = 0.11 * Math.max(0, cs.length - 1);
+		setSize(Math.min(max, Math.floor(w / (Math.max(1, units) + gaps))));
+	}, [value, max]);
 	useEffect(() => {
 		if (live && chars.length < prev.current.length) {
 			const tiles = box.current?.querySelectorAll(".tile:not(.ghost)");
@@ -421,4 +423,12 @@ export function useIdle(ms: number) {
 		};
 	}, [ms]);
 	return idle;
+}
+
+export function fitText(el: HTMLInputElement | null) {
+	if (!el) return;
+	el.style.fontSize = "";
+	const over = el.scrollWidth / el.clientWidth;
+	if (over > 1)
+		el.style.fontSize = `${parseFloat(getComputedStyle(el).fontSize) / (over * 1.04)}px`;
 }

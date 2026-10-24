@@ -29,6 +29,7 @@ import {
 	Av,
 	Btn,
 	CodeTiles,
+	fitText,
 	IconBtn,
 	mood,
 	Seg,
@@ -287,6 +288,8 @@ export function Lobby() {
 							<span key={cat.id} className="cat-chip">
 								<input
 									defaultValue={cat.name}
+									ref={fitText}
+									onInput={(e) => fitText(e.currentTarget)}
 									key={cat.name}
 									maxLength={30}
 									spellCheck={false}
@@ -333,7 +336,10 @@ export function Lobby() {
 							>
 								<input
 									value={newCategory}
-									onChange={(e) => setNewCategory(e.target.value)}
+									onChange={(e) => {
+										setNewCategory(e.target.value);
+										fitText(e.target);
+									}}
 									onBlur={() => addCategory(null)}
 									maxLength={30}
 									aria-label="Neue Kategorie"
