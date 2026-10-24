@@ -48,27 +48,10 @@ function lookAt(x: number, y: number) {
 	}
 }
 
-// spot moves the background light as a transform: a circle around
-// (50% + bx*35%, 40% + by*35%) of the box, reaching 45% of the farthest corner.
-function spot(bg: HTMLElement, bx: number, by: number) {
-	const w = bg.offsetWidth;
-	const h = bg.offsetHeight;
-	const cx = w * (0.5 + bx * 0.35);
-	const cy = h * (0.4 + by * 0.35);
-	const r = 0.45 * Math.hypot(Math.max(cx, w - cx), Math.max(cy, h - cy));
-	const st = bg.style;
-	st.setProperty("--bx", bx.toFixed(3));
-	st.setProperty("--by", by.toFixed(3));
-	st.setProperty("--sx", `${(cx - w / 2).toFixed(1)}px`);
-	st.setProperty("--sy", `${(cy - h / 2).toFixed(1)}px`);
-	st.setProperty("--ss", (r / (Math.min(w, h) / 2)).toFixed(4));
-}
-
-// Shell owns everything that lives outside a screen: background, confetti
+// Shell owns everything that lives outside a screen: confetti
 // canvas, tooltips, world and music per phase, and the global input feedback.
 export function Shell({ children }: { children: ReactNode }) {
 	const canvas = useRef<HTMLCanvasElement>(null);
-	const bgRef = useRef<HTMLDivElement>(null);
 	const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(
 		null,
 	);
@@ -113,13 +96,12 @@ export function Shell({ children }: { children: ReactNode }) {
 		let swallow = false;
 		let grab: { el: HTMLElement; x: number; y: number } | null = null;
 		const st = document.documentElement.style;
-		// Pointer targets, eased each frame: the front follows instantly unless it
-		// glides after a jump (pointer re-entered, new touch), the background lags.
+		// Pointer targets, eased each frame: they follow instantly unless they
+		// glide after a jump (pointer re-entered, new touch).
 		const look = { x: innerWidth / 2, y: innerHeight / 3 };
 		const par = { x: 0, y: 0 };
 		const eye = { ...look };
 		const fg = { ...par };
-		const bg = { ...par };
 		let glide = false;
 		let raf = 0;
 		let last = 0;
@@ -136,21 +118,14 @@ export function Shell({ children }: { children: ReactNode }) {
 			const dt = last ? Math.min(64, t - last) : 16;
 			last = t;
 			const a = glide ? 1 - Math.exp(-dt / 90) : 1;
-			const left =
-				ease(eye, look, a) / 50 +
-				ease(fg, par, a) +
-				ease(bg, par, 1 - Math.exp(-dt / 260));
+			const left = ease(eye, look, a) / 50 + ease(fg, par, a);
 			if (glide && Math.abs(eye.x - look.x) + Math.abs(fg.x - par.x) < 0.5)
 				glide = false;
-			place();
 			lookAt(eye.x, eye.y);
 			const px = fg.x.toFixed(3);
 			if (px !== st.getPropertyValue("--px")) st.setProperty("--px", px);
 			raf = left > 0.002 ? requestAnimationFrame(frame) : 0;
 			if (!raf) last = 0;
-		}
-		function place() {
-			if (bgRef.current) spot(bgRef.current, bg.x, bg.y);
 		}
 		function kick() {
 			if (!raf) raf = requestAnimationFrame(frame);
@@ -168,7 +143,6 @@ export function Shell({ children }: { children: ReactNode }) {
 		function onMove(e: PointerEvent) {
 			if (e.pointerType === "mouse") {
 				par.x = clamp((e.clientX / innerWidth - 0.5) * 2);
-				par.y = clamp((e.clientY / innerHeight - 0.5) * 2);
 			}
 			look.x = e.clientX;
 			look.y = e.clientY;
@@ -249,9 +223,8 @@ export function Shell({ children }: { children: ReactNode }) {
 			}
 		}
 		function onTilt(e: DeviceOrientationEvent) {
-			if (e.gamma == null || e.beta == null) return;
+			if (e.gamma == null) return;
 			par.x = clamp(e.gamma / 25);
-			par.y = clamp((e.beta - 45) / 25);
 			kick();
 		}
 		const vv = window.visualViewport;
@@ -260,9 +233,7 @@ export function Shell({ children }: { children: ReactNode }) {
 				document.documentElement.style.setProperty("--vh", `${vv.height}px`);
 		}
 		onViewport();
-		place();
 		vv?.addEventListener("resize", onViewport);
-		addEventListener("resize", place);
 		function onVisible() {
 			if (document.hidden) sound.pause();
 			else sound.start();
@@ -289,22 +260,11 @@ export function Shell({ children }: { children: ReactNode }) {
 			removeEventListener("deviceorientation", onTilt);
 			document.removeEventListener("visibilitychange", onVisible);
 			vv?.removeEventListener("resize", onViewport);
-			removeEventListener("resize", place);
 		};
 	}, []);
 
 	return (
 		<>
-			<div className="bg" ref={bgRef} aria-hidden="true">
-				<i />
-				<i />
-				<i />
-				<i />
-				<i />
-				<i />
-				<i />
-				<i />
-			</div>
 			<main className="app">{children}</main>
 			<canvas id="fx" ref={canvas} />
 			{tip && <Tip {...tip} />}
