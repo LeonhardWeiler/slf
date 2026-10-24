@@ -264,6 +264,8 @@ type ScoreEntry struct {
 	PlayerID    string `json:"playerId"`
 	RoundPoints int    `json:"roundPoints"`
 	TotalPoints int    `json:"totalPoints"`
+	// Points lists the round's scoring answers in slot order.
+	Points []int `json:"points,omitempty"`
 }
 
 type RankEntry struct {

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1318,7 +1319,8 @@ func TestSprintRound(t *testing.T) {
 	host.send("finishReview", map[string]any{})
 	var res struct {
 		Scores []struct {
-			RoundPoints int `json:"roundPoints"`
+			RoundPoints int   `json:"roundPoints"`
+			Points      []int `json:"points"`
 		} `json:"scores"`
 		RemainingLetters []string `json:"remainingLetters"`
 		IsGameOver       bool     `json:"isGameOver"`
@@ -1326,6 +1328,15 @@ func TestSprintRound(t *testing.T) {
 	json.Unmarshal(host.waitFor("roundResult"), &res)
 	if len(res.RemainingLetters) != 0 || len(res.Scores) != 2 || res.Scores[0].RoundPoints != 25 || res.Scores[1].RoundPoints != 25 {
 		t.Fatalf("unexpected result %+v", res)
+	}
+	for _, sc := range res.Scores {
+		sum := 0
+		for _, p := range sc.Points {
+			sum += p
+		}
+		if sum != sc.RoundPoints || slices.Contains(sc.Points, 0) {
+			t.Fatalf("points %v do not add up to %d", sc.Points, sc.RoundPoints)
+		}
 	}
 	host.send("startNextRound", map[string]any{})
 	json.Unmarshal(host.waitFor("roundResult"), &res)

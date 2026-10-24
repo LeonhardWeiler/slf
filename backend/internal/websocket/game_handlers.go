@@ -672,19 +672,23 @@ func (hub *Hub) finishReview(lobby *game.Lobby) {
 // and the empty-round shortcut in endRound. Caller must hold hub.mu.
 func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 	round := lobby.Game.Round
-	roundPoints := map[string]int{}
+	points := map[string][]int{}
 	for _, s := range round.Slots {
 		for pid, ans := range scoredCategory(lobby, s.Key) {
-			roundPoints[pid] += ans.Points
+			if ans.Points > 0 {
+				points[pid] = append(points[pid], ans.Points)
+			}
 		}
 	}
-	for pid, pts := range roundPoints {
+	for pid, pts := range points {
 		if pl, ok := lobby.Players[pid]; ok {
-			pl.Score += pts
+			for _, p := range pts {
+				pl.Score += p
+			}
 		}
 	}
 	setLobbyState(lobby, game.StateRoundResult)
-	result := buildRoundResult(lobby, round.Letter, roundPoints, false, "")
+	result := buildRoundResult(lobby, round.Letter, points, false, "")
 	lobby.Game.LastResult = &result
 	return result
 }
@@ -778,7 +782,7 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.mu.Lock()
 	setLobbyState(lobby, game.StateGameOver)
-	result := buildRoundResult(lobby, "", map[string]int{}, true, reason)
+	result := buildRoundResult(lobby, "", nil, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result
 	}

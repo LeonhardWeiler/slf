@@ -413,7 +413,7 @@ func scoredCategory(lobby *game.Lobby, catID string) map[string]*game.Answer {
 
 // buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
-func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]int, isGameOver bool, reason string) game.RoundResultPayload {
+func buildRoundResult(lobby *game.Lobby, letter string, points map[string][]int, isGameOver bool, reason string) game.RoundResultPayload {
 	// The deliberate exception to playsThisRound: only spectators (commentator
 	// host, pending joiners) are dropped here. A player who *left* stays in the
 	// scores and the ranking on purpose - the standings are where they linger.
@@ -424,10 +424,15 @@ func buildRoundResult(lobby *game.Lobby, letter string, roundPoints map[string]i
 			continue
 		}
 		ranked[pid] = pl
+		sum := 0
+		for _, p := range points[pid] {
+			sum += p
+		}
 		scores = append(scores, game.ScoreEntry{
 			PlayerID:    pid,
-			RoundPoints: roundPoints[pid],
+			RoundPoints: sum,
 			TotalPoints: pl.Score,
+			Points:      points[pid],
 		})
 	}
 	slices.SortFunc(scores, func(a, b game.ScoreEntry) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
