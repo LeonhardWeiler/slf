@@ -85,9 +85,8 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   A newer socket for the same session closes the old one with code 4000; that
   tab does not auto-reconnect, only on focus/visibility (`ws.replaced`).
 - **Solo** (`soloPlayer` in `game_util.go`: exactly 1 non-left player who is no
-  spectator): buzz skips the fill and rule checks, review sends all rows at
-  once (`reviewState.solo`), empty rounds are still reviewed,
-  and `finishReview` goes straight to the next round instead of `RoundResult`.
+  spectator): buzz skips the fill and rule checks, and `finishPlaying` scores
+  the round without review and goes straight to `nextRound`.
   A joiner ends solo on the spot.
 - **Deploy**: `SIGHUP` drains (no new games until no lobby is mid-game), then
   `Hub.Shutdown` refuses new sockets/messages and closes all sockets, then
@@ -98,7 +97,8 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   (`Round.Letters`); prompt `pos` is letter `pos/n`, category `pos%n`, sent as
   `sprintWord`. Answers are keyed `letter:categoryId`. Review and scoring walk
   `Round.Slots` (fixed in `finishPlaying`; classic = one slot per category, key
-  = categoryId), so a sprint reuses solo review and scoring unchanged.
+  = categoryId), so a sprint reuses scoring unchanged. A rejoin replays
+  `sprintWords`, one entry per prompt, "" for a skipped one.
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
   next round start (`beginCountdown`).

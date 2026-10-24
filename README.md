@@ -16,8 +16,8 @@ in RAM.
   merge identical answers
 - **Solo**: alone in a lobby you play a sprint: one round, one letter and
   category at a time; Enter takes a word, an empty Enter or the skip button
-  moves on, STOPP or the time limit ends it. The review is one screen where
-  tapping an answer toggles it; the game ends with your total. As soon as
+  moves on, STOPP or the time limit ends it. Finished words stack up with
+  their points; there is no review, the game ends with your total. As soon as
   someone joins, the normal flow is back
 - **Optional game modes** (toggleable per lobby):
   - **Commentator host**: the host does not play and instead sees a live
