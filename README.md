@@ -11,9 +11,9 @@ in RAM.
 - **Host controls**: create/edit/delete categories, time limit, enable/disable
   letters, remove players, end the running round
 - **Round flow**: countdown -> answers -> buzzing -> review -> result
-- **Live review**: players vote answers down with thumbs; each category runs
-  8 s, every vote adds 2 s, and it moves on early once everyone taps done or
-  the host skips; the host can override and merge identical answers
+- **Live review**: players vote answers down with thumbs; a category moves
+  on when the host skips or once everyone taps done; the host can override and
+  merge identical answers
 - **Solo**: alone in a lobby, STOPP ends the round even with empty fields, the
   review is one screen where tapping an answer toggles it, the round points
   update live in a sticky bar, and there is no scoreboard between rounds; the
