@@ -168,6 +168,7 @@ func build(evs []Event) page {
 			worlds[e.Value]++
 		case "leave":
 			worldEnds[e.Value]++
+			worlds[e.Value] += 0
 		case "musicOff", "mute":
 			music[e.Ev+" in "+e.Scene]++
 		}
