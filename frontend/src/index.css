@@ -421,6 +421,7 @@ body.urgent .bg i {
 	border-radius: 8px;
 	background: rgb(255 255 255 / 0.3);
 	translate: calc(var(--px) * 6px) 0;
+	will-change: translate;
 }
 
 /* ---------- avatars ---------- */
@@ -481,11 +482,7 @@ body.urgent .bg i {
 	position: absolute;
 	inset: 0 0 calc(var(--m) * 0.08);
 	border-radius: var(--rm);
-	background: radial-gradient(
-		circle at calc(30% + var(--px) * 12%) 22%,
-		#ffe066,
-		var(--gold) 60%
-	);
+	background: radial-gradient(circle at 30% 22%, #ffe066, var(--gold) 60%);
 	box-shadow:
 		0 calc(var(--m) * 0.08) 0 var(--gold-d),
 		inset 0 calc(var(--m) * -0.04) 0 rgb(0 0 0 / 0.06);
@@ -505,6 +502,7 @@ body.urgent .bg i {
 	background: rgb(255 255 255 / 0.55);
 	translate: calc(var(--px) * var(--m) * 0.06) 0;
 	rotate: -8deg;
+	will-change: translate;
 }
 @keyframes breathe {
 	50% {
@@ -697,12 +695,7 @@ body.urgent .bg i {
 	place-items: center;
 	border-radius: calc(var(--s) * var(--rt));
 	background:
-		linear-gradient(
-			calc(160deg + var(--px) * 30deg),
-			rgb(255 255 255 / 0.45),
-			transparent 45%
-		),
-		var(--c);
+		linear-gradient(160deg, rgb(255 255 255 / 0.45), transparent 45%), var(--c);
 	box-shadow:
 		0 calc(var(--s) * 0.12) 0 color-mix(in srgb, var(--c), black 25%),
 		0 calc(var(--s) * 0.2) calc(var(--s) * 0.2) rgb(0 0 0 / 0.12);
@@ -739,11 +732,7 @@ body.urgent .bg i {
 }
 .tile.lead {
 	background:
-		linear-gradient(
-			calc(160deg + var(--px) * 30deg),
-			rgb(255 255 255 / 0.5),
-			transparent 45%
-		),
+		linear-gradient(160deg, rgb(255 255 255 / 0.5), transparent 45%),
 		var(--gold);
 	box-shadow:
 		0 calc(var(--s) * 0.12) 0 var(--gold-d),
@@ -1280,7 +1269,7 @@ body.urgent .bg i {
 }
 @keyframes hot {
 	to {
-		filter: brightness(1.2);
+		opacity: 0.8;
 	}
 }
 .fuse.endless i {
@@ -2190,12 +2179,16 @@ body.urgent .bg i {
 }
 
 /* ---------- phases + motion ---------- */
-body.urgent .app {
+body.urgent .bg::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: rgb(255 80 80 / 0.12);
 	animation: pulse-bg 0.6s ease-in-out infinite alternate;
 }
 @keyframes pulse-bg {
-	to {
-		filter: saturate(1.15);
+	from {
+		opacity: 0;
 	}
 }
 #fx {
@@ -3125,6 +3118,7 @@ body.calm *::after {
 }
 .held {
 	z-index: 3;
+	will-change: translate, rotate;
 	transition-property: transform, margin, filter, box-shadow;
 }
 .end-stats {

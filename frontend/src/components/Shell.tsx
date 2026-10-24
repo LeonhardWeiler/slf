@@ -123,11 +123,11 @@ export function Shell({ children }: { children: ReactNode }) {
 			if (glide && Math.abs(eye.x - look.x) + Math.abs(fg.x - par.x) < 0.5)
 				glide = false;
 			lookAt(eye.x, eye.y);
-			const px = fg.x.toFixed(3);
+			const px = fg.x.toFixed(2);
 			if (px !== st.getPropertyValue("--px")) st.setProperty("--px", px);
 			const bs = bgRef.current?.style;
 			bs?.setProperty("--bx", px);
-			bs?.setProperty("--by", fg.y.toFixed(3));
+			bs?.setProperty("--by", fg.y.toFixed(2));
 			raf = left > 0.002 ? requestAnimationFrame(frame) : 0;
 			if (!raf) last = 0;
 		}
