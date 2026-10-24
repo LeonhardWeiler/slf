@@ -302,7 +302,8 @@ body.urgent .bg i {
 		scale: 1.3;
 	}
 	.mascot:hover .m-body {
-		transform: rotate(-4deg) scale(1.04);
+		rotate: -4deg;
+		scale: 1.04;
 	}
 }
 :is(
@@ -477,7 +478,9 @@ body.urgent .bg i {
 	box-shadow:
 		0 calc(var(--m) * 0.08) 0 var(--gold-d),
 		inset 0 calc(var(--m) * -0.04) 0 rgb(0 0 0 / 0.06);
-	transition: transform 0.25s var(--spring);
+	transition:
+		rotate 0.35s var(--spring),
+		scale 0.35s var(--spring);
 	animation: breathe 3.2s ease-in-out infinite;
 }
 .m-body::before {
