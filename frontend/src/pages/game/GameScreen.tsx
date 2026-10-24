@@ -276,7 +276,6 @@ export function GameScreen() {
 	useEffect(() => {
 		if (countdown === null || lobby?.state !== "Countdown") return;
 		if (countdown > 0) sound.tick(3 - countdown);
-		else slam("Los!", "big");
 	}, [countdown]);
 
 	if (!lobby) return null;
@@ -314,9 +313,9 @@ export function GameScreen() {
 				<RoomHeader />
 				<section className="screen center countdown">
 					<Mascot size="huge" letter={game?.letter ?? ""} base="wow" />
-					{countdown !== null && (
+					{!!countdown && (
 						<b key={countdown} className="count" aria-live="assertive">
-							{countdown > 0 ? countdown : "Los!"}
+							{countdown}
 						</b>
 					)}
 				</section>
