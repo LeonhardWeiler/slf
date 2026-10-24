@@ -2643,13 +2643,6 @@ body.urgent .app {
 	flex: 1;
 	min-width: 0;
 }
-.title-tiles {
-	display: grid;
-	gap: 6px;
-}
-.title-tiles .tiles {
-	--s: 34px;
-}
 .scan {
 	width: min(100%, 360px);
 	display: grid;

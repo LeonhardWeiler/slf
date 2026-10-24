@@ -368,17 +368,6 @@ export function Home() {
 			<section className="screen home">
 				<div className="hero">
 					<Mascot size="big" letter={step === "joinName" ? code[0] : "S"} />
-					{step === "start" && (
-						<div
-							className="title-tiles"
-							role="img"
-							aria-label="Stadt Land Fluss"
-						>
-							<Tiles value="STADT" />
-							<Tiles value="LAND" />
-							<Tiles value="FLUSS" />
-						</div>
-					)}
 				</div>
 
 				{step !== "start" && showOffline && (
