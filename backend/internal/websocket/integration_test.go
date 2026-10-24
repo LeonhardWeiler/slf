@@ -1195,6 +1195,57 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	}
 }
 
+func TestReviewTimerAdvances(t *testing.T) {
+	srv, hub := newServerHub(t)
+	hub.reviewSlot, hub.reviewBonus = 300*time.Millisecond, 200*time.Millisecond
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	cats := host.lastLobby.Categories
+	bob := dial(t, srv)
+	bob.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var sc struct {
+		SessionID string `json:"sessionId"`
+	}
+	json.Unmarshal(bob.waitFor("sessionCreated"), &sc)
+	bob.sessionID = sc.SessionID
+
+	excluded := []string{}
+	for r := 'B'; r <= 'Z'; r++ {
+		excluded = append(excluded, string(r))
+	}
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State   string `json:"state"`
+		RoundID string `json:"roundId"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": "Aachen", "roundId": gs.RoundID})
+	host.send("endRound", map[string]any{})
+
+	var rs struct {
+		CategoryIndex int    `json:"categoryIndex"`
+		EndsAt        *int64 `json:"endsAt"`
+	}
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if rs.EndsAt == nil || rs.CategoryIndex != 0 {
+		t.Fatalf("review must start with a clock, got %+v", rs)
+	}
+	first := *rs.EndsAt
+	bob.send("voteAnswer", map[string]any{"answerId": host.lastLobby.Players[0].ID, "vote": -1})
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if *rs.EndsAt-first != 200 {
+		t.Fatalf("a vote must add the bonus, got %d ms", *rs.EndsAt-first)
+	}
+	json.Unmarshal(host.waitFor("reviewState"), &rs)
+	if rs.CategoryIndex != 1 {
+		t.Fatalf("the clock must advance the review, got %+v", rs)
+	}
+	host.waitFor("roundResult")
+}
+
 func TestSprintRound(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)

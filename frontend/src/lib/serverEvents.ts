@@ -110,6 +110,8 @@ const reviewStatePayload = z.object({
 	),
 	ready: z._default(z.nullish(z.array(z.string())), null),
 	voters: z._default(z.nullish(z.array(z.string())), null),
+	endsAt: z._default(z.nullish(z.number()), null),
+	serverNow: z._default(z.optional(z.number()), 0),
 });
 
 const commentatorPlayer = z.object({

@@ -369,6 +369,8 @@ describe("review validity", () => {
 			solo: null,
 			ready: null,
 			voters: null,
+			endsAt: null,
+			serverNow: 0,
 		});
 		const { container } = render(<ReviewScreen />);
 		expect(container.querySelectorAll(".ans.cracked").length).toBe(1);
@@ -410,6 +412,8 @@ describe("review validity", () => {
 			],
 			ready: null,
 			voters: null,
+			endsAt: null,
+			serverNow: 0,
 		});
 		render(<SoloReviewScreen />);
 		const rows = screen.getAllByRole("switch") as HTMLButtonElement[];
@@ -693,6 +697,8 @@ describe("review merge", () => {
 		solo: null,
 		ready: null,
 		voters: null,
+		endsAt: null,
+		serverNow: 0,
 	});
 
 	it("offers merging only for 2 different valid answers", () => {
@@ -741,6 +747,8 @@ describe("review end reason", () => {
 			solo: null,
 			ready: null,
 			voters: null,
+			endsAt: null,
+			serverNow: 0,
 		});
 		render(<ReviewScreen />);
 		expect(

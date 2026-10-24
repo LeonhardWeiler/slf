@@ -380,6 +380,7 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	}
 	setLobbyState(lobby, game.StateReviewing)
 	g.Round.ReviewIndex = 0
+	hub.armReview(lobby)
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
@@ -398,11 +399,18 @@ func (hub *Hub) mutateReview(c *Client, hostOnly bool, fn func(lobby *game.Lobby
 		hub.mu.Unlock()
 		return nil
 	}
+	r := lobby.Game.Round
+	idx := r.ReviewIndex
 	curCat := ""
-	if r := lobby.Game.Round; r.ReviewIndex >= 0 && r.ReviewIndex < len(r.Slots) {
-		curCat = r.Slots[r.ReviewIndex].Key
+	if idx >= 0 && idx < len(r.Slots) {
+		curCat = r.Slots[idx].Key
 	}
 	changed := fn(lobby, player, curCat)
+	if changed && r.ReviewIndex != idx {
+		hub.armReview(lobby)
+	} else if changed && !r.ReviewEndsAt.IsZero() {
+		r.ReviewEndsAt = r.ReviewEndsAt.Add(hub.reviewBonus)
+	}
 	hub.mu.Unlock()
 	if !changed {
 		return nil
@@ -601,10 +609,51 @@ func handleFinishReview(hub *Hub, c *Client) {
 	hub.finishReview(lobby)
 }
 
+// armReview starts the review clock for the current slot; solo has none.
+// Caller must hold hub.mu.
+func (hub *Hub) armReview(lobby *game.Lobby) {
+	r := lobby.Game.Round
+	r.ReviewEndsAt = time.Time{}
+	if soloPlayer(lobby) != nil {
+		return
+	}
+	r.ReviewEndsAt = time.Now().Add(hub.reviewSlot)
+	roundID, idx := r.ID, r.ReviewIndex
+	var fire func()
+	fire = func() {
+		hub.mu.Lock()
+		g := lobby.Game
+		if lobby.State != game.StateReviewing || g == nil || g.Round == nil || g.Round.ID != roundID || g.Round.ReviewIndex != idx || g.Round.ReviewEndsAt.IsZero() {
+			hub.mu.Unlock()
+			return
+		}
+		if left := time.Until(g.Round.ReviewEndsAt); left > 0 {
+			time.AfterFunc(left, fire)
+			hub.mu.Unlock()
+			return
+		}
+		if idx >= len(g.Round.Slots)-1 {
+			hub.mu.Unlock()
+			hub.finishReview(lobby)
+			return
+		}
+		g.Round.ReviewIndex++
+		g.Round.Ready = nil
+		hub.armReview(lobby)
+		hub.mu.Unlock()
+		hub.broadcastReviewState(lobby)
+	}
+	time.AfterFunc(hub.reviewSlot, fire)
+}
+
 // finishReview scores the round and shows the result, or in solo starts the
-// next round straight away.
+// next round straight away. Idempotent: only the first call scores.
 func (hub *Hub) finishReview(lobby *game.Lobby) {
 	hub.mu.Lock()
+	if lobby.State != game.StateReviewing || lobby.Game == nil || lobby.Game.Round == nil {
+		hub.mu.Unlock()
+		return
+	}
 	result := hub.scoreAndFinishRound(lobby)
 	solo := soloPlayer(lobby) != nil
 	hub.mu.Unlock()

@@ -167,6 +167,8 @@ describe("reduceRoom", () => {
 			solo: null,
 			ready: null,
 			voters: null,
+			endsAt: null,
+			serverNow: 0,
 		},
 	});
 
@@ -176,6 +178,21 @@ describe("reduceRoom", () => {
 		expect(reduceRoom(room, game, 4)).toBe(room);
 		expect(reduceRoom(room, game, 0).game?.roundId).toBe("r");
 		expect(reduceRoom(room, at("Lobby"), 1).lobby?.state).toBe("Lobby");
+	});
+
+	it("moves the review clock onto the local clock", () => {
+		const r = review("r");
+		const room = reduceRoom(
+			reduceRoom(emptyRoom, at("Reviewing"), 1),
+			{
+				...r,
+				payload: { ...r.payload, endsAt: 1_008_000, serverNow: 1_000_000 },
+			},
+			2,
+		);
+		const left = (room.review?.endsAt ?? 0) - Date.now();
+		expect(left).toBeGreaterThan(7900);
+		expect(left).toBeLessThanOrEqual(8000);
 	});
 
 	it("waits for the data of the new phase", () => {

@@ -120,11 +120,17 @@ export function reduceRoom(
 				game.endsAt === null ? null : game.endsAt - game.serverNow + Date.now();
 			return { ...forRound(room, game.roundId), game: { ...game, endsAt } };
 		}
-		case "reviewState":
+		case "reviewState": {
+			const review = event.payload;
+			const endsAt =
+				review.endsAt === null
+					? null
+					: review.endsAt - review.serverNow + Date.now();
 			return {
-				...forRound(room, event.payload.roundId),
-				review: event.payload,
+				...forRound(room, review.roundId),
+				review: { ...review, endsAt },
 			};
+		}
 		case "commentatorState":
 			return {
 				...forRound(room, event.payload.roundId),

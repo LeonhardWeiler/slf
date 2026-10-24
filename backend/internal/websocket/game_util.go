@@ -370,6 +370,11 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	}
 	slices.Sort(ready)
 	slices.Sort(voters)
+	var endsAt *int64
+	if !r.ReviewEndsAt.IsZero() {
+		ms := r.ReviewEndsAt.UnixMilli()
+		endsAt = &ms
+	}
 
 	return game.ReviewStatePayload{
 		RoundID:       r.ID,
@@ -383,6 +388,8 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 		Solo:          solo,
 		Ready:         ready,
 		Voters:        voters,
+		EndsAt:        endsAt,
+		ServerNow:     time.Now().UnixMilli(),
 	}
 }
 

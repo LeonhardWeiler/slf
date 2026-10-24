@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Check,
 	ChevronLeft,
@@ -14,7 +14,7 @@ import {
 	X,
 } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { bounce, haptic } from "@/lib/feel";
+import { bounce, floatText, haptic } from "@/lib/feel";
 import { sound } from "@/lib/sound";
 import { handlesEnter, isTypingTarget } from "@/lib/utils";
 import { normalize } from "@/lib/answerValidation";
@@ -25,6 +25,49 @@ import { Av, Btn, IconBtn, Mascot, playerColor, Tiles } from "@/components/kit";
 
 const ptsClass = (p: number) =>
 	p >= 20 ? "p20" : p >= 10 ? "p10" : p > 0 ? "p5" : "p0";
+
+const SLOT_MS = 8000;
+
+function ReviewClock({ endsAt }: { endsAt: number }) {
+	const left = () => Math.max(0, endsAt - Date.now());
+	const [ms, setMs] = useState(left);
+	const el = useRef<HTMLDivElement>(null);
+	const prev = useRef(endsAt);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
+	useEffect(() => {
+		const gain = Math.round((endsAt - prev.current) / 1000);
+		prev.current = endsAt;
+		if (gain > 0) {
+			floatText(el.current, `+${gain}s`, "pts-float c2");
+			bounce(el.current, 1.08);
+		}
+		let last = -1;
+		const id = setInterval(() => {
+			const m = left();
+			setMs(m);
+			const s = Math.ceil(m / 1000);
+			if (s !== last && s <= 3 && s > 0) {
+				sound.tick(3 - s);
+				haptic(10);
+			}
+			last = s;
+		}, 100);
+		return () => clearInterval(id);
+	}, [endsAt]);
+	const secs = Math.ceil(ms / 1000);
+	return (
+		<div
+			ref={el}
+			className={`fuse review-clock${secs <= 3 ? " hot" : ""}`}
+			style={{ "--f": Math.min(1, ms / SLOT_MS) } as React.CSSProperties}
+			role="timer"
+			aria-label={`${secs} Sekunden`}
+		>
+			<i />
+			<b />
+		</div>
+	);
+}
 
 export function ReviewScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -342,6 +385,10 @@ export function ReviewScreen() {
 					>
 						<X />
 					</IconBtn>
+				)}
+
+				{review.endsAt !== null && (
+					<ReviewClock key={review.categoryIndex} endsAt={review.endsAt} />
 				)}
 
 				<div className="ready-row">
