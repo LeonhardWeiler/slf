@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
 	Check,
 	ChevronLeft,
@@ -48,11 +48,14 @@ export function ReviewScreen() {
 	}, [buzzedRound]);
 
 	// Deal the answer cards one by one whenever a category opens.
+	const opened = useRef(false);
 	// biome-ignore lint/correctness/useExhaustiveDependencies: categoryIndex is the trigger
 	useEffect(() => {
 		setMergeAnchor(null);
 		setShown(0);
-		sound.whoosh();
+		if (opened.current) sound.advance();
+		else sound.whoosh();
+		opened.current = true;
 		let k = 0;
 		const id = setInterval(() => {
 			k++;
@@ -87,17 +90,24 @@ export function ReviewScreen() {
 	const iVote = voters.includes(me ?? "");
 	const imReady = ready.has(me ?? "");
 
+	function toggleReady() {
+		ws.send({ type: "reviewReady", payload: {} });
+		sound.ready(!imReady);
+		haptic(imReady ? 8 : 15);
+	}
+
 	// Enter marks yourself done, so a keyboard player never needs the mouse.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: toggleReady reads imReady
 	useEffect(() => {
 		if (!iVote) return;
 		function onKey(e: KeyboardEvent) {
 			if (e.key !== "Enter" || e.repeat || handlesEnter(document.activeElement))
 				return;
-			ws.send({ type: "reviewReady", payload: {} });
+			toggleReady();
 		}
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [iVote]);
+	}, [iVote, imReady]);
 
 	if (!lobby || !review) return null;
 
@@ -133,12 +143,6 @@ export function ReviewScreen() {
 		if (out) sound.crunch();
 		else sound.pop();
 		haptic(out ? [20, 30, 20] : 10);
-	}
-
-	function toggleReady() {
-		ws.send({ type: "reviewReady", payload: {} });
-		if (!imReady) sound.stamp(10);
-		haptic(15);
 	}
 
 	function pick(a: ReviewAnswer) {

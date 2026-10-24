@@ -423,6 +423,19 @@ class Sound {
 		this.noise(1.2, 0.08, { t: t + 0.48, type: "highpass", f: 5000 });
 		this.tone(70, 0.6, 0.5, { t: t + 0.48, glide: 35 });
 	}
+	ready(on: boolean) {
+		const t = this.now;
+		const [a, b] = on ? [79, 86] : [86, 79];
+		this.bell(a, 0.18, 0.08, t);
+		this.bell(b, on ? 0.35 : 0.2, 0.08, t + 0.07);
+		if (on) this.tone(120, 0.1, 0.25, { t, glide: 60 });
+	}
+	advance() {
+		const t = this.now;
+		this.noise(0.3, 0.07, { t, type: "bandpass", f: 900, to: 3500, q: 1.5 });
+		for (const [i, m] of [67, 72, 76].entries())
+			this.pluck(m, 0.16, 0.035, t + 0.08 + i * 0.06);
+	}
 	crown() {
 		const t = this.now;
 		for (const [i, c] of [0, 4, 7, 12, 16, 19, 24].entries())
