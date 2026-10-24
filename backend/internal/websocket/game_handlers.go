@@ -109,7 +109,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		Pos:       map[string]int{},
 		StartedAt: time.Now(),
 	}
-	if lobby.Settings.Sprint {
+	if soloPlayer(lobby) != nil {
 		round.Letters = slices.Clone(g.RemainingLetters)
 		rand.Shuffle(len(round.Letters), func(i, j int) {
 			round.Letters[i], round.Letters[j] = round.Letters[j], round.Letters[i]

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -176,7 +175,6 @@ type lobbyStateDTO struct {
 	Settings struct {
 		TimeLimit       *int     `json:"timeLimit"`
 		ExcludedLetters []string `json:"excludedLetters"`
-		Sprint          bool     `json:"sprint"`
 		HostPlays       bool     `json:"hostPlays"`
 		LastLetterMode  bool     `json:"lastLetterMode"`
 	} `json:"settings"`
@@ -333,6 +331,9 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	host := dial(t, srv)
 	code := host.createLobby("Alice")
 	cats := host.lastLobby.Categories // the default categories
+	carol := dial(t, srv)
+	carol.send("joinLobby", map[string]any{"playerName": "Carol", "lobbyCode": code})
+	carol.waitFor("sessionCreated")
 
 	// Keep two letters (A, B) so a second round can start after the first.
 	excluded := []string{}
@@ -491,26 +492,25 @@ func TestUpdateSettingsPreservesOmittedBools(t *testing.T) {
 	host := dial(t, srv)
 	host.createLobby("Alice")
 
-	// Turn sprint on with a full-ish payload.
+	// Turn hostPlays off with a full-ish payload.
 	host.send("updateSettings", map[string]any{
 		"timeLimit":      nil,
-		"sprint":         true,
-		"hostPlays":      true,
+		"hostPlays":      false,
 		"lastLetterMode": false,
 	})
 	ls := host.readLobby()
-	if !ls.Settings.Sprint {
-		t.Fatal("sprint should be true after enabling it")
+	if ls.Settings.HostPlays {
+		t.Fatal("hostPlays should be false after disabling it")
 	}
 
-	// A partial payload that omits sprint must not reset it to false.
+	// A partial payload that omits hostPlays must not reset it to true.
 	host.send("updateSettings", map[string]any{
 		"timeLimit":      nil,
 		"lastLetterMode": true,
 	})
 	ls = host.readLobby()
-	if !ls.Settings.Sprint {
-		t.Fatal("sprint must be preserved when omitted (bug-1)")
+	if ls.Settings.HostPlays {
+		t.Fatal("hostPlays must be preserved when omitted (bug-1)")
 	}
 	if !ls.Settings.LastLetterMode {
 		t.Fatal("lastLetterMode should now be true")
@@ -538,7 +538,7 @@ func TestUpdateSettingsPreservesTimeLimitAndLetters(t *testing.T) {
 	}
 
 	// A payload that omits both must leave them untouched (only toggles a bool).
-	host.send("updateSettings", map[string]any{"sprint": true})
+	host.send("updateSettings", map[string]any{"hostPlays": true})
 	ls = host.readLobby()
 	if ls.Settings.TimeLimit == nil || *ls.Settings.TimeLimit != 60 {
 		t.Fatalf("timeLimit must be preserved when omitted, got %v", ls.Settings.TimeLimit)
@@ -652,8 +652,11 @@ func TestHostGraceExpiryClosesLobby(t *testing.T) {
 func TestFullRoundCycle(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
-	host.createLobby("Alice")
+	code := host.createLobby("Alice")
 	cats := host.lastLobby.Categories // the default categories
+	carol := dial(t, srv)
+	carol.send("joinLobby", map[string]any{"playerName": "Carol", "lobbyCode": code})
+	carol.waitFor("sessionCreated")
 
 	// Force the drawn letter to be "A" by excluding every other letter, so the
 	// answers we submit are deterministically rule-valid.
@@ -917,68 +920,6 @@ func TestStartWithoutConnectedParticipantErrors(t *testing.T) {
 	}
 }
 
-func TestSoloRoundSkipsScoreboard(t *testing.T) {
-	srv := newServer(t)
-	host := dial(t, srv)
-	host.createLobby("Alice")
-	if !host.lastLobby.Solo {
-		t.Fatal("a lone player should be solo")
-	}
-	cats := host.lastLobby.Categories
-
-	excluded := []string{}
-	for r := 'C'; r <= 'Z'; r++ {
-		excluded = append(excluded, string(r))
-	}
-	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
-	host.readLobby()
-
-	host.send("startGame", map[string]any{})
-	var gs struct {
-		State   string `json:"state"`
-		Letter  string `json:"letter"`
-		RoundID string `json:"roundId"`
-	}
-	for gs.State != "Playing" {
-		json.Unmarshal(host.waitFor("gameState"), &gs)
-	}
-	host.send("buzz", map[string]any{"roundId": "stale"})
-	host.send("answerUpdate", map[string]any{"categoryId": cats[2].ID, "value": gs.Letter + "stale", "roundId": "stale"})
-	host.send("answerUpdate", map[string]any{"categoryId": cats[0].ID, "value": gs.Letter + "test", "roundId": gs.RoundID})
-	// Solo may stop with empty fields.
-	host.send("buzz", map[string]any{"roundId": gs.RoundID})
-	// An answer right after the buzz is still taken (answerGrace).
-	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": gs.Letter + "late", "roundId": gs.RoundID})
-
-	type soloRow struct {
-		CategoryID string `json:"categoryId"`
-		Valid      bool   `json:"valid"`
-		Points     int    `json:"points"`
-	}
-	var rs struct {
-		Solo      []soloRow `json:"solo"`
-		EndReason string    `json:"endReason"`
-	}
-	json.Unmarshal(host.waitFor("reviewState"), &rs)
-	if rs.EndReason != "buzz" {
-		t.Fatalf("expected endReason buzz, got %q", rs.EndReason)
-	}
-	if len(rs.Solo) != len(cats) || !rs.Solo[0].Valid || rs.Solo[0].Points == 0 || !rs.Solo[1].Valid || rs.Solo[2].Valid {
-		t.Fatalf("unexpected solo rows %+v", rs.Solo)
-	}
-
-	host.send("setAnswerValidity", map[string]any{"answerId": host.lastLobby.Players[0].ID, "categoryId": cats[0].ID, "valid": false})
-	json.Unmarshal(host.waitFor("reviewState"), &rs)
-	if rs.Solo[0].Valid || rs.Solo[0].Points != 0 {
-		t.Fatalf("expected the answer to be rejected, got %+v", rs.Solo[0])
-	}
-
-	host.send("finishReview", map[string]any{})
-	if raw := host.waitFor("gameState"); !strings.Contains(string(raw), `"Countdown"`) {
-		t.Fatalf("expected the next countdown, got %s", raw)
-	}
-}
-
 func TestDrainThenRestoreKeepsLobby(t *testing.T) {
 	srv, hub := newServerHub(t)
 	host := dial(t, srv)
@@ -1198,24 +1139,20 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	}
 }
 
-func TestSprintRound(t *testing.T) {
+func TestSoloSprint(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
-	code := host.createLobby("Alice")
-	cats := host.lastLobby.Categories
-	bob := dial(t, srv)
-	bob.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
-	var sc struct {
-		SessionID string `json:"sessionId"`
+	host.createLobby("Alice")
+	if !host.lastLobby.Solo {
+		t.Fatal("a lone player should be solo")
 	}
-	json.Unmarshal(bob.waitFor("sessionCreated"), &sc)
-	bob.sessionID = sc.SessionID
 
 	excluded := []string{}
 	for r := 'C'; r <= 'Z'; r++ {
 		excluded = append(excluded, string(r))
 	}
-	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded, "sprint": true})
+	host.send("updateSettings", map[string]any{"timeLimit": nil, "excludedLetters": excluded})
+	host.readLobby()
 	host.send("startGame", map[string]any{})
 	var gs struct {
 		State   string   `json:"state"`
@@ -1229,69 +1166,54 @@ func TestSprintRound(t *testing.T) {
 		t.Fatalf("expected the sprint letters A and B, got %v", gs.Letters)
 	}
 	a, b := gs.Letters[0], gs.Letters[1]
-	word := func(c *testConn, pos int, value string) {
-		c.send("sprintWord", map[string]any{"roundId": gs.RoundID, "pos": pos, "value": value})
+	word := func(pos int, value string) {
+		host.send("sprintWord", map[string]any{"roundId": gs.RoundID, "pos": pos, "value": value})
 	}
-	word(host, 0, a+"stadt")
-	word(host, 1, "")
-	word(host, 2, a+"fluss")
-	host.send("answerUpdate", map[string]any{"categoryId": cats[1].ID, "value": a + "land", "roundId": gs.RoundID})
-	word(bob, 0, a+"stadt")
-	word(bob, 0, a+"again")
-	word(bob, 3, a+"wrong")
-	word(bob, 3, b+"x")
-	bob.send("ping", map[string]any{})
-	bob.waitFor("pong")
+	word(0, a+"stadt")
+	word(1, "")
+	word(2, a+"fluss")
+	word(2, a+"again")
+	word(3, a+"wrong")
+	word(3, b+"x")
+	host.send("ping", map[string]any{})
+	host.waitFor("pong")
 
 	again := dial(t, srv)
-	again.sessionID = bob.sessionID
+	again.sessionID = host.sessionID
 	again.send("reconnect", map[string]any{})
 	var replay struct {
 		SprintPos   int      `json:"sprintPos"`
 		SprintWords []string `json:"sprintWords"`
 	}
 	json.Unmarshal(again.waitFor("gameState"), &replay)
-	if replay.SprintPos != 4 || len(replay.SprintWords) != 2 || replay.SprintWords[1] != b+"x" {
+	if replay.SprintPos != 4 || len(replay.SprintWords) != 3 || replay.SprintWords[2] != b+"x" {
 		t.Fatalf("unexpected replay %+v", replay)
 	}
 
-	host.send("endRound", map[string]any{})
+	again.send("endRound", map[string]any{})
 	var rs struct {
-		Letter        string `json:"letter"`
-		CategoryID    string `json:"categoryId"`
-		CategoryCount int    `json:"categoryCount"`
-		Answers       []any  `json:"answers"`
+		Solo []struct {
+			Points int `json:"points"`
+		} `json:"solo"`
 	}
-	json.Unmarshal(host.waitFor("reviewState"), &rs)
-	if rs.CategoryCount != 3 || rs.Letter != a || rs.CategoryID != cats[0].ID || len(rs.Answers) != 2 {
-		t.Fatalf("unexpected first slot %+v", rs)
+	json.Unmarshal(again.waitFor("reviewState"), &rs)
+	if len(rs.Solo) != 3 {
+		t.Fatalf("expected one row per word, got %+v", rs.Solo)
 	}
 
-	host.send("finishReview", map[string]any{})
+	again.send("finishReview", map[string]any{})
 	var res struct {
-		Scores []struct {
-			RoundPoints int   `json:"roundPoints"`
-			Points      []int `json:"points"`
-		} `json:"scores"`
-		RemainingLetters []string `json:"remainingLetters"`
-		IsGameOver       bool     `json:"isGameOver"`
+		IsGameOver bool `json:"isGameOver"`
+		Ranking    []struct {
+			Score int `json:"score"`
+		} `json:"ranking"`
 	}
-	json.Unmarshal(host.waitFor("roundResult"), &res)
-	if len(res.RemainingLetters) != 0 || len(res.Scores) != 2 {
-		t.Fatalf("unexpected result %+v", res)
-	}
-	for _, sc := range res.Scores {
-		sum := 0
-		for _, p := range sc.Points {
-			sum += p
-		}
-		if sum != sc.RoundPoints || slices.Contains(sc.Points, 0) {
-			t.Fatalf("points %v do not add up to %d", sc.Points, sc.RoundPoints)
-		}
-	}
-	host.send("startNextRound", map[string]any{})
-	json.Unmarshal(host.waitFor("roundResult"), &res)
+	json.Unmarshal(again.waitFor("roundResult"), &res)
 	if !res.IsGameOver {
 		t.Fatal("a sprint is a single round")
+	}
+	want := 5 * (game.WordValue(a+"stadt") + game.WordValue(a+"fluss") + game.WordValue(b+"x"))
+	if res.Ranking[0].Score != want {
+		t.Fatalf("expected score %d, got %+v", want, res.Ranking)
 	}
 }

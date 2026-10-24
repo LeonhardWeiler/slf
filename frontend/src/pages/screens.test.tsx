@@ -66,7 +66,6 @@ function setup(me: string, state: LobbyStatePayload["state"]) {
 				excludedLetters: [],
 				hostPlays: true,
 				lastLetterMode: false,
-				sprint: false,
 			},
 			state,
 			solo: false,

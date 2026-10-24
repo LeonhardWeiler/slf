@@ -108,7 +108,7 @@ func TestBeginCountdownRechecksState(t *testing.T) {
 		Code:     "123456",
 		State:    game.StateLobby,
 		Settings: game.Settings{HostPlays: true},
-		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}},
+		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}, "q": {ID: "q", Connected: true}},
 		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
 	}
 	h.rooms.Create(lobby)
@@ -175,7 +175,7 @@ func TestCountdownShowsLetterAndPlayingMovesIt(t *testing.T) {
 		Code:     "123456",
 		State:    game.StateLobby,
 		Settings: game.Settings{HostPlays: true},
-		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}},
+		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}, "q": {ID: "q", Connected: true}},
 		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
 	}
 	h.rooms.Create(lobby)

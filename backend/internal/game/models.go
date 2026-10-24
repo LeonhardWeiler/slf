@@ -38,8 +38,6 @@ type Settings struct {
 	// LastLetterMode makes answers have to *end* with the drawn letter instead of
 	// starting with it (a "spice" the host can enable).
 	LastLetterMode bool `json:"lastLetterMode"`
-	// Sprint plays one timed round over a letter sequence, one prompt at a time.
-	Sprint bool `json:"sprint"`
 }
 
 type Lobby struct {

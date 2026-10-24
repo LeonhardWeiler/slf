@@ -12,7 +12,6 @@ import {
 	Star,
 	Timer,
 	X,
-	Zap,
 } from "lucide-react";
 import { Navigate } from "@/lib/nav";
 import type { Player, Settings } from "@/types/events";
@@ -45,7 +44,6 @@ const QrCode = lazy(() =>
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const RARE = ["C", "J", "Q", "X", "Y"];
 const TIME_STEPS: (number | null)[] = [30, 60, 90, 120, 180, null];
-const SPRINT_STEPS: (number | null)[] = [45, 75, null];
 
 // Keeps players briefly rendered after they leave so the row can fade out
 // instead of snapping away. Present players carry fresh data (name/connection
@@ -207,7 +205,6 @@ export function Lobby() {
 				excludedLetters: patch.excludedLetters ?? s.excludedLetters,
 				hostPlays: patch.hostPlays ?? s.hostPlays,
 				lastLetterMode: patch.lastLetterMode ?? s.lastLetterMode,
-				sprint: patch.sprint ?? s.sprint,
 			},
 		});
 	}
@@ -347,7 +344,7 @@ export function Lobby() {
 					<div className="pref" data-tip="Zeitlimit pro Runde">
 						<Timer />
 						<Slider
-							steps={s.sprint ? SPRINT_STEPS : TIME_STEPS}
+							steps={TIME_STEPS}
 							value={s.timeLimit}
 							label="Zeitlimit"
 							format={(v) => (v === null ? "∞" : `${v}s`)}
@@ -356,15 +353,6 @@ export function Lobby() {
 					</div>
 
 					<div className="modes">
-						<Toggle
-							on={s.sprint}
-							tip="Sprint: eine Runde, ein Wort nach dem anderen"
-							onChange={(sprint) =>
-								updateSettings({ sprint, timeLimit: sprint ? 45 : null })
-							}
-						>
-							<Zap />
-						</Toggle>
 						<Toggle
 							on={!s.hostPlays}
 							tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"

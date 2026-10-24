@@ -33,7 +33,6 @@ const lobby = (players: Player[]): LobbyStatePayload => ({
 		excludedLetters: [],
 		hostPlays: true,
 		lastLetterMode: false,
-		sprint: false,
 	},
 	state: "Lobby",
 	solo: false,

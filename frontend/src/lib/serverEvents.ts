@@ -36,7 +36,6 @@ const settingsSchema = z.object({
 	excludedLetters: z.array(z.string()),
 	hostPlays: z.boolean(),
 	lastLetterMode: z.boolean(),
-	sprint: z._default(z.optional(z.boolean()), false),
 });
 
 const lobbyStatePayload = z.object({

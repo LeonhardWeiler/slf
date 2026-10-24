@@ -32,7 +32,6 @@ export function RoundResultScreen() {
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
-	const sprint = useRoomStore((s) => !!s.lobby?.settings.sprint);
 	const [step, setStep] = useState(0);
 	const [sorted, setSorted] = useState(false);
 	const rows = useRef(new Map<string, HTMLLIElement>());
@@ -54,9 +53,8 @@ export function RoundResultScreen() {
 					const gain =
 						result.scores.find((s) => s.playerId === myPlayerId)?.roundPoints ??
 						0;
-					const key = `round-${sprint ? "sprint" : "classic"}`;
-					const best = stats.best(key);
-					stats.record(key, gain);
+					const best = stats.best("round-classic");
+					stats.record("round-classic", gain);
 					stats.played();
 					if (best > 0 && gain > best) {
 						slam("NEU!", "win");
@@ -72,7 +70,7 @@ export function RoundResultScreen() {
 			),
 		];
 		return () => ids.forEach(clearTimeout);
-	}, [result, myPlayerId, sprint]);
+	}, [result, myPlayerId]);
 
 	useEffect(() => {
 		if (!step || !result) return;

@@ -26,7 +26,7 @@ export function GameOverScreen() {
 		grew: boolean;
 	} | null>(null);
 	const solo = !!lobby?.solo;
-	const mode = `${solo ? "solo" : "multi"}-${lobby?.settings.sprint ? "sprint" : "classic"}`;
+	const mode = solo ? "solo-sprint" : "multi-classic";
 	const score = lobby?.players.find((p) => p.id === myPlayerId)?.score ?? 0;
 	const won = result?.ranking[0]?.playerId === myPlayerId && score > 0;
 	const played = !!result?.ranking.some((r) => r.playerId === myPlayerId);

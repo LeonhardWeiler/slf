@@ -30,7 +30,6 @@ export interface Settings {
 	excludedLetters: string[];
 	hostPlays: boolean;
 	lastLetterMode: boolean;
-	sprint: boolean;
 }
 
 // A lobbyState whose players are only the changed ones; removed lists the
@@ -238,7 +237,6 @@ export type ClientEvent =
 				excludedLetters: string[];
 				hostPlays: boolean;
 				lastLetterMode: boolean;
-				sprint: boolean;
 			};
 	  }
 	| { type: "kickPlayer"; payload: { playerId: string } }

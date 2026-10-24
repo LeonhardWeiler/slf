@@ -579,7 +579,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		ExcludedLetters []string `json:"excludedLetters"`
 		HostPlays       *bool    `json:"hostPlays"`
 		LastLetterMode  *bool    `json:"lastLetterMode"`
-		Sprint          *bool    `json:"sprint"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
@@ -627,9 +626,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if p.LastLetterMode != nil {
 		lobby.Settings.LastLetterMode = *p.LastLetterMode
-	}
-	if p.Sprint != nil {
-		lobby.Settings.Sprint = *p.Sprint
 	}
 	hub.mu.Unlock()
 
