@@ -5,7 +5,7 @@ import {
 	Crown,
 	Hourglass,
 	Link as LinkIcon,
-	Mic,
+	Eye,
 	Play,
 	Plus,
 	QrCode as QrCodeIcon,
@@ -353,7 +353,7 @@ export function Lobby() {
 							tip="Host kommentiert nur: du spielst nicht mit und siehst live, wer was ausgefüllt hat"
 							onChange={(v) => updateSettings({ hostPlays: !v })}
 						>
-							<Mic />
+							<Eye />
 						</Toggle>
 						<Toggle
 							on={s.lastLetterMode}
