@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Version numbers were reconstructed from the Git history; the project has not been
 formally released yet, so all versions are in the `0.x` range.
 
+## [Unreleased]
+
+### Added
+
+- Solo sprint: one letter and category at a time, scored without review; with a time limit the letters repeat until the time runs out.
+- Per-round worlds with their own shape, colours, particles and sound; music per scene, haptics.
+- Review by voting: players vote answers down and move on together.
+- Scoring by German Scrabble letter values with multipliers, a buzz bonus and a combo for full rounds.
+- Round result with a coin cascade, overtaking rows, personal records and a day streak.
+- Letter picker with presets, category grid for up to 20 categories.
+- Anonymous usage stats in `events.jsonl` with a dashboard on `STATS_ADDR`.
+
+### Changed
+
+- Lobby changes are sent as patches of the changed players.
+- Routing via the History API instead of TanStack Router.
+
+### Removed
+
+- Flames mode, wood and paper worlds, the review clock.
+
 ## [0.10.0] - 2026-10-21
 
 ### Added
