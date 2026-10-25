@@ -13,9 +13,9 @@
 <main class="wrap">
 <header>
 <p class="meta">PROJECT REPORT · STADT LAND FLUSS · 25. OKTOBER 2026 · BRANCH master</p>
-<h1>Gesund und schlank.<br>Offen sind Randfälle im Socket- und Review-Lebenszyklus.</h1>
-<p class="lead">Alle Gates sind grün und werden im Nix-Build erzwungen. Live läuft exakt der aktuelle Code, der Server ist gehärtet und unbelastet. Keine kritischen oder hohen Risiken. Wichtigster neuer Fund: Die Bewertung bleibt hängen, wenn der letzte noch nicht fertige Spieler geht oder die Verbindung verliert. Dazu kommen Sockets nach Leave/Kick/Close, der Deploy-Restore, ein knapper Client-Heartbeat und Aufräumarbeit (toter Code, rund 25 tote CSS-Selektoren, Kommentardichte).</p>
-<p class="meta">Quellbasis: <code>702a4da</code> (master, v0.10.0; Code-Stand <code>10f08b8</code>, danach nur Doku- und Agent-Commits). Prüfdatum 25.10.2026, Europe/Vienna. Stichtag, keine kontinuierliche Überwachung.</p>
+<h1>Gesund und schlank.<br>Offen sind Randfälle im Socket-, Review- und Deploy-Lebenszyklus.</h1>
+<p class="lead">Alle Gates sind grün und werden im Nix-Build erzwungen. Live läuft exakt der aktuelle Code, der Server ist gehärtet und unbelastet. Keine kritischen oder hohen Risiken. Wichtigste neue Funde: Jeder Socket kann ohne Session unbegrenzt Stats-Zeilen schreiben (Disk, RAM-Limit beim Dashboard). Und ein einziges laufendes Spiel blockiert beim Deploy bis zu 1 h lang jeden neuen Spielstart auf dem Server. Weiter offen: die hängende Bewertung, wenn der letzte noch nicht fertige Spieler wegfällt, Sockets nach Leave/Kick/Close, der Deploy-Restore, ein knapper Client-Heartbeat, Randfälle beim Beitritt in einen Sprint und Aufräumarbeit (toter Code, rund 25 tote CSS-Selektoren, Kommentardichte).</p>
+<p class="meta">Quellbasis: <code>fc92d44</code> (master, v0.10.0; Code-Stand <code>10f08b8</code>, danach nur Doku- und Agent-Commits). Prüfdatum 25.10.2026, Europe/Vienna. Stichtag, keine kontinuierliche Überwachung.</p>
 </header>
 <div class="stats">
 <div class="stat">
@@ -27,19 +27,19 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>4</strong>
+<strong>6</strong>
 <span>medium</span>
 </div>
 <div class="stat">
-<strong>18</strong>
+<strong>22</strong>
 <span>low</span>
 </div>
 <div class="stat">
-<strong>8</strong>
+<strong>10</strong>
 <span>info</span>
 </div>
 <div class="stat">
-<strong>30</strong>
+<strong>38</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -57,9 +57,9 @@
 </nav>
 <section id="scope">
 <h2>1 Prüfumfang und Methodik</h2>
-<p>Vollständig gelesen: alle Produktionsdateien in <code>cmd/server</code>, <code>internal/game</code>, <code>internal/websocket</code>, <code>internal/stats</code>; im Frontend Router, Stores, alle Screens (<code>Home</code>, <code>Lobby</code>, <code>GameScreen</code> mit Sprint und Fuse, <code>ReviewScreen</code>, <code>RoundResultScreen</code>, <code>GameOverScreen</code>), <code>kit.tsx</code>, <code>RoomHeader</code>, <code>HostGraceBanner</code>, <code>ws.ts</code>, <code>session.ts</code>, <code>storage.ts</code>, <code>stats.ts</code>, <code>answerValidation.ts</code>; <code>Shell</code> in Teilen. Dazu <code>flake.nix</code>, <code>deploy.yml</code>, <code>CLAUDE.md</code>. Abgeglichen: Nachrichtentypen Backend ↔ <code>serverEvents.ts</code> (vollständig deckungsgleich), Regel- und Punktespiegel <code>answerValidation.ts</code> ↔ <code>engine.go</code> (deckungsgleich), CSS-Klassen ↔ TSX (automatisch, dynamische Klassennamen von Hand geprüft).</p>
-<p>Flows im Code verfolgt: Erstellen, Beitreten (auch mid-game), Reconnect, Leave, Kick, Solo-Sprint, Review-Voting, Rundenende, Spielende, Deploy-Drain und Restore. Im Browser (lokaler Server mit Produktions-Build): Home → Lobby erstellen → Lobby, zweiter Spieler per Join-Link im Inkognito-Profil bis zur Namenseingabe.</p>
-<p>Server read-only per SSH: systemd-Unit und Härtung, laufender Store-Pfad, Listener, Firewall, nginx- und Probe-Konfiguration aus <code>waentw/server-config</code>, Journal (7 Tage), Timer, Ressourcen. Von außen: Header auf <code>/</code> und <code>/assets/</code>. Nichts am Server verändert.</p>
+<p>Vollständig gelesen: alle Produktionsdateien in <code>cmd/server</code>, <code>internal/game</code>, <code>internal/websocket</code>, <code>internal/stats</code>; im Frontend Router, Stores, alle Screens (<code>Room</code>, <code>Home</code>, <code>Lobby</code>, <code>GameScreen</code> mit Sprint und Fuse, <code>ReviewScreen</code>, <code>RoundResultScreen</code>, <code>GameOverScreen</code>), <code>kit.tsx</code>, <code>Shell</code>, <code>RoomHeader</code>, <code>HostGraceBanner</code>, <code>Modal</code>, <code>ConfirmDialog</code>, <code>QrScanner</code>, alle <code>lib/</code>-Dateien außer <code>sound.ts</code>, <code>fx.ts</code> und <code>feel.ts</code> (dort nur Calm- und Animationspfade). Dazu <code>flake.nix</code>, <code>deploy.yml</code>, <code>README.md</code>, <code>CLAUDE.md</code>. Abgeglichen: Nachrichtentypen Backend ↔ <code>serverEvents.ts</code> (vollständig deckungsgleich), Regel- und Punktespiegel <code>answerValidation.ts</code> ↔ <code>engine.go</code> (deckungsgleich), CSS-Klassen ↔ TSX (automatisch, dynamische Klassennamen von Hand geprüft).</p>
+<p>Flows im Code verfolgt: Erstellen, Beitreten (auch mid-game und in einen laufenden Sprint), Reconnect, Leave, Kick, Solo-Sprint, Review-Voting, Rundenende, Spielende, Deploy-Drain und Restore, Stats-Tracking. Im Browser (lokaler Server mit Produktions-Build): Home → Lobby erstellen → Lobby, zweiter Spieler per Join-Link im Inkognito-Profil bis zur Namenseingabe.</p>
+<p>Server read-only per SSH: systemd-Unit und Härtung, laufender Store-Pfad, Listener, Firewall, nginx- und Probe-Konfiguration aus <code>waentw/server-config</code>, Journal (7 Tage, inklusive Drain-Dauer), Timer, Ressourcen. Von außen: Header auf <code>/</code> und <code>/assets/</code>, ausgelieferter Bundle-Hash. Nichts am Server verändert.</p>
 </section>
 <section id="server">
 <h2>2 Der laufende Server</h2>
@@ -69,10 +69,10 @@
 <tr><th>Aspekt</th><th>Festgestellt</th><th>Einordnung</th></tr>
 </thead>
 <tbody>
-<tr><td>Host</td><td>NixOS 26.05 (20261020), Uptime 6 Tage, Load 0. RAM 3918 MB, 3195 verfügbar. Disk 79 G, 12 % belegt.</td><td>Viel Reserve.</td></tr>
+<tr><td>Host</td><td>NixOS 26.05 (20261020), Uptime 6 Tage, Load 0,05. RAM 3918 MB, 3183 verfügbar. Disk 79 G, 12 % belegt.</td><td>Viel Reserve.</td></tr>
 <tr><td>Deployter Stand</td><td>Store-Pfad <code>x1lapk2…-slf-0.10.0</code>; live wird <code>index-G6JTbsPi.js</code> ausgeliefert, identisch mit dem lokalen Build.</td><td>Live = aktueller Code.</td></tr>
-<tr><td>SLF-Dienst</td><td>MemoryMax 256M, Peak 4,8 MB. DynamicUser, ProtectSystem strict, ProtectHome, NoNewPrivileges, leeres CapabilityBoundingSet, StateDirectoryMode 0700, <code>systemd-analyze security</code> 2.7 OK. Heute 4 Deploys per Reload (Drain), alle sauber.</td><td>Sehr gut gehärtet.</td></tr>
-<tr><td>Listener</td><td><code>LISTEN_ADDR=127.0.0.1:8080</code>; <code>STATS_ADDR=0.0.0.0:8090</code>, Firewall öffnet 8090 und 22 nur auf <code>tailscale0</code>. Öffentlich nur 80/443 (TCP) und 443 (UDP).</td><td>Stats hängt an der Firewall allein → OPS-04.</td></tr>
+<tr><td>SLF-Dienst</td><td>MemoryMax 256M, Peak 5,4 MB. DynamicUser, ProtectSystem strict, ProtectHome, NoNewPrivileges, leeres CapabilityBoundingSet, StateDirectoryMode 0700, <code>systemd-analyze security</code> 2.7 OK. Heute 6 Deploys per Reload; Drain bis „Shutting down“ höchstens 8 s, meist unter 1 ms, 0 Restarts.</td><td>Sehr gut gehärtet.</td></tr>
+<tr><td>Listener</td><td><code>LISTEN_ADDR=127.0.0.1:8080</code>; <code>STATS_ADDR=0.0.0.0:8090</code>, Firewall öffnet 8090 und 22 nur auf <code>tailscale0</code>. Öffentlich nur 80/443 (TCP) und 443 (UDP).</td><td>Stats hängt an der Firewall allein → OPS-04. <code>/healthz</code> ist öffentlich erreichbar.</td></tr>
 <tr><td>nginx</td><td><code>/ws</code>: limit_conn 100/IP, limit_req 60 r/min burst 100, read timeout 1 h. <code>/assets/</code> direkt aus dem Store mit gzip/brotli_static, <code>expires max</code>.</td><td>Assets ohne nosniff und immutable → SEC-02.</td></tr>
 <tr><td>Header live</td><td>Auf <code>/</code>: CSP, HSTS preload, COOP, Permissions-Policy, nosniff, X-Frame-Options, Referrer-Policy. Auf <code>/assets/*.js</code> nur <code>cache-control: max-age=315360000</code>.</td><td>→ SEC-02.</td></tr>
 <tr><td>Journal 7 Tage</td><td>2578 Zeilen, keine WARN. 13 ERROR, alle <code>"critical error" code=SESSION_NOT_FOUND session=""</code>.</td><td>Normale veraltete Reconnects als ERROR → OPS-01.</td></tr>
@@ -126,7 +126,7 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">30 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">38 Findings sichtbar.</p>
 
 <article class="finding" id="REL-01" data-priority="medium" data-area="Zuverlässigkeit">
 <h3><span class="tag medium">medium</span> <span class="id">REL-01</span> Sockets nach Leave, Kick und Lobby-Close fallen aus dem Tracking</h3>
@@ -156,6 +156,20 @@
 <p><b>Empfehlung.</b> Pong-Timeout auf 10 s anheben (gleich dem Intervall); nicht kürzer als ein realistischer RTT-Spike auf Mobilnetz.</p>
 </article>
 
+<article class="finding" id="SEC-05" data-priority="medium" data-area="Sicherheit">
+<h3><span class="tag medium">medium</span> <span class="id">SEC-05</span> <code>track</code> schreibt ohne Session und ohne Grenze in <code>events.jsonl</code></h3>
+<p class="meta">Sicherheit · <code>backend/internal/websocket/stats.go:37</code> (<code>handleTrack</code>), <code>handlers.go:69</code>, <code>backend/internal/stats/stats.go</code> (<code>Add</code>, <code>read</code>)</p>
+<p>Jeder Socket darf <code>track</code> senden, auch ohne gebundene Session. Begrenzt wird das nur durch den Token-Bucket (40/s pro Socket). nginx erlaubt 100 Sockets pro IP, also rund 4000 Zeilen/s von einem Rechner. Das sind mehrere GB pro Tag in einer Datei, die nie rotiert wird. Das füllt die Disk des gemeinsam genutzten Servers und macht die Statistik wertlos. Dazu lädt <code>read</code> beim Dashboard-Aufruf die ganze Datei in den Speicher. Bei <code>MemoryMax 256M</code> beendet systemd den Dienst samt aller laufenden Spiele, und der Lesevorgang hält vorher <code>l.mu</code>, an dem über PERF-01 <code>hub.mu</code> hängt.</p>
+<p><b>Empfehlung.</b> <code>track</code> nur für gebundene Sessions annehmen. Pro Client ein eigenes Limit setzen (z. B. 1 Event je Art und Runde). <code>Add</code> verwirft Events ab einer Dateigröße (z. B. 50 MB). Das Dashboard aggregiert beim Lesen per Streaming, statt alle Events zu sammeln.</p>
+</article>
+
+<article class="finding" id="REL-09" data-priority="medium" data-area="Zuverlässigkeit">
+<h3><span class="tag medium">medium</span> <span class="id">REL-09</span> Ein laufendes Spiel blockiert beim Deploy bis zu 1 h alle neuen Spiele</h3>
+<p class="meta">Zuverlässigkeit · <code>backend/internal/websocket/persist.go:23–47</code> (<code>idle</code>, <code>Drain</code>), <code>game_handlers.go:29</code>, <code>backend/cmd/server/main.go:113</code></p>
+<p><code>Drain</code> wartet, bis keine Lobby mehr außerhalb von <code>Lobby</code> oder <code>GameOver</code> steht, höchstens 1 h. Solange lehnt <code>handleStartGame</code> auf dem ganzen Server jeden Start ab („Gleich kommt ein Update“). Als busy zählt auch eine Lobby in <code>RoundResult</code>, deren Host den Tab offen stehen lässt, oder eine Runde ohne Zeitlimit. Ohne Zeitlimit ist der Standard (<code>handlers.go:134</code>), und mit verbundenem Client räumt der Janitor sie nicht ab. Nach Ablauf der Stunde verwirft <code>Save</code> genau diese Lobbys. Heute dauerten alle 6 Drains höchstens 8 s, der Fall braucht also nur etwas mehr Betrieb.</p>
+<p><b>Empfehlung.</b> Die Drain-Frist auf wenige Minuten kürzen. Als busy nur <code>Countdown</code>, <code>Playing</code> und <code>Reviewing</code> mit mindestens einem verbundenen Spieler zählen. <code>RoundResult</code> wie idle speichern (der Zustand ist bereits in <code>LastResult</code>). Test: Lobby in <code>RoundResult</code> beendet <code>Drain</code> sofort.</p>
+</article>
+
 <article class="finding" id="PERF-01" data-priority="low" data-area="Performance">
 <h3><span class="tag low">low</span> <span class="id">PERF-01</span> Stats-Datei-I/O läuft unter dem globalen Hub-Lock</h3>
 <p class="meta">Performance · <code>backend/internal/websocket/game_handlers.go:69</code>, <code>:782</code>, <code>backend/internal/stats/stats.go</code></p>
@@ -180,8 +194,8 @@
 <article class="finding" id="SEC-01" data-priority="low" data-area="Sicherheit">
 <h3><span class="tag low">low</span> <span class="id">SEC-01</span> Namen und Kategorien erlauben unsichtbare, Steuer- und Bidi-Zeichen</h3>
 <p class="meta">Sicherheit · <code>backend/internal/websocket/handlers.go</code> (Namens- und Kategorie-Validierung)</p>
-<p>Geprüft wird nur <code>TrimSpace</code> und die Runenlänge. Zero-Width-Zeichen (U+200B), RLO (U+202E) oder Steuerzeichen ergeben „leere“ oder gespiegelte Namen und Imitation eines anderen Spielers. Doppelte Kategorienamen sind möglich. React rendert als Text, also kein XSS.</p>
-<p><b>Empfehlung.</b> Serverseitig Runen der Klassen Cc, Cf und Co verwerfen, danach erneut trimmen und Länge prüfen; doppelte Namen (case-insensitiv) und Kategorien ablehnen.</p>
+<p>Geprüft wird nur <code>TrimSpace</code> und die Runenlänge. Zero-Width-Zeichen (U+200B), RLO (U+202E) oder Steuerzeichen ergeben „leere“ oder gespiegelte Namen und Imitation eines anderen Spielers. Doppelte Kategorienamen sind möglich. Die Namensprüfung überspringt gegangene Spieler (<code>!pl.Left</code>, <code>handlers.go:216</code>): Ein Neuer kann den Namen eines Gegangenen tragen, dann stehen 2 gleiche Namen in der Rangliste. Ein Kick sperrt nicht, der Gekickte kann sofort mit neuem Namen wieder beitreten. React rendert als Text, also kein XSS.</p>
+<p><b>Empfehlung.</b> Serverseitig Runen der Klassen Cc, Cf und Co verwerfen, danach erneut trimmen und Länge prüfen; doppelte Namen (case-insensitiv, auch gegen gegangene Spieler) und Kategorien ablehnen. Ob ein Kick für die Lobby sperrt, bewusst entscheiden.</p>
 </article>
 
 <article class="finding" id="OPS-01" data-priority="low" data-area="Betrieb">
@@ -229,15 +243,15 @@
 <article class="finding" id="CODE-04" data-priority="low" data-area="Code">
 <h3><span class="tag low">low</span> <span class="id">CODE-04</span> Frontend leitet Rundenteilnahme und Combo-Bonus selbst ab</h3>
 <p class="meta">Code · <code>frontend/src/pages/game/GameScreen.tsx</code> (<code>isSpectator</code>, <code>playingPlayers</code>), <code>RoundResultScreen.tsx</code> (Combo-Tooltip)</p>
-<p><code>GameScreen</code> bestimmt Zuschauer und Mitspieler aus <code>left</code>/<code>pending</code>/<code>isHost</code>/<code>hostPlays</code>, also genau die Ableitung, die <code>CLAUDE.md</code> auf die Prädikate in <code>game_util.go</code> beschränkt. Der Combo-Tooltip rechnet <code>min(50, 10·(combo−1))</code> nach, ohne Spiegeltest. Ändert sich eine Regel im Backend, zeigt das Frontend still etwas anderes.</p>
-<p><b>Empfehlung.</b> Der Server liefert pro Spieler ein Flag <code>plays</code> (aus <code>playsThisRound</code>) und den Combo-Prozentsatz im Lobby-Stand; das Frontend zeigt nur an.</p>
+<p><code>GameScreen</code> bestimmt Zuschauer und Mitspieler aus <code>left</code>/<code>pending</code>/<code>isHost</code>/<code>hostPlays</code>, also genau die Ableitung, die <code>CLAUDE.md</code> auf die Prädikate in <code>game_util.go</code> beschränkt. Der Combo-Tooltip rechnet <code>min(50, 10·(combo−1))</code> nach (<code>game_handlers.go:678</code>), ohne Spiegeltest. <code>HostGraceBanner</code> zeichnet den Ring mit fest verdrahteten 15 s (<code>hub.go:36</code>). Ändert sich eine Regel im Backend, zeigt das Frontend still etwas anderes.</p>
+<p><b>Empfehlung.</b> Der Server liefert pro Spieler ein Flag <code>plays</code> (aus <code>playsThisRound</code>) und den Combo-Prozentsatz im Lobby-Stand. Der Ring nimmt den ersten empfangenen <code>graceSeconds</code>-Wert als Gesamtdauer. Das Frontend zeigt nur an.</p>
 </article>
 
 <article class="finding" id="DOC-01" data-priority="low" data-area="Dokumentation">
 <h3><span class="tag low">low</span> <span class="id">DOC-01</span> 36 Verweise auf ein nicht vorhandenes SRS, sehr dichte Kommentare</h3>
 <p class="meta">Dokumentation · Backend und Frontend, z. B. <code>cmd/server/main.go</code> („SRS 12.9“), <code>pages/Home.tsx</code> (69 Kommentarzeilen)</p>
-<p>Code verweist 36-mal auf Abschnitte eines SRS-Dokuments, das nicht im Repo liegt; die Verweise sind nicht nachprüfbar. Viele Kommentare erzählen, was der Code tut oder warum früher etwas anders war. Das widerspricht der Projektregel „no comments by default“ und verlängert die Dateien deutlich. <code>CLAUDE.md</code> passt zum Code.</p>
-<p><b>Empfehlung.</b> SRS-Verweise streichen; Kommentare auf die wenigen projektspezifischen Fallstricke reduzieren (z. B. Lock-Reihenfolge, JS/Go-Case-Semantik).</p>
+<p>Code verweist 36-mal auf Abschnitte eines SRS-Dokuments, das nicht im Repo liegt; die Verweise sind nicht nachprüfbar. Dazu 4 Verweise auf frühere Report- und TODO-IDs („UX-1“, „former UX-2“, „todo-4“), die nach dem Löschen der Findings ins Leere zeigen. Viele Kommentare erzählen, was der Code tut oder warum früher etwas anders war. Das widerspricht der Projektregel „no comments by default“ und verlängert die Dateien deutlich. <code>CLAUDE.md</code> passt zum Code.</p>
+<p><b>Empfehlung.</b> SRS- und ID-Verweise streichen; Kommentare auf die wenigen projektspezifischen Fallstricke reduzieren (z. B. Lock-Reihenfolge, JS/Go-Case-Semantik).</p>
 </article>
 
 <article class="finding" id="UX-02" data-priority="low" data-area="UI/UX">
@@ -264,7 +278,7 @@
 <article class="finding" id="CODE-03" data-priority="low" data-area="Code">
 <h3><span class="tag low">low</span> <span class="id">CODE-03</span> Zweiter Status-Listener wird nie abgemeldet</h3>
 <p class="meta">Code · <code>frontend/src/router.tsx:59</code></p>
-<p>Der Effekt bei Zeile 40 gibt die Abmeldung von <code>ws.onStatusChange</code> zurück, der bei Zeile 59 nicht. Im StrictMode-Dev-Doppelmount und bei jedem Remount der Wurzel bleibt ein Listener mehr hängen.</p>
+<p>Der Effekt bei Zeile 35 gibt die Abmeldung von <code>ws.onStatusChange</code> zurück, der bei Zeile 59 nicht. Im StrictMode-Dev-Doppelmount und bei jedem Remount der Wurzel bleibt ein Listener mehr hängen.</p>
 <p><b>Empfehlung.</b> Rückgabewert in den Cleanup des Effekts aufnehmen.</p>
 </article>
 
@@ -282,6 +296,33 @@
 <p><b>Empfehlung.</b> Den Hinweis auf allen Schritten zeigen; die Bedingung <code>step !== "start"</code> streichen.</p>
 </article>
 
+<article class="finding" id="REL-10" data-priority="low" data-area="Zuverlässigkeit">
+<h3><span class="tag low">low</span> <span class="id">REL-10</span> Beitritt in einen laufenden Sprint</h3>
+<p class="meta">Zuverlässigkeit · <code>frontend/src/pages/game/GameScreen.tsx:328–345</code>, <code>backend/internal/websocket/game_util.go:244</code> (<code>commentatorRow</code>), <code>game_handlers.go:291</code></p>
+<p>Tritt jemand einem Solo-Sprint bei, endet Solo sofort. Der Sprint-Spieler verliert den STOPP-Knopf (<code>onStop</code> nur bei <code>lobby.solo</code>). Bleiben ihm nur „Runde beenden“ mit Bestätigung oder der Ablauf aller Prompts, ohne Zeitlimit ein ganzer Durchlauf. Ein direkter <code>buzz</code> scheiterte ohnehin an der Prüfung, die <code>answers[cat.ID]</code> sucht, während Sprint-Antworten unter <code>i:catId</code> liegen. Der Zuschauer sieht die klassische Ansicht mit leerer Fortschrittstafel: <code>commentatorRow</code> sucht ebenfalls <code>answers[cat.ID]</code>. Danach folgt eine Bewertung, die beim letzten Prompt „Zeit abgelaufen“ anzeigt.</p>
+<p><b>Empfehlung.</b> Den Modus am Rundenstart festhalten (<code>Round.Letters</code> gesetzt = Sprint), nicht am aktuellen Solo-Status. Buzz und Fortschritt im Sprint über <code>Round.Slots</code> statt über die Kategorien prüfen. Alternativ den Beitritt bis zum Rundenende als reinen Zuschauer ohne Moduswechsel behandeln.</p>
+</article>
+
+<article class="finding" id="REL-11" data-priority="low" data-area="Zuverlässigkeit">
+<h3><span class="tag low">low</span> <span class="id">REL-11</span> Stimmen gegangener Spieler zählen weiter</h3>
+<p class="meta">Zuverlässigkeit · <code>backend/internal/game/models.go:87</code> (<code>Counts</code>), <code>backend/internal/websocket/game_handlers.go:425</code> (<code>handleVoteAnswer</code>)</p>
+<p><code>Counts</code> wertet alle Einträge in <code>Answer.Votes</code>. Gelöscht wird nur beim Zurückziehen der eigenen Stimme. Ein Spieler, der eine Antwort ablehnt und dann geht oder gekickt wird, kippt sie weiter. Er ist nicht mehr unter den Voters, also kann niemand die Stimme aufheben, außer dem Host durch Überstimmen. Das UI zeigt den Daumen weiter an (<code>ReviewScreen.tsx:211</code>).</p>
+<p><b>Empfehlung.</b> In <code>Counts</code> nur Stimmen von Spielern werten, für die <code>votesThisRound</code> gilt, oder die Stimmen beim Leave/Kick entfernen. Test im <code>engine_test.go</code>-Stil plus Integrationstest mit Leave.</p>
+</article>
+
+<article class="finding" id="UX-08" data-priority="low" data-area="UI/UX">
+<h3><span class="tag low">low</span> <span class="id">UX-08</span> Konfetti und Parallax ignorieren <code>prefers-reduced-motion</code></h3>
+<p class="meta">UI/UX · <code>frontend/src/lib/fx.ts:41</code>, <code>components/Shell.tsx:75</code>, <code>:188</code>, <code>lib/feel.ts:164</code></p>
+<p>CSS-Animationen und <code>animate()</code> in <code>feel.ts</code> beachten die Systemeinstellung. <code>fx.calm</code> kommt dagegen nur aus der App-Einstellung (Standard aus). Konfetti-Regen, Partikel und das Mitziehen beim Greifen laufen deshalb auch bei „Bewegung reduzieren“ voll. Die Entscheidung „ruhig“ steht an 2 Stellen mit verschiedenem Ergebnis.</p>
+<p><b>Empfehlung.</b> <code>fx</code> und <code>Shell</code> nutzen <code>calm()</code> aus <code>feel.ts</code>. <code>fx.calm</code> entfällt.</p>
+</article>
+
+<article class="finding" id="UX-09" data-priority="low" data-area="UI/UX">
+<h3><span class="tag low">low</span> <span class="id">UX-09</span> Zerstörende Bestätigungen fokussieren den roten Knopf</h3>
+<p class="meta">UI/UX · <code>frontend/src/components/ConfirmDialog.tsx</code> (<code>initialFocus={confirmRef}</code>)</p>
+<p>„Lobby schließen?“, „Runde beenden?“, „Spiel beenden?“ und „Entfernen?“ öffnen mit Fokus auf der zerstörenden Aktion. Das Spiel wird viel per Enter bedient (Buzz, nächste Runde, Fertig). Ein zweites Enter oder ein Tastenprellen bestätigt so sofort, und das Schließen der Lobby beendet das Spiel für alle. Der Dialog verschwindet außerdem ohne Rückmeldung, wenn die Phase wechselt, weil der Screen neu montiert wird.</p>
+<p><b>Empfehlung.</b> Bei <code>destructive</code> den Abbrechen-Knopf fokussieren. Bei den übrigen Dialogen bleibt es beim Bestätigen.</p>
+</article>
 
 <article class="finding" id="SEC-03" data-priority="info" data-area="Sicherheit">
 <h3><span class="tag info">info</span> <span class="id">SEC-03</span> CI startet <code>govulncheck@latest</code> ungepinnt</h3>
@@ -321,14 +362,14 @@
 <article class="finding" id="REL-08" data-priority="info" data-area="Zuverlässigkeit">
 <h3><span class="tag info">info</span> <span class="id">REL-08</span> Randfälle im Solo- und Sprintmodus</h3>
 <p class="meta">Zuverlässigkeit · <code>backend/internal/websocket/game_handlers.go:249</code> (<code>handleSprintWord</code>), <code>game_util.go</code> (<code>soloPlayer</code>)</p>
-<p>Gehen in einem klassischen Spiel alle bis auf einen, wird die nächste Runde über <code>soloPlayer</code> zum Sprint, und das Spiel endet danach, obwohl der Modus „classic“ bleibt. <code>handleSprintWord</code> lehnt nur Positionen hinter dem Stand ab; ein manipulierter Client kann Prompts überspringen. Beides ohne Schaden für andere Spieler.</p>
+<p>Gehen in einem klassischen Spiel alle bis auf einen, wird die nächste Runde über <code>soloPlayer</code> zum Sprint, und das Spiel endet danach, obwohl der Modus „classic“ bleibt. <code>handleSprintWord</code> lehnt nur Positionen hinter dem Stand ab; ein manipulierter Client kann Prompts überspringen. Beides ohne Schaden für andere Spieler. Endet ein Sprint durch das letzte Prompt, meldet <code>handleSprintWord</code> (Zeile 261) <code>EndReason</code> „timeout“.</p>
 <p><b>Empfehlung.</b> Den Moduswechsel bewusst entscheiden und in <code>CLAUDE.md</code> festhalten; im Sprint nur <code>p.Pos == r.Pos[player]</code> zulassen.</p>
 </article>
 
 <article class="finding" id="UX-06" data-priority="info" data-area="UI/UX">
 <h3><span class="tag info">info</span> <span class="id">UX-06</span> Lokale Rekorde und Tagesserie zählen auch für Zuschauer</h3>
 <p class="meta">UI/UX · <code>frontend/src/pages/game/GameOverScreen.tsx:58</code>, <code>RoundResultScreen.tsx:56</code></p>
-<p><code>stats.played()</code> und <code>stats.record()</code> laufen für jeden, der den Screen sieht, auch für den Kommentator-Host und Mid-Game-Zuschauer. Ein klassisches Spiel, das als Solo endet, landet unter <code>solo-sprint</code>.</p>
+<p><code>stats.played()</code> und <code>stats.record()</code> laufen für jeden, der den Screen sieht, auch für den Kommentator-Host und Mid-Game-Zuschauer. Ein klassisches Spiel, das als Solo endet, landet unter <code>solo-sprint</code>. Jeder Remount von <code>RoundResultScreen</code> (z. B. nach einem Reconnect) zeichnet die Runde erneut auf.</p>
 <p><b>Empfehlung.</b> Nur aufzeichnen, wenn der Spieler im Ranking steht (<code>played</code> existiert bereits in <code>GameOverScreen</code>).</p>
 </article>
 
@@ -337,6 +378,20 @@
 <p class="meta">UI/UX · <code>frontend/src/router.tsx</code>, <code>pages/Home.tsx</code></p>
 <p>Home leitet um, solange eine Lobby im Store ist. Die Browser- oder Android-Zurück-Taste landet so nach einem Flackern wieder im Raum. Das Verlassen geht nur über den Leave-Button; das ist konsistent, aber für Zurück-Gewohnheiten überraschend.</p>
 <p><b>Empfehlung.</b> Bewusst so lassen oder <code>popstate</code> auf Home als Leave mit Bestätigung behandeln.</p>
+</article>
+
+<article class="finding" id="UX-10" data-priority="info" data-area="UI/UX">
+<h3><span class="tag info">info</span> <span class="id">UX-10</span> Umlaute zählen nicht als Grundbuchstabe</h3>
+<p class="meta">UI/UX · <code>backend/internal/game/engine.go:53</code> (<code>IsRuleValid</code>), Spiegel <code>frontend/src/lib/answerValidation.ts</code></p>
+<p>Der Vergleich erfolgt Rune für Rune: „Österreich“ ist für O ungültig, „Ärmelkanal“ für A, „Übersee“ für U. Viele Runden spielen das als erlaubt. Der Spieler sieht nur „ungültig“, ohne Hinweis auf den Grund.</p>
+<p><b>Empfehlung.</b> Bewusst entscheiden. Entweder Ä/Ö/Ü als A/O/U zählen (in beiden Spiegeln plus Test) oder die Regel als Tooltip am Feld nennen.</p>
+</article>
+
+<article class="finding" id="UX-11" data-priority="info" data-area="UI/UX">
+<h3><span class="tag info">info</span> <span class="id">UX-11</span> Uneinheitliche Meldungstexte</h3>
+<p class="meta">UI/UX · <code>frontend/src/lib/ws.ts:194</code>, <code>router.tsx</code>, <code>pages/Home.tsx:39</code>, <code>backend/internal/websocket/handlers.go</code></p>
+<p>„Offline – Aktion nicht gesendet.“ trennt mit Gedankenstrich, alle anderen Meldungen mit Bindestrich („Zu viele Versuche - bitte kurz warten.“). Meldungen vom Server enden ohne Punkt („Zu viele Beitritte - bitte kurz warten“), die vom Client mit Punkt. Beide erscheinen im selben Toast.</p>
+<p><b>Empfehlung.</b> Eine Form festlegen (Gedankenstrich, Punkt am Ende) und die rund 10 Texte angleichen.</p>
 </article>
 </section>
 
@@ -369,11 +424,11 @@
 
 <section id="limits">
 <h2>7 Nicht geprüft</h2>
-<p>Browser-Durchlauf nur bis Lobby und Join-Eingabe: Die Preview-Automation bedient nur den aktiven Tab, eine volle Runde mit 2 Spielern lief deshalb nicht im Browser, sondern wurde im Code verfolgt (REL-05 ist per Code-Trace belegt, nicht live reproduziert). Kein axe-Lauf, keine realen Mobilgeräte, kein Screenreader, keine Kamera. Kein Last- oder Langzeittest gegen Produktion. <code>Shell.tsx</code>, <code>sound.ts</code>, <code>feel.ts</code>, <code>fx.ts</code> und <code>index.css</code> nur in Teilen gelesen. Nicht eingesehen: State-Verzeichnis (keine Rechte als <code>deploy</code>), Tailnet-ACLs, Backups, GitLab-Pipeline, GitHub-Secret- und Branch-Einstellungen.</p>
+<p>Browser-Durchlauf nur bis Lobby und Join-Eingabe: Die Preview-Automation bedient nur den aktiven Tab, eine volle Runde mit 2 Spielern lief deshalb nicht im Browser, sondern wurde im Code verfolgt (REL-05 ist per Code-Trace belegt, nicht live reproduziert). Kein axe-Lauf, keine realen Mobilgeräte, kein Screenreader, keine Kamera. Kein Last- oder Langzeittest gegen Produktion. <code>sound.ts</code>, <code>feel.ts</code> und <code>fx.ts</code> nur in Teilen gelesen. <code>index.css</code> per Selektorabgleich und Stichproben geprüft (Fokus, Reduced Motion), nicht Zeile für Zeile. Größe von <code>events.jsonl</code> unbekannt (SEC-05), das State-Verzeichnis ist für <code>deploy</code> nicht lesbar. REL-09, REL-10 und REL-11 sind per Code-Trace belegt, nicht live reproduziert. In dieser Runde kein neuer Browser-Durchlauf. Nicht eingesehen: Tailnet-ACLs, Backups, GitLab-Pipeline, GitHub-Secret- und Branch-Einstellungen.</p>
 </section>
 
 <footer>
-<p class="meta">Stand 25.10.2026 · master @ 702a4da · Quellcode, lokale Gates, lokaler Browser-Durchlauf, read-only SSH und Header-Proben gegen slf.coprime.tech.</p>
+<p class="meta">Stand 25.10.2026 · master @ fc92d44 · Quellcode, lokale Gates, read-only SSH und Header-Proben gegen slf.coprime.tech.</p>
 </footer>
 </main>
 <script>
