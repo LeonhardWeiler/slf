@@ -99,7 +99,7 @@ export function ruleIssue(
 	return result.error.issues[0]?.message ?? "ungültig";
 }
 
-export interface AnswerValidation {
+interface AnswerValidation {
 	valid: boolean;
 	reason?: string;
 }

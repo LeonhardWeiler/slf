@@ -52,13 +52,13 @@ export interface LobbyStatePayload {
 	solo: boolean;
 }
 
-export interface SessionCreatedPayload {
+interface SessionCreatedPayload {
 	sessionId: string;
 	playerId: string;
 }
 
 // Machine-readable error codes (SRS 12.3.1). Mirrors backend errors.go.
-export type ErrorCode =
+type ErrorCode =
 	| "INVALID_SESSION"
 	| "SESSION_NOT_FOUND"
 	| "LOBBY_NOT_FOUND"
@@ -76,9 +76,9 @@ export type ErrorCode =
 	| "INVALID_FIRST_LETTER"
 	| "VALIDATION_ERROR";
 
-export type ErrorSeverity = "info" | "warning" | "critical";
+type ErrorSeverity = "info" | "warning" | "critical";
 
-export interface ErrorPayload {
+interface ErrorPayload {
 	code: ErrorCode;
 	message: string;
 	severity: ErrorSeverity;
@@ -135,19 +135,19 @@ export interface ScoreEntry {
 	combo: number;
 }
 
-export interface RankEntry {
+interface RankEntry {
 	playerId: string;
 	rank: number;
 	score: number;
 }
 
-export interface CommentatorPlayer {
+interface CommentatorPlayer {
 	playerId: string;
 	filledCategoryIds: string[];
 	complete: boolean;
 }
 
-export interface CommentatorUpdatePayload {
+interface CommentatorUpdatePayload {
 	roundId: string;
 	player: CommentatorPlayer;
 }
@@ -157,7 +157,7 @@ export interface CommentatorStatePayload {
 	players: CommentatorPlayer[];
 }
 
-export type GameOverReason = "AlphabetFinished" | "HostEnded";
+type GameOverReason = "AlphabetFinished" | "HostEnded";
 
 export interface RoundResultPayload {
 	letter: string;
@@ -179,11 +179,7 @@ export type BuzzRejectReason =
 // Why a lobby can't be joined right now, as reported by a pre-join checkLobby.
 // A running game is no longer a blocker (you join as a waiting spectator), so
 // only these reasons remain.
-export type LobbyUnavailableReason =
-	| "invalidCode"
-	| "notFound"
-	| "full"
-	| "throttled";
+type LobbyUnavailableReason = "invalidCode" | "notFound" | "full" | "throttled";
 
 export interface LobbyCheckPayload {
 	lobbyCode: string;

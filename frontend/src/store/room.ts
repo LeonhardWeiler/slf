@@ -23,7 +23,7 @@ export interface Room {
 	version: number;
 }
 
-export type RoomEvent = Extract<
+type RoomEvent = Extract<
 	ServerEvent,
 	{
 		type:

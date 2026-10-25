@@ -2,7 +2,7 @@ import { fx } from "./fx";
 import { prefs } from "./prefs";
 import { sound } from "./sound";
 
-export const WORLDS = ["candy", "rubber"] as const;
+const WORLDS = ["candy", "rubber"] as const;
 export type World = (typeof WORLDS)[number];
 
 // [tile colours, background top, background bottom]

@@ -190,7 +190,7 @@ const MOODS = [
 	"blink",
 	"sleep",
 ] as const;
-export type Mood = (typeof MOODS)[number];
+type Mood = (typeof MOODS)[number];
 
 let moodTimer = 0;
 // mood sets every mascot's face for `ms`, then each falls back to its own base.
@@ -204,7 +204,7 @@ export function mood(m: Mood, ms = 1100) {
 		}, ms);
 }
 
-export function hop(el: Element | null | undefined, h = 18) {
+function hop(el: Element | null | undefined, h = 18) {
 	el?.animate(
 		[
 			{ transform: "translateY(0) scale(1)" },
@@ -410,27 +410,6 @@ export function CodeTiles({ code, small }: { code: string; small?: boolean }) {
 			))}
 		</span>
 	);
-}
-
-// useIdle is true after `ms` without pointer, key or touch input.
-export function useIdle(ms: number) {
-	const [idle, setIdle] = useState(false);
-	useEffect(() => {
-		let t = 0;
-		const wake = () => {
-			setIdle(false);
-			clearTimeout(t);
-			t = window.setTimeout(() => setIdle(true), ms);
-		};
-		wake();
-		const evs = ["pointermove", "pointerdown", "keydown", "scroll"] as const;
-		for (const e of evs) addEventListener(e, wake, { passive: true });
-		return () => {
-			clearTimeout(t);
-			for (const e of evs) removeEventListener(e, wake);
-		};
-	}, [ms]);
-	return idle;
 }
 
 export function fitText(el: HTMLInputElement | null) {

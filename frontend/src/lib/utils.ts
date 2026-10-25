@@ -1,5 +1,3 @@
-import type { KeyboardEvent } from "react";
-
 // True if the element is a text-entry target (input/textarea/select or a
 // contenteditable). Used by global keyboard handlers to avoid hijacking keys
 // while the user is typing.
@@ -12,19 +10,6 @@ export function isTypingTarget(el: Element | null): boolean {
 		tag === "SELECT" ||
 		(el as HTMLElement).isContentEditable
 	);
-}
-
-// Click plus Enter/Space for an element that acts as a button or switch.
-export function pressProps(onPress: () => void) {
-	return {
-		tabIndex: 0,
-		onClick: onPress,
-		onKeyDown: (e: KeyboardEvent<HTMLElement>) => {
-			if (e.key !== "Enter" && e.key !== " ") return;
-			e.preventDefault();
-			onPress();
-		},
-	};
 }
 
 // True if Enter on el already has its own action (typing or a control), so a

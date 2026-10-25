@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { storage } from "./storage";
 
-export interface Prefs {
+interface Prefs {
 	sound: boolean;
 	music: number;
 	sfx: number;

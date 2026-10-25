@@ -8,7 +8,7 @@ export type Scene =
 	| "result"
 	| "sprint"
 	| "quiet";
-export type Timbre = "candy" | "rubber";
+type Timbre = "candy" | "rubber";
 
 const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
 const pent = (n: number) => {

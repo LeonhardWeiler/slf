@@ -11,14 +11,6 @@ import (
 // Alphabet without umlauts (SRS 5.4).
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func NewAlphabet() []string {
-	letters := make([]string, 0, len(alphabet))
-	for _, r := range alphabet {
-		letters = append(letters, string(r))
-	}
-	return letters
-}
-
 // AlphabetExcluding returns the alphabet without the given (host-disabled)
 // letters, so those letters are never drawn in a game (SRS-extension).
 func AlphabetExcluding(excluded []string) []string {
