@@ -52,8 +52,9 @@ const PALETTES: Record<World, Palette[]> = {
 let world: World = "candy";
 let palette = 0;
 
-// drift is ease-in-out cut into n flat steps of a third of a pixel each; a
-// background blob needs a new frame per step, not per display refresh.
+// drift is ease-in-out cut into n flat steps. The slow ambient loops step on
+// one shared 20 Hz grid (durations here, start times snapped), so they need
+// 20 new frames a second instead of one per display refresh.
 function drift(n: number) {
 	const bez = (a: number, b: number, t: number) =>
 		3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
@@ -75,9 +76,27 @@ function drift(n: number) {
 	}
 	return `linear(${pts})`;
 }
+const HZ = 20;
+const BG = [14, 11, 17, 9, 13, 14, 10, 15];
 const driftRule = document.createElement("style");
-driftRule.textContent = `.bg i{animation-timing-function:${drift(240)}}`;
+driftRule.textContent = `${BG.map(
+	(s, i) =>
+		`.bg i:nth-child(${i + 1}){animation-duration:${s}s;animation-timing-function:${drift(s * HZ)}}[data-world=rubber] .bg i:nth-child(${i + 1}){animation-timing-function:${drift((s * HZ) / 2)}}`,
+).join("")}.m-body{animation-timing-function:${drift(1.6 * HZ)}}`;
 document.head.append(driftRule);
+const STEPPED = new Set(["float", "morph", "breathe"]);
+document.addEventListener("animationstart", (e) => {
+	if (!STEPPED.has(e.animationName)) return;
+	for (const a of (e.target as Element).getAnimations()) {
+		const t = a.startTime;
+		if (
+			a instanceof CSSAnimation &&
+			a.animationName === e.animationName &&
+			typeof t === "number"
+		)
+			a.startTime = Math.round((t * HZ) / 1000) * (1000 / HZ);
+	}
+});
 
 // favicon is the mascot face in the body colour and corner radius of the world.
 function favicon(body: string, rx: number) {

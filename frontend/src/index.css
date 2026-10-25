@@ -134,7 +134,6 @@ input {
 	height: 90px;
 	left: 72%;
 	top: 12%;
-	animation-duration: 11s;
 }
 .bg i:nth-child(3) {
 	--d: 40;
@@ -142,7 +141,6 @@ input {
 	height: 300px;
 	left: 64%;
 	top: 62%;
-	animation-duration: 17s;
 }
 .bg i:nth-child(4) {
 	--d: 10;
@@ -150,7 +148,6 @@ input {
 	height: 50px;
 	left: 20%;
 	top: 72%;
-	animation-duration: 9s;
 }
 .bg i:nth-child(5) {
 	--d: 22;
@@ -159,7 +156,6 @@ input {
 	left: 40%;
 	top: 36%;
 	border-radius: 34%;
-	animation-duration: 13s;
 	animation-direction: alternate-reverse;
 }
 .bg i:nth-child(6) {
@@ -177,7 +173,6 @@ input {
 	left: 6%;
 	top: 46%;
 	border-radius: 30%;
-	animation-duration: 10s;
 	animation-direction: alternate-reverse;
 }
 .bg i:nth-child(8) {
@@ -186,7 +181,6 @@ input {
 	height: 160px;
 	left: 26%;
 	top: 88%;
-	animation-duration: 15s;
 }
 @keyframes float {
 	from {
