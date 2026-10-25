@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
-(server-authoritative) + React SPA frontend. Details in the `README.md`.
+(server-authoritative) + React SPA frontend.
 
 ## Stack
 
