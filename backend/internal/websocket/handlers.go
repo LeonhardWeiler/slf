@@ -408,8 +408,6 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 	if lobby.State == game.StateLobby {
 		// Pre-game: remove the player entirely.
 		delete(lobby.Players, player.ID)
-		delete(hub.sessions, sessionID)
-		delete(hub.clients, sessionID)
 	} else {
 		// Mid-game: keep the player in the standings but mark them as left and
 		// drop their current-round answers (0 points this round, total kept).
@@ -418,15 +416,12 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		if lobby.Game != nil && lobby.Game.Round != nil {
 			delete(lobby.Game.Round.Answers, player.ID)
 		}
-		// Invalidate the session too (mirroring handleKickPlayer): leaving is a
-		// final exit, so the id must not stay usable. Without this a client that
-		// kept the id could reconnect as a departed player and inject answers that
-		// review filters out but scoring still counts.
-		delete(hub.sessions, sessionID)
-		delete(hub.clients, sessionID)
 	}
+	// Leaving is a final exit, so the id must not stay usable. Without this a
+	// client that kept the id could reconnect as a departed player and inject
+	// answers that review filters out but scoring still counts.
+	hub.endSessionLocked(sessionID)
 	reviewing := lobby.State == game.StateReviewing
-	c.sessionID = ""
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
@@ -663,12 +658,6 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	targetSession := target.SessionID
 	targetClient := hub.clients[targetSession]
-	if targetClient != nil {
-		// Runs on the host's goroutine, so clearing the victim's sessionID has to
-		// happen under hub.mu - the victim's own read loop reads it under the same
-		// lock on every message.
-		targetClient.sessionID = ""
-	}
 	if lobby.State == game.StateLobby {
 		// Pre-game: remove the player entirely.
 		delete(lobby.Players, p.PlayerID)
@@ -684,8 +673,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	// Invalidate the session either way so the kicked player can't auto-reconnect
 	// back into this lobby.
-	delete(hub.sessions, targetSession)
-	delete(hub.clients, targetSession)
+	hub.endSessionLocked(targetSession)
 	reviewing := lobby.State == game.StateReviewing
 	slog.Info("player kicked", "lobby", lobby.Code, "player", target.Name, "state", string(lobby.State))
 	hub.mu.Unlock()

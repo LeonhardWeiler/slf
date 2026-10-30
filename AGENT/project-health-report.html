@@ -27,7 +27,7 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>6</strong>
+<strong>5</strong>
 <span>medium</span>
 </div>
 <div class="stat">
@@ -39,7 +39,7 @@
 <span>info</span>
 </div>
 <div class="stat">
-<strong>42</strong>
+<strong>41</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -126,14 +126,8 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">42 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">41 Findings sichtbar.</p>
 
-<article class="finding" id="REL-01" data-priority="medium" data-area="Zuverlässigkeit">
-<h3><span class="tag medium">medium</span> <span class="id">REL-01</span> Sockets nach Leave, Kick und Lobby-Close fallen aus dem Tracking</h3>
-<p class="meta">Zuverlässigkeit · <code>backend/internal/websocket/hub.go</code> (<code>closeLobby</code>), <code>handlers.go</code> (<code>handleLeaveLobby</code>, <code>handleKickPlayer</code>)</p>
-<p>Die 3 Pfade löschen den Client aus <code>h.clients</code> und setzen <code>sessionID = ""</code>, tragen ihn aber nicht wieder in <code>h.pending</code> ein. Der Socket bleibt offen (Spieler landet auf Home), zählt aber nicht mehr gegen <code>maxConnections</code> (2000) und bekommt bei <code>Shutdown</code> kein 1001, sondern wird erst beim Prozessende hart getrennt. <code>releaseSeat</code> macht es richtig.</p>
-<p><b>Empfehlung.</b> Ein Helper „unbind“ (clients löschen, sessionID leeren, pending eintragen) und ihn in allen 4 Pfaden nutzen. Integrationstest: nach Leave zählt <code>len(pending)+len(clients)</code> den Socket, Shutdown schließt ihn mit 1001.</p>
-</article>
 
 <article class="finding" id="REL-05" data-priority="medium" data-area="Zuverlässigkeit">
 <h3><span class="tag medium">medium</span> <span class="id">REL-05</span> Bewertung bleibt stehen, wenn der letzte nicht fertige Spieler wegfällt</h3>
@@ -271,8 +265,8 @@
 <article class="finding" id="TEST-01" data-priority="low" data-area="Tests">
 <h3><span class="tag low">low</span> <span class="id">TEST-01</span> Lücken an Server-Einstieg und Browser-Kette</h3>
 <p class="meta">Tests · <code>backend/cmd/server</code>, <code>frontend/src/**/*.test.tsx</code>, <code>frontend/vite.config.ts:10</code></p>
-<p><code>cmd/server</code> hat 43,9 % Coverage (SPA-Handler, Signalpfad, Header). Es gibt keinen Browser-E2E-Lauf mit 2 Spielern; die Frontend-Tests nutzen happy-dom und einen gemockten Socket. REL-01, REL-02 und REL-05 fallen durch keinen Test. Der Testlauf gibt eine <code>act()</code>-Warnung aus, der Build eine <code>__dirname</code>-Warnung.</p>
-<p><b>Empfehlung.</b> Regressionstests für REL-01/REL-02/REL-05 im WS-Integrationstest; <code>act()</code>-Warnung beheben; in <code>vite.config.ts</code> <code>import.meta.dirname</code> statt <code>__dirname</code>. Ein E2E-Lauf erst, wenn Fehler aus dem Browserpfad auftreten.</p>
+<p><code>cmd/server</code> hat 43,9 % Coverage (SPA-Handler, Signalpfad, Header). Es gibt keinen Browser-E2E-Lauf mit 2 Spielern; die Frontend-Tests nutzen happy-dom und einen gemockten Socket. REL-02 und REL-05 fallen durch keinen Test. Der Testlauf gibt eine <code>act()</code>-Warnung aus, der Build eine <code>__dirname</code>-Warnung.</p>
+<p><b>Empfehlung.</b> Regressionstests für REL-02/REL-05 im WS-Integrationstest; <code>act()</code>-Warnung beheben; in <code>vite.config.ts</code> <code>import.meta.dirname</code> statt <code>__dirname</code>. Ein E2E-Lauf erst, wenn Fehler aus dem Browserpfad auftreten.</p>
 </article>
 
 <article class="finding" id="CODE-03" data-priority="low" data-area="Code">

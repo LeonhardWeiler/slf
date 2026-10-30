@@ -1066,6 +1066,28 @@ func TestShutdownRefusesNewSockets(t *testing.T) {
 	}
 }
 
+func TestShutdownClosesSocketsThatLeft(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	host.send("leaveLobby", map[string]any{})
+	host.waitFor("lobbyClosed")
+	hub.Shutdown()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for {
+		_, _, err := host.conn.Read(ctx)
+		if err == nil {
+			continue
+		}
+		if websocket.CloseStatus(err) != websocket.StatusGoingAway {
+			t.Fatalf("socket after leave: %v, want going away", err)
+		}
+		break
+	}
+}
+
 func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)

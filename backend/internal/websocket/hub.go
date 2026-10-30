@@ -198,6 +198,17 @@ func (h *Hub) releaseSeat(c *Client, sessionID string) {
 	h.mu.Unlock()
 }
 
+// endSessionLocked drops a session for good; its socket stays open and goes
+// back to pending. Caller must hold h.mu.
+func (h *Hub) endSessionLocked(sessionID string) {
+	delete(h.sessions, sessionID)
+	if c, ok := h.clients[sessionID]; ok {
+		delete(h.clients, sessionID)
+		c.sessionID = ""
+		h.pending[c] = struct{}{}
+	}
+}
+
 // bindLocked binds the socket to a session and returns the socket it replaces.
 // Caller must hold h.mu.
 func (h *Hub) bindLocked(c *Client, sessionID string) *Client {
@@ -372,11 +383,9 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	})
 	for _, p := range lobby.Players {
 		if c, ok := h.clients[p.SessionID]; ok {
-			c.sessionID = ""
 			c.enqueue("lobbyClosed", msg)
 		}
-		delete(h.sessions, p.SessionID)
-		delete(h.clients, p.SessionID)
+		h.endSessionLocked(p.SessionID)
 	}
 	h.rooms.Delete(lobby.Code)
 	h.mu.Unlock()
