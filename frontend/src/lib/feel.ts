@@ -7,44 +7,44 @@ export type World = (typeof WORLDS)[number];
 
 // [tile colours, background top, background bottom]
 type Palette = [string[], string, string];
-const PALETTES: Record<World, Palette[]> = {
+export const PALETTES: Record<World, Palette[]> = {
 	candy: [
 		[
 			["#ff5a5f", "#ff9600", "#ffc800", "#58cc02", "#a560ff"],
-			"#8fd8ff",
-			"#46a8f2",
+			"#5fbdf0",
+			"#3a8fd6",
 		],
 		[
 			["#1cb0f6", "#58cc02", "#ffb100", "#ff7a1a", "#8f5bff"],
-			"#ffc0da",
-			"#ff80b3",
+			"#f08cb8",
+			"#d95a92",
 		],
 		[
 			["#ff4b6e", "#ff9600", "#1cb0f6", "#a560ff", "#ffb100"],
-			"#9af2cf",
-			"#33cc98",
+			"#5cc49c",
+			"#239e74",
 		],
 		[
 			["#ff5a5f", "#ffb100", "#58cc02", "#1cb0f6", "#ff7a1a"],
-			"#cdb3ff",
-			"#9370ff",
+			"#a990f0",
+			"#7a56e0",
 		],
 	],
 	rubber: [
 		[
 			["#ff3d71", "#ffaa00", "#00c48c", "#0095ff", "#8c4bff"],
-			"#7ee8fa",
-			"#1cb0f6",
+			"#4cc0dc",
+			"#1590d0",
 		],
 		[
 			["#0095ff", "#ff3d71", "#00c48c", "#8c4bff", "#ff6b00"],
-			"#ffe066",
-			"#ffb100",
+			"#ebb93a",
+			"#d98800",
 		],
 		[
 			["#00c48c", "#0095ff", "#ffaa00", "#ff3d71", "#8c4bff"],
-			"#ff9ecb",
-			"#ff4b8b",
+			"#f07cb0",
+			"#d83a76",
 		],
 	],
 };
@@ -77,14 +77,10 @@ function drift(n: number) {
 	return `linear(${pts})`;
 }
 const HZ = 20;
-const BG = [14, 11, 17, 9, 13, 14, 10, 15];
 const driftRule = document.createElement("style");
-driftRule.textContent = `${BG.map(
-	(s, i) =>
-		`.bg i:nth-child(${i + 1}){animation-duration:${s}s;animation-timing-function:${drift(s * HZ)}}[data-world=rubber] .bg i:nth-child(${i + 1}){animation-timing-function:${drift((s * HZ) / 2)}}`,
-).join("")}.m-body{animation-timing-function:${drift(1.6 * HZ)}}`;
+driftRule.textContent = `.m-body{animation-timing-function:${drift(1.6 * HZ)}}`;
 document.head.append(driftRule);
-const STEPPED = new Set(["float", "morph", "breathe"]);
+const STEPPED = new Set(["breathe", "shine"]);
 document.addEventListener("animationstart", (e) => {
 	if (!STEPPED.has(e.animationName)) return;
 	for (const a of (e.target as Element).getAnimations()) {

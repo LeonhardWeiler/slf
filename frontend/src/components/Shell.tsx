@@ -53,7 +53,6 @@ function lookAt(x: number, y: number) {
 // canvas, tooltips, world and music per phase, and the global input feedback.
 export function Shell({ children }: { children: ReactNode }) {
 	const canvas = useRef<HTMLCanvasElement>(null);
-	const bgRef = useRef<HTMLDivElement>(null);
 	const [tip, setTip] = useState<{ text: string; x: number; y: number } | null>(
 		null,
 	);
@@ -133,9 +132,6 @@ export function Shell({ children }: { children: ReactNode }) {
 			lookAt(eye.x, eye.y);
 			const px = fg.x.toFixed(2);
 			if (px !== st.getPropertyValue("--px")) st.setProperty("--px", px);
-			const bs = bgRef.current?.style;
-			bs?.setProperty("--bx", px);
-			bs?.setProperty("--by", fg.y.toFixed(2));
 			raf = left > 0.002 ? requestAnimationFrame(frame) : 0;
 			if (!raf) last = 0;
 		}
@@ -155,7 +151,6 @@ export function Shell({ children }: { children: ReactNode }) {
 		function onMove(e: PointerEvent) {
 			if (e.pointerType === "mouse") {
 				par.x = clamp((e.clientX / innerWidth - 0.5) * 2);
-				par.y = clamp((e.clientY / innerHeight - 0.5) * 2);
 			}
 			look.x = e.clientX;
 			look.y = e.clientY;
@@ -249,7 +244,6 @@ export function Shell({ children }: { children: ReactNode }) {
 		function onTilt(e: DeviceOrientationEvent) {
 			if (e.gamma == null || e.beta == null) return;
 			par.x = clamp(e.gamma / 25);
-			par.y = clamp((e.beta - 45) / 25);
 			kick();
 		}
 		const vv = window.visualViewport;
@@ -290,11 +284,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
 	return (
 		<>
-			<div className="bg" ref={bgRef} aria-hidden="true">
-				{[...Array(8).keys()].map((i) => (
-					<i key={i} />
-				))}
-			</div>
+			<div className="bg" aria-hidden="true" />
 			<main className="app">{children}</main>
 			<canvas id="fx" ref={canvas} hidden />
 			{tip && <Tip {...tip} />}
