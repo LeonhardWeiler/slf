@@ -1,6 +1,8 @@
 # Block Blast: Analyse und Übertragung auf slf
 
 Quelle: Bildschirmaufnahme (`~/Downloads/signal-2026-10-25-01-28-13-382.mp4`, 480x854, ~57 fps, 8:50).
+Video 2 (Handy, `recording_20261030_002116.mp4`, 1080x2400, ~38 fps, 8:30, **ohne Ton**): 0:00–2:45 slf
+im Sprint, ab 2:45 Block Blast mit neuen Themes. Auswertung in Abschnitt 9.
 Methode: Frames per `ffmpeg` mit 5–20 fps als Kontaktbögen, Schlüsselframes in voller Auflösung,
 Audio als Spektrogramm und RMS-Pegel pro Sekunde. Referenzbilder liegen in `AGENT/blockblast/`.
 
@@ -164,8 +166,8 @@ Bilder: `11-themes.jpg`, `12-theme-overview.jpg` (1 Frame alle 10 s)
 | 4:30–6:16 | Käse mit Löchern | Ocker/Braun | Goldene Krümel | Herz (pink) |
 | 6:16–Ende | Melone | Grün | wie oben | Herz |
 
-- Wechsel bei Full Clear **oder** nach langer Zeit ohne Wechsel bei einem normalen Clear (4:30, ~3 min nach
-  dem letzten) [belegt; die genaue Regel ist Annahme].
+- Wechsel bei jedem Full Clear **oder** beim ersten normalen Clear, wenn der letzte Wechsel ~3 min her ist
+  [belegt in 2 Fällen: Video 1 1:27 → 4:30, Video 2 4:56 → 7:57, siehe 9].
 - Beim Wechsel werden auch **die schon liegenden Blöcke sofort umgeskinnt** (4:30,2).
 - Jedes Theme hat eine eigene Löschanimation, aber die gleiche Choreografie (zerbrechen → Partikel →
   Nachbild → Punkte fliegen).
@@ -326,3 +328,88 @@ Partikelform und Timbre.
 - Multiplayer: Effekte, die von anderen Spielern ausgelöst werden, dürfen nur dezent sein.
 - `prefers-reduced-motion` und Stumm/Musik-aus müssen alle neuen Ebenen abschalten.
 - Performance: viele gleichzeitige Partikel auf schwachen Handys testen.
+
+---
+
+## 9. Video 2: neue Themes, Fluffy, slf im Vergleich
+
+Bilder: `20-…` bis `28-…` in `AGENT/blockblast/`. Kein Ton in der Aufnahme, Audio-Fragen aus 7 bleiben offen.
+
+### 9.1 Neue Themes [belegt]
+
+| Zeit | Block-Material | Hintergrund / Brett | Explosion |
+|---|---|---|---|
+| 3:27–4:29 | Default: blaue Fasen-Blöcke (2 Blautöne), harte Lichtkante oben, dunkle unten | Blauviolett / Nachtblau | Blaue Lichtsäule pro Linie mit Funken |
+| 4:29–4:34 | Pinke, weiche Würfel | Violett, Lichterkette | Ein Lichtkomet läuft die Reihe entlang, Würfel springen als kleine rosa Würfel heraus und taumeln |
+| 4:34–4:38 | Goldbarren | Ocker, Brett fast schwarz | Gold-Funken |
+| 4:38–4:54 | Ziegel (Mauerwerk-Muster) | Himmelblau | Aus jedem Ziegel springt eine sich drehende **Goldmünze** (wie Mario), dazu Ziegelbrösel |
+| 7:57– | **Fluffy**: Fell/Plüsch, 2 Blautöne | Hellbraune Fellstruktur, Brett dunkles Holz mit erhabenem Holzrahmen | Siehe 9.2 |
+
+- 4:29, 4:34, 4:38: **3 Full Clears in 10 s** (x1, x2, x3), jedes Mal ein neues Theme. Die Eskalation
+  zählt sichtbar mit.
+- 4:54: Der Spieler wählt im Menü „Default Skin“ → zurück auf Blau. 7:57: automatischer Wechsel zu Fluffy,
+  genau ~3 min später, bei einem normalen Clear (Combo 8).
+
+### 9.2 Fluffy im Detail [belegt] (`22-fluffy.jpg`, `23-fluffy-blast.jpg`, `24-fluffy-switch.jpg`)
+- **Alles hat dasselbe Material**: Blöcke, Hintergrund (Fell), sogar das **Herz hinter der Punktezahl ist
+  aus Fell**. Die `+1086`-Schrift ist hellbraun mit dunkler Kontur, passend zum Holz.
+- Farben bleiben beim Wechsel erhalten: Die blauen Blöcke bleiben blau, nur das Material wird von
+  Fase zu Fell (`24-…`). **Die Farbe gehört zum Stein, das Theme ist nur die Haut darüber.**
+- Der Wechsel ist ein harter Schnitt in 1 Frame (7:57,23) im Moment des Clears. Das Herz erscheint groß
+  und setzt sich dann.
+- **Explosion ist leise**: Zellen schrumpfen zu kleinen dunklen Quadraten, dann bleibt ein weicher
+  Fell-/Staubschleier über der Reihe, der ausblendet. Keine Spritzer, keine Münzen. Das Material
+  bestimmt die Lautstärke der Animation: Fell = weich, Melone = saftig, Ziegel = klimpernd.
+- Wirkung: warm, ruhig, gemütlich. Dunkles Holz + helles Fell + gesättigtes Blau = 3 klar getrennte
+  Helligkeitsstufen trotz weicher Optik.
+
+### 9.3 Weitere neue Beobachtungen [belegt]
+- **Vorschau färbt um**: Beim Ziehen nehmen die Zellen der Reihen, die gelöscht würden, **die Farbe des
+  gezogenen Steins** an (8:01,07, `23-…`). Zusätzlich zur Welle aus Video 1.
+- **Ziel-Umriss**: Wo der Stein landen würde, sind die leeren Zellen mit hellem Rahmen umrandet
+  (4:42,3, `25-…`).
+- **Combo-Ankündigung**: Vor „Combo 11“ blitzt an der Stelle der Zahl eine weiße Lichtkugel auf
+  (4:42,7). Gleiches Muster wie der Goldburst in Video 1.
+- **Neues Spiel startet mit vorgefülltem Brett** (~60 % voll, zufälliges Muster, 3:27 und Video 1 0:08).
+  Die ersten Züge räumen sofort Reihen ab, **die erste Belohnung kommt nach Sekunden**.
+- Beim Laden erscheint das Brett kurz im bunten Classic-Skin und springt dann ins aktive Theme.
+- Werbebanner unten dauerhaft, Vollbildwerbung bei 8:10. Das stört deutlich; die Qualität des Spiels
+  wirkt trotzdem.
+
+### 9.4 slf im Vergleich (0:00–2:45, Sprint) (`27-slf-vs-bb.jpg`, `28-slf-word-accept.jpg`)
+
+**Was slf schon gut macht**
+- Maskottchen mit Glanzlicht und Schatten, Countdown „3, 2, 1“ mit Gesichtsausdruck.
+- Buchstabenkacheln mit Unterkante, Punktebadges, Konfetti beim Rekord („NEU!“).
+- Punktezahl zählt beim Tippen pro Buchstabe hoch (75, 100, 125 …).
+
+**Was fehlt (direkt sichtbar)**
+1. **Zu wenig Helligkeitsstufen**: Pinker heller Hintergrund, weiße Karten, helle Blasen → alles im
+   oberen Helligkeitsbereich. Block Blast hat immer 3 Stufen: mittlerer Hintergrund, dunkle eingelassene
+   Fläche, gesättigte Elemente darauf. Das ist der Hauptgrund für „dull“.
+2. **Punktezahl ist Nebensache**: `4350` dunkel, klein, neben dem Maskottchen. Bei Block Blast ist die
+   Zahl das größte, bunteste Element mit Symbol dahinter.
+3. **Wort bestätigt (0:37,2)**: Die Karte rutscht in die Liste, die Zahl springt von 175 auf 425,
+   ein paar kleine flache Punkte. Es fehlen: `+250` fliegt zur Zahl, Zahl zählt hoch, kurzer
+   Lichtimpuls am Badge, eine Welle über die Buchstaben.
+4. **Konfetti** (2:38): kleine, flache, gleich große Kreise. Bei Block Blast: Rechtecke in sehr
+   unterschiedlichen Größen, die sich in 3D drehen.
+5. **Kacheln haben kein Glanzlicht** und keine Materialtextur, nur die Unterkante.
+6. **Hintergrund-Blasen** sind groß und hell, konkurrieren mit dem Inhalt. Block Blast: ruhiger Verlauf
+   bzw. feine Textur, zur Mitte heller.
+
+### 9.5 Ergänzungen zu Abschnitt 8
+- **Worlds = Haut über fester Farbe** (8.8): Kachelfarben pro Buchstabe/Spieler bleiben, die World
+  tauscht nur Material, Hintergrund, Partikel und das Symbol hinter der Punktezahl. Das passt zu
+  `feel.ts` (Palette und World sind schon getrennt).
+- **Fluffy als erste Material-World**: Fell lässt sich mit CSS-Rauschen (SVG `feTurbulence` als
+  Hintergrundbild) plus weichem Verlauf bauen, Holz mit einem gestreiften Verlauf. Explosion: leiser
+  Staubschleier, passend zur gewünschten ruhigen Musik.
+- **Material bestimmt die Lautstärke**: Jede World bekommt eine eigene „Explosionsenergie“ (weich bis
+  laut). So entsteht Abwechslung ohne mehr Effekte.
+- **Weltwechsel-Takt**: neue World bei besonderen Momenten, sonst spätestens nach ~3 min beim nächsten
+  positiven Ereignis. Nicht pro Runde, sonst nutzt sich der Wechsel ab.
+- **Schneller erster Erfolg** (wie das vorgefüllte Brett): Die erste Runde soll in den ersten Sekunden
+  eine Belohnung liefern, z. B. einen leichten Buchstaben oder eine Bestätigung schon beim ersten Wort.
+- **Vorschau vor dem Abschluss**: Wenn ein Wort beim Tippen gültig wird, die Kacheln schon in die
+  Bestätigungsfarbe umfärben (wie die umgefärbten Reihen), bevor das Feld verlassen wird.
