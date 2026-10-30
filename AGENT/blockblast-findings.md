@@ -3,6 +3,7 @@
 Quelle: Bildschirmaufnahme (`~/Downloads/signal-2026-10-25-01-28-13-382.mp4`, 480x854, ~57 fps, 8:50).
 Video 2 (Handy, `recording_20261030_002116.mp4`, 1080x2400, ~38 fps, 8:30, **ohne Ton**): 0:00–2:45 slf
 im Sprint, ab 2:45 Block Blast mit neuen Themes. Auswertung in Abschnitt 9.
+Screenshots (NAS `/data/leonhard-files/slf`, 16 Stück, 1080x2400, 30.10. 12:23–12:54): weitere Themes, Auswertung in Abschnitt 10.
 Methode: Frames per `ffmpeg` mit 5–20 fps als Kontaktbögen, Schlüsselframes in voller Auflösung,
 Audio als Spektrogramm und RMS-Pegel pro Sekunde. Referenzbilder liegen in `AGENT/blockblast/`.
 
@@ -413,3 +414,68 @@ Bilder: `20-…` bis `28-…` in `AGENT/blockblast/`. Kein Ton in der Aufnahme, 
   eine Belohnung liefern, z. B. einen leichten Buchstaben oder eine Bestätigung schon beim ersten Wort.
 - **Vorschau vor dem Abschluss**: Wenn ein Wort beim Tippen gültig wird, die Kacheln schon in die
   Bestätigungsfarbe umfärben (wie die umgefärbten Reihen), bevor das Feld verlassen wird.
+
+---
+
+## 10. Screenshots: weitere Materialien
+
+Bilder: `29-themes-nas-1.jpg`, `30-themes-nas-2.jpg` (je 8 Screenshots in Aufnahmereihenfolge, links oben
+nach rechts unten), `31-material-closeups.jpg` (Ausschnitte in Originalauflösung).
+
+### 10.1 Katalog [belegt]
+
+| # | Block-Material | Farben | Hintergrund | Brett | Symbol hinter Punkten |
+|---|---|---|---|---|---|
+| 1 | Roter Stein, leicht gekörnt | 1 | Terrakotta | Dunkelbraun | Raute (cyan) |
+| 2 | Marmor, weiß mit Äderung | 1 | Grauer Marmor | Nachtblau | Raute (grün) |
+| 3 | Cracker: Löcher, gewellter Rand | 1 | Karamell | Dunkelbraun | – |
+| 4 | Torte: Zuckerguss mit Tropfkante und Streuseln, Waffelboden | 3 (Guss) | Altrosa-Braun | Dunkelbraun | Herz (rosa) |
+| 5–6 | Glänzender gelber Fasen-Block | 1 | Karamell | Oliv bzw. Dunkelbraun | Herz (rot, glänzend) |
+| 7 | Strick, Zopfmuster | 1 | Rosa | Weinrot | – |
+| 8 | Sandstein/Keks, rissig | 1 | Taupe | Dunkelbraun | Herz (gold) |
+| 9 | Glasige Fasen-Blöcke | 1 | Karamell | Dunkelbraun, **Holzrahmen** | – |
+| 10 | Spiegelei auf Toast, Dotter orange **oder** gelb | 1 | Dunkelgrau | Schwarz | – (Punkte 0, vorgefüllt) |
+| 11 | Rosa Kissen mit Innenrahmen | 1 | Periwinkle, Wolken | Nachtblau | **Herz aus Glas/Blase** |
+| 12 | Ziegel | 1 | Himmelblau | Nachtblau | Herz (pink) |
+| 13 | Blaue Gehäuse mit Lüftungsschlitzen | 1 | Schiefer | Fast schwarz | Raute (blau) |
+| 14 | Geräte/Koffer: Schraube, Schlitze, Fuge [Annahme: Technik-Theme] | 4 | Schiefer | Fast schwarz | – |
+| 15 | Schwamm/Filz, feinporig | 3 | Hautfarben, Papier | Dunkelbraun | **Herz aus demselben Schwamm** |
+| 16 | Weiche flache Blöcke | 2 | Indigo | Nachtblau | – |
+
+### 10.2 Muster [belegt]
+- **Das HUD bleibt fix**: Krone + Rekord in Gold oben links, Zahnrad oben rechts, Punktezahl im
+  Regenbogenverlauf. Über alle 16 Themes identisch. Das Theme tauscht nur Hintergrund, Brett, Steine
+  und das Symbol hinter der Zahl. Die Wiedererkennung hängt am HUD.
+- **3 Helligkeitsstufen ohne Ausnahme**: Hintergrund mittelhell und entsättigt (nie weiß, nie neon),
+  Brett immer die dunkelste Fläche (Dunkelbraun, Nachtblau oder Schwarz, beim Strick Weinrot passend zum
+  rosa Hintergrund), Steine am hellsten bzw. am stärksten gesättigt. Bestätigt 9.4 Punkt 1.
+- **Brett in 2 Farbfamilien**: Warme Hintergründe → dunkelbraunes Brett, kühle → Nachtblau. Das Brett
+  nimmt die Temperatur des Hintergrunds auf, nur viel dunkler.
+- **Hintergrund hat immer eine feine Struktur**: Marmor, Papier, Wolken, Leder. Nie eine Volltonfläche,
+  nie große Formen.
+- **Material darf die Zellform brechen**: Cracker hat einen gewellten Rand, die Torte eine Tropfkante,
+  das Ei liegt auf einer Toastscheibe. Der Umriss bleibt ein Quadrat, die Kante lebt.
+- **Variation innerhalb des Materials**: Beim Ei zufällig oranger oder gelber Dotter pro Zelle, beim
+  Marmor wechselnde Äderung, beim Sandstein wechselnde Risse. Dadurch sieht eine Fläche nicht gekachelt aus.
+- **Einfarbige Themes sind die Regel** (12 von 16): Alle Steine haben dieselbe Farbe, die Identität
+  kommt allein aus dem Material. Mehrfarbig nur bei Torte, Technik, Schwamm, Indigo. Ergänzt 9.2: Bleibt
+  die Farbe beim Wechsel erhalten, gilt das nur für mehrfarbige Themes.
+- **Das Symbol hinter der Zahl übernimmt das Material** (Glasherz bei Wolken, Schwammherz bei Schwamm,
+  Goldherz bei Sandstein). Bestätigt Fluffy aus 9.2. Ohne aktive Combo fehlt das Symbol.
+- **Steine in der Ablage** unten tragen dasselbe Material, nur kleiner. Die Textur bleibt bei ~25 px
+  lesbar, weil sie grob ist (Löcher, Dotter, Maschen), nicht fein.
+
+### 10.3 Ergänzungen zu Abschnitt 8
+- **World = Hintergrund + vertieftes Feld + Material**, der Rest der UI (Punktezahl, Buttons,
+  Maskottchen) bleibt fix. So kann eine World mutig sein, ohne die Bedienung zu stören.
+- **Feste Helligkeitsregel für jede World**: Hintergrund L* ~45–70 mit feiner Struktur, Eingabe- bzw.
+  Wortfläche L* ~15–25, Kacheln gesättigt. Neue Worlds lassen sich daran prüfen (ähnlich dem Kontrastcheck
+  der Paletten).
+- **Billige Materialien in CSS**: Cracker (Punktmuster per `radial-gradient` + gewellter Rand per
+  `mask`), Strick (wiederholter Verlauf), Marmor/Papier (`feTurbulence`), Glas (Verlauf + Glanzlicht),
+  Ziegel (`repeating-linear-gradient`). Ei, Torte und Technik brauchen Bilder bzw. SVG und lohnen sich
+  erst später.
+- **Zufallsvariante pro Kachel** (wie der Dotter): 2–3 Varianten pro Material, gewählt aus dem
+  Buchstaben-Index, damit es beim Re-Render stabil bleibt.
+- **Score-Symbol im Material der World**: Wenn slf ein Symbol hinter der Punktezahl bekommt (8.x),
+  übernimmt es Material und Farbe der World.
