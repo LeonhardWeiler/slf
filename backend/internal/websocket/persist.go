@@ -125,7 +125,7 @@ func (h *Hub) Load(path string) error {
 	}
 	h.mu.Unlock()
 	for _, s := range saved {
-		h.startHostGrace(s.Lobby)
+		h.startHostGrace(s.Lobby, lobbyTTL)
 	}
 	return nil
 }

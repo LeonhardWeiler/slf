@@ -27,7 +27,7 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>4</strong>
+<strong>3</strong>
 <span>medium</span>
 </div>
 <div class="stat">
@@ -39,7 +39,7 @@
 <span>info</span>
 </div>
 <div class="stat">
-<strong>40</strong>
+<strong>39</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -126,16 +126,10 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">40 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">39 Findings sichtbar.</p>
 
 
 
-<article class="finding" id="REL-02" data-priority="medium" data-area="Zuverlässigkeit">
-<h3><span class="tag medium">medium</span> <span class="id">REL-02</span> Wiederhergestellte Lobbys starten Host-Grace, bevor jemand verbinden kann</h3>
-<p class="meta">Zuverlässigkeit · <code>backend/internal/websocket/persist.go:128</code></p>
-<p><code>Load</code> ruft für jede Lobby sofort <code>startHostGrace</code> (15 s), noch bevor der Listener läuft. Ein Host mit Tab im Hintergrund oder gesperrtem Handy reconnectet erst bei Fokus (Backoff bis 30 s) und findet seine Lobby nach dem Deploy geschlossen. Damit verfehlt der Restore genau den Fall, für den er gebaut ist.</p>
-<p><b>Empfehlung.</b> Nach dem Restore eine eigene, längere Frist (z. B. die Janitor-TTL von 10 min) statt der 15-s-Grace verwenden. Test: Lobby nach Load ist nach 15 s noch da.</p>
-</article>
 
 <article class="finding" id="REL-03" data-priority="medium" data-area="Zuverlässigkeit">
 <h3><span class="tag medium">medium</span> <span class="id">REL-03</span> Client wartet nur 3 s auf den Pong</h3>
@@ -259,8 +253,8 @@
 <article class="finding" id="TEST-01" data-priority="low" data-area="Tests">
 <h3><span class="tag low">low</span> <span class="id">TEST-01</span> Lücken an Server-Einstieg und Browser-Kette</h3>
 <p class="meta">Tests · <code>backend/cmd/server</code>, <code>frontend/src/**/*.test.tsx</code>, <code>frontend/vite.config.ts:10</code></p>
-<p><code>cmd/server</code> hat 43,9 % Coverage (SPA-Handler, Signalpfad, Header). Es gibt keinen Browser-E2E-Lauf mit 2 Spielern; die Frontend-Tests nutzen happy-dom und einen gemockten Socket. REL-02 fällt durch keinen Test. Der Testlauf gibt eine <code>act()</code>-Warnung aus, der Build eine <code>__dirname</code>-Warnung.</p>
-<p><b>Empfehlung.</b> Regressionstest für REL-02 im WS-Integrationstest; <code>act()</code>-Warnung beheben; in <code>vite.config.ts</code> <code>import.meta.dirname</code> statt <code>__dirname</code>. Ein E2E-Lauf erst, wenn Fehler aus dem Browserpfad auftreten.</p>
+<p><code>cmd/server</code> hat 43,9 % Coverage (SPA-Handler, Signalpfad, Header). Es gibt keinen Browser-E2E-Lauf mit 2 Spielern; die Frontend-Tests nutzen happy-dom und einen gemockten Socket. Der Testlauf gibt eine <code>act()</code>-Warnung aus, der Build eine <code>__dirname</code>-Warnung.</p>
+<p><b>Empfehlung.</b> <code>act()</code>-Warnung beheben; in <code>vite.config.ts</code> <code>import.meta.dirname</code> statt <code>__dirname</code>. Ein E2E-Lauf erst, wenn Fehler aus dem Browserpfad auftreten.</p>
 </article>
 
 <article class="finding" id="CODE-03" data-priority="low" data-area="Code">
@@ -429,7 +423,7 @@
 <li><b>RAM-Zustand, ein Prozess, keine Datenbank.</b> Ein harter Absturz verliert laufende Spiele; Deploys verlieren nur idle Lobbys nicht.</li>
 <li><b>Globaler Hub-Mutex.</b> Bei dieser Last ausreichend; kein Sharding.</li>
 <li><b>Spieler-Voting statt Host-Urteil.</b> Gültig bis zum ersten Downvote, dann Mehrheit nötig, Gleichstand = ungültig. Im 2-Spieler-Spiel kippt ein einzelnes Downvote jede Antwort; der Host kann überstimmen.</li>
-<li><b>Keine Hostübergabe.</b> 15 s Grace, danach endet die Lobby (zu Restore siehe REL-02).</li>
+<li><b>Keine Hostübergabe.</b> 15 s Grace, danach endet die Lobby (nach einem Restore 10 min).</li>
 <li><b>Identität in localStorage.</b> Reconnect nach Tab-Schließen ist gewollt; kein Account, kein Cookie. Deshalb ist auch die Zulassung von LAN-Origins harmlos.</li>
 <li><b>Inaktive Lobbys</b> schließt der Janitor nur ohne verbundene Clients; den Schließtext sieht dabei niemand.</li>
 <li><b>Icon-only UI</b> mit Tooltip (Hover und Long-Press), Welten pro Runde, Sound standardmäßig an.</li>

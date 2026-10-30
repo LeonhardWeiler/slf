@@ -255,7 +255,7 @@ func (h *Hub) onDisconnect(c *Client) {
 			h.broadcastReviewState(lobby)
 		}
 		if hostDropped {
-			h.startHostGrace(lobby)
+			h.startHostGrace(lobby, h.hostGraceDuration)
 		}
 	}
 }
@@ -279,8 +279,8 @@ func graceSecondsLeft(lobby *game.Lobby) *int {
 
 // startHostGrace begins the countdown after the host's connection dropped. All
 // clients are told so they can show a shared countdown; if the host does not
-// reconnect within hostGraceSeconds, the lobby is closed.
-func (h *Hub) startHostGrace(lobby *game.Lobby) {
+// reconnect within d, the lobby is closed.
+func (h *Hub) startHostGrace(lobby *game.Lobby, d time.Duration) {
 	h.mu.Lock()
 	if _, running := h.hostGrace[lobby.Code]; running {
 		h.mu.Unlock()
@@ -292,8 +292,8 @@ func (h *Hub) startHostGrace(lobby *game.Lobby) {
 		return
 	}
 	code := lobby.Code
-	lobby.HostGraceUntil = time.Now().Add(h.hostGraceDuration)
-	h.hostGrace[code] = time.AfterFunc(h.hostGraceDuration, func() {
+	lobby.HostGraceUntil = time.Now().Add(d)
+	h.hostGrace[code] = time.AfterFunc(d, func() {
 		h.onHostGraceExpired(code)
 	})
 	graceSeconds := *graceSecondsLeft(lobby) // ceil of the (just-set) remaining

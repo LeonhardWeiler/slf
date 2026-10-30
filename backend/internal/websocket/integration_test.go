@@ -948,9 +948,11 @@ func TestDrainThenRestoreKeepsLobby(t *testing.T) {
 		t.Fatal(err)
 	}
 	srv2, hub2 := newServerHub(t)
+	hub2.setHostGraceDuration(time.Millisecond)
 	if err := hub2.Load(path); err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(50 * time.Millisecond)
 	back := dial(t, srv2)
 	back.sessionID = host.sessionID
 	back.send("reconnect", map[string]any{})
