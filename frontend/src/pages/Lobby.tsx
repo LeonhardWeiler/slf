@@ -17,7 +17,7 @@ import type { Player, Settings } from "@/types/events";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
-import { bounce, floatText, haptic } from "@/lib/feel";
+import { bounce, floatText, haptic, mood } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -30,7 +30,6 @@ import {
 	CodeTiles,
 	fitText,
 	IconBtn,
-	mood,
 	Seg,
 	Slider,
 	Toggle,

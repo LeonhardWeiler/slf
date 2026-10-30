@@ -9,7 +9,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { fx } from "@/lib/fx";
-import { haptic, setWorld, shake, shiftPalette, worldFor } from "@/lib/feel";
+import { haptic, shake, shiftPalette, world } from "@/lib/feel";
 import { prefs, usePrefs } from "@/lib/prefs";
 import { sound, type Scene } from "@/lib/sound";
 import { ws } from "@/lib/ws";
@@ -57,16 +57,10 @@ export function Shell({ children }: { children: ReactNode }) {
 		null,
 	);
 	const calm = usePrefs((s) => s.calm);
-	const code = useRoomStore((s) => s.lobby?.lobbyCode ?? "");
 	const state = useRoomStore((s) => s.lobby?.state);
 	const sprint = useRoomStore((s) => !!s.game?.letters?.length);
-	const used = useRoomStore(
-		(s) => (s.game?.usedLetters ?? s.result?.usedLetters)?.length,
-	);
-	const round = useRef(0);
+	const used = useRoomStore((s) => s.game?.usedLetters.length);
 	const tracked = useRef(0);
-	if (state === "Lobby" || !state) round.current = 0;
-	else if (used !== undefined) round.current = used;
 
 	useEffect(() => (canvas.current ? fx.mount(canvas.current) : undefined), []);
 
@@ -75,16 +69,13 @@ export function Shell({ children }: { children: ReactNode }) {
 		document.body.classList.toggle("calm", calm);
 	}, [calm]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: a new round or phase re-reads round.current
 	useEffect(() => {
-		const w = worldFor(code, round.current);
-		setWorld(w);
-		if (state !== "Playing") tracked.current = 0;
-		else if (tracked.current !== round.current) {
-			tracked.current = round.current;
-			ws.send({ type: "track", payload: { ev: "world", value: w } });
+		if (state !== "Playing" || !used) tracked.current = 0;
+		else if (tracked.current !== used) {
+			tracked.current = used;
+			ws.send({ type: "track", payload: { ev: "world", value: world } });
 		}
-	}, [code, used, state]);
+	}, [used, state]);
 
 	useEffect(() => {
 		sound.setScene(

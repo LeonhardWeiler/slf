@@ -49,7 +49,8 @@ export const PALETTES: Record<World, Palette[]> = {
 	],
 };
 
-let world: World = "candy";
+export let world: World = "candy";
+let switched = 0;
 let palette = 0;
 
 // drift is ease-in-out cut into n flat steps. The slow ambient loops step on
@@ -116,8 +117,8 @@ function paint() {
 }
 
 export function setWorld(next: World) {
-	if (next === world && document.documentElement.dataset.world) return;
 	world = next;
+	switched = performance.now();
 	document.documentElement.dataset.world = next;
 	sound.timbre = next;
 	fx.world = next;
@@ -129,12 +130,6 @@ export function setWorld(next: World) {
 export function shiftPalette() {
 	palette = (palette + 1) % PALETTES[world].length;
 	paint();
-}
-
-export function worldFor(seed: string, round: number): World {
-	let h = 0;
-	for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) | 0;
-	return WORLDS[(Math.abs(h) + round) % WORLDS.length];
 }
 
 let iosSwitch: HTMLLabelElement | null = null;
@@ -227,15 +222,113 @@ export function floatText(
 	setTimeout(() => f.remove(), 1000);
 }
 
+export type Mood =
+	| "idle"
+	| "happy"
+	| "cheer"
+	| "wow"
+	| "worried"
+	| "sad"
+	| "blink"
+	| "sleep";
+
+let moodTimer = 0;
+// mood sets every mascot's face for `ms`, then each falls back to its own base.
+export function mood(m: Mood, ms = 1100) {
+	clearTimeout(moodTimer);
+	const all = document.querySelectorAll<HTMLElement>(".mascot");
+	for (const el of all) el.dataset.mood = m;
+	if (ms)
+		moodTimer = window.setTimeout(() => {
+			for (const el of all) el.dataset.mood = el.dataset.base;
+		}, ms);
+}
+
+// fly sends a label from one element to another, then calls land.
+export function fly(
+	from: Element | null | undefined,
+	to: Element | null | undefined,
+	text: string,
+	land: () => void,
+) {
+	if (!from || !to || calm()) return land();
+	const a = from.getBoundingClientRect();
+	const b = to.getBoundingClientRect();
+	const f = document.createElement("div");
+	f.className = "float fly";
+	f.textContent = text;
+	f.style.left = `${a.left + a.width / 2}px`;
+	f.style.top = `${a.top + a.height / 2}px`;
+	document.body.append(f);
+	f.animate(
+		[
+			{ transform: "scale(.4)" },
+			{ transform: "scale(1.2)", offset: 0.3 },
+			{
+				transform: `translate(${b.left + b.width / 2 - a.left - a.width / 2}px,${b.top + b.height / 2 - a.top - a.height / 2}px) scale(.6)`,
+			},
+		],
+		{ duration: 420, easing: "cubic-bezier(.5,0,.8,.6)" },
+	).onfinish = () => {
+		f.remove();
+		land();
+	};
+}
+
+function layer(cls: string, ms: number, text = "") {
+	const el = document.createElement("div");
+	el.className = cls;
+	el.ariaHidden = "true";
+	el.style.setProperty("--n", `${Math.max(6, text.length)}`);
+	if (text)
+		el.append(
+			Object.assign(document.createElement("b"), { textContent: text }),
+		);
+	document.body.append(el);
+	setTimeout(() => el.remove(), ms);
+}
+
 // slam shows a big stamped word across the screen.
 export function slam(text: string, cls = "") {
-	const el = document.createElement("div");
-	el.className = `slam ${cls}`;
-	el.ariaHidden = "true";
-	el.innerHTML = "<b></b>";
-	(el.firstChild as HTMLElement).textContent = text;
-	document.body.append(el);
+	layer(`slam ${cls}`, 1400, text);
 	sound.slam();
 	haptic([30, 40, 60]);
-	setTimeout(() => el.remove(), 1100);
 }
+
+const CALLOUTS = [
+	["Gut!", "Schön!", "Fein!"],
+	["Stark!", "Super!", "Klasse!"],
+	["Episch!", "Wahnsinn!", "Unglaublich!"],
+];
+
+// celebrate climbs the reward ladder; every level holds the one below. A burst
+// announces the callout, level 2 adds the cheering mascot and a shake, level 3
+// a screen-filling star with a new world at its flash. A world older than 3
+// minutes also changes on any level. An afterglow ends it.
+export function celebrate(
+	level: 1 | 2 | 3,
+	text = CALLOUTS[level - 1][Math.floor(Math.random() * 3)],
+) {
+	fx.burst(innerWidth / 2, innerHeight * 0.45, {
+		n: 8 + level * 8,
+		speed: 4 + level * 2,
+		size: 12,
+	});
+	setTimeout(() => {
+		slam(text, ["clear", "win", "win big"][level - 1]);
+		fx.rain(30 * level);
+		if (level > 1) {
+			mood("cheer", 1600);
+			shake(document.body, level - 1);
+		}
+		if (level > 2 && !calm()) layer("sym", 900);
+		if (level > 2 || performance.now() - switched > 180_000)
+			setTimeout(() => {
+				const others = WORLDS.filter((w) => w !== world);
+				setWorld(others[Math.floor(Math.random() * others.length)]);
+			}, 250);
+		if (!calm()) setTimeout(() => layer("afterglow", 900), 1200);
+	}, 150);
+}
+
+setWorld(WORLDS[Math.floor(Math.random() * WORLDS.length)]);

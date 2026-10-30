@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Crown, Flame, RotateCcw, Star, Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { haptic, slam } from "@/lib/feel";
+import { celebrate, haptic, mood } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { stats } from "@/lib/stats";
@@ -9,7 +9,7 @@ import { useRoomStore, useIsHost } from "@/store/room";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
-import { Av, Btn, Mascot, mood } from "@/components/kit";
+import { Av, Btn, Mascot } from "@/components/kit";
 
 const ORDER = [1, 0, 2];
 
@@ -54,18 +54,17 @@ export function GameOverScreen() {
 				if (solo) {
 					sound.stamp(20);
 					mood("cheer", 1500);
-				} else if (won) slam("SIEG!", "win big");
+				} else if (won) celebrate(3, "SIEG!");
 				const best = stats.best(mode);
 				const before = stats.streak();
 				stats.record(mode, score);
 				const streak = stats.played();
 				const fresh = score > best;
-				const wait = won ? 1200 : 500;
+				const wait = won ? 1600 : 500;
 				setEnd({ best, fresh, streak, grew: streak > before });
 				if (fresh) {
 					setTimeout(() => {
-						slam("NEU!", "win");
-						fx.rain(160);
+						celebrate(2, "Rekord!");
 						sound.fanfare();
 					}, wait);
 				}

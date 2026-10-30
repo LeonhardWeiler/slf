@@ -8,7 +8,7 @@ import {
 	useState,
 } from "react";
 import { fx } from "@/lib/fx";
-import { bounce, haptic } from "@/lib/feel";
+import { bounce, haptic, type Mood, mood } from "@/lib/feel";
 import { sound } from "@/lib/sound";
 import { mapCase } from "@/lib/answerValidation";
 
@@ -178,30 +178,6 @@ export function Seg<T extends string | number>({
 			))}
 		</div>
 	);
-}
-
-const MOODS = [
-	"idle",
-	"happy",
-	"cheer",
-	"wow",
-	"worried",
-	"sad",
-	"blink",
-	"sleep",
-] as const;
-type Mood = (typeof MOODS)[number];
-
-let moodTimer = 0;
-// mood sets every mascot's face for `ms`, then each falls back to its own base.
-export function mood(m: Mood, ms = 1100) {
-	clearTimeout(moodTimer);
-	const all = document.querySelectorAll<HTMLElement>(".mascot");
-	for (const el of all) el.dataset.mood = m;
-	if (ms)
-		moodTimer = window.setTimeout(() => {
-			for (const el of all) el.dataset.mood = el.dataset.base;
-		}, ms);
 }
 
 function hop(el: Element | null | undefined, h = 18) {

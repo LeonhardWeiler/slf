@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowRight, Crown, Flag, Flame, X } from "lucide-react";
-import { animate, bounce, floatText, haptic, slam } from "@/lib/feel";
-import { fx } from "@/lib/fx";
+import { animate, bounce, celebrate, fly, haptic, mood } from "@/lib/feel";
 import { sound } from "@/lib/sound";
 import { stats } from "@/lib/stats";
 import { ws } from "@/lib/ws";
@@ -12,7 +11,7 @@ import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Av, Btn, IconBtn, Mascot, mood, playerColor } from "@/components/kit";
+import { Av, Btn, IconBtn, Mascot, playerColor } from "@/components/kit";
 import type { ScoreEntry } from "@/types/events";
 
 // stepsOf lists the gains a row counts up: every answer, then the bonuses.
@@ -46,27 +45,35 @@ export function RoundResultScreen() {
 		const n = Math.max(0, ...result.scores.map((s) => stepsOf(s).length));
 		const ids = [
 			...Array.from({ length: n }, (_, i) =>
-				setTimeout(() => setStep(i + 1), 700 + i * 280),
+				setTimeout(() => setStep(i + 1), 700 + i * 420),
 			),
 			setTimeout(
 				() => {
-					const gain =
-						result.scores.find((s) => s.playerId === myPlayerId)?.roundPoints ??
-						0;
+					const me = result.scores.find((s) => s.playerId === myPlayerId);
+					const gain = me?.roundPoints ?? 0;
+					const lead = Math.max(...result.scores.map((s) => s.roundPoints));
 					const best = stats.best("round-classic");
 					stats.record("round-classic", gain);
 					stats.played();
-					if (best > 0 && gain > best) {
-						slam("NEU!", "win");
-						fx.rain(60);
+					const level =
+						best > 0 && gain > best
+							? 3
+							: me?.combo || (result.scores.length > 1 && gain === lead)
+								? 2
+								: me?.buzz
+									? 1
+									: 0;
+					if (gain <= 0) sound.thud();
+					else if (level === 3) {
+						celebrate(3, "Rekord!");
 						sound.fanfare();
-					} else if (gain > 0) mood("cheer", 1200);
-					else sound.thud();
+					} else if (level) celebrate(level);
+					else mood("cheer", 1200);
 					for (const [id, el] of rows.current)
 						tops.current.set(id, el.getBoundingClientRect().top);
 					setSorted(true);
 				},
-				700 + n * 280 + 300,
+				700 + n * 420 + 300,
 			),
 		];
 		return () => ids.forEach(clearTimeout);
@@ -78,12 +85,14 @@ export function RoundResultScreen() {
 			const st = stepsOf(s)[step - 1];
 			const row = rows.current.get(s.playerId);
 			if (!st || !row) continue;
-			floatText(row.querySelector(".gain"), st[1], "pts-float");
-			bounce(row.querySelector(".total"), 1.25, 220);
-			if (s.playerId === myPlayerId) {
-				sound.coin(step - 1);
-				haptic(8);
-			}
+			const total = row.querySelector(".total");
+			fly(row.querySelector(".gain"), total, st[1], () => {
+				bounce(total, 1.25, 220);
+				if (s.playerId === myPlayerId) {
+					sound.coin(step - 1);
+					haptic(8);
+				}
+			});
 		}
 	}, [step, result, myPlayerId]);
 
@@ -165,7 +174,7 @@ export function RoundResultScreen() {
 			: total -
 				roundPointsOf(id) +
 				(scoreOf(id) ? stepsOf(scoreOf(id) as ScoreEntry) : [])
-					.slice(0, step)
+					.slice(0, step - 1)
 					.reduce((a, [p]) => a + p, 0);
 	const order = sorted
 		? result.ranking
@@ -250,7 +259,12 @@ export function RoundResultScreen() {
 									)}
 								</span>
 								<span className="gain">+{gain}</span>
-								<CountUp value={now} durationMs={250} className="total" />
+								<CountUp
+									value={now}
+									durationMs={400}
+									flicker
+									className="total"
+								/>
 								{isHost && r.playerId !== myPlayerId && !p?.left && (
 									<button
 										type="button"

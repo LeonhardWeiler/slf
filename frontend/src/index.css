@@ -2231,7 +2231,9 @@ body.urgent .bg::after {
 }
 
 /* ---------- layers ---------- */
-.slam {
+.slam,
+.sym,
+.afterglow {
 	position: fixed;
 	inset: 0;
 	z-index: 50;
@@ -2250,11 +2252,12 @@ body.urgent .bg::after {
 		0 8px 0 var(--sd),
 		0 16px 24px rgb(0 0 0 / 0.25);
 	color: #fff;
-	font-size: 54px;
+	font-size: min(54px, 130vw / var(--n));
+	white-space: nowrap;
 	-webkit-text-stroke: 6px var(--sd);
 	paint-order: stroke fill;
 	text-shadow: 0 5px 0 var(--sd);
-	animation: slam 1.1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+	animation: slam 1.3s forwards;
 }
 .slam.clear b {
 	--sc: var(--good);
@@ -2265,8 +2268,77 @@ body.urgent .bg::after {
 	--sd: var(--gold-d);
 }
 .slam.big b {
-	font-size: 110px;
+	font-size: min(110px, 130vw / var(--n));
 	padding: 10px 40px;
+}
+@keyframes slam {
+	0% {
+		transform: scale(2.6);
+		opacity: 0;
+		animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+	}
+	16% {
+		transform: scale(0.9);
+		opacity: 1;
+		animation-timing-function: cubic-bezier(0.2, 1.6, 0.4, 1);
+	}
+	30%,
+	80% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1.06);
+		opacity: 0;
+	}
+}
+.sym {
+	z-index: 49;
+}
+.sym::before {
+	content: "";
+	width: 60vmin;
+	aspect-ratio: 1;
+	background: var(--gloss), var(--gold);
+	clip-path: polygon(
+		50% 0,
+		61% 35%,
+		98% 35%,
+		68% 57%,
+		79% 91%,
+		50% 70%,
+		21% 91%,
+		32% 57%,
+		2% 35%,
+		39% 35%
+	);
+	animation: sym 0.9s cubic-bezier(0.3, 0, 0.7, 1) forwards;
+}
+@keyframes sym {
+	0% {
+		transform: scale(0.2) rotate(-30deg);
+		opacity: 0.9;
+	}
+	100% {
+		transform: scale(5) rotate(20deg);
+		opacity: 0;
+	}
+}
+.afterglow {
+	box-shadow: inset 0 0 70px 18px rgb(255 255 255 / 0.7);
+	animation: fade-in-out 0.9s ease-in-out forwards;
+}
+@keyframes fade-in-out {
+	0%,
+	100% {
+		opacity: 0;
+	}
+	35% {
+		opacity: 1;
+	}
+}
+.float.fly {
+	animation: none;
 }
 .tip,
 .toast,

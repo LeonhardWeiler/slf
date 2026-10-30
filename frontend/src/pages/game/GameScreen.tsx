@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
-import { floatText, haptic, shiftPalette, slam } from "@/lib/feel";
+import { floatText, haptic, mood, shiftPalette, slam } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
@@ -23,7 +23,7 @@ import { RoomHeader } from "@/components/RoomHeader";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Av, Btn, IconBtn, Mascot, mood, Tiles } from "@/components/kit";
+import { Av, Btn, IconBtn, Mascot, Tiles } from "@/components/kit";
 
 // typedValue is what an answer adds to the live score: its letters, plus the
 // word bonus once it passes the rules. The real score is set in review.
