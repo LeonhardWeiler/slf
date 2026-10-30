@@ -1,5 +1,6 @@
 import { type ReactNode, type RefObject, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { sound } from "@/lib/sound";
 
 // Count of currently-open modals. Global keyboard shortcuts on the game screens
 // (Enter to start the next round / buzz, Ctrl/Cmd+C to copy the code) query
@@ -44,6 +45,7 @@ export function Modal({
 			) ?? [];
 		(initialFocus?.current ?? focusables()[0])?.focus();
 		openModals++;
+		sound.hush(true);
 		const prevOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		function onKey(e: KeyboardEvent) {
@@ -74,6 +76,7 @@ export function Modal({
 			window.removeEventListener("keydown", onKey);
 			document.body.style.overflow = prevOverflow;
 			openModals--;
+			sound.hush(openModals > 0);
 			// A dialog that removed its own trigger (kicking the player whose row
 			// opened it) leaves a detached node; focusing that would be worse
 			// than doing nothing.

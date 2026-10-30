@@ -16,29 +16,24 @@ const pent = (n: number) => {
 	return 72 + [0, 2, 4, 7, 9][i % 5] + 12 * Math.floor(i / 5);
 };
 
-const SCENES: Record<
-	Scene,
-	{ bpm: number; pulse: number; hat: number; bell: number }
-> = {
-	lobby: { bpm: 84, pulse: 0, hat: 0, bell: 1 },
-	play: { bpm: 92, pulse: 1, hat: 1, bell: 0 },
-	final: { bpm: 104, pulse: 2, hat: 2, bell: 1 },
-	review: { bpm: 80, pulse: 0, hat: 0, bell: 0 },
-	result: { bpm: 88, pulse: 1, hat: 0, bell: 1 },
-	sprint: { bpm: 96, pulse: 1, hat: 1, bell: 0 },
-	quiet: { bpm: 72, pulse: 0, hat: 0, bell: 0 },
+const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+// The music has no beat: a scene sets the mean gap between notes in seconds,
+// their register and the brightness of the music bus.
+const SCENES: Record<Scene, { gap: number; reg: number; cut: number }> = {
+	lobby: { gap: 2.2, reg: 0, cut: 2600 },
+	play: { gap: 2.6, reg: 0, cut: 2200 },
+	final: { gap: 1.7, reg: 12, cut: 3600 },
+	review: { gap: 3, reg: 0, cut: 1800 },
+	result: { gap: 2, reg: 7, cut: 3200 },
+	sprint: { gap: 2.4, reg: 0, cut: 2400 },
+	quiet: { gap: 3.6, reg: -5, cut: 1400 },
 };
 const PROG: [number, number[]][] = [
-	[48, [0, 4, 7, 11]],
-	[45, [0, 3, 7, 10]],
-	[41, [0, 4, 7, 11]],
-	[43, [0, 4, 7, 9]],
-];
-const BELLS = [
-	[0, 7, 12, 16],
-	[0, 3, 7, 15],
-	[0, 4, 11, 16],
-	[0, 7, 9, 14],
+	[48, [0, 4, 7, 11, 14]],
+	[45, [0, 3, 7, 10, 14]],
+	[41, [0, 4, 7, 11, 14]],
+	[43, [0, 4, 7, 9, 14]],
 ];
 
 type Bus = "music" | "sfx";
@@ -67,11 +62,15 @@ class Sound {
 	layer = 0;
 	private ctx: AudioContext | null = null;
 	private music!: GainNode;
+	private tint!: BiquadFilterNode;
 	private section!: GainNode;
 	private sfx!: GainNode;
 	private noiseBuf!: AudioBuffer;
-	private step = 0;
+	private hushed = false;
 	private next = 0;
+	private chord = 0;
+	private chordEnd = 0;
+	private lowAt = 0;
 	private loop = 0;
 
 	start() {
@@ -96,7 +95,21 @@ class Sound {
 			limit.release.value = 0.14;
 			const out = ctx.createGain();
 			out.gain.value = 1.3;
-			this.music.connect(limit);
+			this.tint = ctx.createBiquadFilter();
+			this.tint.frequency.value = SCENES[this.scene].cut;
+			const len = ctx.sampleRate * 3;
+			const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+			for (let c = 0; c < 2; c++) {
+				const d = ir.getChannelData(c);
+				for (let i = 0; i < len; i++)
+					d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3;
+			}
+			const room = ctx.createConvolver();
+			room.buffer = ir;
+			const wet = ctx.createGain();
+			wet.gain.value = 0.6;
+			this.music.connect(this.tint).connect(limit);
+			this.tint.connect(room).connect(wet).connect(limit);
 			this.sfx.connect(limit);
 			limit.connect(out).connect(ctx.destination);
 			this.levels();
@@ -106,19 +119,24 @@ class Sound {
 			this.next = ctx.currentTime + 0.05;
 		}
 		void this.ctx.resume().catch(() => {});
-		if (!this.loop) this.loop = window.setInterval(() => this.schedule(), 25);
+		if (!this.loop) this.loop = window.setInterval(() => this.schedule(), 100);
 	}
 
 	levels() {
 		if (!this.ctx) return;
 		const { music, sfx } = prefs.get();
 		const t = this.ctx.currentTime;
-		this.music.gain.setTargetAtTime(music, t, 0.05);
+		this.music.gain.setTargetAtTime(this.hushed ? 0 : music, t, 0.15);
 		this.sfx.gain.setTargetAtTime(sfx, t, 0.05);
 	}
 
-	// setScene fades out what the old scene still has ringing and starts the
-	// new one on a fresh bar, so two grooves never overlap.
+	// hush silences the music while a menu or dialog is open.
+	hush(on: boolean) {
+		this.hushed = on;
+		this.levels();
+	}
+
+	// setScene lets the old scene ring out and starts the new one after a breath.
 	setScene(s: Scene) {
 		this.layer = 0;
 		if (s === this.scene) return;
@@ -126,13 +144,23 @@ class Sound {
 		const ctx = this.ctx;
 		if (!ctx) return;
 		const t = ctx.currentTime;
-		this.section.gain.setTargetAtTime(0, t, 0.12);
+		this.section.gain.setTargetAtTime(0, t, 0.4);
 		const old = this.section;
-		setTimeout(() => old.disconnect(), 3000);
+		setTimeout(() => old.disconnect(), 4000);
 		this.section = ctx.createGain();
 		this.section.connect(this.music);
-		this.step = 0;
-		this.next = t + 0.3;
+		this.tint.frequency.setTargetAtTime(SCENES[s].cut, t, 0.5);
+		this.next = t + 0.6;
+	}
+
+	// duck lowers the music under a big moment and lets it swell back.
+	private duck(sec = 1.5) {
+		const t = this.now;
+		const g = this.section?.gain;
+		if (!g) return;
+		g.cancelScheduledValues(t);
+		g.setTargetAtTime(0.25, t, 0.03);
+		g.setTargetAtTime(1, t + sec, 0.6);
 	}
 
 	pause() {
@@ -232,67 +260,39 @@ class Sound {
 	// bell is the casino voice: a sine with a quiet inharmonic partial.
 	private bell(m: number, dur: number, gain: number, t = 0, bus: Bus = "sfx") {
 		const f = hz(m);
-		this.tone(f, dur, gain, { t, bus });
+		this.tone(f, dur, gain, { t, bus, attack: bus === "music" ? 0.03 : 0.004 });
 		this.tone(f * 2.76, dur * 0.35, gain * 0.25, { t, bus });
 	}
 
+	// schedule drops one note at a time: a chord tone that rings for seconds,
+	// every half minute a low root as a resting point, now and then a pause.
+	// Each answer locked in the round (layer) thickens it a little.
 	private schedule() {
 		const ctx = this.ctx;
 		if (!ctx || !this.ok) return;
+		const now = ctx.currentTime;
+		if (this.next < now - 1) this.next = now + 0.2;
+		if (this.next > now + 0.3) return;
+		const t = this.next;
 		const sc = SCENES[this.scene];
-		const sixteenth = 60 / sc.bpm / 4;
-		const barLen = sixteenth * 16;
-		if (this.next < ctx.currentTime - 0.25) this.next = ctx.currentTime + 0.02;
-		while (this.next < ctx.currentTime + 0.12) {
-			const t = this.next;
-			const s = this.step % 16;
-			const bar = Math.floor(this.step / 16) % 4;
-			const [root, chord] = PROG[bar];
-			const L = this.layer;
-			if (s === 0) {
-				for (const c of chord)
-					for (const d of [-7, 7])
-						this.tone(hz(root + 12 + c), barLen, 0.022, {
-							t,
-							type: "triangle",
-							bus: "music",
-							cut: 1100,
-							detune: d,
-							attack: barLen * 0.35,
-						});
-				this.tone(hz(root - 12), barLen, 0.16, {
-					t,
-					bus: "music",
-					attack: 0.08,
-				});
-			}
-			if (sc.pulse && s % (sc.pulse === 2 ? 4 : 8) === 0)
-				this.tone(95, 0.3, 0.22, { t, glide: 50, bus: "music", attack: 0.01 });
-			if (sc.hat && s % 4 === 2)
-				this.noise(0.04, 0.03, { t, f: 9000, bus: "music" });
-			if (sc.hat >= 2 && s % 2 === 1)
-				this.noise(0.02, 0.015, { t, f: 10000, bus: "music" });
-			if ((sc.bell || L >= 1) && s % 4 === 0)
-				this.bell(
-					root + 24 + BELLS[bar][s / 4],
-					barLen * 0.4,
-					0.02,
-					t,
-					"music",
-				);
-			if (L >= 2 && s % 4 === 2)
-				this.bell(root + 36 + chord[(s >> 2) % 4], 0.5, 0.012, t, "music");
-			if (L >= 3 && s % 2 === 1)
-				this.bell(
-					root + 36 + BELLS[bar][(s >> 1) % 4],
-					0.25,
-					0.008,
-					t,
-					"music",
-				);
-			this.step++;
-			this.next += sixteenth;
+		if (t >= this.chordEnd) {
+			this.chord = (this.chord + 1) % PROG.length;
+			this.chordEnd = t + rand(8, 15);
 		}
+		const [root, tones] = PROG[this.chord];
+		if (t >= this.lowAt) {
+			this.lowAt = t + rand(26, 34);
+			this.bell(root + 12, 4, 0.06, t, "music");
+		} else {
+			const m = root + 24 + sc.reg + tones[Math.floor(rand(0, tones.length))];
+			this.bell(m, rand(2, 4), 0.022, t, "music");
+			if (this.layer >= 3 && Math.random() < 0.4)
+				this.bell(m + 12, 2, 0.008, t + rand(0.2, 0.6), "music");
+		}
+		this.next =
+			t +
+			(sc.gap / (1 + this.layer * 0.12)) * rand(0.7, 1.35) +
+			(Math.random() < 0.12 ? rand(2, 4) : 0);
 	}
 
 	key(n: number) {
@@ -316,6 +316,7 @@ class Sound {
 		this.tone(90, 0.16, 0.25, { t, glide: 45 });
 	}
 	clear() {
+		this.duck();
 		const t = this.now;
 		for (const [i, c] of [0, 4, 7, 12, 16, 19, 24, 28].entries())
 			this.bell(79 + c, 0.5, 0.11, t + i * 0.045);
@@ -326,11 +327,13 @@ class Sound {
 		this.noise(0.02, 0.06, { type: "bandpass", f: 2600 + i * 60, q: 3 });
 	}
 	land() {
+		this.duck();
 		this.tone(120, 0.4, 0.5, { glide: 38 });
 		this.noise(0.25, 0.12, { type: "lowpass", f: 900 });
 		for (const c of [0, 4, 7]) this.bell(72 + c, 0.8, 0.07);
 	}
 	slam() {
+		this.duck();
 		this.noise(0.35, 0.3, { type: "bandpass", f: 500, q: 0.6 });
 		this.tone(80, 0.5, 0.6, { glide: 32 });
 	}
@@ -381,6 +384,7 @@ class Sound {
 			});
 	}
 	boom() {
+		this.duck();
 		this.tone(90, 0.8, 0.6, { glide: 30 });
 		this.noise(0.9, 0.3, { type: "highpass", f: 3000, to: 900 });
 		this.noise(0.4, 0.25, { type: "lowpass", f: 700 });
@@ -403,6 +407,7 @@ class Sound {
 			this.bell(pent(5 + n + d), 0.3, 0.1, t + i * 0.05);
 	}
 	fanfare() {
+		this.duck();
 		const t = this.now;
 		[
 			[60, 64, 67],
@@ -437,6 +442,7 @@ class Sound {
 			this.pluck(m, 0.16, 0.035, t + 0.08 + i * 0.06);
 	}
 	crown() {
+		this.duck();
 		const t = this.now;
 		for (const [i, c] of [0, 4, 7, 12, 16, 19, 24].entries())
 			this.bell(72 + c, 0.6, 0.06, t + i * 0.035);
