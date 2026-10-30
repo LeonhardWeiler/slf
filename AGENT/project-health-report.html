@@ -27,7 +27,7 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>1</strong>
+<strong>0</strong>
 <span>medium</span>
 </div>
 <div class="stat">
@@ -39,7 +39,7 @@
 <span>info</span>
 </div>
 <div class="stat">
-<strong>37</strong>
+<strong>36</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -126,19 +126,13 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">37 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">36 Findings sichtbar.</p>
 
 
 
 
 
 
-<article class="finding" id="REL-09" data-priority="medium" data-area="Zuverlässigkeit">
-<h3><span class="tag medium">medium</span> <span class="id">REL-09</span> Ein laufendes Spiel blockiert beim Deploy bis zu 1 h alle neuen Spiele</h3>
-<p class="meta">Zuverlässigkeit · <code>backend/internal/websocket/persist.go:23–47</code> (<code>idle</code>, <code>Drain</code>), <code>game_handlers.go:29</code>, <code>backend/cmd/server/main.go:113</code></p>
-<p><code>Drain</code> wartet, bis keine Lobby mehr außerhalb von <code>Lobby</code> oder <code>GameOver</code> steht, höchstens 1 h. Solange lehnt <code>handleStartGame</code> auf dem ganzen Server jeden Start ab („Gleich kommt ein Update“). Als busy zählt auch eine Lobby in <code>RoundResult</code>, deren Host den Tab offen stehen lässt, oder eine Runde ohne Zeitlimit. Ohne Zeitlimit ist der Standard (<code>handlers.go:134</code>), und mit verbundenem Client räumt der Janitor sie nicht ab. Nach Ablauf der Stunde verwirft <code>Save</code> genau diese Lobbys. Heute dauerten alle 6 Drains höchstens 8 s, der Fall braucht also nur etwas mehr Betrieb.</p>
-<p><b>Empfehlung.</b> Die Drain-Frist auf wenige Minuten kürzen. Als busy nur <code>Countdown</code>, <code>Playing</code> und <code>Reviewing</code> mit mindestens einem verbundenen Spieler zählen. <code>RoundResult</code> wie idle speichern (der Zustand ist bereits in <code>LastResult</code>). Test: Lobby in <code>RoundResult</code> beendet <code>Drain</code> sofort.</p>
-</article>
 
 <article class="finding" id="PERF-01" data-priority="low" data-area="Performance">
 <h3><span class="tag low">low</span> <span class="id">PERF-01</span> Stats-Datei-I/O läuft unter dem globalen Hub-Lock</h3>

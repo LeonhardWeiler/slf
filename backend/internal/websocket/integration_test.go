@@ -961,6 +961,51 @@ func TestDrainThenRestoreKeepsLobby(t *testing.T) {
 	}
 }
 
+// A lobby between rounds does not hold up a deploy and comes back as it was.
+func TestDrainSavesRoundResult(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	guest.waitFor("sessionCreated")
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State string `json:"state"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+	host.send("endRound", map[string]any{})
+	host.waitFor("roundResult")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	hub.Drain(ctx)
+	if ctx.Err() != nil {
+		t.Fatal("drain waited for a lobby in RoundResult")
+	}
+	host.send("startNextRound", map[string]any{})
+	host.waitFor("error")
+
+	path := filepath.Join(t.TempDir(), "lobbies.json")
+	if err := hub.Save(path); err != nil {
+		t.Fatal(err)
+	}
+	srv2, hub2 := newServerHub(t)
+	if err := hub2.Load(path); err != nil {
+		t.Fatal(err)
+	}
+	back := dial(t, srv2)
+	back.sessionID = host.sessionID
+	back.send("reconnect", map[string]any{})
+	back.waitFor("roundResult")
+	back.send("startNextRound", map[string]any{})
+	for gs.State != "Countdown" {
+		json.Unmarshal(back.waitFor("gameState"), &gs)
+	}
+}
+
 // The commentator board gets one row per change of a player's filled
 // categories, not one message per keystroke.
 func TestCommentatorGetsRowDeltas(t *testing.T) {

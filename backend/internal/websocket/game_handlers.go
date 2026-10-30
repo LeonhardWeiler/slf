@@ -28,7 +28,7 @@ func handleStartGame(hub *Hub, c *Client) {
 	}
 	if hub.draining {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeInvalidState, "Gleich kommt ein Update. Bitte in ein paar Minuten nochmal starten.")
+		hub.sendError(c, CodeInvalidState, drainMessage)
 		return
 	}
 	if len(lobby.Categories) < 1 {
@@ -450,6 +450,8 @@ func handleVoteAnswer(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 }
 
+const drainMessage = "Gleich kommt ein Update. Bitte in ein paar Minuten nochmal starten."
+
 // reviewHold keeps the last ready tick on screen before the review moves on.
 const reviewHold = 700 * time.Millisecond
 
@@ -686,6 +688,11 @@ func handleStartNextRound(hub *Hub, c *Client) {
 	if !ok || !player.IsHost || lobby.State != game.StateRoundResult {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
+		return
+	}
+	if hub.draining {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeInvalidState, drainMessage)
 		return
 	}
 	hub.mu.Unlock()

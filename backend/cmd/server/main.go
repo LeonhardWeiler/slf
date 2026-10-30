@@ -110,7 +110,7 @@ func main() {
 	case <-ctx.Done():
 	case <-hup:
 		log.Println("Draining…")
-		drainCtx, cancel := context.WithTimeout(ctx, time.Hour)
+		drainCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		hub.Drain(drainCtx)
 		cancel()
 	}

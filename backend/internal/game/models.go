@@ -142,8 +142,8 @@ type Game struct {
 	// LastResult is kept so a reconnecting client can be shown the current
 	// RoundResult / GameOver screen.
 	LastResult *RoundResultPayload `json:"-"`
-	Mode       string              `json:"-"`
-	StartedAt  time.Time           `json:"-"`
+	Mode       string              `json:"mode"`
+	StartedAt  time.Time           `json:"startedAt"`
 }
 
 type Session struct {

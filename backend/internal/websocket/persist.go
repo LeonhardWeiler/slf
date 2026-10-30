@@ -24,7 +24,13 @@ func idle(lobby *game.Lobby) bool {
 	return lobby.State == game.StateLobby || lobby.State == game.StateGameOver
 }
 
-// Drain refuses new games and returns once no lobby is mid-game, or when ctx ends.
+// restorable lobbies are saved on shutdown; the others are mid-round.
+func restorable(lobby *game.Lobby) bool {
+	return idle(lobby) || lobby.State == game.StateRoundResult
+}
+
+// Drain refuses new games and rounds and returns once no round is being
+// played, or when ctx ends.
 func (h *Hub) Drain(ctx context.Context) {
 	h.mu.Lock()
 	h.draining = true
@@ -33,7 +39,7 @@ func (h *Hub) Drain(ctx context.Context) {
 		h.mu.Lock()
 		busy := false
 		for _, lobby := range h.rooms.All() {
-			busy = busy || !idle(lobby)
+			busy = busy || !restorable(lobby) && slices.ContainsFunc(slices.Collect(maps.Values(lobby.Players)), func(p *game.Player) bool { return p.Connected })
 		}
 		h.mu.Unlock()
 		if !busy {
@@ -47,12 +53,12 @@ func (h *Hub) Drain(ctx context.Context) {
 	}
 }
 
-// Save writes every idle lobby to path so Load can restore it after a restart.
+// Save writes every restorable lobby to path so Load can restore it after a restart.
 func (h *Hub) Save(path string) error {
 	h.mu.Lock()
 	var saved []savedLobby
 	for _, lobby := range h.rooms.All() {
-		if !idle(lobby) {
+		if !restorable(lobby) {
 			continue
 		}
 		s := savedLobby{Lobby: lobby, Players: lobby.Players, Game: lobby.Game}
