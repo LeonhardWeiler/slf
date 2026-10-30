@@ -37,3 +37,15 @@ func TestNilLog(t *testing.T) {
 	var l *Log
 	l.Add(Event{Ev: "start"})
 }
+
+func TestAddStopsAtMaxSize(t *testing.T) {
+	l, err := Open(filepath.Join(t.TempDir(), "events.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.size = maxSize - 10
+	l.Add(Event{Ev: "start"})
+	if l.size != maxSize-10 {
+		t.Fatalf("size = %d", l.size)
+	}
+}

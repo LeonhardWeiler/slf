@@ -132,6 +132,9 @@ type Client struct {
 	// lobbyState; while it matches, lobby changes go out as lobbyPatch.
 	// Guarded by Hub.mu.
 	lobbyBase string
+	// tracked holds the track kinds this client already sent, per round.
+	// Guarded by Hub.mu.
+	tracked map[string]bool
 
 	// Outbound messages, written in order by writeLoop. Enqueueing never blocks,
 	// so a broadcast under hub.mu does no I/O.

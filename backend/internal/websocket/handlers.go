@@ -67,7 +67,7 @@ func handleMessage(hub *Hub, c *Client, msg InboundMessage) {
 	case "returnToLobby":
 		handleReturnToLobby(hub, c)
 	case "track":
-		handleTrack(hub, msg.Payload)
+		handleTrack(hub, c, msg.Payload)
 	case "ping":
 		c.send("pong", struct{}{})
 	}

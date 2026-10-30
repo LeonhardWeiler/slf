@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"iter"
 	"log"
 	"net/http"
 	"os"
@@ -31,11 +32,15 @@ type Event struct {
 	Scene       string    `json:"scene,omitempty"`
 }
 
+// maxSize caps the event file; Add drops events beyond it.
+const maxSize = 50 << 20
+
 // Log is nil when stats are off; Add is then a no-op.
 type Log struct {
 	mu   sync.Mutex
 	path string
 	f    *os.File
+	size int64
 }
 
 func Open(path string) (*Log, error) {
@@ -43,7 +48,12 @@ func Open(path string) (*Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Log{path: path, f: f}, nil
+	st, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+	return &Log{path: path, f: f, size: st.Size()}, nil
 }
 
 func (l *Log) Add(e Event) {
@@ -54,26 +64,33 @@ func (l *Log) Add(e Event) {
 	b, _ := json.Marshal(e)
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if _, err := l.f.Write(append(b, '\n')); err != nil {
+	if l.size+int64(len(b))+1 > maxSize {
+		return
+	}
+	n, err := l.f.Write(append(b, '\n'))
+	l.size += int64(n)
+	if err != nil {
 		log.Printf("stats: %v", err)
 	}
 }
 
-func (l *Log) read() []Event {
-	f, err := os.Open(l.path)
-	if err != nil {
-		return nil
-	}
-	defer f.Close()
-	var out []Event
-	sc := bufio.NewScanner(f)
-	for sc.Scan() {
-		var e Event
-		if json.Unmarshal(sc.Bytes(), &e) == nil {
-			out = append(out, e)
+// read streams the file without holding l.mu; a line still being appended
+// just fails to parse.
+func (l *Log) read() iter.Seq[Event] {
+	return func(yield func(Event) bool) {
+		f, err := os.Open(l.path)
+		if err != nil {
+			return
+		}
+		defer f.Close()
+		sc := bufio.NewScanner(f)
+		for sc.Scan() {
+			var e Event
+			if json.Unmarshal(sc.Bytes(), &e) == nil && !yield(e) {
+				return
+			}
 		}
 	}
-	return out
 }
 
 type row struct {
@@ -122,11 +139,8 @@ func avg(sum, n int) string {
 	return fmt.Sprintf("%.1f", float64(sum)/float64(n))
 }
 
-func build(evs []Event) page {
+func build(evs iter.Seq[Event]) page {
 	var p page
-	if len(evs) > 0 {
-		p.Since = evs[0].T.Format("2006-01-02")
-	}
 	type acc struct{ started, ended, finished, secs, rounds, players int }
 	modes := map[string]*acc{}
 	get := func(m string) *acc {
@@ -137,7 +151,10 @@ func build(evs []Event) page {
 	}
 	days, limits, ends := map[string]int{}, map[string]int{}, map[string]int{}
 	worlds, worldEnds, music := map[string]int{}, map[string]int{}, map[string]int{}
-	for _, e := range evs {
+	for e := range evs {
+		if p.Since == "" {
+			p.Since = e.T.Format("2006-01-02")
+		}
 		switch e.Ev {
 		case "start":
 			get(e.Mode).started++
@@ -222,11 +239,8 @@ th{color:#888;font-weight:500}td.n{text-align:right;font-variant-numeric:tabular
 `))
 
 func (l *Log) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	l.mu.Lock()
-	evs := l.read()
-	l.mu.Unlock()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tpl.Execute(w, build(evs)); err != nil {
+	if err := tpl.Execute(w, build(l.read())); err != nil {
 		log.Printf("stats: %v", err)
 	}
 }

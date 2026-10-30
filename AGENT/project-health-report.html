@@ -27,7 +27,7 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>2</strong>
+<strong>1</strong>
 <span>medium</span>
 </div>
 <div class="stat">
@@ -39,7 +39,7 @@
 <span>info</span>
 </div>
 <div class="stat">
-<strong>38</strong>
+<strong>37</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -126,18 +126,12 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">38 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">37 Findings sichtbar.</p>
 
 
 
 
 
-<article class="finding" id="SEC-05" data-priority="medium" data-area="Sicherheit">
-<h3><span class="tag medium">medium</span> <span class="id">SEC-05</span> <code>track</code> schreibt ohne Session und ohne Grenze in <code>events.jsonl</code></h3>
-<p class="meta">Sicherheit · <code>backend/internal/websocket/stats.go:37</code> (<code>handleTrack</code>), <code>handlers.go:69</code>, <code>backend/internal/stats/stats.go</code> (<code>Add</code>, <code>read</code>)</p>
-<p>Jeder Socket darf <code>track</code> senden, auch ohne gebundene Session. Begrenzt wird das nur durch den Token-Bucket (40/s pro Socket). nginx erlaubt 100 Sockets pro IP, also rund 4000 Zeilen/s von einem Rechner. Das sind mehrere GB pro Tag in einer Datei, die nie rotiert wird. Das füllt die Disk des gemeinsam genutzten Servers und macht die Statistik wertlos. Dazu lädt <code>read</code> beim Dashboard-Aufruf die ganze Datei in den Speicher. Bei <code>MemoryMax 256M</code> beendet systemd den Dienst samt aller laufenden Spiele, und der Lesevorgang hält vorher <code>l.mu</code>, an dem über PERF-01 <code>hub.mu</code> hängt.</p>
-<p><b>Empfehlung.</b> <code>track</code> nur für gebundene Sessions annehmen. Pro Client ein eigenes Limit setzen (z. B. 1 Event je Art und Runde). <code>Add</code> verwirft Events ab einer Dateigröße (z. B. 50 MB). Das Dashboard aggregiert beim Lesen per Streaming, statt alle Events zu sammeln.</p>
-</article>
 
 <article class="finding" id="REL-09" data-priority="medium" data-area="Zuverlässigkeit">
 <h3><span class="tag medium">medium</span> <span class="id">REL-09</span> Ein laufendes Spiel blockiert beim Deploy bis zu 1 h alle neuen Spiele</h3>
