@@ -27,7 +27,7 @@
 <span>high</span>
 </div>
 <div class="stat">
-<strong>3</strong>
+<strong>2</strong>
 <span>medium</span>
 </div>
 <div class="stat">
@@ -39,7 +39,7 @@
 <span>info</span>
 </div>
 <div class="stat">
-<strong>39</strong>
+<strong>38</strong>
 <span>offene Findings</span>
 </div>
 </div>
@@ -126,17 +126,11 @@
 </select></label>
 <label>&nbsp;<button type="button" id="reset">Zurücksetzen</button></label>
 </form>
-<p id="filter-count" class="meta" role="status">39 Findings sichtbar.</p>
+<p id="filter-count" class="meta" role="status">38 Findings sichtbar.</p>
 
 
 
 
-<article class="finding" id="REL-03" data-priority="medium" data-area="Zuverlässigkeit">
-<h3><span class="tag medium">medium</span> <span class="id">REL-03</span> Client wartet nur 3 s auf den Pong</h3>
-<p class="meta">Zuverlässigkeit · <code>frontend/src/lib/ws.ts:136</code></p>
-<p>Der Client pingt alle 10 s und trennt nach 3 s ohne Antwort. Der Server rechnet selbst mit bis zu 15 s Write-Timeout. Auf EDGE/3G, in Zügen oder bei TCP-Retransmits kostet das einen Reconnect samt vollem <code>lobbyState</code>, der auf genau diesem Netz wieder langsam ist: Reconnect-Schleife.</p>
-<p><b>Empfehlung.</b> Pong-Timeout auf 10 s anheben (gleich dem Intervall); nicht kürzer als ein realistischer RTT-Spike auf Mobilnetz.</p>
-</article>
 
 <article class="finding" id="SEC-05" data-priority="medium" data-area="Sicherheit">
 <h3><span class="tag medium">medium</span> <span class="id">SEC-05</span> <code>track</code> schreibt ohne Session und ohne Grenze in <code>events.jsonl</code></h3>

@@ -133,7 +133,7 @@ class WSClient {
 						socket.onmessage = null;
 						socket.close();
 						lost();
-					}, 3000);
+					}, 10_000);
 				}, 10_000);
 				resolve();
 			};
