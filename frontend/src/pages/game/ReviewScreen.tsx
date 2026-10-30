@@ -326,7 +326,12 @@ export function ReviewScreen() {
 							</div>
 						);
 					})}
-					{review.answers.length === 0 && <Mascot base="sad" />}
+					{review.answers.every((a) => a.value === "") && (
+						<div className="nobody">
+							<Mascot base="sad" />
+							<b>Niemand hatte etwas</b>
+						</div>
+					)}
 				</div>
 
 				{mergeAnchor && (

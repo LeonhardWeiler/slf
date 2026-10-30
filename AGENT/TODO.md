@@ -1,6 +1,5 @@
 # TODO
 
-- [] Wenn niemand bei einer Kategorie eine Antwort hat, dann soll das klarer dargestellt werden, gerade ist es dann einfach leer.
 
 ## Video
 

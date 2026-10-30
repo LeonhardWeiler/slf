@@ -423,6 +423,34 @@ describe("review validity", () => {
 		});
 	});
 
+	it("says so when nobody answered", () => {
+		setup("host", "Reviewing");
+		useRoomStore.getState().receive("reviewState", {
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			answers: [
+				{
+					answerId: "guest",
+					playerId: "guest",
+					value: "",
+					valid: false,
+					mergedInto: "",
+					pointsPreview: 0,
+					votes: null,
+					ruled: false,
+				},
+			],
+			ready: null,
+			voters: null,
+		});
+		const { container } = render(<ReviewScreen />);
+		expect(screen.getByText("Niemand hatte etwas")).toBeDefined();
+		expect(container.querySelectorAll(".ans").length).toBe(1);
+	});
+
 	it("lets a voter doubt an answer by tapping its card", () => {
 		setup("guest", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {

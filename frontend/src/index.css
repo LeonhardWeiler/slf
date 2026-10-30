@@ -1700,6 +1700,20 @@ body.urgent .bg i {
 .ans-word .tiles {
 	--s: 26px;
 }
+.nobody {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 20px;
+	border: 3px dashed var(--line);
+	border-radius: var(--rc);
+	background: var(--card);
+	color: var(--soft);
+	font-size: 22px;
+	animation: pop-in 0.4s var(--spring);
+}
 .ans-word .empty {
 	color: #c9c9d4;
 	font-size: 22px;
