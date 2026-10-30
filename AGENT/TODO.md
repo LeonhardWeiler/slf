@@ -1,6 +1,5 @@
 # TODO
 
-- [] In manchen Browsern, auf manchen Geräten (z.b. Windows Firefox), ist nachdem man 2 buchstaben geschrieben, hat und damit der check absolviert ist für ein gültiges wort, fliegt man aus der input box raus, und dass ist natürlich störend, es soll wirklich erst abgehakt werden wenn man raustabbt und es richtig ist.
 - [] Die Animation, nachricht etc. die gerade kommt nachdem man alle kategorien ausgefüllt hat, soll erst kommen, wenn man auf den stopp button geklickt hat.
 - [] Auf mobile sieht man die ganzen Animationen nicht, also z.b. Von den eingetippten wörtern.
 - [] Wenn niemand bei einer Kategorie eine Antwort hat, dann soll das klarer dargestellt werden, gerade ist es dann einfach leer.

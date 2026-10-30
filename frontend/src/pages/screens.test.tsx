@@ -638,6 +638,31 @@ describe("GameScreen field hint", () => {
 		expect(field.getAttribute("aria-invalid")).toBe("true");
 		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
 	});
+
+	it("locks a valid answer only once its field is left", () => {
+		setup("guest", "Playing");
+		useRoomStore.getState().receive("gameState", {
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+		});
+		render(<GameScreen />);
+		const field = document.getElementById("cat-c1") as HTMLInputElement;
+		const locked = () => field.closest(".card")?.classList.contains("locked");
+		fireEvent.blur(field);
+		fireEvent.change(field, { target: { value: "Be" } });
+		expect(locked()).toBe(false);
+		fireEvent.blur(field);
+		expect(locked()).toBe(true);
+		fireEvent.change(field, { target: { value: "Ber" } });
+		expect(locked()).toBe(false);
+	});
 });
 
 describe("GameScreen solo", () => {

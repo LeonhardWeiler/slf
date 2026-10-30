@@ -2401,12 +2401,6 @@ body.urgent .bg::after {
 .qr-pulse {
 	animation: pop-in 0.4s var(--spring);
 }
-.haptic {
-	position: fixed;
-	left: -100px;
-	opacity: 0;
-	pointer-events: none;
-}
 
 /* ---------- primitives ---------- */
 .btn.danger {

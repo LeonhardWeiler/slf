@@ -144,13 +144,19 @@ export function worldFor(seed: string, round: number): World {
 let iosSwitch: HTMLLabelElement | null = null;
 
 // haptic vibrates on Android; on iOS a click on a hidden switch input gives a
-// short tick, the only haptic Safari exposes.
+// short tick, the only haptic Safari exposes. Elsewhere that click would move
+// focus out of the field being typed in.
+const ios =
+	navigator.maxTouchPoints > 1 &&
+	/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent);
+
 export function haptic(pattern: number | number[] = 10) {
 	if (!prefs.get().haptics) return;
 	if ("vibrate" in navigator) {
 		navigator.vibrate(pattern);
 		return;
 	}
+	if (!ios) return;
 	if (!iosSwitch) {
 		iosSwitch = document.createElement("label");
 		iosSwitch.className = "haptic";

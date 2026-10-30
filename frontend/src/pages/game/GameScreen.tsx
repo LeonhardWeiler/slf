@@ -110,7 +110,7 @@ export function GameScreen() {
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
-	// Categories the player has blurred at least once - a field only shows a red
+	// Categories left since their last edit - a field only locks or shows a red
 	// "invalid" border after it was left, not while still being typed in.
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	const loadedRound = useRef<string>("");
@@ -301,6 +301,7 @@ export function GameScreen() {
 			storage.set(answersKey(roundId), JSON.stringify(next));
 			return next;
 		});
+		setTouched((t) => (t[categoryId] ? { ...t, [categoryId]: false } : t));
 		pendingAnswers.current[categoryId] = value;
 		if (!flushTimer.current) {
 			flushTimer.current = setTimeout(flushAnswers, 250);
