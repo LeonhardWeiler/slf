@@ -1,6 +1,6 @@
 import type { World } from "./feel";
 
-type Shape = "sq" | "dot" | "star" | "ribbon" | "blob";
+type Shape = "sq" | "dot" | "star" | "ribbon" | "blob" | "spark";
 interface Part {
 	x: number;
 	y: number;
@@ -9,6 +9,7 @@ interface Part {
 	s: number;
 	r: number;
 	vr: number;
+	ph: number;
 	c: string;
 	life: number;
 	shape: Shape;
@@ -18,7 +19,6 @@ interface Part {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T>(l: readonly T[]) => l[Math.floor(Math.random() * l.length)];
-
 const SHAPES: Record<
 	World,
 	{ burst: Shape[]; rain: Shape[]; gravity: number }
@@ -80,11 +80,12 @@ class Fx {
 				y,
 				vx: Math.cos(a) * v,
 				vy: Math.sin(a) * v - up,
-				s: rand(0.5, 1) * size,
+				s: rand(0.4, 2) * size,
 				r: rand(0, 6),
 				vr: rand(-0.3, 0.3),
+				ph: rand(0, 6),
 				c: pick(this.colors),
-				life,
+				life: life * rand(0.6, 1.2),
 				shape: pick(shapes),
 				flutter: false,
 				bounce: this.world === "rubber" ? 2 : 0,
@@ -107,11 +108,12 @@ class Fx {
 				y: rand(-innerHeight * 0.6, -10),
 				vx: rand(-1.5, 1.5),
 				vy: rand(1, 4),
-				s: rand(7, 13),
+				s: rand(4, 20),
 				r: rand(0, 6),
 				vr: rand(-0.2, 0.2),
+				ph: rand(0, 6),
 				c: pick(this.colors),
-				life: 2.6,
+				life: rand(1.8, 3.2),
 				shape: pick(shapes),
 				flutter: true,
 				bounce: 0,
@@ -125,36 +127,68 @@ class Fx {
 		this.raf = requestAnimationFrame(this.draw);
 	}
 
+	// A burst piece that dies may leave a sparkle that twinkles in place.
 	private draw = () => {
 		const ctx = this.ctx;
 		if (!ctx) return;
 		ctx.clearRect(0, 0, innerWidth, innerHeight);
 		const g = SHAPES[this.world].gravity;
-		this.parts = this.parts.filter((p) => p.life > 0 && p.y < innerHeight + 40);
+		const live: Part[] = [];
 		for (const p of this.parts) {
-			p.vy += p.flutter ? 0.04 : g;
-			p.vx *= p.flutter ? 0.995 : 0.985;
-			if (p.flutter) p.vx += Math.sin(p.y / 30 + p.r) * 0.08;
-			p.x += p.vx;
-			p.y += p.vy;
-			if (p.bounce && p.y > innerHeight - 20 && p.vy > 0) {
-				p.vy *= -0.6;
-				p.bounce--;
+			if (p.y > innerHeight + 40) continue;
+			if (p.life <= 0) {
+				if (
+					!p.flutter &&
+					p.shape !== "spark" &&
+					!this.calm &&
+					Math.random() < 0.35
+				)
+					live.push({
+						...p,
+						vx: 0,
+						vy: 0,
+						s: rand(6, 12),
+						c: "#fff",
+						life: rand(0.5, 1),
+						shape: "spark",
+					});
+				continue;
 			}
-			p.r += p.vr;
+			if (p.shape !== "spark") {
+				p.vy += p.flutter ? 0.04 : g;
+				p.vx *= p.flutter ? 0.995 : 0.985;
+				if (p.flutter) p.vx += Math.sin(p.y / 30 + p.r) * 0.08;
+				p.x += p.vx;
+				p.y += p.vy;
+				if (p.bounce && p.y > innerHeight - 20 && p.vy > 0) {
+					p.vy *= -0.6;
+					p.bounce--;
+				}
+				p.r += p.vr;
+			}
+			p.ph += p.flutter ? 0.12 : 0.25;
 			p.life -= 0.016;
 			this.paint(ctx, p);
+			live.push(p);
 		}
-		this.raf = this.parts.length ? requestAnimationFrame(this.draw) : 0;
+		this.parts = live;
+		this.raf = live.length ? requestAnimationFrame(this.draw) : 0;
 		if (!this.raf && this.canvas) this.canvas.hidden = true;
 	};
 
+	// paint flips a piece in 3D by squashing one axis with cos(ph); its back
+	// side is darker.
 	private paint(ctx: CanvasRenderingContext2D, p: Part) {
 		const s = p.s;
+		const flip = Math.cos(p.ph);
 		ctx.save();
-		ctx.globalAlpha = Math.min(1, p.life * 2);
+		ctx.globalAlpha =
+			p.shape === "spark"
+				? Math.min(1, p.life * 2) * (0.6 + 0.4 * flip)
+				: Math.min(1, p.life * 2);
 		ctx.translate(p.x, p.y);
 		ctx.rotate(p.r);
+		if (p.shape !== "dot" && p.shape !== "spark") ctx.scale(1, flip);
 		ctx.fillStyle = p.c;
 		ctx.beginPath();
 		switch (p.shape) {
@@ -168,9 +202,11 @@ class Fx {
 				ctx.roundRect(-s / 2, -s / 6, s, s / 3, s / 6);
 				break;
 			case "star":
-				for (let k = 0; k < 10; k++) {
-					const rr = k % 2 ? s * 0.22 : s * 0.55;
-					const a = (k * Math.PI) / 5;
+			case "spark":
+				for (let k = 0; k < (p.shape === "star" ? 10 : 8); k++) {
+					const rr =
+						k % 2 ? s * 0.22 * (p.shape === "star" ? 1 : 0.4) : s * 0.55;
+					const a = (k * Math.PI) / (p.shape === "star" ? 5 : 4);
 					ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
 				}
 				break;
@@ -178,7 +214,10 @@ class Fx {
 				ctx.roundRect(-s / 2, -s / 2, s, s, s * 0.28);
 		}
 		ctx.fill();
-		if (p.shape === "sq" || p.shape === "blob") {
+		if (flip < 0) {
+			ctx.fillStyle = "rgba(0,0,0,.22)";
+			ctx.fill();
+		} else if (p.shape === "sq" || p.shape === "blob") {
 			ctx.fillStyle = "rgba(255,255,255,.5)";
 			ctx.beginPath();
 			ctx.roundRect(
