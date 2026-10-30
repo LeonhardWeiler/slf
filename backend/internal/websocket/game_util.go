@@ -477,13 +477,18 @@ func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
 	hub.broadcastLocked(lobby, "gameState", buildGameState(lobby))
 }
 
+// broadcastReviewState sends the review and, since every change of votes,
+// ready marks or voters may complete the category, checks it shortly after.
 func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 	if lobby.Game == nil || lobby.Game.Round == nil || len(lobby.Game.Round.Slots) == 0 {
 		return
 	}
+	r := lobby.Game.Round
 	hub.broadcastLocked(lobby, "reviewState", buildReviewState(lobby))
+	roundID, idx := r.ID, r.ReviewIndex
+	time.AfterFunc(reviewHold, func() { hub.advanceReview(lobby, roundID, idx) })
 }
 
 func (hub *Hub) sendBuzzRejected(c *Client, reason string) {

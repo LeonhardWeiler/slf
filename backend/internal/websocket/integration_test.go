@@ -1176,6 +1176,21 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	if rs := read(); rs.CategoryIndex != 1 || len(rs.Ready) != 0 {
 		t.Fatalf("expected the next category, got %+v", rs)
 	}
+
+	if len(cats) < 3 {
+		t.Fatalf("need 3 categories, got %d", len(cats))
+	}
+	for _, c := range []*testConn{host, bob} {
+		c.send("reviewReady", map[string]any{})
+		read()
+	}
+	time.Sleep(2 * reviewHold)
+	carol.conn.Close(websocket.StatusNormalClosure, "")
+	for {
+		if rs := read(); rs.CategoryIndex == 2 {
+			break
+		}
+	}
 }
 
 func TestSoloSprint(t *testing.T) {
