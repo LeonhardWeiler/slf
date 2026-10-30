@@ -25,8 +25,8 @@ cd frontend && bun run lint && bun run test && bun run build
 
 ## Deploy
 
-A green push to `master` deploys. The server drains on `SIGHUP` and keeps idle
-lobbies across the restart.
+A green push to `master` deploys. The server drains on `SIGHUP` and keeps lobbies
+that are not mid-round across the restart.
 
 | Variable             | Meaning                                           |
 | -------------------- | ------------------------------------------------- |

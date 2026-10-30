@@ -88,10 +88,12 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   spectator): buzz skips the fill and rule checks, and `finishPlaying` scores
   the round without review and goes straight to `nextRound`.
   A joiner ends solo on the spot.
-- **Deploy**: `SIGHUP` drains (no new games until no lobby is mid-game), then
+- **Deploy**: `SIGHUP` drains (no new games or rounds until no round with a
+  connected player is in Countdown/Playing/Reviewing, at most 5 min), then
   `Hub.Shutdown` refuses new sockets/messages and closes all sockets, then
-  idle lobbies are saved to `$STATE_DIRECTORY/lobbies.json` and restored on
-  start (`persist.go`). The client reloads on reconnect when `index.html`
+  lobbies in Lobby/RoundResult/GameOver are saved to
+  `$STATE_DIRECTORY/lobbies.json` and restored on start (`persist.go`); a
+  restored lobby waits `lobbyTTL` for its host instead of the host grace. The client reloads on reconnect when `index.html`
   references a new build (`ws.ts`).
 - **Sprint** (every solo game, `beginCountdown`): one round over a shuffled letter sequence
   (`Round.Letters`, `sprintLetters`: one cycle untimed, which ends the round
@@ -102,8 +104,9 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   = categoryId), so a sprint reuses scoring unchanged. A rejoin replays
   `sprintWords`, one entry per prompt, "" for a skipped one.
 - **Stats** (`internal/stats`): game start/end and the client `track` message
-  (`world`, `leave`, `mute`, `musicOff`, whitelisted in `handleTrack`) append
-  anonymous events to `$STATE_DIRECTORY/events.jsonl`; `STATS_ADDR` serves the
+  (`world`, `leave`, `mute`, `musicOff`, whitelisted in `handleTrack`, only
+  from a lobby member, once per kind and round) append anonymous events to
+  `$STATE_DIRECTORY/events.jsonl` (capped at 50 MB); `STATS_ADDR` serves the
   dashboard on a separate listener (production: tailnet only).
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
