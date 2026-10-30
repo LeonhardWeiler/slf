@@ -137,8 +137,8 @@
 <article class="finding" id="PERF-01" data-priority="low" data-area="Performance">
 <h3><span class="tag low">low</span> <span class="id">PERF-01</span> Stats-Datei-I/O läuft unter dem globalen Hub-Lock</h3>
 <p class="meta">Performance · <code>backend/internal/websocket/game_handlers.go:69</code>, <code>:782</code>, <code>backend/internal/stats/stats.go</code></p>
-<p><code>hub.Stats.Add</code> schreibt synchron in <code>events.jsonl</code>, während <code>hub.mu</code> gehalten wird; <code>ServeHTTP</code> liest die ganze Datei unter <code>l.mu</code>. Ein Dashboard-Aufruf bei einer langsamen Disk blockiert so jedes Spielstart- und Spielende-Event und damit alle Lobbys. Heute ist die Datei wenige kB groß und das Dashboard nur im Tailnet, die Wirkung also gering. Die Datei wird nie rotiert.</p>
-<p><b>Empfehlung.</b> <code>Add</code> außerhalb von <code>hub.mu</code> aufrufen (Event unter dem Lock bauen, danach schreiben). Lesen ohne <code>l.mu</code> (Append-only, Teilzeile am Ende ignorieren). Rotation erst bei Bedarf.</p>
+<p><code>hub.Stats.Add</code> schreibt synchron in <code>events.jsonl</code>, während <code>hub.mu</code> gehalten wird. Eine langsame Disk blockiert so bei jedem Spielstart und Spielende alle Lobbys. Heute ist die Datei wenige kB groß (Obergrenze 50 MB), die Wirkung also gering.</p>
+<p><b>Empfehlung.</b> <code>Add</code> außerhalb von <code>hub.mu</code> aufrufen (Event unter dem Lock bauen, danach schreiben).</p>
 </article>
 
 <article class="finding" id="REL-06" data-priority="low" data-area="Zuverlässigkeit">
