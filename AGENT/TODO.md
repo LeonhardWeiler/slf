@@ -1,6 +1,5 @@
 # TODO
 
-- [] Auf mobile sieht man die ganzen Animationen nicht, also z.b. Von den eingetippten wörtern.
 - [] Wenn niemand bei einer Kategorie eine Antwort hat, dann soll das klarer dargestellt werden, gerade ist es dann einfach leer.
 
 ## Video

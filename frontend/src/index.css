@@ -2808,6 +2808,9 @@ body.calm *::after {
 	animation-iteration-count: 1 !important;
 	transition-duration: 0.01ms !important;
 }
+body.calm :is(.float, .slam b) {
+	animation: fade-out 1s forwards !important;
+}
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
@@ -2815,6 +2818,17 @@ body.calm *::after {
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
+	}
+	:is(.float, .slam b) {
+		animation: fade-out 1s forwards !important;
+	}
+}
+@keyframes fade-out {
+	70% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
 	}
 }
 .mascot[data-mood="sleep"] .m-eyes i {
