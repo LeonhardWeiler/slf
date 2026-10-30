@@ -186,11 +186,11 @@ export function GameScreen() {
 	}, [endsAt]);
 
 	// Solo needs no gate: the lone player may end their own round at any time.
-	const validation = lobby?.solo
-		? { valid: true }
-		: lobby && game
+	const full =
+		lobby && game
 			? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
 			: { valid: false };
+	const validation = lobby?.solo ? { valid: true } : full;
 	const canBuzz =
 		!isSpectator && lobby?.state === "Playing" && validation.valid && !buzzing;
 
@@ -198,6 +198,13 @@ export function GameScreen() {
 		flushAnswers(); // server must have the latest answers before the buzz check
 		buzz();
 		ws.send({ type: "buzz", payload: { roundId } });
+		const n = lobby?.categories.length ?? 0;
+		if (full.valid && n > 1) {
+			sound.clear();
+			shiftPalette();
+			slam(`${n}/${n}`, "clear");
+			mood("cheer", 1400);
+		}
 	}
 
 	async function handleEndRound() {
@@ -252,21 +259,13 @@ export function GameScreen() {
 				).length
 			: 0;
 	const prevLocked = useRef(0);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per newly locked card
 	useEffect(() => {
-		const n = lobby?.categories.length ?? 0;
 		if (lockedCount > prevLocked.current) {
 			sound.word(lockedCount);
 			haptic(15);
 			mood("happy", 700);
 			for (const el of document.querySelectorAll(".card.locked .tiles"))
 				fx.at(el, { n: 10, speed: 5 });
-			if (lockedCount === n && n > 1) {
-				sound.clear();
-				shiftPalette();
-				slam(`${n}/${n}`, "clear");
-				mood("cheer", 1400);
-			}
 		}
 		sound.layer = lockedCount;
 		prevLocked.current = lockedCount;

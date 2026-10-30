@@ -235,8 +235,12 @@ describe("GameScreen", () => {
 			target: { value: "Belgien" },
 		});
 		expect(off()).toBe("false");
+		fireEvent.blur(document.getElementById("cat-c1") as Element);
+		fireEvent.blur(document.getElementById("cat-c2") as Element);
+		expect(document.querySelector(".slam")).toBeNull();
 
 		fireEvent.click(buzz());
+		expect(document.querySelector(".slam")?.textContent).toBe("2/2");
 		expect(send).toHaveBeenCalledWith({
 			type: "buzz",
 			payload: { roundId: "r1" },
