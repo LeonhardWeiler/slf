@@ -10,9 +10,13 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
   lucide-react icons, Zustand, routing via the History API (`src/lib/nav.ts`,
   `src/router.tsx`), Zod. UI primitives live in `src/components/kit.tsx`
   (Btn, IconBtn, Toggle, Slider, Mascot, Tiles, Av); `Shell` adds the global
-  tap sound/haptic, tooltips (`data-tip`, hover and long-press), the per-round
-  world (`lib/feel.ts`: shape, palette, particles via `lib/fx.ts`, timbre via
-  `lib/sound.ts`) and the music scene per lobby state. Light only, no dark mode.
+  tap sound/haptic, tooltips (`data-tip`, hover and long-press) and the music
+  scene per lobby state. `lib/feel.ts` owns the world (material in CSS
+  `[data-world]`, palette, particles and energy via `lib/fx.ts`, timbre via
+  `lib/sound.ts`), the mascot `mood` and `celebrate(level)`; the world
+  changes on a level-3 celebration or the first one after 3 min. Every world
+  needs an entry in `PALETTES` (background L* 45-80, `feel.test.ts`), `SHAPES`
+  and `RX`. Light only, no dark mode.
 - Lint + format: Biome. Frontend tests: `bun test`. Backend tests: `go test`.
 
 ## Commands
