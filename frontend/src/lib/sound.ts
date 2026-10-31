@@ -244,10 +244,16 @@ class Sound {
 				});
 				this.tone(f * 2, dur * 0.4, gain * 0.3, { t, type: "sine", bus });
 				return;
+			case "wood":
+				this.tone(f, dur * 0.6, gain * 1.6, { t, type: "sine", bus });
+				this.tone(f * 4, dur * 0.12, gain * 0.4, { t, type: "sine", bus });
+				return;
 			case "fluffy":
+			case "knit":
 				this.tone(f, dur * 1.4, gain * 1.4, { t, type: "sine", bus, cut: 900 });
 				return;
 			case "glass":
+			case "marble":
 				this.tone(f, dur, gain * 1.2, { t, type: "sine", bus });
 				this.tone(f * 4.2, dur * 0.3, gain * 0.25, { t, type: "sine", bus });
 				return;

@@ -2,7 +2,15 @@ import { fx } from "./fx";
 import { prefs } from "./prefs";
 import { sound } from "./sound";
 
-const WORLDS = ["candy", "rubber", "fluffy", "glass"] as const;
+const WORLDS = [
+	"candy",
+	"rubber",
+	"fluffy",
+	"glass",
+	"wood",
+	"marble",
+	"knit",
+] as const;
 export type World = (typeof WORLDS)[number];
 
 // [tile colours, background top, background bottom]
@@ -81,12 +89,51 @@ export const PALETTES: Record<World, Palette[]> = {
 			"#55a77c",
 		],
 	],
+	wood: [
+		[
+			["#d9a066", "#b8743f", "#e8c48e", "#9c5a34", "#c98c55"],
+			"#c4a07c",
+			"#9a7553",
+		],
+		[
+			["#e8c48e", "#9c5a34", "#d9a066", "#c98c55", "#b8743f"],
+			"#a9b59a",
+			"#7f8d70",
+		],
+	],
+	marble: [
+		[
+			["#eeeae4", "#e4c2bb", "#9cc2ad", "#b8c4d4", "#e9d9b4"],
+			"#bfc5cc",
+			"#949ba4",
+		],
+		[
+			["#e4c2bb", "#eeeae4", "#e9d9b4", "#9cc2ad", "#b8c4d4"],
+			"#d6c3b5",
+			"#ad9584",
+		],
+	],
+	knit: [
+		[
+			["#e2626b", "#f2b84b", "#5fae8a", "#5b8fd1", "#a77bd0"],
+			"#e7a7b6",
+			"#c97b90",
+		],
+		[
+			["#5b8fd1", "#e2626b", "#f2b84b", "#a77bd0", "#5fae8a"],
+			"#9fb8d9",
+			"#7392c0",
+		],
+	],
 };
 const RX: Record<World, number> = {
 	candy: 16,
 	rubber: 26,
 	fluffy: 22,
 	glass: 10,
+	wood: 8,
+	marble: 6,
+	knit: 20,
 };
 
 export let world: World = "candy";

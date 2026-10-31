@@ -47,6 +47,24 @@ const SHAPES: Record<
 		gravity: 0.4,
 		energy: 1.3,
 	},
+	wood: {
+		burst: ["ribbon", "sq", "sq"],
+		rain: ["ribbon", "sq"],
+		gravity: 0.45,
+		energy: 1,
+	},
+	marble: {
+		burst: ["sq", "sq", "star"],
+		rain: ["sq", "ribbon"],
+		gravity: 0.55,
+		energy: 1.2,
+	},
+	knit: {
+		burst: ["dot", "blob", "ribbon"],
+		rain: ["ribbon", "dot"],
+		gravity: 0.12,
+		energy: 0.6,
+	},
 };
 
 class Fx {
