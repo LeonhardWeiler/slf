@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
-import { floatText, haptic, mood, shiftPalette, slam, wave } from "@/lib/feel";
+import {
+	celebrate,
+	floatText,
+	haptic,
+	mood,
+	shiftPalette,
+	slam,
+	wave,
+} from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
@@ -262,11 +270,14 @@ export function GameScreen() {
 					.join(" ")
 			: "";
 	const prevLocked = useRef("");
+	const firstRound = game?.usedLetters.length === 1;
 	useEffect(() => {
 		const ids = locked.split(" ").filter(Boolean);
 		const fresh = ids.filter(
 			(id) => !prevLocked.current.split(" ").includes(id),
 		);
+		if (firstRound && !prevLocked.current && ids.length === 1)
+			celebrate(1, "Guter Start!");
 		if (fresh.length) {
 			const rare = Math.random() < 1 / 8;
 			sound.word(ids.length, rare);
@@ -283,7 +294,7 @@ export function GameScreen() {
 		}
 		sound.layer = ids.length;
 		prevLocked.current = locked;
-	}, [locked]);
+	}, [locked, firstRound]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per countdown step
 	useEffect(() => {

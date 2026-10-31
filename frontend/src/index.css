@@ -1984,6 +1984,43 @@ input {
 	min-width: 44px;
 	text-align: right;
 }
+.rank .streak {
+	grid-area: total;
+	align-self: start;
+	justify-self: end;
+	width: 16px;
+	aspect-ratio: 1;
+	translate: 10px -8px;
+	background: var(--gloss), var(--gold);
+	filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.3));
+	animation: pop-in 0.5s var(--spring) both;
+	clip-path: polygon(
+		50% 92%,
+		6% 52%,
+		0 28%,
+		10% 8%,
+		30% 2%,
+		50% 18%,
+		70% 2%,
+		90% 8%,
+		100% 28%,
+		94% 52%
+	);
+}
+.rank .streak[data-n="2"] {
+	clip-path: polygon(50% 0, 96% 50%, 50% 100%, 4% 50%);
+}
+.rank .streak[data-n="3"] {
+	clip-path: polygon(
+		0 25%,
+		27% 52%,
+		50% 10%,
+		73% 52%,
+		100% 25%,
+		88% 90%,
+		12% 90%
+	);
+}
 .rank .ready {
 	grid-area: ready;
 	width: 26px;

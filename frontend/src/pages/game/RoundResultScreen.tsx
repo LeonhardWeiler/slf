@@ -25,6 +25,22 @@ function stepsOf(s: ScoreEntry) {
 	).filter(([p]) => p > 0);
 }
 
+// streaks counts each player's consecutive round wins within one game.
+const streaks = new Map<string, number>();
+let counted: unknown;
+
+function countStreaks(scores: ScoreEntry[], first: boolean) {
+	if (first) streaks.clear();
+	const lead = Math.max(...scores.map((s) => s.roundPoints));
+	for (const s of scores)
+		streaks.set(
+			s.playerId,
+			lead > 0 && s.roundPoints === lead
+				? (streaks.get(s.playerId) ?? 0) + 1
+				: 0,
+		);
+}
+
 export function RoundResultScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
@@ -55,8 +71,20 @@ export function RoundResultScreen() {
 					const best = stats.best("round-classic");
 					stats.record("round-classic", gain);
 					stats.played();
+					const before = result.ranking.map(
+						(r) =>
+							r.score -
+							(result.scores.find((s) => s.playerId === r.playerId)
+								?.roundPoints ?? 0),
+					);
+					const mine = result.ranking.find((r) => r.playerId === myPlayerId);
+					const comeback =
+						before.length > 2 &&
+						mine?.rank === 1 &&
+						mine.score - gain === Math.min(...before) &&
+						Math.min(...before) < Math.max(...before);
 					const level =
-						best > 0 && gain > best
+						comeback || (best > 0 && gain > best)
 							? 3
 							: me?.combo || (result.scores.length > 1 && gain === lead)
 								? 2
@@ -65,7 +93,7 @@ export function RoundResultScreen() {
 									: 0;
 					if (gain <= 0) sound.thud();
 					else if (level === 3) {
-						celebrate(3, "Rekord!");
+						celebrate(3, comeback ? "Comeback!" : "Rekord!");
 						sound.fanfare();
 					} else if (level) celebrate(level);
 					else mood("cheer", 1200);
@@ -163,6 +191,10 @@ export function RoundResultScreen() {
 	}, [isHost]);
 
 	if (!lobby || !result) return null;
+	if (counted !== result) {
+		counted = result;
+		countStreaks(result.scores, result.usedLetters.length <= 1);
+	}
 
 	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
 	const playerName = (id: string) => playerOf(id)?.name ?? "?";
@@ -265,6 +297,13 @@ export function RoundResultScreen() {
 									flicker
 									className="total"
 								/>
+								{sorted && (streaks.get(r.playerId) ?? 0) > 0 && (
+									<i
+										className="streak"
+										data-n={Math.min(3, streaks.get(r.playerId) ?? 0)}
+										data-tip={`${streaks.get(r.playerId)} Runden in Folge vorne`}
+									/>
+								)}
 								{isHost && r.playerId !== myPlayerId && !p?.left && (
 									<button
 										type="button"
