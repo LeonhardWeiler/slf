@@ -1,3 +1,4 @@
+import type { World } from "./feel";
 import { prefs } from "./prefs";
 
 export type Scene =
@@ -8,7 +9,6 @@ export type Scene =
 	| "result"
 	| "sprint"
 	| "quiet";
-type Timbre = "candy" | "rubber";
 
 const hz = (m: number) => 440 * 2 ** ((m - 69) / 12);
 const pent = (n: number) => {
@@ -58,7 +58,7 @@ interface NoiseOpts {
 
 class Sound {
 	scene: Scene = "lobby";
-	timbre: Timbre = "candy";
+	timbre: World = "candy";
 	layer = 0;
 	private ctx: AudioContext | null = null;
 	private music!: GainNode;
@@ -243,6 +243,13 @@ class Sound {
 					bus,
 				});
 				this.tone(f * 2, dur * 0.4, gain * 0.3, { t, type: "sine", bus });
+				return;
+			case "fluffy":
+				this.tone(f, dur * 1.4, gain * 1.4, { t, type: "sine", bus, cut: 900 });
+				return;
+			case "glass":
+				this.tone(f, dur, gain * 1.2, { t, type: "sine", bus });
+				this.tone(f * 4.2, dur * 0.3, gain * 0.25, { t, type: "sine", bus });
 				return;
 			default:
 				for (const d of [-8, 8])

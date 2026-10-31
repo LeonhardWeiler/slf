@@ -2,7 +2,7 @@ import { fx } from "./fx";
 import { prefs } from "./prefs";
 import { sound } from "./sound";
 
-const WORLDS = ["candy", "rubber"] as const;
+const WORLDS = ["candy", "rubber", "fluffy", "glass"] as const;
 export type World = (typeof WORLDS)[number];
 
 // [tile colours, background top, background bottom]
@@ -47,6 +47,46 @@ export const PALETTES: Record<World, Palette[]> = {
 			"#d83a76",
 		],
 	],
+	fluffy: [
+		[
+			["#2f7fe0", "#4aa3ff", "#ff8a3d", "#e8505b", "#7a5cff"],
+			"#d2ae86",
+			"#a97f57",
+		],
+		[
+			["#ff6f91", "#ffb347", "#3fbf7f", "#4aa3ff", "#9d6bff"],
+			"#aab6e8",
+			"#7f8cd0",
+		],
+		[
+			["#3fbf7f", "#ff8a3d", "#4aa3ff", "#e8505b", "#ffc43d"],
+			"#e2a9a4",
+			"#c07a76",
+		],
+	],
+	glass: [
+		[
+			["#ff4f81", "#ffb000", "#00d0a0", "#2d8cff", "#a05cff"],
+			"#86cbdc",
+			"#4b98b8",
+		],
+		[
+			["#00d0a0", "#2d8cff", "#ff4f81", "#ffb000", "#ff7a2f"],
+			"#b6a2dc",
+			"#8668c4",
+		],
+		[
+			["#2d8cff", "#ff4f81", "#ffb000", "#a05cff", "#00d0a0"],
+			"#93d3ae",
+			"#55a77c",
+		],
+	],
+};
+const RX: Record<World, number> = {
+	candy: 16,
+	rubber: 26,
+	fluffy: 22,
+	glass: 10,
 };
 
 export let world: World = "candy";
@@ -112,7 +152,7 @@ function paint() {
 		?.setAttribute("content", bg2);
 	document
 		.querySelector('link[rel="icon"]')
-		?.setAttribute("href", favicon(tiles[2], world === "rubber" ? 26 : 16));
+		?.setAttribute("href", favicon(tiles[2], RX[world]));
 	fx.colors = [...tiles, "#ffffff"];
 }
 

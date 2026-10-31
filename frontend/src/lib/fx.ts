@@ -21,17 +21,31 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T>(l: readonly T[]) => l[Math.floor(Math.random() * l.length)];
 const SHAPES: Record<
 	World,
-	{ burst: Shape[]; rain: Shape[]; gravity: number }
+	{ burst: Shape[]; rain: Shape[]; gravity: number; energy: number }
 > = {
 	candy: {
 		burst: ["sq", "sq", "dot", "star"],
 		rain: ["sq", "ribbon", "dot"],
 		gravity: 0.32,
+		energy: 1,
 	},
 	rubber: {
 		burst: ["blob", "blob", "dot"],
 		rain: ["blob", "dot"],
 		gravity: 0.5,
+		energy: 1.1,
+	},
+	fluffy: {
+		burst: ["dot", "dot", "blob"],
+		rain: ["dot", "blob"],
+		gravity: 0.06,
+		energy: 0.5,
+	},
+	glass: {
+		burst: ["sq", "star", "star"],
+		rain: ["sq", "star", "ribbon"],
+		gravity: 0.4,
+		energy: 1.3,
 	},
 };
 
@@ -70,8 +84,9 @@ class Fx {
 		y: number,
 		{ n = 18, speed = 7, size = 9, up = 0, life = 1 } = {},
 	) {
-		if (this.calm) n = Math.min(n, 4);
-		const shapes = SHAPES[this.world].burst;
+		const { burst: shapes, energy } = SHAPES[this.world];
+		n = this.calm ? Math.min(n, 4) : Math.round(n * energy);
+		speed *= energy;
 		for (let i = 0; i < n; i++) {
 			const a = Math.random() * Math.PI * 2;
 			const v = rand(0.35, 1) * speed;
@@ -101,8 +116,8 @@ class Fx {
 
 	rain(n = 90) {
 		if (this.calm) return;
-		const shapes = SHAPES[this.world].rain;
-		for (let i = 0; i < n; i++)
+		const { rain: shapes, energy } = SHAPES[this.world];
+		for (let i = 0; i < n * energy; i++)
 			this.add({
 				x: rand(0, innerWidth),
 				y: rand(-innerHeight * 0.6, -10),
