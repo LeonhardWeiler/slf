@@ -1368,8 +1368,16 @@ input {
 .card:focus-within {
 	--rim: var(--you);
 }
-.card.locked {
+.card.locked,
+.card.ok:focus-within {
 	--rim: var(--good);
+}
+:is(.card.locked, .card.ok) .tiles {
+	--t1: var(--good);
+	--t2: var(--good);
+	--t3: var(--good);
+	--t4: var(--good);
+	--t5: var(--good);
 }
 .card.wrong {
 	animation: nope 0.35s;

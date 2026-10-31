@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
-import { floatText, haptic, mood, shiftPalette, slam } from "@/lib/feel";
+import { floatText, haptic, mood, shiftPalette, slam, wave } from "@/lib/feel";
 import { fx } from "@/lib/fx";
 import { sound } from "@/lib/sound";
 import { storage } from "@/lib/storage";
@@ -249,27 +249,41 @@ export function GameScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [canBuzz]);
 
-	const lockedCount =
-		lobby && game && !isSpectator
-			? lobby.categories.filter(
-					(c) =>
-						touched[c.id] &&
-						(answers[c.id] ?? "").trim() !== "" &&
-						!ruleIssue(answers[c.id] ?? "", game.letter, lastLetterMode),
-				).length
-			: 0;
-	const prevLocked = useRef(0);
+	const valid = (id: string) =>
+		!!game &&
+		(answers[id] ?? "").trim() !== "" &&
+		!ruleIssue(answers[id] ?? "", game.letter, lastLetterMode);
+	const isLocked = (id: string) => touched[id] && valid(id);
+	const locked =
+		lobby && !isSpectator
+			? lobby.categories
+					.filter((c) => isLocked(c.id))
+					.map((c) => c.id)
+					.join(" ")
+			: "";
+	const prevLocked = useRef("");
 	useEffect(() => {
-		if (lockedCount > prevLocked.current) {
-			sound.word(lockedCount);
+		const ids = locked.split(" ").filter(Boolean);
+		const fresh = ids.filter(
+			(id) => !prevLocked.current.split(" ").includes(id),
+		);
+		if (fresh.length) {
+			const rare = Math.random() < 1 / 8;
+			sound.word(ids.length, rare);
 			haptic(15);
-			mood("happy", 700);
-			for (const el of document.querySelectorAll(".card.locked .tiles"))
-				fx.at(el, { n: 10, speed: 5 });
+			mood(rare ? "wow" : "happy", 700);
+			for (const id of fresh) {
+				const card = document.getElementById(`cat-${id}`)?.parentElement;
+				wave(card, rare);
+				fx.at(card?.querySelector(".tiles") ?? null, {
+					n: rare ? 26 : 10,
+					speed: rare ? 8 : 5,
+				});
+			}
 		}
-		sound.layer = lockedCount;
-		prevLocked.current = lockedCount;
-	}, [lockedCount]);
+		sound.layer = ids.length;
+		prevLocked.current = locked;
+	}, [locked]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per countdown step
 	useEffect(() => {
@@ -351,10 +365,6 @@ export function GameScreen() {
 	const playingPlayers = lobby.players.filter(
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
 	);
-	const isLocked = (id: string) =>
-		touched[id] &&
-		(answers[id] ?? "").trim() !== "" &&
-		!ruleIssue(answers[id] ?? "", game.letter, lastLetterMode);
 
 	function onEnter(idx: number, card: HTMLElement) {
 		const cat = categories[idx];
@@ -468,7 +478,7 @@ export function GameScreen() {
 								return (
 									<label
 										key={cat.id}
-										className={`card${isLocked(cat.id) ? " locked" : ""}`}
+										className={`card${isLocked(cat.id) ? " locked" : valid(cat.id) ? " ok" : ""}`}
 										style={{ "--ci": idx } as React.CSSProperties}
 									>
 										<span className="cat">{cat.name}</span>

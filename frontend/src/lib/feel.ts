@@ -244,6 +244,24 @@ export function mood(m: Mood, ms = 1100) {
 		}, ms);
 }
 
+// wave lifts each tile of a card in turn, slightly out of step.
+export function wave(card: Element | null | undefined, big = false) {
+	if (!card || calm()) return;
+	for (const [i, t] of card.querySelectorAll(".tile:not(.ghost)").entries())
+		t.animate(
+			[
+				{ translate: "0 0", scale: 1 },
+				{ translate: `0 ${big ? -35 : -20}%`, scale: big ? 1.2 : 1.1 },
+				{ translate: "0 0", scale: 1 },
+			],
+			{
+				duration: 320,
+				delay: i * 50 + Math.random() * 15,
+				easing: "cubic-bezier(.3,1.4,.6,1)",
+			},
+		);
+}
+
 // fly sends a label from one element to another, then calls land.
 export function fly(
 	from: Element | null | undefined,

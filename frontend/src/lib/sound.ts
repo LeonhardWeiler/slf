@@ -309,10 +309,10 @@ class Sound {
 	thud() {
 		this.tone(140, 0.09, 0.16, { glide: 70 });
 	}
-	word(k: number) {
+	word(k: number, rare = false) {
 		const t = this.now;
-		for (const [i, d] of [0, 2, 3, 5].entries())
-			this.bell(pent(5 + k + d), 0.35, 0.09, t + i * 0.05);
+		for (const [i, d] of (rare ? [0, 2, 4, 5, 7, 9] : [0, 2, 3, 5]).entries())
+			this.bell(pent(5 + Math.min(k, 6) + d), 0.35, 0.09, t + i * 0.05);
 		this.tone(90, 0.16, 0.25, { t, glide: 45 });
 	}
 	clear() {
