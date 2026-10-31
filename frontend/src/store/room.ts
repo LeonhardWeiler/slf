@@ -159,8 +159,12 @@ export function phaseReady(room: Room): boolean {
 	}
 }
 
+const noBest = { word: "", points: 0, combo: 0 };
+
 interface RoomStore extends Room {
 	myPlayerId: string | null;
+	// My best answer and longest combo of the current game.
+	best: typeof noBest;
 	mySessionId: string | null;
 	// Seconds left until the lobby closes because the host is disconnected; null
 	// when the host is present (SRS 4.6/8.5). Shown as a shared countdown banner.
@@ -206,11 +210,13 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
 	sessionEpoch: 0,
 	buzzRejected: null,
 	buzzing: false,
+	best: noBest,
 
 	receive: (type, payload, version = 0) => {
 		const s = get();
 		const next = reduceRoom(s, { type, payload } as RoomEvent, version);
 		if (next === s) return;
+		let best = s.best;
 		const extra: Partial<RoomStore> = {};
 		if (next.game !== s.game) {
 			extra.buzzRejected = null;
@@ -221,8 +227,20 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
 			extra.hostGrace = next.lobby.hostGraceSeconds ?? null;
 			const st = next.lobby.state;
 			if (st !== "Countdown" && st !== "Playing") clearDrafts();
+			if (st === "Lobby") best = noBest;
+			const combo =
+				next.lobby.players.find((p) => p.id === s.myPlayerId)?.combo ?? 0;
+			if (combo > best.combo) best = { ...best, combo };
 		}
-		set({ ...next, ...extra });
+		if (next.review !== s.review)
+			for (const a of next.review?.answers ?? [])
+				if (
+					a.playerId === s.myPlayerId &&
+					a.valid &&
+					a.pointsPreview > best.points
+				)
+					best = { ...best, word: a.value, points: a.pointsPreview };
+		set({ ...next, ...extra, best });
 	},
 	setSession: (sessionId, playerId) => {
 		setSessionId(sessionId);
@@ -245,6 +263,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
 			hostGrace: null,
 			buzzRejected: null,
 			buzzing: false,
+			best: noBest,
 		});
 	},
 }));

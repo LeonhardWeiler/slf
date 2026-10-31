@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Crown, Flame, RotateCcw, Star, Trophy } from "lucide-react";
+import {
+	Crown,
+	Flame,
+	RotateCcw,
+	Sparkles,
+	Star,
+	Trophy,
+	Zap,
+} from "lucide-react";
 import { ws } from "@/lib/ws";
 import { celebrate, haptic, mood } from "@/lib/feel";
 import { fx } from "@/lib/fx";
@@ -17,6 +25,7 @@ export function GameOverScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
 	const result = useRoomStore((s) => s.result);
+	const best = useRoomStore((s) => s.best);
 	const isHost = useIsHost();
 	const [up, setUp] = useState(0);
 	const [end, setEnd] = useState<{
@@ -38,7 +47,7 @@ export function GameOverScreen() {
 		const ids = solo
 			? []
 			: [3, 2, 1].map((place, i) =>
-					at(500 + i * 700, () => {
+					at(1500 + i * 700, () => {
 						setUp(4 - place);
 						sound.stamp(place === 1 ? 20 : 10);
 						haptic(20);
@@ -50,7 +59,7 @@ export function GameOverScreen() {
 					}),
 				);
 		ids.push(
-			at(solo ? 2700 : 2600, () => {
+			at(solo ? 2700 : 3600, () => {
 				if (solo) {
 					sound.stamp(20);
 					mood("cheer", 1500);
@@ -85,6 +94,7 @@ export function GameOverScreen() {
 		<>
 			<RoomHeader />
 			<section className={`screen over${solo ? " solo" : ""}`}>
+				<div className="spots" />
 				{played && (
 					<div className="center hero">
 						{solo && <Mascot size="big" base="happy" />}
@@ -96,6 +106,21 @@ export function GameOverScreen() {
 								rattle={solo}
 							/>
 						</span>
+						{!solo && best.points > 0 && (
+							<div className="end-stats">
+								<span className="badge word" data-tip="Dein bestes Wort">
+									<Sparkles />
+									{best.word}
+									<b>+{best.points}</b>
+								</span>
+								{best.combo >= 2 && (
+									<span className="badge streak" data-tip="Längste Serie">
+										<Zap />
+										{best.combo}
+									</span>
+								)}
+							</div>
+						)}
 					</div>
 				)}
 				{!solo && (

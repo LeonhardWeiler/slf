@@ -201,3 +201,51 @@ describe("reduceRoom", () => {
 		expect(room.roundId).toBe("");
 	});
 });
+
+describe("best of the game", () => {
+	it("keeps my best answer and longest combo until back in the lobby", () => {
+		const s = useRoomStore.getState();
+		s.reset();
+		s.setSession("s", "a");
+		const ans = (playerId: string, value: string, pointsPreview: number) => ({
+			answerId: value,
+			playerId,
+			value,
+			valid: true,
+			mergedInto: "",
+			pointsPreview,
+			votes: null,
+			ruled: false,
+		});
+		const review = (roundId: string, answers: ReturnType<typeof ans>[]) => ({
+			roundId,
+			letter: "A",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 1,
+			answers,
+			ready: null,
+			voters: null,
+		});
+		s.receive("lobbyState", {
+			...lobby([{ ...player("a", "A"), combo: 3 }]),
+			state: "Reviewing",
+		});
+		s.receive(
+			"reviewState",
+			review("r1", [ans("a", "Aachen", 20), ans("b", "Athen", 90)]),
+		);
+		s.receive("reviewState", review("r2", [ans("a", "Aal", 10)]));
+		s.receive("lobbyState", {
+			...lobby([player("a", "A")]),
+			state: "GameOver",
+		});
+		expect(useRoomStore.getState().best).toEqual({
+			word: "Aachen",
+			points: 20,
+			combo: 3,
+		});
+		s.receive("lobbyState", lobby([player("a", "A")]));
+		expect(useRoomStore.getState().best.points).toBe(0);
+	});
+});

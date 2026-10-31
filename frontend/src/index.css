@@ -3107,6 +3107,49 @@ body.calm :is(.float, .slam b) {
 .over .podium-row {
 	margin-top: auto;
 }
+.spots {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	pointer-events: none;
+	overflow: hidden;
+}
+.spots::before,
+.spots::after {
+	content: "";
+	position: absolute;
+	top: -10%;
+	left: 15%;
+	width: 50vmax;
+	height: 130%;
+	transform-origin: 50% 0;
+	background: conic-gradient(
+		from 168deg at 50% 0,
+		transparent,
+		rgb(255 255 255 / 0.22) 8deg 16deg,
+		transparent 24deg
+	);
+	translate: -50% 0;
+	animation: spot 5s ease-in-out infinite alternate;
+}
+.spots::after {
+	left: 85%;
+	animation-delay: -2.5s;
+}
+@keyframes spot {
+	from {
+		rotate: -16deg;
+	}
+	to {
+		rotate: 16deg;
+	}
+}
+.badge.word b {
+	color: var(--good-d);
+}
+.badge.word svg {
+	color: var(--gold-d);
+}
 .over.solo {
 	justify-content: center;
 	gap: 24px;
