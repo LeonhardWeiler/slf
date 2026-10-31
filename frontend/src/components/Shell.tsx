@@ -203,18 +203,7 @@ export function Shell({ children }: { children: ReactNode }) {
 				}, 450);
 			}
 		}
-		let asked = false;
 		function onUp() {
-			if (!asked) {
-				asked = true;
-				(
-					globalThis.DeviceOrientationEvent as unknown as {
-						requestPermission?: () => Promise<string>;
-					}
-				)
-					?.requestPermission?.()
-					.catch(() => {});
-			}
 			if (grab) {
 				grab.el.classList.remove("held");
 				grab.el.style.translate = "";
@@ -231,11 +220,6 @@ export function Shell({ children }: { children: ReactNode }) {
 				e.preventDefault();
 				e.stopPropagation();
 			}
-		}
-		function onTilt(e: DeviceOrientationEvent) {
-			if (e.gamma == null || e.beta == null) return;
-			par.x = clamp(e.gamma / 25);
-			kick();
 		}
 		const vv = window.visualViewport;
 		function onViewport() {
@@ -255,7 +239,6 @@ export function Shell({ children }: { children: ReactNode }) {
 		addEventListener("pointerup", onUp);
 		addEventListener("pointercancel", onUp);
 		addEventListener("click", onClick, true);
-		addEventListener("deviceorientation", onTilt);
 		addEventListener("scroll", () => setTip(null), { passive: true });
 		document.addEventListener("visibilitychange", onVisible);
 		return () => {
@@ -267,7 +250,6 @@ export function Shell({ children }: { children: ReactNode }) {
 			removeEventListener("pointerup", onUp);
 			removeEventListener("pointercancel", onUp);
 			removeEventListener("click", onClick, true);
-			removeEventListener("deviceorientation", onTilt);
 			document.removeEventListener("visibilitychange", onVisible);
 			vv?.removeEventListener("resize", onViewport);
 		};

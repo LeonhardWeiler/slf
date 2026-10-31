@@ -351,7 +351,6 @@ input {
 	border-radius: 8px;
 	background: rgb(255 255 255 / 0.3);
 	translate: calc(var(--px) * 6px) 0;
-	will-change: translate;
 }
 
 /* ---------- avatars ---------- */
@@ -435,7 +434,6 @@ input {
 	background: rgb(255 255 255 / 0.55);
 	translate: calc(var(--px) * var(--m) * 0.06) 0;
 	rotate: -8deg;
-	will-change: translate;
 }
 @keyframes breathe {
 	50% {
