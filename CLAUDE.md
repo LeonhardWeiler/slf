@@ -37,7 +37,7 @@ bun run build         # tsc -b && vite build (typechecks + builds)
 bun dev               # dev server
 ```
 
-Make the relevant checks green before every commit. There is no `npx`; use
+There is no `npx`; use
 `bun run <script>` or the binaries in `frontend/node_modules/.bin/`.
 Tests run on the **native `bun test`** runner, not Vitest — `vite.config.ts`
 is therefore build-only and holds no test config. Test files import
