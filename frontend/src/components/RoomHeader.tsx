@@ -20,7 +20,6 @@ export function RoomHeader({ title }: { title: string }) {
 	const [copied, setCopied] = useState(false);
 	const [copyFailed, setCopyFailed] = useState(false);
 
-	// Uppercase everywhere (display, copy, URL); the server is case-insensitive.
 	const code = (lobby?.lobbyCode ?? "").toUpperCase();
 
 	async function copyCode() {
@@ -53,8 +52,6 @@ export function RoomHeader({ title }: { title: string }) {
 					},
 		);
 		if (!confirmed) return;
-		// Suppress the "lobby closed" toast the host would otherwise get from the
-		// server's own lobbyClosed echo.
 		setSelfLeaving(true);
 		ws.send({ type: "leaveLobby", payload: {} });
 		markForcedLeave();
@@ -68,9 +65,6 @@ export function RoomHeader({ title }: { title: string }) {
 				<div className="min-w-0">
 					<h1 className="text-2xl font-bold">{title}</h1>
 					{code && (
-						// The lobby code always sits below the title (never beside it,
-						// regardless of width) and stays copyable on every in-game screen so
-						// latecomers can still be invited.
 						<button
 							type="button"
 							onClick={copyCode}

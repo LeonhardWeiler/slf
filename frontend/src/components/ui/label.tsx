@@ -1,9 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Base UI has no standalone Label primitive (it only ships Field.Label bound to a
-// Field context). For our plain form fields a native <label> with htmlFor is the
-// idiomatic Base-UI-aligned replacement for the former Radix label.
 const Label = React.forwardRef<
 	HTMLLabelElement,
 	React.LabelHTMLAttributes<HTMLLabelElement>

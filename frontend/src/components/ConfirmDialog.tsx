@@ -7,15 +7,10 @@ interface ConfirmOptions {
 	description?: string;
 	confirmLabel?: string;
 	cancelLabel?: string;
-	// Renders the confirm button in the destructive (red) style and focuses cancel.
 	destructive?: boolean;
 }
 
-// useConfirm returns a promise-based `confirm(opts)` and the `dialog` element to
-// render once in the component. `confirm` resolves true on confirm, false on
-// cancel (Escape, backdrop click or the cancel button). Keeps destructive
-// actions (kick, delete, leave) behind an explicit, accessible confirmation
-// instead of firing on a single stray tap.
+// useConfirm resolves true on confirm, false on cancel (Escape, backdrop or the cancel button).
 export function useConfirm() {
 	const [opts, setOpts] = useState<ConfirmOptions | null>(null);
 	const resolver = useRef<((value: boolean) => void) | null>(null);
@@ -70,8 +65,6 @@ function ConfirmDialogView({
 					{description}
 				</p>
 			)}
-			{/* Both buttons share the full width 50/50; cancel carries the same
-          outline border as the confirm button so the pair reads as one bar. */}
 			<div className="mt-5 flex gap-2">
 				<Button
 					ref={destructive ? focusRef : undefined}

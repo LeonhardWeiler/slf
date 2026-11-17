@@ -10,10 +10,6 @@ import {
 const invalid = (...a: Parameters<typeof ruleIssue>) =>
 	ruleIssue(...a) !== undefined;
 
-// These tests guard the client-side mirror of the backend's authoritative rules
-// (game.Normalize / engine.IsRuleValid). If the Go engine changes, the mirror
-// must change with it - and these assertions should catch silent drift.
-
 describe("normalize", () => {
 	it("trims and cases like the engine (first upper, rest lower)", () => {
 		expect(normalize("  berLIN  ")).toBe("Berlin");
@@ -31,7 +27,7 @@ describe("normalize", () => {
 		expect(normalize("élan")).toBe("Élan");
 	});
 
-	// rule-1: JS case mapping expands "ß" to "SS" where Go's per-rune
+	// JS case mapping expands "ß" to "SS" where Go's per-rune
 	// unicode.ToUpper leaves it alone. The mirror must follow Go, or it accepts
 	// answers the engine rejects.
 	it("does not expand characters the engine leaves alone", () => {
@@ -76,7 +72,7 @@ describe("ruleIssue", () => {
 		expect(invalid("Ab", "A")).toBe(false); // two chars is enough
 	});
 
-	// rule-1: the length bound counts code points, like the engine's
+	// The length bound counts code points, like the engine's
 	// utf8.RuneCountInString - not UTF-16 units, which would double every astral char.
 	it("measures length in code points, not UTF-16 units", () => {
 		const surrogate = "\u{1D41A}"; // a letter, 1 code point, 2 UTF-16 units
@@ -85,7 +81,7 @@ describe("ruleIssue", () => {
 		expect(invalid(`A${surrogate.repeat(30)}`, "A")).toBe(true); // 31
 	});
 
-	// rule-1: "ßeta" normalizes to "SSeta" under JS case rules, which would make
+	// "ßeta" normalizes to "SSeta" under JS case rules, which would make
 	// it pass for letter S - the engine keeps "ßeta" and rejects it.
 	it("does not let expanding case mappings fake the round letter", () => {
 		expect(invalid("ßeta", "S")).toBe(true);

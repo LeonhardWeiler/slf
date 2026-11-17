@@ -22,11 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import type { GameStatePayload, LobbyStatePayload } from "@/types/events";
 
-// Local ticking timer that counts down from `seconds`, restarting whenever
-// `resetKey` changes. The server stays authoritative for phase transitions.
 function useCountdown(seconds: number | null, resetKey: string): number | null {
 	const [value, setValue] = useState(seconds);
-	// resetKey is the intended restart trigger; `seconds` is re-read each run.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: restart only on resetKey
 	useEffect(() => {
 		setValue(seconds);
@@ -70,8 +67,7 @@ function formatClock(total: number): string {
 	return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// Clock for a timed round. It owns its ticking state so a tick re-renders only
-// the clock, not the answer form. Red pulsing border for the final 5 seconds.
+// RoundClock owns its ticking state so a tick re-renders only the clock, not the answer form.
 function RoundClock({ endsAt }: { endsAt: number }) {
 	const left = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 	const [secs, setSecs] = useState(left);
@@ -115,24 +111,17 @@ export function GameScreen() {
 
 	const me = lobby?.players.find((p) => p.id === myPlayerId);
 	const isPending = me?.pending ?? false;
-	// A commentator host and a pending joiner both watch instead of playing: they
-	// fill nothing and instead see the per-player fill overview.
 	const isSpectator = me?.plays === false;
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
-	// Categories the player has blurred at least once - a field only shows a red
-	// "invalid" border after it was left, not while still being typed in.
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	const loadedRound = useRef<string>("");
-	// Debounce buffer: latest value per category not yet sent to the server.
 	const pendingAnswers = useRef<Record<string, string>>({});
 	const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const roundId = game?.roundId ?? "";
 
-	// Send all buffered answer changes now (also used before buzzing and on unmount
-	// so no keystrokes are lost).
 	function flushAnswers() {
 		if (flushTimer.current) {
 			clearTimeout(flushTimer.current);
@@ -148,15 +137,11 @@ export function GameScreen() {
 		}
 	}
 
-	// Load saved draft answers for this round and push them to the
-	// server so a reconnect mid-round restores progress (SRS 5.6 / 9.10).
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only when roundId changes
 	useEffect(() => {
 		if (!roundId || loadedRound.current === roundId) return;
 		loadedRound.current = roundId;
-		// Clear out drafts from earlier rounds so localStorage stays bounded.
 		clearDrafts(roundId);
-		// Drop any buffered answers from the previous round.
 		pendingAnswers.current = {};
 		if (flushTimer.current) {
 			clearTimeout(flushTimer.current);
@@ -231,15 +216,11 @@ export function GameScreen() {
 		}
 	}
 
-	// Flush any buffered answers when leaving the screen (e.g. round ended on
-	// timeout) so the last keystrokes still reach the server.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only on unmount
 	useEffect(() => {
 		return () => flushAnswers();
 	}, []);
 
-	// Buzz with Enter (there's no form to submit). Only when an all-valid set
-	// is ready and we are actually in the playing phase.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on canBuzz
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -248,8 +229,7 @@ export function GameScreen() {
 			// after the round advances would hit an invalid state.
 			if (e.repeat) return;
 			if (!canBuzz) return;
-			// Pause while a confirm dialog is up (e.g. "Runde beenden?") so its Enter
-			// doesn't also buzz (UX-1).
+			// Pause while a confirm dialog is up so its Enter doesn't also buzz.
 			if (isModalOpen()) return;
 			e.preventDefault();
 			handleBuzz();
@@ -266,18 +246,13 @@ export function GameScreen() {
 			storage.set(answersKey(roundId), JSON.stringify(next));
 			return next;
 		});
-		// Debounce the server sync: batch keystrokes into at most one answerUpdate
-		// per ~250ms instead of one message per keystroke.
 		pendingAnswers.current[categoryId] = value;
 		if (!flushTimer.current) {
 			flushTimer.current = setTimeout(flushAnswers, 250);
 		}
 	}
 
-	// ---- Countdown phase ----
-	// Phase is derived from the lobby state (single source of truth) so the
-	// countdown screen shows immediately - even before the first gameState
-	// arrives - instead of a blank frame or a flash of the Playing UI.
+	// Derived from the lobby state so the countdown shows before the first gameState.
 	if (lobby.state === "Countdown") {
 		const display =
 			countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
@@ -292,7 +267,6 @@ export function GameScreen() {
 						letter ? "h-16" : "h-48 w-48",
 					)}
 				>
-					{/* Just the digits scale down and swap each tick - no progress ring. */}
 					<div
 						key={display}
 						aria-live="assertive"
@@ -316,8 +290,6 @@ export function GameScreen() {
 
 	const categories = lobby.categories;
 	const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
-
-	// ---- Playing phase ----
 
 	const playingPlayers = lobby.players.filter((p) => p.plays);
 
@@ -419,7 +391,6 @@ export function GameScreen() {
 												aria-invalid={showInvalid || undefined}
 												className={cn(done && "pr-9")}
 											/>
-											{/* Check pops in once the field holds a valid answer. */}
 											{done && (
 												<Check className="animate-scale-in pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
 											)}
@@ -458,8 +429,6 @@ export function GameScreen() {
 					</>
 				)}
 
-				{/* Host can end a stuck round early (hard letter, or a commentator host
-            who never buzzes) -> everyone moves to review. */}
 				{isHost && !lobby.solo && (
 					<div className="flex justify-center pt-1">
 						<Button

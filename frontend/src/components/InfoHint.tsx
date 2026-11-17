@@ -1,15 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { HelpCircle } from "lucide-react";
 
-// A small "?" icon that reveals an explanatory hint. On desktop it opens on
-// hover/focus; on touch it toggles on tap. Escape, an outside tap or blur close
-// it again. Kept dependency-free (no positioning lib): the panel is anchored
-// centred above the trigger, then nudged horizontally so it never spills off either
-// viewport edge (measured after open and on resize).
-//
-// Pass `trigger` to render a visible label (e.g. the setting name) inside the
-// same clickable/hoverable target as the icon, so clicking either the label or
-// the icon opens the hint - a much more forgiving interaction target.
+// Pass `trigger` to make a visible label part of the hover/click target.
 export function InfoHint({
 	label,
 	trigger,
@@ -22,13 +14,9 @@ export function InfoHint({
 	const [open, setOpen] = useState(false);
 	const wrapRef = useRef<HTMLSpanElement>(null);
 	const panelRef = useRef<HTMLSpanElement>(null);
-	// Horizontal correction (px) added on top of the centring translate so the
-	// panel stays fully on-screen near the edges.
 	const [shift, setShift] = useState(0);
 	const id = useId();
 
-	// Measure once the panel is open (and on resize) and pull it back inside the
-	// viewport if either edge overflows.
 	useLayoutEffect(() => {
 		if (!open) {
 			setShift(0);
@@ -81,8 +69,6 @@ export function InfoHint({
 		>
 			<button
 				type="button"
-				// With a visible trigger the label itself names the button; without one
-				// (icon only) fall back to the descriptive label.
 				aria-label={trigger ? undefined : label}
 				aria-expanded={open}
 				aria-describedby={open ? id : undefined}

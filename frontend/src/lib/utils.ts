@@ -2,9 +2,6 @@ import type { KeyboardEvent } from "react";
 
 export { clsx as cn } from "clsx";
 
-// True if the element is a text-entry target (input/textarea/select or a
-// contenteditable). Used by global keyboard handlers to avoid hijacking keys
-// while the user is typing.
 export function isTypingTarget(el: Element | null): boolean {
 	if (!el) return false;
 	const tag = el.tagName;

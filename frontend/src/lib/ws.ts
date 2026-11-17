@@ -34,20 +34,12 @@ class WSClient {
 	// offline until this tab is focused again.
 	replaced = false;
 	private url: string;
-	// Optimistic connection status: starts `true` so the UI doesn't flash a
-	// "disconnected" state during the ~200ms initial handshake (a cold load would
-	// otherwise render the error banner before the very first onopen). It flips to
-	// the real value on the first actual open/close signal.
+	// Starts true so a cold load does not flash the offline banner before the first open.
 	private lastStatus = true;
 
 	constructor(url: string) {
 		this.url = url;
-		// When the browser signals it is back - network online again, or the tab was
-		// refocused / made visible - try to reconnect immediately with a fresh
-		// backoff, instead of waiting out a possibly long (up to 30s) pending retry.
-		// That stale wait is why the app could still show "not connected" while the
-		// server was already reachable again (a full-page reload that raced the
-		// server coming up would just restart the same slow backoff).
+		// Back online or refocused: reconnect now instead of waiting out a pending backoff (up to 30 s).
 		if (typeof window !== "undefined") {
 			window.addEventListener("online", this.ensureConnected);
 			window.addEventListener("focus", this.ensureConnected);
@@ -57,9 +49,6 @@ class WSClient {
 		}
 	}
 
-	// Force an immediate reconnect attempt (resetting the backoff) when we are not
-	// already connected or connecting. Bound as a field so it can be added/removed
-	// as an event listener with a stable reference.
 	private ensureConnected = () => {
 		if (
 			typeof document !== "undefined" &&
@@ -69,7 +58,6 @@ class WSClient {
 		}
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
 		if (this.connecting) return;
-		// Drop a pending backoff timer and retry right away with a fresh budget.
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
 			this.reconnectTimer = null;
@@ -79,8 +67,7 @@ class WSClient {
 		void this.connect();
 	};
 
-	// Idempotent: repeated calls (e.g. React StrictMode's double-invoked effect)
-	// reuse the same socket instead of opening a second orphaned connection.
+	// Idempotent, so StrictMode's double effect reuses the socket.
 	connect(): Promise<void> {
 		if (this.ws && this.ws.readyState === WebSocket.OPEN) {
 			return Promise.resolve();
@@ -143,8 +130,6 @@ class WSClient {
 			socket.onmessage = (event) => {
 				clearTimeout(pong);
 				pong = undefined;
-				// Validate with Zod before dispatching; malformed or unexpected-shape
-				// messages are dropped (SRS 9.3 / 9.12).
 				const msg = parseServerEvent(event.data as string);
 				if (!msg) return;
 				const handler = this.handlers[msg.type];
@@ -160,8 +145,6 @@ class WSClient {
 			};
 		});
 
-		// Swallow rejection so callers awaiting connect() don't throw unhandled;
-		// the retry loop keeps trying in the background.
 		return this.connecting.catch(() => undefined);
 	}
 
@@ -218,9 +201,6 @@ class WSClient {
 
 	private scheduleReconnect() {
 		if (this.reconnectTimer) return;
-		// Exponential backoff (1s -> cap 30s) with jitter so many clients don't all
-		// retry in lock-step after a server restart (thundering herd). The delay is
-		// 50-100% of the current step; reset to 1s once a connection succeeds.
 		const cap = 30_000;
 		const base = Math.min(cap, 1000 * 2 ** this.reconnectAttempts);
 		const delay = base / 2 + Math.random() * (base / 2);
@@ -235,18 +215,12 @@ class WSClient {
 		return this.ws?.readyState === WebSocket.OPEN;
 	}
 
-	// Best-known connection status for the UI: the real socket state once it is
-	// open, otherwise the optimistic/last-observed value. Used to seed component
-	// state so the "disconnected" UI only appears after an actual failure.
 	get status() {
 		return this.isOpen || this.lastStatus;
 	}
 }
 
-// In dev the frontend runs on Vite while the backend listens on :8080, so the
-// WS target is explicit. In production the Go server serves both the static
-// frontend and /ws on the same origin, so we reuse the page's host and derive
-// wss:// automatically when served over https.
+// In dev Vite serves the page and the backend listens on :8080.
 const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
 const wsUrl = import.meta.env.DEV
 	? `${wsProto}//${window.location.hostname}:8080/ws`

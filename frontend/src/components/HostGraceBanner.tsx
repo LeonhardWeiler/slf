@@ -2,19 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useRoomStore } from "@/store/room";
 
-// Shared, prominent countdown shown to everyone while the host is disconnected.
-// The lobby closes when it reaches zero unless the host reconnects (SRS 4.6/8.5).
 export function HostGraceBanner() {
 	const hostGrace = useRoomStore((s) => s.hostGrace);
 	const [remaining, setRemaining] = useState<number | null>(null);
-	// Absolute local deadline we tick down to. Kept in a ref so an interim
-	// lobbyState broadcast that re-sends hostGrace can't reset our smooth
-	// countdown on every arrival.
 	const deadlineRef = useRef<number | null>(null);
 
-	// Adopt the server's remaining time on first sight or when it diverges by
-	// more than a second from what we're already showing; ignore sub-second
-	// re-syncs so the visible number never jumps back a second (former UX-2).
+	// Ignore sub-second re-syncs so the visible number never jumps back a second.
 	useEffect(() => {
 		if (hostGrace == null) {
 			deadlineRef.current = null;
@@ -33,7 +26,6 @@ export function HostGraceBanner() {
 		);
 	}, [hostGrace]);
 
-	// Single, stable ticker independent of hostGrace changes.
 	useEffect(() => {
 		const id = setInterval(() => {
 			if (deadlineRef.current == null) return;
@@ -47,8 +39,6 @@ export function HostGraceBanner() {
 	if (remaining == null) return null;
 	return (
 		<div className="flex justify-center">
-			{/* The situation is announced once via a static live region; the ticking
-          seconds are aria-hidden so screen readers aren't spammed every second. */}
 			<span className="sr-only" role="alert">
 				Host getrennt - die Lobby wird in Kürze geschlossen.
 			</span>

@@ -11,8 +11,6 @@ interface State {
 	error: Error | null;
 }
 
-// Catches render-time errors (incl. failed React.lazy chunk loads) so an
-// unexpected failure shows a recoverable message instead of a blank page.
 export class ErrorBoundary extends Component<Props, State> {
 	state: State = { error: null };
 

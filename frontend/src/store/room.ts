@@ -145,7 +145,6 @@ export function reduceRoom(
 	}
 }
 
-// Whether the data for the lobby's phase has arrived.
 export function phaseReady(room: Room): boolean {
 	switch (room.lobby?.state) {
 		case "Reviewing":
@@ -167,7 +166,7 @@ interface RoomStore extends Room {
 	best: typeof noBest;
 	mySessionId: string | null;
 	// Seconds left until the lobby closes because the host is disconnected; null
-	// when the host is present (SRS 4.6/8.5). Shown as a shared countdown banner.
+	// when the host is present.
 	hostGrace: number | null;
 	// True between the moment we click "Verlassen" and the server's lobbyClosed
 	// echo. The host also receives that echo, but shouldn't be told the lobby was
@@ -188,13 +187,9 @@ interface RoomStore extends Room {
 	setSelfLeaving: (v: boolean) => void;
 	setBuzzRejected: (reason: BuzzRejectReason | null) => void;
 	buzz: () => void;
-	// Tear down the local session and return to the start screen (e.g. after
-	// being kicked or when the host closes the lobby). The reason is surfaced to
-	// the user via a toast at the call site.
 	reset: () => void;
 }
 
-// Whether the current player is the host of the active lobby.
 export function useIsHost(): boolean {
 	return useRoomStore(
 		(s) => s.lobby?.players.find((p) => p.id === s.myPlayerId)?.isHost ?? false,

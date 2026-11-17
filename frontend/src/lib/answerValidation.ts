@@ -22,9 +22,7 @@ function lowerRunes(s: string): string {
 	return [...s].map((c) => mapCase(c, false)).join("");
 }
 
-// Mirror of the backend's game.Normalize (engine.go): trim, uppercase the first
-// rune, lowercase the rest. Kept in sync so client-side validation matches the
-// server's authoritative rules.
+// Mirror of game.Normalize (engine.go).
 export function normalize(value: string): string {
 	const v = value.trim();
 	if (v === "") return "";
@@ -36,12 +34,7 @@ export function normalize(value: string): string {
 // engine.IsRuleValid: at most 30 chars with 2 letters, starts with the round
 // letter - or, in last-letter mode, ends with it, ignoring non-letter edges;
 // Ä/Ö/Ü count as A/O/U.
-// The schema depends only on the round letter and the mode, both constant for a
-// whole round - but the render path asks for it roughly 2n+1 times per render
-// (per category for the done tick and the invalid border, plus validateAnswers)
-// and re-renders on every keystroke. Building the chain each time was pure
-// repeated work, so schemas are cached per (letter, mode). At most 52 entries
-// ever, so the cache needs no eviction.
+// Schemas are cached per (letter, mode): the render path asks for one per field on every keystroke.
 const schemaCache = new Map<string, ReturnType<typeof buildAnswerSchema>>();
 
 function answerSchema(letter: string, lastLetter: boolean) {
@@ -109,7 +102,6 @@ interface AnswerValidation {
 	reason?: string;
 }
 
-// Validates that *every* category has a rule-valid answer for the given letter.
 // Only an empty field gets a reason; a rule issue is shown at its field.
 export function validateAnswers(
 	categories: Category[],

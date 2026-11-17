@@ -1,10 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseServerEvent } from "./serverEvents";
 
-// parseServerEvent is the trust boundary for every incoming server message: it
-// must reject malformed / unexpected shapes (returning null) and accept valid
-// ones as typed events.
-
 describe("parseServerEvent", () => {
 	it("returns null for non-JSON input", () => {
 		expect(parseServerEvent("not json")).toBeNull();

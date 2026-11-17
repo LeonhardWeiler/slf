@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
-// Renders `value` as a QR code image. Uses the already-installed `qrcode`
-// package to produce a data URL.
 export function QrCode({
 	value,
 	size = 200,

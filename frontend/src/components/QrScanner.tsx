@@ -2,9 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
 import { Button } from "@/components/ui/button";
 
-// Extracts a 6-char lobby code from a scanned value. Accepts a full join link
-// (".../join/A3F9K2") or a bare code (case-insensitive). Returned uppercase so
-// the code stays uppercase everywhere; the server normalizes case-insensitively.
 function extractCode(data: string): string | null {
 	try {
 		const url = new URL(data);
@@ -58,8 +55,6 @@ export function QrScannerView({
 			},
 		);
 
-		// start() internally calls getUserMedia, which triggers the iOS/Android
-		// permission prompt. Surface a helpful message per failure cause.
 		scanner.start().catch((err: unknown) => {
 			const name = err instanceof Error ? err.name : "";
 			if (name === "NotAllowedError" || name === "SecurityError") {
@@ -84,9 +79,7 @@ export function QrScannerView({
 	return (
 		<div className="space-y-3">
 			<div className="relative aspect-square w-full overflow-hidden rounded-lg bg-black">
-				{/* playsInline + muted + autoPlay are required for the inline camera
-            preview to actually start on iOS Safari (otherwise it stays black or
-            tries to go fullscreen). */}
+				{/* iOS Safari needs playsInline + muted + autoPlay, or the preview stays black. */}
 				<video
 					ref={videoRef}
 					className="h-full w-full object-cover"
