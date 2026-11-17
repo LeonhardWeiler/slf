@@ -29,11 +29,6 @@ const (
 
 	// Categories (SRS 12.3.1 has no dedicated code; kept explicit for the client)
 	CodeCategoryNotFound ErrorCode = "CATEGORY_NOT_FOUND"
-	CodeCategoryMinimum  ErrorCode = "CATEGORY_MINIMUM"
-
-	// Answers
-	CodeInvalidAnswerLength ErrorCode = "INVALID_ANSWER_LENGTH"
-	CodeInvalidFirstLetter  ErrorCode = "INVALID_FIRST_LETTER"
 
 	// Generic validation (malformed payload / out-of-range settings)
 	CodeValidationError ErrorCode = "VALIDATION_ERROR"

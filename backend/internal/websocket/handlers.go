@@ -108,7 +108,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 
 	hub.releaseSeat(c, sessionID)
 	hub.mu.Lock()
-	if hub.rooms.Count() >= maxLobbies {
+	if len(hub.rooms) >= maxLobbies {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeValidationError, "Server ausgelastet - bitte später erneut versuchen")
 		return
@@ -136,7 +136,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		State:     game.StateLobby,
 		CreatedAt: time.Now(),
 	}
-	hub.rooms.Create(lobby)
+	hub.rooms[lobby.Code] = lobby
 	hub.sessions[sessionID] = &game.Session{ID: sessionID, PlayerID: playerID, LobbyCode: lobbyCode}
 	hub.bindLocked(c, sessionID)
 	hub.mu.Unlock()
@@ -193,7 +193,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	sessionID := generateSessionID()
 	hub.releaseSeat(c, sessionID)
 	hub.mu.Lock()
-	lobby, found := hub.rooms.Get(code)
+	lobby, found := hub.rooms[code]
 	if !found {
 		hub.mu.Unlock()
 		c.joinFails++
@@ -289,7 +289,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 
 	hub.mu.Lock()
-	lobby, found := hub.rooms.Get(code)
+	lobby, found := hub.rooms[code]
 	if !found {
 		hub.mu.Unlock()
 		c.joinFails++
@@ -324,7 +324,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		hub.sendError(c, CodeSessionNotFound, "Session nicht gefunden")
 		return
 	}
-	lobby, ok := hub.rooms.Get(session.LobbyCode)
+	lobby, ok := hub.rooms[session.LobbyCode]
 	if !ok {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht mehr vorhanden")
