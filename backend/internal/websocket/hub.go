@@ -493,7 +493,7 @@ func (h *Hub) sessionIDOf(c *Client) string {
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
 	severity := severityOf(code)
 	if severity == "critical" {
-		slog.Error("critical error", "code", string(code), "session", hashSession(h.sessionIDOf(c)), "message", message)
+		slog.Info("session error", "code", string(code), "session", hashSession(h.sessionIDOf(c)), "message", message)
 	}
 	c.send("error", errorPayload{Code: code, Message: message, Severity: severity})
 }
