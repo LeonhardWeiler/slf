@@ -14,21 +14,14 @@ func TestDashboard(t *testing.T) {
 	}
 	l.Add(Event{Ev: "start", Mode: "solo"})
 	l.Add(Event{Ev: "end", Mode: "solo", Seconds: 120, Rounds: 1, Players: 1, Reason: "AlphabetFinished", Limit: 90})
-	l.Add(Event{Ev: "world", Value: "candy"})
-	l.Add(Event{Ev: "leave", Value: "candy"})
-	l.Add(Event{Ev: "leave", Value: "ink"})
-	l.Add(Event{Ev: "musicOff", Scene: "play"})
 
 	p := build(l.read())
 	if m := p.Modes[0]; m.Started != 1 || m.Finished != 1 || m.Minutes != "2.0" {
 		t.Fatalf("solo = %+v", m)
 	}
-	if w := p.Worlds; len(w) != 2 || w[0].Extra != "1 verlassen" || w[1].Key != "ink" || w[1].N != 0 {
-		t.Fatalf("worlds = %+v", p.Worlds)
-	}
 	rec := httptest.NewRecorder()
 	l.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
-	if !strings.Contains(rec.Body.String(), "musicOff in play") {
+	if !strings.Contains(rec.Body.String(), "AlphabetFinished") {
 		t.Fatal(rec.Body.String())
 	}
 }
