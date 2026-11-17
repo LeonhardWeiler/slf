@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -1374,5 +1375,22 @@ func TestInvisibleNameRejected(t *testing.T) {
 	json.Unmarshal(c.waitFor("error"), &e)
 	if e.Code != string(CodeNameTooShort) {
 		t.Fatalf("got %q, want %s", e.Code, CodeNameTooShort)
+	}
+}
+
+func TestStaleReconnectLogsNoError(t *testing.T) {
+	var logs strings.Builder
+	prev := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	srv := newServer(t)
+	c := dial(t, srv)
+	c.sessionID = "unknown-session"
+	c.send("reconnect", map[string]any{})
+	c.waitFor("error")
+
+	if strings.Contains(logs.String(), "level=ERROR") {
+		t.Fatalf("stale reconnect logged as ERROR:\n%s", logs.String())
 	}
 }
