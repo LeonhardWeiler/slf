@@ -6,7 +6,7 @@ import {
 	lazy,
 	Suspense,
 } from "react";
-import { Navigate, navigate } from "@/lib/nav";
+import { Navigate } from "@/lib/nav";
 import type { Player } from "@/types/events";
 import {
 	Plus,
@@ -21,9 +21,9 @@ import {
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { copyToClipboard } from "@/lib/clipboard";
-import { markForcedLeave } from "@/lib/forcedLeave";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { useLeave } from "@/components/useLeave";
 import { isModalOpen, Modal } from "@/components/Modal";
 import { InfoHint } from "@/components/InfoHint";
 import { useRoomStore, useIsHost } from "@/store/room";
@@ -96,10 +96,9 @@ function usePlayerPresence(
 export function Lobby() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
-	const reset = useRoomStore((s) => s.reset);
-	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
+	const { leave, dialog: leaveDialog } = useLeave();
 
 	const [newCategory, setNewCategory] = useState("");
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -194,31 +193,6 @@ export function Lobby() {
 
 	if (!lobby) {
 		return <Navigate to="/" />;
-	}
-
-	async function handleLeave() {
-		const confirmed = await confirm(
-			isHost
-				? {
-						title: "Lobby schließen?",
-						description: "Als Host beendest du die Lobby für alle Mitspieler.",
-						confirmLabel: "Lobby schließen",
-						destructive: true,
-					}
-				: {
-						title: "Lobby verlassen?",
-						description:
-							"Du verlässt die Lobby und kehrst zur Startseite zurück.",
-						confirmLabel: "Verlassen",
-						destructive: true,
-					},
-		);
-		if (!confirmed) return;
-		setSelfLeaving(true);
-		ws.send({ type: "leaveLobby", payload: {} });
-		markForcedLeave();
-		reset();
-		navigate("/");
 	}
 
 	function handleAddCategory(e: React.FormEvent) {
@@ -317,7 +291,7 @@ export function Lobby() {
 					<div className="flex items-center gap-2">
 						<ConnectionBadge />
 						<ThemeToggle />
-						<Button variant="ghost" size="sm" onClick={handleLeave}>
+						<Button variant="ghost" size="sm" onClick={leave}>
 							Verlassen
 						</Button>
 					</div>
@@ -822,6 +796,7 @@ export function Lobby() {
 				</Modal>
 			)}
 			{dialog}
+			{leaveDialog}
 		</div>
 	);
 }

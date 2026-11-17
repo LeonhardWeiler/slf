@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
-import { joinCode, Navigate, usePath } from "@/lib/nav";
+import { joinCode, usePath } from "@/lib/nav";
 import { ArrowLeft, Flame, Plus, LogIn, ScanLine } from "lucide-react";
 import { stats } from "@/lib/stats";
 import { ws } from "@/lib/ws";
 import { isTypingTarget } from "@/lib/utils";
 import { consumeForcedLeave } from "@/lib/forcedLeave";
 import type { LobbyCheckPayload } from "@/types/events";
-import { useRoomStore } from "@/store/room";
 import { useToastStore } from "@/store/toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -39,7 +38,6 @@ const preloadRoom = () => import("@/pages/Room");
 export function Home() {
 	const path = usePath();
 	const [streak] = useState(stats.streak);
-	const lobby = useRoomStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
 	// Only error toasts bump errorSeq, so an info toast does not end the spinner.
 	const errorSeq = useToastStore((s) => s.errorSeq);
@@ -145,10 +143,6 @@ export function Home() {
 		});
 		return () => useToastStore.getState().setErrorSink(null);
 	}, [step]);
-
-	if (lobby) {
-		return <Navigate to={`/join/${lobby.lobbyCode.toUpperCase()}`} />;
-	}
 
 	function goTo(next: Step) {
 		window.history.pushState({ homeStep: next }, "");

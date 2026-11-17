@@ -1,22 +1,16 @@
 import { useState } from "react";
-import { navigate } from "@/lib/nav";
 import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
-import { ws } from "@/lib/ws";
-import { markForcedLeave } from "@/lib/forcedLeave";
-import { useRoomStore, useIsHost } from "@/store/room";
+import { useRoomStore } from "@/store/room";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
-import { useConfirm } from "@/components/ConfirmDialog";
+import { useLeave } from "@/components/useLeave";
 import { Button } from "@/components/ui/button";
 
 export function RoomHeader({ title }: { title: string }) {
-	const reset = useRoomStore((s) => s.reset);
 	const lobby = useRoomStore((s) => s.lobby);
-	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
-	const isHost = useIsHost();
-	const { confirm, dialog } = useConfirm();
+	const { leave, dialog } = useLeave();
 	const [copied, setCopied] = useState(false);
 	const [copyFailed, setCopyFailed] = useState(false);
 
@@ -32,31 +26,6 @@ export function RoomHeader({ title }: { title: string }) {
 			setCopyFailed(true);
 			setTimeout(() => setCopyFailed(false), 3000);
 		}
-	}
-
-	async function handleLeave() {
-		const confirmed = await confirm(
-			isHost
-				? {
-						title: "Lobby schließen?",
-						description: "Als Host beendest du das laufende Spiel für alle.",
-						confirmLabel: "Lobby schließen",
-						destructive: true,
-					}
-				: {
-						title: "Spiel verlassen?",
-						description:
-							"Du verlässt das Spiel und kehrst zur Startseite zurück.",
-						confirmLabel: "Verlassen",
-						destructive: true,
-					},
-		);
-		if (!confirmed) return;
-		setSelfLeaving(true);
-		ws.send({ type: "leaveLobby", payload: {} });
-		markForcedLeave();
-		reset();
-		navigate("/");
 	}
 
 	return (
@@ -88,7 +57,7 @@ export function RoomHeader({ title }: { title: string }) {
 				<div className="flex items-center gap-2 shrink-0">
 					<ConnectionBadge />
 					<ThemeToggle />
-					<Button variant="ghost" size="sm" onClick={handleLeave}>
+					<Button variant="ghost" size="sm" onClick={leave}>
 						Verlassen
 					</Button>
 				</div>
