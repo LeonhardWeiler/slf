@@ -2,12 +2,15 @@ package websocket
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"slf/internal/game"
 	"slf/internal/stats"
@@ -46,4 +49,55 @@ func TestGameEndsCounted(t *testing.T) {
 	if !slices.Equal(got, want) {
 		t.Fatalf("got %q, want %q", got, want)
 	}
+}
+
+// A stats write that blocks on a full pipe must not hold hub.mu.
+func TestStatsWriteOutsideLock(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "events.fifo")
+	if err := syscall.Mkfifo(path, 0o600); err != nil {
+		t.Skip(err)
+	}
+	r, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	fill, err := syscall.Open(path, syscall.O_WRONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer syscall.Close(fill)
+	for {
+		if _, err := syscall.Write(fill, make([]byte, 4096)); err != nil {
+			break
+		}
+	}
+	l, err := stats.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hub := NewHub()
+	hub.Stats = l
+	lb := &game.Lobby{Code: "aaaaaa", State: game.StatePlaying, Players: map[string]*game.Player{},
+		Game: &game.Game{UsedLetters: []string{"A"}}}
+	hub.rooms.Create(lb)
+	done := make(chan struct{})
+	go func() { hub.closeLobby(lb, "hostLeft"); close(done) }()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if hub.mu.TryLock() {
+			_, open := hub.rooms.Get("aaaaaa")
+			hub.mu.Unlock()
+			if !open {
+				break
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("hub.mu held while the stats write blocks")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	go io.Copy(io.Discard, r)
+	<-done
 }

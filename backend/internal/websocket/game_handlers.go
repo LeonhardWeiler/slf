@@ -66,10 +66,11 @@ func handleStartGame(hub *Hub, c *Client) {
 	if soloPlayer(lobby) != nil {
 		lobby.Game.Mode = "solo"
 	}
-	hub.Stats.Add(gameEvent("start", lobby))
+	ev := gameEvent("start", lobby)
 	slog.Info("game started",
 		"lobby", lobby.Code, "players", len(lobby.Players), "letters", len(letters))
 	hub.mu.Unlock()
+	hub.Stats.Add(&ev)
 
 	hub.beginCountdown(lobby, from)
 }
@@ -90,10 +91,11 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 	// to the Lobby state so the lobby stays usable and players who (re)join later
 	// can start fresh.
 	if !hasRoundParticipant(lobby) {
-		hub.recordEndLocked(lobby, "Empty")
+		ev := endEvent(lobby, "Empty")
 		lobby.Game = nil
 		setLobbyState(lobby, game.StateLobby)
 		hub.mu.Unlock()
+		hub.Stats.Add(ev)
 		hub.broadcastLobbyState(lobby)
 		return
 	}
@@ -767,24 +769,26 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
-	hub.recordEndLocked(lobby, "ReturnedToLobby")
+	ev := endEvent(lobby, "ReturnedToLobby")
 	setLobbyState(lobby, game.StateLobby)
 	lobby.Game = nil
 	hub.resetForNewGame(lobby)
 	hub.mu.Unlock()
+	hub.Stats.Add(ev)
 
 	hub.broadcastLobbyState(lobby)
 }
 
 func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.mu.Lock()
-	hub.recordEndLocked(lobby, reason)
+	ev := endEvent(lobby, reason)
 	setLobbyState(lobby, game.StateGameOver)
 	result := buildRoundResult(lobby, "", nil, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result
 	}
 	hub.mu.Unlock()
+	hub.Stats.Add(ev)
 
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastTo(lobby, "roundResult", result)
