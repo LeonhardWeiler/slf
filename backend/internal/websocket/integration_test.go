@@ -237,7 +237,7 @@ func TestJoinUnknownLobbyErrors(t *testing.T) {
 	}
 }
 
-// todo: checkLobby lets the join UI show "mid-game / full / unknown" already at
+// checkLobby lets the join UI show "mid-game / full / unknown" already at
 // the code step, before a name is asked.
 func TestCheckLobbyReportsAvailability(t *testing.T) {
 	srv := newServer(t)
@@ -276,7 +276,7 @@ func TestCheckLobbyReportsAvailability(t *testing.T) {
 	}
 }
 
-// ux-leave: joining a running game is allowed; the joiner is pending (a spectator
+// Joining a running game is allowed; the joiner is pending (a spectator
 // who does not appear in the standings) until the next round begins.
 func TestJoinMidGameIsPending(t *testing.T) {
 	srv := newServer(t)
@@ -323,7 +323,7 @@ func TestJoinMidGameIsPending(t *testing.T) {
 	guest.waitFor("gameState")
 }
 
-// ux-leave: a pending joiner is excluded from the standings during the round it
+// A pending joiner is excluded from the standings during the round it
 // joined, and becomes a full participant when the next round begins.
 func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	srv := newServer(t)
@@ -411,7 +411,7 @@ func TestPendingJoinerActivatesNextRound(t *testing.T) {
 	}
 }
 
-// point-5: when no active player submitted anything, ending the round skips the
+// When no active player submitted anything, ending the round skips the
 // review screen and goes straight to the scoreboard (roundResult).
 func TestEmptyRoundSkipsReview(t *testing.T) {
 	srv := newServer(t)
@@ -454,7 +454,7 @@ func TestEmptyRoundSkipsReview(t *testing.T) {
 	}
 }
 
-// bug-3: all categories may be deleted; a round just needs >=1 to start.
+// All categories may be deleted; a round just needs >=1 to start.
 func TestDeleteAllCategoriesThenStartFails(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
@@ -500,7 +500,7 @@ func TestCategoryLimit(t *testing.T) {
 	}
 }
 
-// bug-1: omitting a bool option in updateSettings preserves the current value.
+// Omitting a bool option in updateSettings preserves the current value.
 func TestUpdateSettingsPreservesOmittedBools(t *testing.T) {
 	srv := newServer(t)
 	host := dial(t, srv)
@@ -524,14 +524,14 @@ func TestUpdateSettingsPreservesOmittedBools(t *testing.T) {
 	})
 	ls = host.readLobby()
 	if ls.Settings.HostPlays {
-		t.Fatal("hostPlays must be preserved when omitted (bug-1)")
+		t.Fatal("hostPlays must be preserved when omitted")
 	}
 	if !ls.Settings.LastLetterMode {
 		t.Fatal("lastLetterMode should now be true")
 	}
 }
 
-// bug-1 (extended): timeLimit and excludedLetters are also preserve-on-absent;
+// TimeLimit and excludedLetters are also preserve-on-absent;
 // timeLimit=null (unlimited) stays distinguishable from an omitted timeLimit.
 func TestUpdateSettingsPreservesTimeLimitAndLetters(t *testing.T) {
 	srv := newServer(t)
@@ -608,7 +608,7 @@ func TestPingGetsPong(t *testing.T) {
 	c.waitFor("pong")
 }
 
-// sr-1: when the host drops, everyone is told (hostDisconnected); a host
+// When the host drops, everyone is told (hostDisconnected); a host
 // reconnect within the grace window cancels it (hostReconnected).
 func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {
 	srv := newServer(t)
@@ -637,7 +637,7 @@ func TestHostGraceOnDisconnectAndReconnect(t *testing.T) {
 	guest.waitFor("hostReconnected")
 }
 
-// sr-1 / test-1: if the host never returns, the grace timer fires and the lobby
+// If the host never returns, the grace timer fires and the lobby
 // is closed with reason=hostDisconnected. Uses a shortened grace window.
 func TestHostGraceExpiryClosesLobby(t *testing.T) {
 	srv, hub := newServerHub(t)
@@ -725,7 +725,7 @@ func (c *testConn) readLobby() lobbyStateDTO {
 	return ls
 }
 
-// todo-4: the host can kick a player during a running round. The kicked player
+// The host can kick a player during a running round. The kicked player
 // is not removed but kept in the standings marked as "left", so they still show
 // up as "(verlassen)".
 func TestKickMidGameMarksPlayerLeft(t *testing.T) {
@@ -781,7 +781,7 @@ func TestKickMidGameMarksPlayerLeft(t *testing.T) {
 	}
 }
 
-// game-1: leaving mid-game is a final exit. The session must be invalidated so
+// Leaving mid-game is a final exit. The session must be invalidated so
 // a client that kept the id cannot reconnect as a departed player - and the
 // departed player's answers must never reach scoring, because review filters
 // them out and the host could otherwise not see what changed the result.
@@ -884,7 +884,7 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 	}
 }
 
-// ux-2: starting with a commentator host and no *connected* co-player used to
+// Starting with a commentator host and no *connected* co-player used to
 // pass the start check and then silently fall back to Lobby in beginCountdown -
 // the host clicked and nothing happened. The host must get a real error now.
 func TestStartWithoutConnectedParticipantErrors(t *testing.T) {

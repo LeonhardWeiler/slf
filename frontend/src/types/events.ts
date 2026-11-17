@@ -12,8 +12,6 @@ export interface Player {
 	isHost: boolean;
 	connected: boolean;
 	left: boolean;
-	// True for a player who joined mid-game and is waiting to play from the next
-	// round: shown a spectator view, hidden from the standings until then.
 	pending: boolean;
 	// The server's playsThisRound: the player's answers count this round.
 	plays: boolean;
@@ -34,8 +32,6 @@ export interface Settings {
 	lastLetterMode: boolean;
 }
 
-// A lobbyState whose players are only the changed ones; removed lists the
-// ids of players that are gone.
 export interface LobbyPatchPayload extends LobbyStatePayload {
 	removed: string[];
 }
@@ -47,8 +43,6 @@ export interface LobbyStatePayload {
 	categories: Category[];
 	settings: Settings;
 	state: GameState;
-	// Seconds until the lobby closes because the host is disconnected; null/absent
-	// when the host is present.
 	hostGraceSeconds?: number | null;
 	// A single player is in the lobby: one-screen review, no scoreboard.
 	solo: boolean;
@@ -59,7 +53,7 @@ interface SessionCreatedPayload {
 	playerId: string;
 }
 
-// Machine-readable error codes (SRS 12.3.1). Mirrors backend errors.go.
+// Mirrors backend errors.go.
 type ErrorCode =
 	| "INVALID_SESSION"
 	| "SESSION_NOT_FOUND"
@@ -118,7 +112,6 @@ export interface ReviewStatePayload {
 	categoryIndex: number;
 	categoryCount: number;
 	answers: ReviewAnswer[];
-	// playerId of whoever buzzed to end the round; empty on timeout / host-ended.
 	buzzedBy?: string;
 	endReason?: string;
 	ready: string[] | null;
@@ -175,9 +168,6 @@ export type BuzzRejectReason =
 	| "alreadyBuzzed"
 	| "invalidState";
 
-// Why a lobby can't be joined right now, as reported by a pre-join checkLobby.
-// A running game is no longer a blocker (you join as a waiting spectator), so
-// only these reasons remain.
 type LobbyUnavailableReason = "invalidCode" | "notFound" | "full" | "throttled";
 
 export interface LobbyCheckPayload {

@@ -21,9 +21,6 @@ interface ModalProps {
 	children: ReactNode;
 }
 
-// Modal is the shared dialog shell: it focuses into the dialog on open, locks
-// body scroll, traps Tab inside, closes on Escape and backdrop click, and on
-// close returns focus to where it came from.
 export function Modal({
 	role,
 	labelledBy,

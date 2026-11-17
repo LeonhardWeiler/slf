@@ -1,12 +1,7 @@
 import { z } from "zod/mini";
 import type { ServerEvent } from "@/types/events";
 
-// Runtime validation of every incoming server->client message (SRS 9.3, 9.12,
-// 13.5.3: "Alle Nachrichten werden im Frontend mittels Zod validiert"). The
-// server is authoritative, so a message that does not match the expected shape
-// is dropped rather than fed into the store as malformed state.
-//
-// Note: z.object() ignores unknown keys, so extra server fields are tolerated.
+// z.object() ignores unknown keys, so extra server fields are tolerated.
 
 const gameStateEnum = z.enum([
 	"Lobby",
@@ -46,8 +41,6 @@ const lobbyStatePayload = z.object({
 	categories: z.array(categorySchema),
 	settings: settingsSchema,
 	state: gameStateEnum,
-	// Seconds until the lobby closes because the host is gone; null/absent when
-	// the host is present. Lets late joiners see the shared countdown too.
 	hostGraceSeconds: z.nullish(z.number()),
 	solo: z._default(z.optional(z.boolean()), false),
 });
@@ -135,9 +128,7 @@ const roundResultPayload = z.object({
 	reason: z.optional(z.string()),
 });
 
-// Lenient on the string enums (code / reason) so a forward-compatible server
-// value never causes an otherwise-valid message to be discarded - the client
-// only needs to display the message / react to known values.
+// Lenient on the string enums so a newer server value does not drop the message.
 const errorPayload = z.object({
 	code: z.string(),
 	message: z.string(),
@@ -198,8 +189,6 @@ const serverEventSchema = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("error"), payload: errorPayload }),
 ]);
 
-// Parses and validates a raw server message. Returns the typed event, or null
-// if the JSON is malformed or does not match any known event schema.
 // stateVersion is 0 when the server sent none.
 export function parseServerEvent(
 	raw: string,

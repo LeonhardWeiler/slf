@@ -8,29 +8,18 @@ import { useToastStore } from "@/store/toast";
 import { Home } from "@/pages/Home";
 import { Toaster } from "@/components/Toaster";
 
-// The lobby/game view (Room + all in-game screens) is only needed once the
-// player is actually in a lobby. Splitting it out of the initial bundle keeps
-// the Home/start screen payload small (no unused in-game JS on first load).
 const loadRoom = () => import("@/pages/Room");
 if (getSessionId()) void loadRoom();
 const Room = lazy(() => loadRoom().then((m) => ({ default: m.Room })));
 
 export function Router() {
-	// Individual selectors instead of destructuring the whole store: otherwise
-	// the root layout (and with it the entire routed tree) re-renders on every
-	// unrelated lobby-store change - e.g. the per-second hostGrace countdown.
+	// Individual selectors so the root does not re-render on every store change (e.g. the hostGrace countdown).
 	const setSession = useRoomStore((s) => s.setSession);
 	const setHostGrace = useRoomStore((s) => s.setHostGrace);
 	const reset = useRoomStore((s) => s.reset);
 	const pendingReconnect = useRef(getSessionId() !== null);
 
-	// Toast on connection transitions. The very first successful connect stays
-	// silent, and a "disconnected" status is only announced as a *loss* once a
-	// connection was actually established before - so a cold start against an
-	// unreachable server doesn't wrongly claim the connection was "lost" (it was
-	// never there; the Home screen already shows a persistent "no connection"
-	// banner for that). Only a real drop -> reconnect surfaces the toast pair, and
-	// flapping is ignored by reacting only to actual state changes.
+	// A disconnect is announced as a loss only after a connection existed; the first connect stays silent.
 	useEffect(() => {
 		// Seed from the current socket so a connect that raced ahead of this
 		// listener isn't mistaken for a fresh transition.
@@ -81,31 +70,21 @@ export function Router() {
 		}
 
 		ws.on("error", (payload) => {
-			// A failed reconnect whose cause is a stale session/lobby means the stored
-			// session no longer exists -> clear it so the user starts fresh. Unrelated
-			// errors during a pending reconnect are shown normally.
 			const staleSession =
 				payload.code === "SESSION_NOT_FOUND" ||
 				payload.code === "INVALID_SESSION" ||
 				payload.code === "LOBBY_NOT_FOUND" ||
 				payload.code === "PLAYER_NOT_FOUND";
 			if (pendingReconnect.current && staleSession) {
-				// The stored session no longer exists on the server (e.g. it was
-				// restarted and all in-RAM state is gone). Clear the session and
-				// explain it instead of silently bouncing back to the start screen.
 				pendingReconnect.current = false;
 				markForcedLeave();
 				reset();
-				// The lobby lives at /join/:code; back to the start screen since the
-				// stored session is gone (otherwise we'd land on that code's join flow).
 				navigate("/");
 				useToastStore
 					.getState()
 					.addToast("Verbindung zum Spiel verloren - bitte neu beitreten.");
 				return;
 			}
-			// If a form registered an inline error sink (e.g. the join-name step),
-			// route the error there instead of showing a transient toast.
 			const sink = useToastStore.getState().errorSink;
 			if (sink) {
 				sink(payload.message);
@@ -120,19 +99,14 @@ export function Router() {
 			if (payload.playerId === useRoomStore.getState().myPlayerId) {
 				markForcedLeave();
 				reset();
-				// Leave the lobby's /join/:code URL for the start screen.
 				navigate("/");
 				useToastStore.getState().addToast("Du wurdest aus der Lobby entfernt.");
 			}
 		});
 
 		ws.on("lobbyClosed", (payload) => {
-			// The host receives this echo too when they close the lobby by leaving -
-			// but shouldn't be told it was closed when they did it themselves.
 			const { selfLeaving, setSelfLeaving } = useRoomStore.getState();
 			reset();
-			// The host who left already navigated away themselves; everyone else is
-			// pulled off the lobby's /join/:code URL back to the start screen.
 			if (selfLeaving) {
 				setSelfLeaving(false);
 				return;
@@ -148,7 +122,6 @@ export function Router() {
 				);
 		});
 
-		// Shared host-grace countdown (host dropped -> 15s to reconnect, else close).
 		ws.on("hostDisconnected", (payload) => {
 			setHostGrace(payload.graceSeconds);
 		});
@@ -166,8 +139,6 @@ export function Router() {
 	return (
 		<>
 			<Toaster />
-			{/* Single <main> landmark around the routed content (the fixed overlay
-          above stay outside it) so assistive tech can jump to the main content. */}
 			<main>
 				<Routes />
 			</main>
@@ -175,10 +146,6 @@ export function Router() {
 	);
 }
 
-// `/` renders the Home join/create flow. The active lobby *lives* at
-// `/join/:code` so the address bar always equals the shareable join link. The
-// same path serves the join flow (Home reads the code as a deep link) for
-// anyone not yet in a lobby. Any other path bounces back to `/`.
 function Routes() {
 	const path = usePath();
 	const inLobby = useRoomStore((s) => s.lobby != null);

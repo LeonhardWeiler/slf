@@ -13,8 +13,7 @@ import (
 	"slf/internal/stats"
 )
 
-// Resource caps to bound memory use. Deliberately far above any realistic game
-// so normal players never hit them; they exist only to stop abuse.
+// Resource caps against abuse, far above any realistic game.
 const (
 	maxLobbies         = 2000
 	maxConnections     = 2000
@@ -24,25 +23,19 @@ const (
 // maxCategoriesPerLobby is a game rule, mirrored as MAX_CATEGORIES in Lobby.tsx.
 const maxCategoriesPerLobby = 20
 
-// Abandoned-lobby reaper timing: a lobby with zero connected players for longer
-// than lobbyTTL is closed. Checked every janitorInterval.
 const (
 	lobbyTTL        = 10 * time.Minute
 	janitorInterval = 2 * time.Minute
 )
 
-// hostGraceSeconds is how long the lobby waits for a disconnected host to come
-// back before it is closed (SRS 4.6/8.5). All players see a live countdown.
 const hostGraceSeconds = 15
 
 type Hub struct {
-	mu       sync.Mutex
-	pending  map[*Client]struct{}
-	clients  map[string]*Client       // sessionId -> client
-	sessions map[string]*game.Session // sessionId -> session
-	rooms    map[string]*game.Lobby
-	// hostGrace holds the running grace timer per lobby code while its host is
-	// disconnected; cancelled on host reconnect, fired -> lobby closed.
+	mu        sync.Mutex
+	pending   map[*Client]struct{}
+	clients   map[string]*Client       // sessionId -> client
+	sessions  map[string]*game.Session // sessionId -> session
+	rooms     map[string]*game.Lobby
 	hostGrace map[string]*time.Timer
 	// hostGraceDuration is how long the grace lasts; overridable in tests.
 	hostGraceDuration time.Duration
@@ -68,17 +61,14 @@ func NewHub() *Hub {
 	}
 }
 
-// setHostGraceDuration overrides the grace window (used by tests to avoid waiting
-// the full 15s). Guarded by the hub mutex so it happens-before the reader.
+// Guarded by the hub mutex so it happens-before the reader.
 func (h *Hub) setHostGraceDuration(d time.Duration) {
 	h.mu.Lock()
 	h.hostGraceDuration = d
 	h.mu.Unlock()
 }
 
-// Shutdown stops taking connections and messages, then closes every open
-// WebSocket in parallel with a 1001 (going away) frame so clients reconnect
-// with backoff. The hub state is frozen afterwards and safe to Save.
+// The hub state is frozen after Shutdown and safe to Save.
 func (h *Hub) Shutdown() {
 	h.closed.Store(true)
 	h.mu.Lock()
@@ -97,8 +87,6 @@ func (h *Hub) Shutdown() {
 	wg.Wait()
 }
 
-// Health reports whether the hub lock is obtainable within d (the game loop is
-// not stuck) and whether the hub drains for a restart.
 func (h *Hub) Health(d time.Duration) (live, draining bool) {
 	done := make(chan bool, 1)
 	go func() {
@@ -114,7 +102,6 @@ func (h *Hub) Health(d time.Duration) (live, draining bool) {
 	}
 }
 
-// StartJanitor launches the background reaper that closes abandoned lobbies.
 func (h *Hub) StartJanitor() {
 	go func() {
 		t := time.NewTicker(janitorInterval)
@@ -125,9 +112,7 @@ func (h *Hub) StartJanitor() {
 	}()
 }
 
-// reapAbandoned closes lobbies that have had no connected player for longer than
-// lobbyTTL. EmptySince is owned entirely here, so it always tracks the real
-// connection state and needs no updates elsewhere.
+// EmptySince is owned entirely by reapAbandoned.
 func (h *Hub) reapAbandoned() {
 	now := time.Now()
 	var toReap []*game.Lobby
@@ -156,8 +141,7 @@ func (h *Hub) reapAbandoned() {
 	}
 }
 
-// uniqueLobbyCode returns a 6-char [a-z0-9] code that is not currently in use.
-// Caller must hold h.mu (it reads the room map).
+// Caller must hold h.mu.
 func (h *Hub) uniqueLobbyCode() string {
 	for {
 		code := generateLobbyCode()
@@ -177,8 +161,6 @@ func (h *Hub) addPending(c *Client) bool {
 	return true
 }
 
-// releaseSeat frees the seat a socket holds before it binds to another
-// session, exactly as if that connection had dropped.
 func (h *Hub) releaseSeat(c *Client, sessionID string) {
 	if c.sessionID == "" || c.sessionID == sessionID {
 		return
@@ -201,8 +183,7 @@ func (h *Hub) endSessionLocked(sessionID string) {
 	}
 }
 
-// bindLocked binds the socket to a session and returns the socket it replaces.
-// Caller must hold h.mu.
+// bindLocked returns the socket it replaces. Caller must hold h.mu.
 func (h *Hub) bindLocked(c *Client, sessionID string) *Client {
 	old := h.clients[sessionID]
 	delete(h.pending, c)
@@ -252,8 +233,7 @@ func (h *Hub) onDisconnect(c *Client) {
 	}
 }
 
-// graceSecondsLeft returns the seconds until the host-grace deadline (rounded
-// up), or nil when no grace is active. Caller must hold h.mu.
+// Caller must hold h.mu.
 func graceSecondsLeft(lobby *game.Lobby) *int {
 	if lobby.HostGraceUntil.IsZero() {
 		return nil
@@ -269,16 +249,12 @@ func graceSecondsLeft(lobby *game.Lobby) *int {
 	return &secs
 }
 
-// startHostGrace begins the countdown after the host's connection dropped. All
-// clients are told so they can show a shared countdown; if the host does not
-// reconnect within d, the lobby is closed.
 func (h *Hub) startHostGrace(lobby *game.Lobby, d time.Duration) {
 	h.mu.Lock()
 	if _, running := h.hostGrace[lobby.Code]; running {
 		h.mu.Unlock()
 		return
 	}
-	// If the host is already back (reconnect raced ahead), do nothing.
 	if host, ok := lobby.Players[lobby.HostID]; ok && host.Connected {
 		h.mu.Unlock()
 		return
@@ -295,8 +271,6 @@ func (h *Hub) startHostGrace(lobby *game.Lobby, d time.Duration) {
 	h.broadcastTo(lobby, "hostDisconnected", map[string]int{"graceSeconds": graceSeconds})
 }
 
-// cancelHostGrace stops a running grace timer (host came back). Returns true if
-// a timer was actually cancelled.
 func (h *Hub) cancelHostGrace(code string) bool {
 	h.mu.Lock()
 	t, ok := h.hostGrace[code]
@@ -311,7 +285,6 @@ func (h *Hub) cancelHostGrace(code string) bool {
 	return ok
 }
 
-// onHostGraceExpired fires when the host never reconnected in time -> close.
 func (h *Hub) onHostGraceExpired(code string) {
 	h.mu.Lock()
 	delete(h.hostGrace, code)
@@ -330,8 +303,7 @@ func (h *Hub) onHostGraceExpired(code string) {
 	h.closeLobby(lobby, "hostDisconnected")
 }
 
-// playerForLocked resolves the player currently bound to a client's session, or
-// nil if none. The caller MUST hold h.mu.
+// The caller MUST hold h.mu.
 func (h *Hub) playerForLocked(c *Client) *game.Player {
 	s, ok := h.sessions[c.sessionID]
 	if !ok {
@@ -344,7 +316,6 @@ func (h *Hub) playerForLocked(c *Client) *game.Player {
 	return lobby.Players[s.PlayerID]
 }
 
-// lookupLocked resolves a session to its lobby and player.
 // The caller MUST hold h.mu.
 func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.Player, bool) {
 	s, ok := h.sessions[sessionID]
@@ -362,14 +333,10 @@ func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.
 	return s, lobby, player, true
 }
 
-// closeLobby destroys a lobby, invalidates all of its sessions and notifies
-// every connected player so their clients return to the start screen.
-// Used when the host leaves or the lobby is otherwise torn down (SRS 4.8).
 func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	slog.Info("lobby closed", "lobby", lobby.Code, "reason", reason)
 	h.mu.Lock()
 	ev := endEvent(lobby, reason)
-	// Stop a pending host-grace timer so it cannot fire against a closed lobby.
 	if t, ok := h.hostGrace[lobby.Code]; ok {
 		t.Stop()
 		delete(h.hostGrace, lobby.Code)
@@ -391,9 +358,6 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Lock()
-	// Decorate-sort: precompute the lowercased name once per player instead of
-	// re-lowering inside the comparator (which runs O(n log n) times and would
-	// allocate a fresh string each call).
 	type decorated struct {
 		key    string // lowercased name, used only for ordering
 		player game.LobbyPlayer
@@ -415,8 +379,6 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 			},
 		})
 	}
-	// Stable, alphabetical order so the list never reshuffles on unrelated
-	// updates (e.g. a settings change). Tie-break on ID for determinism.
 	slices.SortFunc(decoratedPlayers, func(a, b decorated) int {
 		if a.key != b.key {
 			return strings.Compare(a.key, b.key)
@@ -459,7 +421,6 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 	h.mu.Unlock()
 }
 
-// lobbyPatch reduces next to the players that differ from prev.
 func lobbyPatch(prev []game.LobbyPlayer, next game.LobbyStatePayload) game.LobbyPatchPayload {
 	old := make(map[string]game.LobbyPlayer, len(prev))
 	for _, p := range prev {
@@ -479,17 +440,14 @@ func lobbyPatch(prev []game.LobbyPlayer, next game.LobbyStatePayload) game.Lobby
 	return patch
 }
 
-// sessionIDOf reads a client's session id under h.mu, for the few paths that
-// need it outside a handler's own critical section. Caller must NOT hold h.mu.
+// Caller must NOT hold h.mu.
 func (h *Hub) sessionIDOf(c *Client) string {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return c.sessionID
 }
 
-// sendError reports a failure to one client. Always called after the caller
-// released h.mu, so the (rare) critical-path log takes the lock itself rather
-// than reading sessionID unguarded.
+// sendError is called without h.mu held.
 func (h *Hub) sendError(c *Client, code ErrorCode, message string) {
 	severity := severityOf(code)
 	if severity == "critical" {

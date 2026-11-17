@@ -10,14 +10,9 @@ export interface Toast {
 
 interface ToastStore {
 	toasts: Toast[];
-	// Monotonic count of *error* toasts ever shown (never decreases on dismiss).
-	// The Home submit spinner keys off this so a real error stops it, while
-	// neutral "info" toasts (e.g. "reconnected") leave a pending action alone.
+	// Counts error toasts only, so an info toast leaves a pending action alone.
 	errorSeq: number;
-	// Optional sink: while set, the next server error is delivered here (inline at
-	// a form field) instead of shown as a toast. The join-name step uses it so its
-	// error appears at the field - like the lobby-code step - rather than as a
-	// transient toast.
+	// While set, the next server error goes here instead of a toast.
 	errorSink: ((message: string) => void) | null;
 	setErrorSink: (fn: ((message: string) => void) | null) => void;
 	addToast: (message: string, variant?: ToastVariant) => void;
@@ -26,12 +21,8 @@ interface ToastStore {
 }
 
 let nextId = 1;
-// Cap the visible stack so a burst of errors can't fill the screen; keep newest.
 const MAX_TOASTS = 5;
 
-// Global, stackable toast notifications. Every addToast is a distinct entry (with
-// its own id), so even identical consecutive messages stack and re-show. Errors
-// use the default "error" variant; neutral status updates pass "info".
 export const useToastStore = create<ToastStore>((set) => ({
 	toasts: [],
 	errorSeq: 0,

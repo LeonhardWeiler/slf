@@ -8,13 +8,9 @@ import (
 	"unicode"
 )
 
-// idAlphabet is the 36-char set used for ids and lobby codes.
 const idAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 
-// randomString returns an unbiased n-char string over idAlphabet, drawn from
-// crypto/rand (rejection sampling avoids modulo bias). Used for both sessionIds
-// (which must be unpredictable - they are the only auth credential) and lobby
-// codes.
+// randomString draws from crypto/rand without modulo bias; sessionIds are the only auth credential.
 func randomString(n int) string {
 	const limit = 256 - (256 % len(idAlphabet)) // largest multiple of len <= 256
 	out := make([]byte, 0, n)
@@ -32,16 +28,10 @@ func randomString(n int) string {
 
 func generateID() string { return randomString(12) }
 
-// generateSessionID returns a 25-char id (~129 bit).
 func generateSessionID() string { return randomString(25) }
 
-// generateLobbyCode returns a 6-char [a-z0-9] join code (~2.2e9 combinations, far
-// harder to enumerate than a plain 6-digit space). Collisions are handled by
-// hub.uniqueLobbyCode.
 func generateLobbyCode() string { return randomString(6) }
 
-// normalizeLobbyCode lower-cases and trims a client-supplied code and verifies it
-// is exactly 6 chars of [a-z0-9]. Returns the normalized code and whether valid.
 func normalizeLobbyCode(s string) (string, bool) {
 	s = strings.ToLower(strings.TrimSpace(s))
 	if len(s) != 6 {
@@ -55,9 +45,7 @@ func normalizeLobbyCode(s string) (string, bool) {
 	return s, true
 }
 
-// hashSession returns a short, non-reversible fingerprint of a sessionId for
-// logging. The sessionId is the auth credential, so it must never be written to
-// logs in the clear.
+// hashSession fingerprints a sessionId for logs, which must never hold it in the clear.
 func hashSession(id string) string {
 	if id == "" {
 		return ""

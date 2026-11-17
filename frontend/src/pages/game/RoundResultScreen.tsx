@@ -18,8 +18,6 @@ export function RoundResultScreen() {
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 
-	// Host can remove a player from the between-rounds standings (the points
-	// table). The server keeps them in the ranking marked "(verlassen)" (todo-4).
 	async function handleKick(playerId: string, name: string) {
 		if (
 			await confirm({
@@ -52,8 +50,7 @@ export function RoundResultScreen() {
 		if (!isHost) return;
 		function onKey(e: KeyboardEvent) {
 			if (e.defaultPrevented || handlesEnter(document.activeElement)) return;
-			// Don't fire while a confirm dialog is up (e.g. "Spiel beenden?"), so the
-			// Enter that confirms it doesn't also start the next round (UX-1).
+			// Don't fire while a confirm dialog is up.
 			if (isModalOpen()) return;
 			// Ignore auto-repeat: holding Enter would send startNextRound many times.
 			// The first advances the server past RoundResult, so the rest hit an
@@ -128,17 +125,11 @@ export function RoundResultScreen() {
 											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
 										)}
 										<span className="text-sm font-medium">
-											{/* Only the host may remove a player, so only the host gets
-											    the clickable name. Rendering it for everyone offered a
-											    destructive action the server rejects with NOT_HOST. */}
 											{isHost &&
 											r.playerId !== myPlayerId &&
 											!playerOf(r.playerId)?.left ? (
 												<button
 													type="button"
-													// The name itself is the trigger, so name it: without this
-													// the accessible name is just the player and nothing says
-													// what activating it does.
 													title={`${playerName(r.playerId)} entfernen`}
 													className="font-medium hover:line-through cursor-pointer bg-transparent border-0 p-0 inline"
 													onClick={() =>
@@ -170,8 +161,6 @@ export function RoundResultScreen() {
 										</span>
 									</div>
 									<div className="flex items-center gap-3">
-										{/* Round gain only shown in success green when >0; a zero gain
-                      is shown neutrally as "±0", not as green "+0". */}
 										<span
 											title={bonus ? `inkl. ${bonus}` : undefined}
 											className={`text-xs font-medium ${
@@ -194,7 +183,6 @@ export function RoundResultScreen() {
 				</Card>
 
 				{isHost ? (
-					// Nebeneinander ab sm; auf schmalen Screens gestapelt.
 					<div className="flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2">
 						<Button variant="outline" size="lg" onClick={handleEndGame}>
 							Spiel beenden

@@ -69,10 +69,7 @@ func main() {
 		}
 	})
 
-	// When STATIC_DIR is set (production), the Go server
-	// also serves the built frontend and falls back to index.html so client-side
-	// routes (/ and /join/:code, where the active lobby also lives) resolve. In
-	// dev this is empty and the frontend is served by Vite instead.
+	// STATIC_DIR (production) serves the built frontend; in dev Vite does.
 	if staticDir := os.Getenv("STATIC_DIR"); staticDir != "" {
 		mux.Handle("/", spaHandler(staticDir))
 		log.Printf("Serving frontend from %s", staticDir)
@@ -131,10 +128,8 @@ func main() {
 	log.Println("Server stopped")
 }
 
-// setupLogging configures the global slog logger from the environment
-// (SRS 12.9). LOG_LEVEL: debug|info|warn|error (default info). LOG_FORMAT:
-// text|json (default text). LOG_FILE: if set, logs are appended to that file in
-// addition to stdout.
+// setupLogging reads LOG_LEVEL (debug|info|warn|error, default info), LOG_FORMAT
+// (text|json, default text) and LOG_FILE (appended to besides stdout).
 func setupLogging() {
 	level := slog.LevelInfo
 	switch strings.ToLower(os.Getenv("LOG_LEVEL")) {
@@ -179,8 +174,6 @@ func securityHeaders(h http.Header) {
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("X-Frame-Options", "DENY")
-	// Isolate our browsing context from any window that opened us (defence in
-	// depth against cross-origin popup/opener attacks).
 	h.Set("Cross-Origin-Opener-Policy", "same-origin")
 	h.Set("Permissions-Policy", "camera=(self), microphone=(), geolocation=()")
 	// Only honoured by browsers over HTTPS (ignored on plain-HTTP localhost/LAN),

@@ -19,9 +19,6 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-// Resolve the initial theme: a stored light/dark preference wins; otherwise the
-// OS preference is used *once* to pick a starting value. After that the system
-// preference plays no further role.
 function getInitialTheme(): Theme {
 	const stored = storage.get(STORAGE_KEY);
 	if (stored === "light" || stored === "dark") return stored;
@@ -31,8 +28,6 @@ function getInitialTheme(): Theme {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-	// Theme is a per-browser display preference, so localStorage (shared across
-	// tabs, persistent) is the right home for it - unlike the session identity.
 	const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
 
 	useEffect(() => {

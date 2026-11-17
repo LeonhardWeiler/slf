@@ -1,7 +1,5 @@
 // Command loadtest measures the server's WebSocket roundtrip latency under
-// concurrent load, as an isolated, reproducible check against the SRS
-// performance targets (13.2 / 14.11: < 80 ms avg, < 150 ms max roundtrip,
-// >= 500 concurrent players).
+// concurrent load (target: < 80 ms avg, < 150 ms max, >= 500 players).
 //
 // It spins up -lobbies lobbies with -perLobby players each (a host + joiners),
 // then repeatedly has every host trigger a state change (updateSettings) and
@@ -79,7 +77,6 @@ func main() {
 	var hosts []*client
 	var mu sync.Mutex
 
-	// 1) Create all hosts (each creates a lobby).
 	var wg sync.WaitGroup
 	for i := 0; i < *lobbies; i++ {
 		wg.Add(1)
@@ -98,7 +95,6 @@ func main() {
 	}
 	wg.Wait()
 
-	// 2) Join the remaining players into each lobby.
 	for li, h := range hosts {
 		for j := 1; j < *perLobby; j++ {
 			wg.Add(1)
@@ -120,8 +116,6 @@ func main() {
 	wg.Wait()
 	log.Printf("%d players connected. Measuring %d rounds…", len(clients), *iters)
 
-	// 3) Measurement rounds: every host toggles a setting simultaneously; every
-	// client times the resulting lobby broadcast.
 	var samples []time.Duration
 	for it := 0; it < *iters; it++ {
 		id := 5 + it
@@ -240,11 +234,11 @@ func report(samples []time.Duration, players int) {
 	fmt.Println("\n===== Result =====")
 	fmt.Printf("Concurrent players:  %d\n", players)
 	fmt.Printf("Measurements:        %d\n", len(samples))
-	fmt.Printf("avg:                 %s   (SRS target < 80 ms)\n", ms(avg))
+	fmt.Printf("avg:                 %s   (target < 80 ms)\n", ms(avg))
 	fmt.Printf("p50:                 %s\n", ms(pct(50)))
 	fmt.Printf("p95:                 %s\n", ms(pct(95)))
 	fmt.Printf("p99:                 %s\n", ms(pct(99)))
-	fmt.Printf("max:                 %s   (SRS target < 150 ms)\n", ms(samples[len(samples)-1]))
+	fmt.Printf("max:                 %s   (target < 150 ms)\n", ms(samples[len(samples)-1]))
 	okAvg, okMax := avg < 80*time.Millisecond, samples[len(samples)-1] < 150*time.Millisecond
 	fmt.Printf("Targets met:         avg %v · max %v\n", okAvg, okMax)
 }

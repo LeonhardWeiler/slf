@@ -8,8 +8,6 @@ interface Props {
 	commentator: CommentatorStatePayload | null;
 }
 
-// Beamer/commentator overview: a matrix of players × categories showing only
-// *whether* a field has been filled (a check), never the answer itself.
 export function CommentatorBoard({ categories, players, commentator }: Props) {
 	const filledByPlayer = new Map<string, Set<string>>();
 	const completeByPlayer = new Map<string, boolean>();

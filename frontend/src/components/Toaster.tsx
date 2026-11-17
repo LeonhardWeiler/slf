@@ -7,8 +7,6 @@ const AUTO_DISMISS_MS = 3000;
 // How many toasts behind the front one peek out to signal "there are more".
 const MAX_PEEK = 3;
 
-// Per-variant styling. `peek` is border+background only (used for the dimmed
-// cards fanned out behind the front one); `front` adds text colour and hover.
 const VARIANTS: Record<
 	ToastVariant,
 	{ peek: string; front: string; Icon: typeof AlertTriangle }
@@ -26,13 +24,8 @@ const VARIANTS: Record<
 	},
 };
 
-// The front (newest) toast: fully readable, clickable to dismiss, and it runs the
-// auto-dismiss timer. Once it goes, the next toast slides to the front and starts
-// its own timer - so a stack drains one readable card at a time.
 function FrontToast({ toast }: { toast: Toast }) {
 	const dismiss = useToastStore((s) => s.dismissToast);
-	// Pause the auto-dismiss while the user hovers or focuses, so a long message
-	// can be read (or reached with the keyboard) without it vanishing.
 	const [paused, setPaused] = useState(false);
 	const { front, Icon } = VARIANTS[toast.variant];
 
@@ -55,7 +48,6 @@ function FrontToast({ toast }: { toast: Toast }) {
 		>
 			<Icon className="mt-0.5 h-4 w-4 shrink-0" />
 			<span className="flex-1">{toast.message}</span>
-			{/* Thin auto-dismiss countdown bar; pauses in step with the timer above. */}
 			<span
 				aria-hidden="true"
 				style={{
@@ -68,27 +60,17 @@ function FrontToast({ toast }: { toast: Toast }) {
 	);
 }
 
-// Stacking toast notifications, top-center. The newest sits in front and is the
-// only readable one; older toasts fan out behind it (offset down + scaled +
-// dimmed) so the user can tell several are queued without reading them. Clicking
-// the front toast dismisses it; a "clear all" control appears only when >1 is
-// stacked.
 export function Toaster() {
 	const toasts = useToastStore((s) => s.toasts);
 	const clearToasts = useToastStore((s) => s.clearToasts);
 
 	const front = toasts.at(-1);
-	// Toasts directly behind the front, nearest first, capped to a few peeks.
 	const behind = toasts
 		.slice(Math.max(0, toasts.length - 1 - MAX_PEEK), toasts.length - 1)
 		.reverse();
 
 	return (
-		// Only the front toast is read out (the peeking cards behind it are
-		// aria-hidden), so key the region's urgency off its variant: errors
-		// interrupt (assertive), neutral info updates wait their turn (polite).
-		// The region stays mounted while empty: one that appears together with
-		// its first toast is often not announced.
+		// Only the front toast is read out. The region stays mounted while empty: one that appears with its first toast is often not announced.
 		<div
 			aria-live={front?.variant === "error" ? "assertive" : "polite"}
 			className="pointer-events-none fixed inset-x-0 top-0 z-[60] mx-auto flex w-full max-w-sm flex-col items-center gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))]"
@@ -103,8 +85,6 @@ export function Toaster() {
 				</button>
 			)}
 
-			{/* The front toast defines the box size; the peeking cards are absolutely
-          positioned to fill it and shifted down/back, so they poke out below. */}
 			{front && (
 				<div className="relative w-full">
 					{behind.map((t, i) => {

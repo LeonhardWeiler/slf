@@ -13,7 +13,6 @@ import (
 	"slf/internal/game"
 )
 
-// setLobbyState updates a lobby's state and logs the transition (SRS 12.9).
 // Caller must hold hub.mu.
 func setLobbyState(lobby *game.Lobby, to game.GameState) {
 	if lobby.State != to {
@@ -33,11 +32,6 @@ func categoryExists(lobby *game.Lobby, catID string) bool {
 }
 
 func storeAnswer(round *game.Round, playerID, catID, value string) {
-	// An empty / whitespace-only value is not a real submission, and the server
-	// authoritatively enforces the 1-30 char limit (SRS 9.13.14) instead of
-	// trusting the client's maxLength: drop the entry in either case so it never
-	// shows up as a "submitted" answer in review (and so buzzing still requires
-	// every category to be filled).
 	norm := game.Normalize(value)
 	if norm == "" || len([]rune(norm)) > 30 {
 		if byCat, ok := round.Answers[playerID]; ok {
@@ -51,7 +45,6 @@ func storeAnswer(round *game.Round, playerID, catID, value string) {
 	round.Answers[playerID][catID] = &game.Answer{Value: strings.TrimSpace(value)}
 }
 
-// answerFor returns a player's answer (answerID == playerID) for a category.
 func answerFor(round *game.Round, playerID, catID string) *game.Answer {
 	if byCat, ok := round.Answers[playerID]; ok {
 		return byCat[catID]
@@ -81,8 +74,6 @@ func sprintLetters(letters []string, n int, limit *int) []string {
 	return out
 }
 
-// roundSlots lists what review walks through: every category with the round
-// letter, or in a sprint every letter+category pair a player answered.
 // Caller must hold hub.mu.
 func roundSlots(lobby *game.Lobby) []game.Slot {
 	r := lobby.Game.Round
@@ -107,8 +98,6 @@ func roundSlots(lobby *game.Lobby) []game.Slot {
 	return slots
 }
 
-// sprintProgress returns a player's next sprint prompt and their word for each
-// prompt before it, "" where they skipped.
 // Caller must hold hub.mu.
 func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
 	r, n := lobby.Game.Round, len(lobby.Categories)
@@ -144,26 +133,19 @@ func sprintProgress(lobby *game.Lobby, pid string) (*int, []string) {
 // The standings are the deliberate exception: buildRoundResult excludes only
 // spectators, because a player who left is kept in the ranking on purpose.
 
-// isSpectatorHost reports whether the player is a non-playing (commentator) host.
 func isSpectatorHost(lobby *game.Lobby, p *game.Player) bool {
 	return !lobby.Settings.HostPlays && p.IsHost
 }
 
-// isRoundSpectator reports whether the player does not participate in the current
-// round and therefore watches instead of playing: a commentator host, or a
-// mid-game joiner still pending (waiting to play from the next round).
 func isRoundSpectator(lobby *game.Lobby, p *game.Player) bool {
 	return isSpectatorHost(lobby, p) || p.Pending
 }
 
-// playsThisRound reports whether the player's answers count in the current round.
-// Takes a possibly-nil player so callers can pass a raw map lookup: an answer
-// whose player is gone from the lobby is not in the round either.
+// p may be nil: an answer whose player is gone is not in the round.
 func playsThisRound(lobby *game.Lobby, p *game.Player) bool {
 	return p != nil && !p.Left && !isRoundSpectator(lobby, p)
 }
 
-// votesThisRound reports whether the player votes on answers in review.
 func votesThisRound(lobby *game.Lobby, p *game.Player) bool {
 	return playsThisRound(lobby, p) && p.Connected
 }
@@ -175,9 +157,6 @@ func canPlayNextRound(lobby *game.Lobby, p *game.Player) bool {
 	return p != nil && !p.Left && p.Connected && !isSpectatorHost(lobby, p)
 }
 
-// soloPlayer returns the only player of a lobby that has exactly one member
-// who has not left and who plays, or nil. A pending joiner or a second member
-// ends solo.
 func soloPlayer(lobby *game.Lobby) *game.Player {
 	var solo *game.Player
 	for _, p := range lobby.Players {
@@ -195,10 +174,7 @@ func soloPlayer(lobby *game.Lobby) *game.Player {
 	return solo
 }
 
-// hasRoundParticipant reports whether at least one player could play a round
-// starting now. Shared by handleStartGame (so the host gets a real error) and
-// beginCountdown (so an empty lobby falls back instead of starting a dead
-// round) - the two must not disagree. Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func hasRoundParticipant(lobby *game.Lobby) bool {
 	for _, p := range lobby.Players {
 		if canPlayNextRound(lobby, p) {
@@ -208,8 +184,7 @@ func hasRoundParticipant(lobby *game.Lobby) bool {
 	return false
 }
 
-// hasActiveSubmission reports whether at least one player who counts this round
-// submitted a non-empty answer. Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func hasActiveSubmission(lobby *game.Lobby) bool {
 	r := lobby.Game.Round
 	for pid, byCat := range r.Answers {
@@ -225,8 +200,7 @@ func hasActiveSubmission(lobby *game.Lobby) bool {
 	return false
 }
 
-// buildCommentatorState summarises, per playing (non-host, non-left) player,
-// which categories they have filled - never the values. Caller must hold hub.mu.
+// buildCommentatorState never sends answer values. Caller must hold hub.mu.
 func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	r := lobby.Game.Round
 	players := make([]game.CommentatorPlayer, 0, len(lobby.Players))
@@ -240,14 +214,11 @@ func buildCommentatorState(lobby *game.Lobby) game.CommentatorStatePayload {
 	return game.CommentatorStatePayload{RoundID: r.ID, Players: players}
 }
 
-// commentatorRow is one player's line of the board. Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func commentatorRow(lobby *game.Lobby, p *game.Player) game.CommentatorPlayer {
 	r := lobby.Game.Round
 	filled := make([]string, 0, len(lobby.Categories))
 	for _, cat := range lobby.Categories {
-		// A category counts as "done" only when the answer passes the same
-		// server-side rule check the player needs to buzz (e.g. "arst" for
-		// letter O is not done) - not merely when it is non-empty.
 		if a := r.Answers[p.ID][cat.ID]; a != nil &&
 			game.IsRuleValid(r.Letter, a.Value, lobby.Settings.LastLetterMode) {
 			filled = append(filled, cat.ID)
@@ -260,8 +231,6 @@ func commentatorRow(lobby *game.Lobby, p *game.Player) game.CommentatorPlayer {
 	}
 }
 
-// notifyRowLocked sends the spectators p's board row if it differs from
-// before. Most keystrokes change nothing on the board and send nothing.
 // Caller must hold hub.mu.
 func (hub *Hub) notifyRowLocked(lobby *game.Lobby, p *game.Player, before game.CommentatorPlayer) {
 	row := commentatorRow(lobby, p)
@@ -274,18 +243,13 @@ func (hub *Hub) notifyRowLocked(lobby *game.Lobby, p *game.Player, before game.C
 	}
 }
 
-// spectatorClients returns every connected client that should watch the round's
-// fill-overview board instead of playing: the commentator host and any pending
-// (mid-game) joiners. Empty when there is no active round. Caller must hold
-// hub.mu.
+// Caller must hold hub.mu.
 func (hub *Hub) spectatorClients(lobby *game.Lobby) []*Client {
 	if lobby.Game == nil || lobby.Game.Round == nil {
 		return nil
 	}
 	var out []*Client
 	for _, p := range lobby.Players {
-		// The complement of playsThisRound, minus the players who left: watching
-		// requires being a spectator, and a departed player watches nothing.
 		if p.Left || !isRoundSpectator(lobby, p) {
 			continue
 		}
@@ -296,8 +260,7 @@ func (hub *Hub) spectatorClients(lobby *game.Lobby) []*Client {
 	return out
 }
 
-// notifyCommentator sends the full fill overview to every spectator (the
-// commentator host and any pending joiners). Caller must NOT hold hub.mu.
+// Caller must NOT hold hub.mu.
 func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
@@ -311,7 +274,7 @@ func (hub *Hub) notifyCommentator(lobby *game.Lobby) {
 	}
 }
 
-// buildGameState builds the shared round view. Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 	g := lobby.Game
 	r := g.Round
@@ -340,8 +303,7 @@ func buildGameState(lobby *game.Lobby) game.GameStatePayload {
 	return p
 }
 
-// buildReviewState builds the current category's review view (with point
-// previews). Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 	r := lobby.Game.Round
 	idx := r.ReviewIndex
@@ -411,12 +373,8 @@ func scoredCategory(lobby *game.Lobby, catID string) map[string]*game.Answer {
 	return perCat
 }
 
-// buildRoundResult assembles per-player round points, totals and the ranking.
 // Caller must hold hub.mu.
 func buildRoundResult(lobby *game.Lobby, letter string, entries map[string]game.ScoreEntry, isGameOver bool, reason string) game.RoundResultPayload {
-	// The deliberate exception to playsThisRound: only spectators (commentator
-	// host, pending joiners) are dropped here. A player who *left* stays in the
-	// scores and the ranking on purpose - the standings are where they linger.
 	ranked := make(map[string]*game.Player, len(lobby.Players))
 	scores := make([]game.ScoreEntry, 0, len(lobby.Players))
 	for pid, pl := range lobby.Players {
@@ -429,8 +387,6 @@ func buildRoundResult(lobby *game.Lobby, letter string, entries map[string]game.
 		scores = append(scores, e)
 	}
 	slices.SortFunc(scores, func(a, b game.ScoreEntry) int { return cmp.Compare(a.PlayerID, b.PlayerID) })
-	// Carry the letter progress so the client's round-result screen is
-	// self-sufficient (also after a reconnect, where no gameState is replayed).
 	var used, remaining []string
 	if lobby.Game != nil {
 		used = lobby.Game.UsedLetters
@@ -446,8 +402,6 @@ func buildRoundResult(lobby *game.Lobby, letter string, entries map[string]game.
 		Reason:           reason,
 	}
 }
-
-// ---- broadcasts ----
 
 // broadcastLocked bumps the lobby version, marshals the message and queues it
 // for every connected player. Caller must hold hub.mu; queueing does no I/O, and
@@ -477,8 +431,6 @@ func (hub *Hub) broadcastGameState(lobby *game.Lobby) {
 	hub.broadcastLocked(lobby, "gameState", buildGameState(lobby))
 }
 
-// broadcastReviewState sends the review and, since every change of votes,
-// ready marks or voters may complete the category, checks it shortly after.
 func (hub *Hub) broadcastReviewState(lobby *game.Lobby) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
@@ -495,14 +447,12 @@ func (hub *Hub) sendBuzzRejected(c *Client, reason string) {
 	c.send("buzzRejected", map[string]string{"reason": reason})
 }
 
-// inRound reports whether the lobby is playing the round with this id.
 func inRound(lobby *game.Lobby, roundID string) bool {
 	return lobby.State == game.StatePlaying && lobby.Game != nil &&
 		lobby.Game.Round != nil && lobby.Game.Round.ID == roundID
 }
 
-// lobbyFull reports whether a lobby takes no more joiners. Players who left
-// mid-game stay for the standings and count only against the larger cap.
+// Players who left mid-game stay for the standings and count only against the larger cap.
 func lobbyFull(lobby *game.Lobby) bool {
 	active := 0
 	for _, p := range lobby.Players {
@@ -513,7 +463,6 @@ func lobbyFull(lobby *game.Lobby) bool {
 	return active >= maxPlayersPerLobby || len(lobby.Players) >= 2*maxPlayersPerLobby
 }
 
-// soloGame reports whether solo rules apply (sprint, free buzz, no review).
 // The mode is fixed at game start; before that it previews the lobby.
 func soloGame(lobby *game.Lobby) bool {
 	if lobby.Game != nil {

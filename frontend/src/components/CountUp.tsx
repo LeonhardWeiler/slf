@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-// Animates a number counting up to `value` with an ease-out, restarting from the
-// previous value whenever it changes. First mount counts up from 0. Honours
-// prefers-reduced-motion by jumping straight to the target.
+// Counts up from the previous value; prefers-reduced-motion jumps straight to it.
 export function CountUp({
 	value,
 	durationMs = 600,

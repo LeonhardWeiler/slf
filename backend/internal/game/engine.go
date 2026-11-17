@@ -9,11 +9,8 @@ import (
 	"unicode/utf8"
 )
 
-// Alphabet without umlauts (SRS 5.4).
 const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-// AlphabetExcluding returns the alphabet without the given (host-disabled)
-// letters, so those letters are never drawn in a game (SRS-extension).
 func AlphabetExcluding(excluded []string) []string {
 	skip := map[string]bool{}
 	for _, e := range excluded {
@@ -29,7 +26,6 @@ func AlphabetExcluding(excluded []string) []string {
 	return letters
 }
 
-// PickRandomLetter draws a random letter from remaining.
 func PickRandomLetter(remaining []string) string {
 	if len(remaining) == 0 {
 		return ""
@@ -37,7 +33,7 @@ func PickRandomLetter(remaining []string) string {
 	return remaining[rand.Intn(len(remaining))]
 }
 
-// Normalize trims, uppercases the first rune and lowercases the rest (SRS 5.5).
+// Normalize trims, uppercases the first rune and lowercases the rest.
 func Normalize(value string) string {
 	v := strings.TrimSpace(value)
 	if v == "" {
@@ -52,7 +48,7 @@ var umlautBase = strings.NewReplacer("Ä", "A", "Ö", "O", "Ü", "U")
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
 // given letter: at most 30 chars with at least 2 letters, and starting with the
 // letter - or, when lastLetter is set, ending with it, ignoring non-letters at
-// either edge; Ä/Ö/Ü count as A/O/U (SRS 5.5 + last-letter spice).
+// either edge; Ä/Ö/Ü count as A/O/U.
 func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
 	letters := 0
@@ -130,7 +126,6 @@ func ScoreCategory(answers map[string]*Answer) {
 		find(pid)
 	}
 
-	// Auto-group answers with identical normalized values.
 	byNorm := map[string][]string{}
 	for _, pid := range valid {
 		n := Normalize(answers[pid].Value)
@@ -173,7 +168,7 @@ func ScoreCategory(answers map[string]*Answer) {
 }
 
 // ComputeRanking sorts players by score (desc), then name (asc). Equal scores
-// share the same rank (SRS 7.2).
+// share the same rank.
 func ComputeRanking(players map[string]*Player) []RankEntry {
 	type entry struct {
 		id    string

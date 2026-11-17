@@ -30,8 +30,6 @@ import { useRoomStore, useIsHost } from "@/store/room";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
-// The QR generator (qrcode lib) is only needed when the host reveals the code,
-// so load it lazily instead of in the main bundle.
 const QrCode = lazy(() =>
 	import("@/components/QrCode").then((m) => ({ default: m.QrCode })),
 );
@@ -52,10 +50,7 @@ const TIME_OPTIONS: { label: string; value: number | null }[] = [
 	{ label: "Unbegrenzt", value: null },
 ];
 
-// Keeps players briefly rendered after they leave so the row can fade out
-// instead of snapping away. Present players carry fresh data (name/connection
-// stay live); a departed player lingers with its last-known data and
-// `leaving: true` until the exit animation has had time to play.
+// Departed players linger with `leaving: true` until the exit animation played.
 const PLAYER_EXIT_MS = 140;
 function usePlayerPresence(
 	players: Player[],
@@ -64,8 +59,6 @@ function usePlayerPresence(
 	const prevIdsRef = useRef<string[]>(players.map((p) => p.id));
 	const lastByIdRef = useRef<Map<string, Player>>(new Map());
 
-	// Remember the latest data for every present player, so a row that starts
-	// leaving still has a name to show on the way out.
 	for (const p of players) lastByIdRef.current.set(p.id, p);
 
 	useEffect(() => {
@@ -112,7 +105,6 @@ export function Lobby() {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [editingValue, setEditingValue] = useState("");
 	const [showQr, setShowQr] = useState(false);
-	// True while the QR popup plays its exit animation before unmounting.
 	const [qrClosing, setQrClosing] = useState(false);
 	const qrCloseRef = useRef<HTMLButtonElement>(null);
 	const [copied, setCopied] = useState<null | "code" | "link">(null);
@@ -124,18 +116,13 @@ export function Lobby() {
 		},
 		[],
 	);
-	// Set when the disabled "Spiel starten" button is clicked, so the hint text
-	// shakes; reset once the shake animation ends.
 	const [startShake, setStartShake] = useState(false);
-	// Flash a just-added category so it's clear what appeared. Known ids are
-	// seeded from the initial list so existing categories don't flash on mount.
+	// Known ids are seeded from the initial list so existing categories don't flash on mount.
 	const [flashCatId, setFlashCatId] = useState<string | null>(null);
 	const knownCatIds = useRef<Set<string>>(
 		new Set((lobby?.categories ?? []).map((c) => c.id)),
 	);
 
-	// Codes are presented uppercase everywhere (display, copy, link, URL); the
-	// server normalizes case-insensitively, so this stays purely cosmetic.
 	const lobbyCode = (lobby?.lobbyCode ?? "").toUpperCase();
 	const joinLink = lobby ? `${window.location.origin}/join/${lobbyCode}` : "";
 
@@ -164,14 +151,12 @@ export function Lobby() {
 		}
 	}
 
-	// Ctrl/Cmd+C copies the lobby code - but only when the user isn't selecting
-	// text or typing in a field, so normal copy still works there.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: re-bind only on lobbyCode
 	useEffect(() => {
 		function onCopy(e: KeyboardEvent) {
 			if (!(e.key === "c" && (e.ctrlKey || e.metaKey))) return;
 			if (isTypingTarget(document.activeElement)) return;
-			// Don't hijack copy while a confirm dialog is up (kick/delete/leave) - UX-1.
+			// Don't hijack copy while a confirm dialog is up.
 			if (isModalOpen()) return;
 			if ((window.getSelection()?.toString() ?? "") !== "") return;
 			copyText(lobbyCode, "code");
@@ -180,7 +165,6 @@ export function Lobby() {
 		return () => window.removeEventListener("keydown", onCopy);
 	}, [lobbyCode]);
 
-	// Play the exit animation, then unmount the popup.
 	const closeQr = useCallback(() => {
 		setQrClosing(true);
 		setTimeout(() => {
@@ -189,10 +173,8 @@ export function Lobby() {
 		}, 120);
 	}, []);
 
-	// Players who left an in-progress game linger only for the final standings.
 	const activePlayers = (lobby?.players ?? []).filter((p) => !p.left);
-	// Rows to render, including players that just left (fading out). Called before
-	// the early return below so the hook order stays stable.
+	// Called before the early return below so the hook order stays stable.
 	const playerRank = (p: Player) =>
 		p.id === myPlayerId ? 0 : p.isHost ? 1 : 2;
 	const playerRows = usePlayerPresence(activePlayers).sort(
@@ -201,7 +183,6 @@ export function Lobby() {
 			a.player.name.localeCompare(b.player.name, "de"),
 	);
 
-	// Detect categories added since the last render and flash the newest one.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: react to the id list only
 	useEffect(() => {
 		if (!lobby) return;
@@ -233,8 +214,6 @@ export function Lobby() {
 					},
 		);
 		if (!confirmed) return;
-		// Suppress the "lobby closed" toast the host would otherwise get from the
-		// server's own lobbyClosed echo.
 		setSelfLeaving(true);
 		ws.send({ type: "leaveLobby", payload: {} });
 		markForcedLeave();
@@ -267,8 +246,6 @@ export function Lobby() {
 		setEditingValue("");
 	}
 
-	// Categories can be re-added at any time, so deleting is cheaply
-	// reversible; run it directly without a confirmation popup.
 	function deleteCategory(id: string) {
 		ws.send({ type: "deleteCategory", payload: { categoryId: id } });
 	}
@@ -333,7 +310,6 @@ export function Lobby() {
 	return (
 		<div className="min-h-svh bg-background screen-pad">
 			<div className="mx-auto w-full max-w-xl lg:max-w-5xl space-y-4">
-				{/* Header */}
 				<div className="flex items-center justify-between">
 					<div>
 						<h1 className="text-2xl font-bold">Lobby</h1>
@@ -350,7 +326,6 @@ export function Lobby() {
 
 				<div className="grid gap-4 lg:grid-cols-2 lg:items-start">
 					<div className="space-y-4">
-						{/* Lobby Code */}
 						<Card>
 							<CardContent className="pt-6">
 								<button
@@ -415,7 +390,6 @@ export function Lobby() {
 							</CardContent>
 						</Card>
 
-						{/* Players */}
 						<Card>
 							<CardHeader className="pb-3">
 								<CardTitle className="text-base">
@@ -478,7 +452,6 @@ export function Lobby() {
 						</Card>
 					</div>
 					<div className="space-y-4">
-						{/* Categories */}
 						<Card>
 							<CardHeader className="pb-3">
 								<CardTitle className="text-base">
@@ -554,8 +527,6 @@ export function Lobby() {
 															title="Bearbeiten"
 															onClick={() => startEdit(cat.id, cat.name)}
 														>
-															{/* Subtle tilt on hover, a stronger one on press - a bit
-													    of tactile feedback without slowing anything down. */}
 															<Pencil className="h-4 w-4 transition-transform group-hover:rotate-6 group-active:rotate-12" />
 														</Button>
 														<Button
@@ -605,14 +576,12 @@ export function Lobby() {
 							</CardContent>
 						</Card>
 
-						{/* Settings */}
 						{isHost ? (
 							<Card>
 								<CardHeader className="pb-3">
 									<CardTitle className="text-base">Einstellungen</CardTitle>
 								</CardHeader>
 								<CardContent className="space-y-4">
-									{/* Time limit */}
 									<div className="space-y-2">
 										<InfoHint
 											trigger="Zeitlimit pro Runde"
@@ -667,8 +636,7 @@ export function Lobby() {
 										</div>
 									</div>
 
-									{/* Commentator mode - on = host doesn't play, only comments (the
-                switch is the inverse of the hostPlays flag it drives). */}
+									{/* The switch is the inverse of hostPlays. */}
 									{(activePlayers.length > 1 || !lobby.settings.hostPlays) && (
 										<div className="flex items-center justify-between gap-3">
 											<InfoHint
@@ -689,7 +657,6 @@ export function Lobby() {
 										</div>
 									)}
 
-									{/* Last-letter spice */}
 									<div className="flex items-center justify-between gap-3">
 										<InfoHint
 											trigger="Letzter Buchstabe"
@@ -707,7 +674,6 @@ export function Lobby() {
 										/>
 									</div>
 
-									{/* Letter selection */}
 									<fieldset
 										className="space-y-2"
 										aria-describedby="letters-help"
@@ -766,12 +732,9 @@ export function Lobby() {
 					</div>
 				</div>
 
-				{/* Start Game (Host only) */}
 				{isHost ? (
 					<div className="sticky bottom-0 space-y-1 bg-background/90 py-3 backdrop-blur">
-						{/* Kept a real, focusable button (aria-disabled instead of disabled)
-                so a click while not startable still fires and can shake the hint
-                - a plain disabled button swallows the click. */}
+						{/* aria-disabled, not disabled: the click must still fire to shake the hint. */}
 						<Button
 							className="w-full transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] aria-disabled:pointer-events-auto aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-disabled:hover:translate-y-0"
 							size="lg"
@@ -808,7 +771,6 @@ export function Lobby() {
 				)}
 			</div>
 
-			{/* The join link lives in the QR popup too (previously under the inline QR). */}
 			{showQr && (
 				<Modal
 					role="dialog"

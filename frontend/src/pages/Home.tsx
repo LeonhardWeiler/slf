@@ -11,8 +11,6 @@ import { useToastStore } from "@/store/toast";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// The QR scanner pulls in the sizeable qr-scanner library (+ worker); load it
-// only when the user actually opens the scan step so the initial paint is lean.
 const QrScannerView = lazy(() =>
 	import("@/components/QrScanner").then((m) => ({ default: m.QrScannerView })),
 );
@@ -29,8 +27,6 @@ import {
 
 type Step = "start" | "createName" | "joinCode" | "joinName" | "scan";
 
-// Human-readable reason why a lobby can't be joined, keyed by the server's
-// checkLobby reason code. Shown inline at the code step before a name is asked.
 const UNAVAILABLE_MESSAGES: Record<string, string> = {
 	full: "Diese Lobby ist voll.",
 	notFound: "Diese Lobby gibt es nicht.",
@@ -41,20 +37,14 @@ const UNAVAILABLE_MESSAGES: Record<string, string> = {
 const preloadRoom = () => import("@/pages/Room");
 
 export function Home() {
-	// Home renders on both `/` (no code) and `/join/:code`.
 	const path = usePath();
 	const [streak] = useState(stats.streak);
 	const lobby = useRoomStore((s) => s.lobby);
 	const addToast = useToastStore((s) => s.addToast);
-	// Counter of error toasts: a new *error* (validation or server error) means the
-	// pending submit failed -> stop the spinner. Info toasts (e.g. a reconnect
-	// notice) don't bump it, so they no longer end the spinner prematurely.
+	// Only error toasts bump errorSeq, so an info toast does not end the spinner.
 	const errorSeq = useToastStore((s) => s.errorSeq);
 
-	// When Home mounts because the player was just pulled out of a lobby (kicked,
-	// closed, left) the URL is still that lobby's /join/:code - but we must land on
-	// the start screen, not re-run the deep-link join. Consume the one-shot flag
-	// once per mount so a genuine external deep link still works.
+	// After a forced leave the URL is still /join/:code; the one-shot flag skips the deep-link join.
 	const forcedLeaveRef = useRef<boolean | null>(null);
 	if (forcedLeaveRef.current === null)
 		forcedLeaveRef.current = consumeForcedLeave();
@@ -69,37 +59,23 @@ export function Home() {
 
 	const [name, setName] = useState("");
 	const [code, setCode] = useState(deepLinkCode);
-	// A deep link (/join/:code) prefills the code and lands on the code step so a
-	// pre-join check can run first - an unavailable lobby (mid-game/full/unknown)
-	// is surfaced there instead of only after the player typed a name.
 	const [step, setStep] = useState<Step>(
 		deepLinkCode.length === 6 ? "joinCode" : "start",
 	);
 	const [loading, setLoading] = useState(false);
-	// Pre-join availability check (code/QR/deep-link) and its inline error.
 	const [checking, setChecking] = useState(false);
 	const [joinError, setJoinError] = useState<string | null>(null);
 	const [connected, setConnected] = useState(ws.status);
-	// Debounced offline flag: only turns true after the connection has actually
-	// been down for a moment, so a fast (re)connect right after a page reload
-	// never flashes the "no connection" banner and shifts the layout.
 	const [showOffline, setShowOffline] = useState(false);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	// The code whose checkLobby reply we're currently awaiting (to ignore stale
-	// replies when the user changed the code meanwhile).
 	const pendingCode = useRef<string | null>(null);
-	// Mirror of `step` readable inside the once-registered lobbyCheck handler, so
-	// a late reply can be discarded when the user already left the join flow.
 	const stepRef = useRef(step);
 	stepRef.current = step;
 
-	// Track live connection status so the user sees when the server is down.
 	useEffect(() => ws.onStatusChange(setConnected), []);
 
-	// Delay surfacing the offline banner: a genuinely-down server still shows it
-	// (after ~1.2s), but a connection that establishes right after a reload never
-	// flashes it. Reconnecting clears it immediately.
+	// Delayed so a reconnect right after a reload never flashes the offline banner.
 	useEffect(() => {
 		if (connected) {
 			setShowOffline(false);
@@ -109,7 +85,6 @@ export function Home() {
 		return () => clearTimeout(t);
 	}, [connected]);
 
-	// Handle checkLobby replies and kick off the initial check for a deep link.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: register once on mount
 	useEffect(() => {
 		ws.on("lobbyCheck", onLobbyCheck);
@@ -120,26 +95,19 @@ export function Home() {
 		};
 	}, []);
 
-	// Stop the loading spinner once a new error toast appears (validation or
-	// server error) - not on unrelated info toasts.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: run only on a new error toast
 	useEffect(() => {
 		setLoading(false);
 		if (timeoutRef.current) clearTimeout(timeoutRef.current);
 	}, [errorSeq]);
 
-	// Clean up the pending timeout if the component unmounts.
 	useEffect(() => {
 		return () => {
 			if (timeoutRef.current) clearTimeout(timeoutRef.current);
 		};
 	}, []);
 
-	// Seed history so the browser back button walks the step flow like the in-app
-	// "Zurück" button instead of leaving the page. A deep link (/join/:code) lands
-	// on the code step, so we put a "start" entry beneath it - back then goes to
-	// the start screen, matching the button. popstate restores the step stored in
-	// each entry's state (same URL throughout, so the router doesn't re-route).
+	// A deep link lands on the code step, so seed a "start" entry beneath it for the back button.
 	useEffect(() => {
 		window.history.replaceState({ homeStep: "start" }, "");
 		if (stepRef.current !== "start") {
@@ -153,9 +121,7 @@ export function Home() {
 		return () => window.removeEventListener("popstate", onPop);
 	}, []);
 
-	// Left arrow key steps back through the login flow (like the in-app
-	// "Zurück" button). It is ignored while typing in a field, so the cursor
-	// can still move left normally there.
+	// Ignored while typing so the cursor still moves left in a field.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: back() is stable; register once on mount
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -170,9 +136,6 @@ export function Home() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
-	// While on the join-name step, route server errors (e.g. "Name bereits
-	// vergeben") to an inline message at the field instead of a toast - matching
-	// the code step. Cleared when leaving the step.
 	useEffect(() => {
 		if (step !== "joinName") return;
 		useToastStore.getState().setErrorSink((message) => {
@@ -183,18 +146,10 @@ export function Home() {
 		return () => useToastStore.getState().setErrorSink(null);
 	}, [step]);
 
-	// Already in a lobby (e.g. after a reconnect on reload, or once the server
-	// confirms our create/join) -> the global handlers set the lobby state and we
-	// navigate to the lobby's own /join/:code URL (so the address bar equals the
-	// shareable join link). The redirect unmounts this screen.
 	if (lobby) {
 		return <Navigate to={`/join/${lobby.lobbyCode.toUpperCase()}`} />;
 	}
 
-	// Forward navigation pushes a real history entry (same URL) so the browser's
-	// back button / gesture mirrors the in-app "Zurück" button. The step lives in
-	// the history state; the popstate handler below restores it. `back()` simply
-	// pops, so both paths share one code path.
 	function goTo(next: Step) {
 		window.history.pushState({ homeStep: next }, "");
 		setStep(next);
@@ -205,8 +160,6 @@ export function Home() {
 	}
 
 	function armTimeout() {
-		// Safety net: if the server never answers (e.g. backend down), don't hang
-		// on "Verbinde…" forever - surface an error so the user can retry.
 		if (timeoutRef.current) clearTimeout(timeoutRef.current);
 		timeoutRef.current = setTimeout(() => {
 			ws.drop("createLobby");
@@ -226,13 +179,10 @@ export function Home() {
 	}
 
 	function onLobbyCheck(payload: LobbyCheckPayload) {
-		// Ignore a reply for a code the user has since changed.
 		if (payload.lobbyCode !== pendingCode.current) return;
 		pendingCode.current = null;
 		if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
 		setChecking(false);
-		// The user left the join flow before the (possibly slow) reply arrived ->
-		// discard it instead of yanking them back into a step.
 		if (stepRef.current !== "joinCode" && stepRef.current !== "scan") return;
 		if (payload.available) {
 			setJoinError(null);
@@ -249,16 +199,11 @@ export function Home() {
 			setJoinError(
 				UNAVAILABLE_MESSAGES[payload.reason ?? ""] ?? "Beitritt nicht möglich.",
 			);
-			// Land back on the code step so the error sits next to the code field
-			// (covers the QR and deep-link paths too). From scan, pop its history
-			// entry; on the code step already, just stay.
 			if (stepRef.current === "scan") back();
 			else setStep("joinCode");
 		}
 	}
 
-	// Ask the server whether `candidate` can be joined right now, before moving on
-	// to the name step. Only advances on success; otherwise shows an inline error.
 	function checkCode(candidate: string) {
 		const c = candidate.trim();
 		if (c.length !== 6) {
@@ -321,19 +266,13 @@ export function Home() {
 				</div>
 
 				{showOffline && (
-					// Same width and centering as the start-screen Join/Create buttons so
-					// the banner lines up with them instead of spanning the full card.
 					<div className="mx-auto flex max-w-[18rem] items-center justify-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-2 text-sm text-amber-800 sm:max-w-[22rem] dark:text-amber-300">
 						<span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
 						Keine Verbindung zum Server…
 					</div>
 				)}
 
-				{/* ---- Step: start ---- */}
 				{step === "start" && (
-					// Centered and a touch narrower than the card. Wider than before, and
-					// narrower on mobile than on desktop, while staying comfortably
-					// tappable on both.
 					<div className="mx-auto max-w-[18rem] space-y-3 sm:max-w-[22rem]">
 						<Button
 							className="w-full"
@@ -352,9 +291,6 @@ export function Home() {
 							onPointerEnter={preloadRoom}
 							onFocus={preloadRoom}
 							onClick={() => {
-								// Start a fresh join each time this is opened from the start
-								// screen: a code left over from a previous, abandoned attempt
-								// must not reappear.
 								setCode("");
 								setJoinError(null);
 								goTo("joinCode");
@@ -366,7 +302,6 @@ export function Home() {
 					</div>
 				)}
 
-				{/* ---- Step: scan QR ---- */}
 				{step === "scan" && (
 					<Card>
 						<CardHeader className="pb-1"></CardHeader>
@@ -392,7 +327,6 @@ export function Home() {
 									<QrScannerView
 										onScan={(scanned) => {
 											setCode(scanned);
-											// Verify the scanned lobby is joinable before asking a name.
 											checkCode(scanned);
 										}}
 										onClose={back}
@@ -403,7 +337,6 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: create -> name ---- */}
 				{step === "createName" && (
 					<Card>
 						<CardHeader className="pb-2">
@@ -441,7 +374,6 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: join -> code ---- */}
 				{step === "joinCode" && (
 					<Card>
 						<CardHeader className="pb-2">
@@ -456,8 +388,6 @@ export function Home() {
 										value={code}
 										onChange={(e) => {
 											setJoinError(null);
-											// Codes are uppercase everywhere (display, typing, paste,
-											// URL); the server normalizes case-insensitively.
 											setCode(
 												e.target.value
 													.toUpperCase()
@@ -466,8 +396,6 @@ export function Home() {
 											);
 										}}
 										aria-invalid={joinError != null}
-										// Without the description link the field announces only
-										// "invalid" - never *why*, which is the part that helps.
 										aria-describedby={joinError ? "code-error" : undefined}
 										readOnly={checking}
 										placeholder="6-stelliger Code"
@@ -530,7 +458,6 @@ export function Home() {
 					</Card>
 				)}
 
-				{/* ---- Step: join -> name ---- */}
 				{step === "joinName" && (
 					<Card>
 						<CardHeader className="pb-4">

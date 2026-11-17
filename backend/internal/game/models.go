@@ -11,10 +11,7 @@ type Player struct {
 	// Left is true when the player left an in-progress game. They are kept in
 	// the standings but excluded from review and the lobby player list.
 	Left bool `json:"left"`
-	// Pending is true for a player who joined while a game was already running.
-	// They wait as a spectator (seeing the fill overview, never buzzing/scoring)
-	// and are cleared to a full participant when the next round begins. Excluded
-	// from scoring, ranking and review while pending.
+	// Pending is a mid-game joiner, cleared to a player at the next round start.
 	Pending bool `json:"pending"`
 	Score   int  `json:"score"`
 	// Combo counts the rounds in a row the player filled every slot validly.
@@ -28,15 +25,10 @@ type Category struct {
 }
 
 type Settings struct {
-	TimeLimit *int `json:"timeLimit"`
-	// ExcludedLetters are letters the host disabled; they are never drawn.
+	TimeLimit       *int     `json:"timeLimit"`
 	ExcludedLetters []string `json:"excludedLetters"`
-	// HostPlays controls whether the host participates. When false the host is a
-	// pure commentator: no answers, excluded from scoring/ranking, and shown a
-	// per-player completion overview during play (for a beamer setup).
-	HostPlays bool `json:"hostPlays"`
-	// LastLetterMode makes answers have to *end* with the drawn letter instead of
-	// starting with it (a "spice" the host can enable).
+	// HostPlays false makes the host a commentator who sees the fill overview.
+	HostPlays      bool `json:"hostPlays"`
 	LastLetterMode bool `json:"lastLetterMode"`
 }
 
@@ -49,25 +41,16 @@ type Lobby struct {
 	State      GameState          `json:"state"`
 	Game       *Game              `json:"-"`
 	CreatedAt  time.Time          `json:"createdAt"`
-	// Version is a monotonic counter bumped on every state broadcast and sent
-	// with each server->client state message (SRS 9.15.2 stateVersion) for
-	// consistency/debugging.
-	Version int `json:"-"`
-	// EmptySince is set (by the janitor) to when the lobby last had zero connected
-	// players, and cleared while anyone is connected. Abandoned lobbies past a TTL
-	// are reaped so memory is not held forever.
+	Version    int                `json:"-"`
+	// EmptySince is when the lobby last had no connected player; zero while one is.
 	EmptySince time.Time `json:"-"`
-	// HostGraceUntil is the deadline by which the disconnected host must return
-	// before the lobby is closed (SRS 4.6/8.5); zero when the host is present. It
-	// is included in the lobby state so late/reconnecting clients also see the
-	// shared countdown.
+	// HostGraceUntil is the deadline for a disconnected host; zero while the host is present.
 	HostGraceUntil time.Time `json:"-"`
 	// SentPlayers is the player list of the last lobbyState broadcast, the
 	// base of the next lobbyPatch.
 	SentPlayers []LobbyPlayer `json:"-"`
 }
 
-// Answer is a single player's entry for one category in a round.
 type Answer struct {
 	Value string `json:"value"`
 	Valid bool   `json:"valid"`
@@ -99,20 +82,16 @@ func (a *Answer) Counts() bool {
 	return down == 0 || up > down
 }
 
-// Round is one letter: its answers, buzz state and timing.
 type Round struct {
 	ID     string `json:"id"`
 	Letter string `json:"letter"`
 	// Answers[playerID][categoryID] = answer
 	Answers map[string]map[string]*Answer `json:"-"`
 	// EndsAt is the round deadline when a time limit is set (zero = unlimited).
-	EndsAt    time.Time `json:"-"`
-	StartedAt time.Time `json:"-"`
-	// ReviewIndex is the category currently under review.
-	ReviewIndex int `json:"-"`
-	// BuzzedBy is the playerID of whoever buzzed to end the round; empty when the
-	// round ended by timeout or a host "end round". Surfaced in review so everyone
-	// sees who stopped the round.
+	EndsAt      time.Time `json:"-"`
+	StartedAt   time.Time `json:"-"`
+	ReviewIndex int       `json:"-"`
+	// BuzzedBy is empty when the round did not end by a buzz.
 	BuzzedBy string `json:"-"`
 	// EndReason is how the round ended: "timeout", "host", "buzz" or "finished" (sprint done).
 	EndReason string `json:"-"`
@@ -120,9 +99,8 @@ type Round struct {
 	Ready map[string]bool `json:"-"`
 	// Letters is the sprint letter sequence, nil in a classic round. Prompt n
 	// is letter Letters[n/len(categories)] with category n%len(categories).
-	Letters []string `json:"-"`
-	// Pos is each player's next sprint prompt.
-	Pos map[string]int `json:"-"`
+	Letters []string       `json:"-"`
+	Pos     map[string]int `json:"-"`
 	// Slots are the letter+category pairs under review, fixed when play ends.
 	Slots []Slot `json:"-"`
 }
@@ -134,7 +112,6 @@ type Slot struct {
 	Key        string
 }
 
-// Game is a sequence of rounds over a fresh alphabet within one lobby.
 type Game struct {
 	UsedLetters      []string `json:"usedLetters"`
 	RemainingLetters []string `json:"remainingLetters"`
@@ -152,18 +129,14 @@ type Session struct {
 	LobbyCode string
 }
 
-// LobbyPlayer is the public, broadcast-safe view of a player. It deliberately
-// omits SessionID (an auth secret that must never reach other clients) and the
-// internal JoinedAt, matching the SRS 9.15.3 player shape.
+// LobbyPlayer omits SessionID, an auth secret that must never reach other clients.
 type LobbyPlayer struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
 	IsHost    bool   `json:"isHost"`
 	Connected bool   `json:"connected"`
 	Left      bool   `json:"left"`
-	// Pending marks a mid-game joiner who is waiting to play from the next round;
-	// the client renders them a spectator view and hides them from the standings.
-	Pending bool `json:"pending"`
+	Pending   bool   `json:"pending"`
 	// Plays is playsThisRound: the player's answers count in the current round.
 	Plays bool `json:"plays"`
 	Score int  `json:"score"`
@@ -177,9 +150,7 @@ type LobbyStatePayload struct {
 	Categories []*Category   `json:"categories"`
 	Settings   Settings      `json:"settings"`
 	State      GameState     `json:"state"`
-	// HostGraceSeconds is the seconds left until the lobby closes because the
-	// host is disconnected; nil when the host is present. Lets late/reconnecting
-	// clients render the shared countdown too.
+	// HostGraceSeconds is nil when the host is present.
 	HostGraceSeconds *int `json:"hostGraceSeconds"`
 	// Solo is true in a solo game (or, before a game, while a single player is
 	// in the lobby): every round is a sprint, scored without review.
@@ -198,9 +169,7 @@ type SessionCreatedPayload struct {
 	PlayerID  string `json:"playerId"`
 }
 
-// GameStatePayload is the shared, non-secret view of the active round.
-// Per-player draft answers are NOT included (they stay private and are kept
-// client-side in localStorage, SRS 5.6).
+// GameStatePayload never holds draft answers; they stay in the client's localStorage.
 type GameStatePayload struct {
 	RoundID            string   `json:"roundId"`
 	State              string   `json:"state"` // "Countdown" | "Playing"
@@ -211,8 +180,7 @@ type GameStatePayload struct {
 	ServerNow          int64    `json:"serverNow"`          // unix ms at send time
 	CountdownRemaining *int     `json:"countdownRemaining"` // seconds, null when Playing
 	CategoryCount      int      `json:"categoryCount"`
-	// Letters is the sprint letter sequence, empty in a classic round.
-	Letters []string `json:"letters"`
+	Letters            []string `json:"letters"`
 	// SprintPos and SprintWords are the receiver's sprint progress, sent only
 	// on replay.
 	SprintPos   *int     `json:"sprintPos,omitempty"`
@@ -237,9 +205,7 @@ type ReviewStatePayload struct {
 	CategoryIndex int            `json:"categoryIndex"`
 	CategoryCount int            `json:"categoryCount"`
 	Answers       []ReviewAnswer `json:"answers"`
-	// BuzzedBy is the playerID who buzzed to end the round; empty on timeout or a
-	// host-ended round.
-	BuzzedBy string `json:"buzzedBy"`
+	BuzzedBy      string         `json:"buzzedBy"`
 	// EndReason is how the round ended: "timeout", "host", "buzz" or "finished" (sprint done).
 	EndReason string `json:"endReason"`
 	// Ready lists the voters done with this category; Voters all who may vote.
@@ -273,30 +239,21 @@ type RoundResultPayload struct {
 	IsGameOver       bool         `json:"isGameOver"`
 	// Empty marks a round nobody submitted anything in (review was skipped).
 	Empty bool `json:"empty,omitempty"`
-	// Reason is set only when IsGameOver (SRS 9.15.14):
-	// "AlphabetFinished" | "HostEnded". A host disconnect does not produce a
-	// GameOver result - after the grace window the lobby is closed instead
-	// (hub.onHostGraceExpired -> closeLobby, "hostDisconnected"), so there is no
-	// HostDisconnected reason here.
+	// Reason is set only when IsGameOver: "AlphabetFinished" | "HostEnded".
 	Reason string `json:"reason,omitempty"`
 }
 
-// CommentatorPlayer is one player's fill progress in the current round, without
-// leaking the answer contents themselves.
 type CommentatorPlayer struct {
 	PlayerID          string   `json:"playerId"`
 	FilledCategoryIDs []string `json:"filledCategoryIds"`
 	Complete          bool     `json:"complete"`
 }
 
-// CommentatorStatePayload is sent only to a non-playing (commentator) host so it
-// can show, on a beamer, who has filled in which categories - never the values.
 type CommentatorStatePayload struct {
 	RoundID string              `json:"roundId"`
 	Players []CommentatorPlayer `json:"players"`
 }
 
-// CommentatorUpdatePayload carries one player's changed row of the board.
 type CommentatorUpdatePayload struct {
 	RoundID string            `json:"roundId"`
 	Player  CommentatorPlayer `json:"player"`
