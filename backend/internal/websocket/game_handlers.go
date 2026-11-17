@@ -11,8 +11,6 @@ import (
 
 const countdownSeconds = 3
 
-// ---- Phase 1: start & countdown ----
-
 func handleStartGame(hub *Hub, c *Client) {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
@@ -36,10 +34,6 @@ func handleStartGame(hub *Hub, c *Client) {
 		hub.sendError(c, CodeValidationError, "Mindestens 1 Kategorie nötig.")
 		return
 	}
-	// Guard with the same predicate beginCountdown uses, so the two can't
-	// disagree: counting players who are merely present (but disconnected, or the
-	// commentator host) let the start succeed here and then fall back to Lobby
-	// there - the host clicked and nothing happened, with no explanation.
 	if !hasRoundParticipant(lobby) {
 		msg := "Mindestens ein verbundener Spieler nötig."
 		if !lobby.Settings.HostPlays {
@@ -75,10 +69,7 @@ func handleStartGame(hub *Hub, c *Client) {
 	hub.beginCountdown(lobby, from)
 }
 
-// beginCountdown starts a new round in the Countdown state and schedules the
-// transition into Playing. The caller checked its precondition under an earlier
-// lock; from is the state it saw, re-checked here so 2 concurrent starts (2
-// sockets on one session) cannot both begin a round.
+// from is the state the caller saw, re-checked here so 2 concurrent starts (2 sockets on one session) cannot both begin a round.
 func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 	hub.mu.Lock()
 	g := lobby.Game
@@ -86,10 +77,6 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		hub.mu.Unlock()
 		return
 	}
-	// Don't start a new round on an empty lobby (everyone left or disconnected):
-	// there would be no one to answer and the round would be a dead end. Fall back
-	// to the Lobby state so the lobby stays usable and players who (re)join later
-	// can start fresh.
 	if !hasRoundParticipant(lobby) {
 		ev := endEvent(lobby, "Empty")
 		lobby.Game = nil
@@ -105,8 +92,6 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		hub.endGame(lobby, "AlphabetFinished")
 		return
 	}
-	// A new round begins -> any mid-game joiners who were waiting as spectators
-	// become full participants now and score from this round on.
 	for _, p := range lobby.Players {
 		p.Pending = false
 	}
@@ -129,9 +114,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastGameState(lobby)
 
-	// If the lobby is closed/reset before this fires, beginPlaying is a guarded
-	// no-op (nil Game, mismatched roundID or wrong state), so a lingering timer on
-	// an abandoned lobby does no harm and needs no explicit cancellation.
+	// beginPlaying is a guarded no-op on a closed or reset lobby, so the timer needs no cancellation.
 	time.AfterFunc(countdownSeconds*time.Second, func() {
 		hub.beginPlaying(lobby, roundID)
 	})
@@ -160,7 +143,6 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 
 	hub.broadcastLobbyState(lobby)
 	hub.broadcastGameState(lobby)
-	// A commentator host sees the (initially empty) fill overview right away.
 	hub.notifyCommentator(lobby)
 
 	if !endsAt.IsZero() {
@@ -169,8 +151,6 @@ func (hub *Hub) beginPlaying(lobby *game.Lobby, roundID string) {
 		})
 	}
 }
-
-// ---- Phase 2: playing ----
 
 func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
@@ -187,9 +167,6 @@ func handleAnswerUpdate(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.mu.Unlock()
 		return
 	}
-	// A round spectator (commentator host or pending mid-game joiner) does not
-	// play, so it must not submit answers (they would otherwise show up in review
-	// and skew the category scoring for everyone else).
 	if isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		return
@@ -279,17 +256,12 @@ func handleBuzz(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendBuzzRejected(c, "invalidState")
 		return
 	}
-	// A round spectator (commentator host or pending joiner) does not play and
-	// therefore cannot buzz.
 	if isRoundSpectator(lobby, player) {
 		hub.mu.Unlock()
 		hub.sendBuzzRejected(c, "invalidState")
 		return
 	}
 	round := lobby.Game.Round
-	// Every category must have an answer (SRS 5.7) and - server-authoritative,
-	// not just the client's Zod gate - each answer must satisfy the formal rules
-	// for the round letter: 2-30 chars, starting with the letter (SRS 9.13.15).
 	// A solo player only ends their own round, so they may stop at any time.
 	if !soloGame(lobby) {
 		answers := round.Answers[session.PlayerID]
@@ -314,10 +286,6 @@ func handleBuzz(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.endRound(lobby, roundID, "buzz", buzzer)
 }
 
-// handleEndRound lets the host stop the running round early and move everyone to
-// review - the counterpart to a player's buzz for when nobody can (or wants to)
-// buzz, e.g. a hard letter or a commentator host who never plays. Only the host,
-// only while playing.
 func handleEndRound(hub *Hub, c *Client) {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
@@ -332,13 +300,10 @@ func handleEndRound(hub *Hub, c *Client) {
 	hub.endRound(lobby, roundID, "host", "")
 }
 
-// ---- Phase 3: review ----
-
 // answerGrace is how long a round keeps taking answers after it was ended, so
 // keystrokes still in flight (client debounce + latency) are not lost.
 const answerGrace = 500 * time.Millisecond
 
-// buzzBonus goes to whoever buzzed the round.
 const buzzBonus = 200
 
 // endRound ends the playing phase after answerGrace. Idempotent via the
@@ -355,11 +320,6 @@ func (hub *Hub) endRound(lobby *game.Lobby, roundID, reason, buzzer string) {
 	time.AfterFunc(answerGrace, func() { hub.finishPlaying(lobby, roundID) })
 }
 
-// finishPlaying freezes the answers. When at least one active player submitted
-// something it moves into review; when no active (non-left, non-spectator) player
-// submitted anything there is nothing to review, so it scores straight away and
-// jumps to the scoreboard. A solo round is scored straight away too: a sprint
-// refuses rule-breaking words as they are typed.
 func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 	hub.mu.Lock()
 	g := lobby.Game
@@ -367,8 +327,6 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 		hub.mu.Unlock()
 		return
 	}
-	// Default validity: rule-conforming answers start valid (SRS 6.4). Done before
-	// the empty-round check so scoring is correct on the direct-to-scoreboard path.
 	g.Round.Slots = roundSlots(lobby)
 	for _, s := range g.Round.Slots {
 		for _, byCat := range g.Round.Answers {
@@ -458,8 +416,6 @@ const drainMessage = "Gleich kommt ein Update. Bitte in ein paar Minuten nochmal
 // reviewHold keeps the last ready tick on screen before the review moves on.
 const reviewHold = 700 * time.Millisecond
 
-// handleReviewReady toggles the caller's "done" mark for the category under
-// review. Once every voter is done the review moves on by itself.
 func handleReviewReady(hub *Hub, c *Client) {
 	if lobby := hub.mutateReview(c, false, func(lobby *game.Lobby, pl *game.Player, _ string) bool {
 		if !votesThisRound(lobby, pl) {
@@ -495,8 +451,7 @@ func (hub *Hub) advanceReview(lobby *game.Lobby, roundID string, idx int) {
 	}
 }
 
-// advanceIfReady moves to the next category once all voters are done and
-// reports whether the last category was done. Caller must hold hub.mu.
+// Reports whether the last category was done. Caller must hold hub.mu.
 func advanceIfReady(lobby *game.Lobby) bool {
 	r := lobby.Game.Round
 	voters := 0
@@ -608,8 +563,6 @@ func handlePreviousCategory(hub *Hub, c *Client) {
 	}
 }
 
-// ---- Phase 4: scoring & result ----
-
 func handleFinishReview(hub *Hub, c *Client) {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
@@ -627,8 +580,7 @@ func handleFinishReview(hub *Hub, c *Client) {
 	hub.finishReview(lobby)
 }
 
-// finishReview scores the round and shows the result. Idempotent: only the
-// first call scores.
+// finishReview is idempotent: only the first call scores.
 func (hub *Hub) finishReview(lobby *game.Lobby) {
 	hub.mu.Lock()
 	if lobby.State != game.StateReviewing || lobby.Game == nil || lobby.Game.Round == nil {
@@ -642,10 +594,7 @@ func (hub *Hub) finishReview(lobby *game.Lobby) {
 	hub.broadcastTo(lobby, "roundResult", result)
 }
 
-// scoreAndFinishRound scores the current round, applies the points to each
-// player's total, transitions to RoundResult and returns the built result (also
-// stored as LastResult for reconnects). Shared by the normal review-finish path
-// and the empty-round shortcut in endRound. Caller must hold hub.mu.
+// Caller must hold hub.mu.
 func (hub *Hub) scoreAndFinishRound(lobby *game.Lobby) game.RoundResultPayload {
 	round := lobby.Game.Round
 	points := map[string][]int{}
@@ -702,7 +651,6 @@ func handleStartNextRound(hub *Hub, c *Client) {
 	hub.nextRound(lobby)
 }
 
-// nextRound starts the next round, or ends the game once every letter is used.
 func (hub *Hub) nextRound(lobby *game.Lobby) {
 	hub.mu.Lock()
 	noLetters := lobby.Game == nil || len(lobby.Game.RemainingLetters) == 0
@@ -735,8 +683,6 @@ func handleEndGame(hub *Hub, c *Client) {
 	hub.endGame(lobby, "HostEnded")
 }
 
-// resetForNewGame drops players who left a previous game (they lingered only
-// for the final standings) and zeroes every remaining player's score.
 // Caller must hold hub.mu.
 func (hub *Hub) resetForNewGame(lobby *game.Lobby) {
 	for id, p := range lobby.Players {
@@ -748,14 +694,10 @@ func (hub *Hub) resetForNewGame(lobby *game.Lobby) {
 		}
 		p.Score = 0
 		p.Combo = 0
-		// A fresh game/lobby has no waiting spectators: any mid-game joiner who is
-		// still pending becomes a normal member.
 		p.Pending = false
 	}
 }
 
-// handleReturnToLobby brings a finished game back to the Lobby state so the
-// host can reconfigure and start fresh. Only valid from RoundResult / GameOver.
 func handleReturnToLobby(hub *Hub, c *Client) {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
@@ -794,8 +736,6 @@ func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.broadcastTo(lobby, "roundResult", result)
 }
 
-// sendCurrentGameStateTo replays the active phase to a single (reconnecting)
-// client so it lands on the correct screen (SRS 8.3).
 func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
@@ -807,9 +747,6 @@ func (hub *Hub) sendCurrentGameStateTo(c *Client, lobby *game.Lobby) {
 				gs.SprintPos, gs.SprintWords = sprintProgress(lobby, me.ID)
 			}
 			c.sendV("gameState", gs, lobby.Version)
-			// A reconnecting/joining spectator (commentator host or pending
-			// mid-game joiner) also gets the current fill overview so its board
-			// is populated right away.
 			if me := hub.playerForLocked(c); me != nil && isRoundSpectator(lobby, me) {
 				c.sendV("commentatorState", buildCommentatorState(lobby), lobby.Version)
 			}

@@ -39,35 +39,22 @@ var snapshots = map[string]bool{
 // the client its reconnect path.
 const pingInterval = 25 * time.Second
 
-// maxMessageBytes caps a single inbound WebSocket message (64 KiB).
 const maxMessageBytes = 1 << 16
 
-// Per-connection message rate limit (token bucket). Deliberately generous: a
-// normal client peaks around a handful of messages per second (debounced answer
-// updates, occasional actions), so it never hits this - but a flooding client is
-// capped so it can't monopolise the single hub mutex. Over-limit messages are
-// dropped, not processed.
+// Per-connection message rate limit (token bucket); over-limit messages are dropped.
 const (
 	rateBurst  = 120.0 // bucket capacity
 	rateRefill = 40.0  // tokens added per second
 )
 
-// Backoff for joins and lobby creation: after a few free tries, consecutive
-// failed joins (wrong/unknown code) and every further seat (create or join) on one
-// connection must be spaced out by a growing delay. Gentle on purpose -
-// legitimate users rarely hit it - while slowing code guessing and stopping
-// one socket from walking the global maxLobbies cap.
+// After a few free tries, failed joins and further seats (create or join) on one connection need a growing delay.
 const (
 	backoffFree = 5               // attempts allowed before any throttling
 	backoffStep = 1 * time.Second // added delay per extra attempt
 	backoffMax  = 15 * time.Second
 )
 
-// envAllowedOrigins is an optional explicit allow-list read once from
-// WS_ALLOWED_ORIGINS (comma-separated "host" or "host:port"). It is only needed
-// for origins that are neither same-origin nor local - e.g. a frontend hosted on
-// a different domain than the API. Entries are matched against the request
-// Origin's host (with and without port), case-insensitively.
+// envAllowedOrigins reads WS_ALLOWED_ORIGINS (comma-separated "host" or "host:port").
 var envAllowedOrigins = sync.OnceValue(func() map[string]bool {
 	out := map[string]bool{}
 	for _, p := range strings.Split(os.Getenv("WS_ALLOWED_ORIGINS"), ",") {
@@ -122,11 +109,7 @@ func originAllowed(r *http.Request) bool {
 type Client struct {
 	conn *websocket.Conn
 	hub  *Hub
-	// sessionID is guarded by Hub.mu. It is not only touched by this client's own
-	// read loop: closeLobby and handleKickPlayer clear it on *other* clients, so
-	// every read and write has to happen under the hub mutex the handlers already
-	// hold. Assigning it after unlocking left it formally unsynchronised, ordered
-	// only by whatever the following socket write happened to do.
+	// sessionID is guarded by Hub.mu: closeLobby and handleKickPlayer clear it on other clients.
 	sessionID string
 	// lobbyBase is the sessionID under which this client got its last full
 	// lobbyState; while it matches, lobby changes go out as lobbyPatch.
@@ -152,8 +135,6 @@ type Client struct {
 	lastSeatAt time.Time
 }
 
-// backoff returns how long a client must wait between attempts after n
-// counted ones.
 func backoff(n int) time.Duration {
 	if n < backoffFree {
 		return 0
@@ -161,8 +142,7 @@ func backoff(n int) time.Duration {
 	return min(time.Duration(n-backoffFree+1)*backoffStep, backoffMax)
 }
 
-// seatThrottled reports whether c must wait before taking another seat. A
-// rejected attempt does not extend the wait.
+// A rejected attempt does not extend the wait.
 func (c *Client) seatThrottled() bool {
 	wait := backoff(c.seats)
 	return wait > 0 && time.Since(c.lastSeatAt) < wait
@@ -173,9 +153,7 @@ func (c *Client) tookSeat() {
 	c.lastSeatAt = time.Now()
 }
 
-// allow consumes one token from the client's rate-limit bucket, refilling it
-// based on elapsed time. Returns false when the bucket is empty (message should
-// be dropped). Must only be called from the read loop.
+// allow must only be called from the read loop.
 func (c *Client) allow() bool {
 	now := time.Now()
 	if c.rlLast.IsZero() {
@@ -192,8 +170,6 @@ func (c *Client) allow() bool {
 }
 
 func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
-	// Reject cross-site origins ourselves (CSWSH protection), then skip the
-	// library's own origin check since originAllowed already covers it.
 	if !originAllowed(r) {
 		http.Error(w, "forbidden origin", http.StatusForbidden)
 		return
@@ -206,9 +182,6 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	// Cap a single inbound message. Set explicitly (rather than relying on the
-	// library default) so the bound is intentional and version-stable. 64 KiB is
-	// ample for the largest client message (an inputSync of all answers).
 	conn.SetReadLimit(maxMessageBytes)
 
 	c := &Client{conn: conn, hub: hub, wake: make(chan struct{}, 1)}
@@ -250,7 +223,6 @@ func (c *Client) read() {
 			return
 		}
 
-		// Drop (ignore) messages beyond the rate limit before doing any work.
 		if !c.allow() {
 			continue
 		}
@@ -271,15 +243,11 @@ func (c *Client) send(msgType string, payload any) {
 	c.sendV(msgType, payload, 0)
 }
 
-// sendV sends a message tagged with a specific stateVersion (SRS 9.15.2).
 func (c *Client) sendV(msgType string, payload any, version int) {
 	b, _ := json.Marshal(OutboundMessage{Type: msgType, Payload: payload, StateVersion: version})
 	c.enqueue(msgType, b)
 }
 
-// closeGoingAway sends a clean 1001 close so the client knows the server is
-// shutting down (and can reconnect with backoff) instead of just seeing the
-// socket drop. Used during graceful shutdown.
 func (c *Client) closeGoingAway() {
 	_ = c.conn.Close(websocket.StatusGoingAway, "server shutdown")
 }
@@ -311,7 +279,6 @@ func (c *Client) enqueue(typ string, b []byte) {
 	}
 }
 
-// writeLoop writes queued messages in order until ctx ends or a write fails.
 func (c *Client) writeLoop(ctx context.Context) {
 	for {
 		select {

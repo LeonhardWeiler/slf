@@ -113,8 +113,6 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeValidationError, "Server ausgelastet - bitte später erneut versuchen.")
 		return
 	}
-	// Pick a code not already in use, under the lock, so two lobbies can never
-	// collide and overwrite each other.
 	lobbyCode := hub.uniqueLobbyCode()
 	lobby := &game.Lobby{
 		Code:   lobbyCode,
@@ -170,7 +168,6 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	// Throttle repeated failed joins (code guessing) with a growing backoff.
 	if wait := backoff(c.joinFails); wait > 0 && time.Since(c.lastJoinAt) < wait {
 		c.lastJoinAt = time.Now()
 		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche - bitte kurz warten.")
@@ -200,7 +197,6 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht gefunden.")
 		return
 	}
-	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
 	if lobbyFull(lobby) {
 		hub.mu.Unlock()
@@ -215,9 +211,6 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		}
 	}
 
-	// Joining while a game is already running is allowed: the player waits as a
-	// spectator (pending) and starts playing from the next round. Only during the
-	// Lobby state do they join as a full participant right away.
 	pending := lobby.State != game.StateLobby
 
 	player := &game.Player{
@@ -243,19 +236,12 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		PlayerID:  playerID,
 	})
 	hub.broadcastLobbyState(lobby)
-	// A mid-game joiner needs the current phase replayed (game/review/result) so
-	// their screen lands on the spectator view instead of a blank frame.
 	if pending {
 		hub.sendCurrentGameStateTo(c, lobby)
 	}
 }
 
-// handleCheckLobby answers whether a lobby can currently be joined, without
-// mutating any state. It lets the join UI surface "lobby is mid-game / full /
-// unknown" already at the code (or QR/deep-link) step instead of only after the
-// player typed a name. Name-uniqueness is inherently name-dependent and stays a
-// join-time check. Reuses the same anti-guessing throttle as handleJoinLobby so
-// the pre-check cannot become an unthrottled oracle for enumerating codes.
+// handleCheckLobby shares handleJoinLobby's throttle so it cannot become an unthrottled oracle for lobby codes.
 func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
 		LobbyCode string `json:"lobbyCode"`
@@ -265,7 +251,6 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	// Echoes the queried code back so the client can correlate the async reply.
 	respond := func(available bool, reason string) {
 		c.send("lobbyCheck", struct {
 			LobbyCode string `json:"lobbyCode"`
@@ -296,13 +281,10 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		respond(false, "notFound")
 		return
 	}
-	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
 	full := lobbyFull(lobby)
 	hub.mu.Unlock()
 
-	// A running game is joinable now (the joiner waits as a spectator and plays
-	// from the next round), so only a full lobby is reported as unavailable.
 	if full {
 		respond(false, "full")
 		return
@@ -336,10 +318,6 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden.")
 		return
 	}
-	// A player who left (or was kicked) mid-game lingers only for the standings
-	// and must not be revived by a replayed sessionId. Their session is already
-	// deleted on both paths, so this is defence in depth against a future path
-	// that forgets to.
 	if player.Left {
 		hub.mu.Unlock()
 		hub.sendError(c, CodeSessionNotFound, "Session nicht mehr gültig.")
@@ -347,9 +325,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	}
 	player.Connected = true
 
-	// Replace any existing connection for this session with the new one. The old
-	// socket (if still lingering) is closed after unlocking; its onDisconnect is
-	// then a no-op thanks to the identity guard.
+	// The old socket's onDisconnect is a no-op thanks to the identity guard.
 	old := hub.bindLocked(c, sessionID)
 	slog.Info("player reconnected", "lobby", lobby.Code, "player", player.Name)
 	hub.mu.Unlock()
@@ -362,8 +338,6 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 		SessionID: sessionID,
 		PlayerID:  session.PlayerID,
 	})
-	// If the host is the one coming back, stop the pending close countdown and
-	// let everyone know the lobby is safe again.
 	if player.IsHost && hub.cancelHostGrace(lobby.Code) {
 		slog.Info("host reconnected in time", "lobby", lobby.Code)
 		hub.broadcastTo(lobby, "hostReconnected", map[string]string{})
@@ -372,9 +346,6 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	hub.sendCurrentGameStateTo(c, lobby)
 }
 
-// handleLeaveLobby handles an explicit "Verlassen". If the host leaves, the
-// whole lobby is closed and every player is returned to the start screen
-// (SRS 4.8). A non-host player is simply removed.
 func handleLeaveLobby(hub *Hub, c *Client) {
 	hub.mu.Lock()
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
@@ -392,20 +363,15 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 
 	sessionID := c.sessionID
 	if lobby.State == game.StateLobby {
-		// Pre-game: remove the player entirely.
 		delete(lobby.Players, player.ID)
 	} else {
 		markLeft(lobby, player)
 	}
-	// Leaving is a final exit, so the id must not stay usable. Without this a
-	// client that kept the id could reconnect as a departed player and inject
-	// answers that review filters out but scoring still counts.
 	hub.endSessionLocked(sessionID)
 	reviewing := lobby.State == game.StateReviewing
 	hub.mu.Unlock()
 
 	hub.broadcastLobbyState(lobby)
-	// While reviewing, the left player's answers must disappear there too.
 	if reviewing {
 		hub.broadcastReviewState(lobby)
 	}
@@ -429,10 +395,7 @@ func markLeft(lobby *game.Lobby, p *game.Player) {
 	}
 }
 
-// requireHostInLobby validates that the caller is the host of an existing lobby
-// that is still in the Lobby state (the only state in which configuration may
-// change, SRS 11.3.1). On success it returns the lobby while holding h.mu; the
-// caller must unlock. On failure it sends an error, unlocks and returns nil.
+// On success requireHostInLobby returns holding h.mu; the caller must unlock. On failure it sends an error, unlocks and returns nil.
 func (h *Hub) requireHostInLobby(c *Client) *game.Lobby {
 	_, lobby, player, ok := h.lookupLocked(c.sessionID)
 	if !ok {
@@ -556,8 +519,6 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby == nil {
 		return
 	}
-	// All categories may be removed while editing the lobby; the game start check
-	// (game_handlers.go) enforces that at least one category exists to play.
 	next := lobby.Categories[:0]
 	removed := false
 	for _, cat := range lobby.Categories {
@@ -578,11 +539,7 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
-	// Every field is preserve-on-absent: a key that is not in the payload leaves
-	// the current value untouched, so a partial/old client can never silently
-	// reset an option it doesn't send. `present` records which keys were actually
-	// provided - needed because timeLimit=null is a legitimate value ("no limit")
-	// and must be distinguishable from an omitted timeLimit.
+	// present tells an omitted key from null: timeLimit=null means no limit, an absent key keeps the current value.
 	var present map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &present); err != nil {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
@@ -605,8 +562,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	// Sanitize excluded letters: only A-Z, uppercased and de-duplicated. At
-	// least one letter must remain playable.
 	_, hasExcluded := present["excludedLetters"]
 	seen := map[string]bool{}
 	excluded := make([]string, 0, len(p.ExcludedLetters))
@@ -628,7 +583,6 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	if lobby == nil {
 		return
 	}
-	// Each field is applied only when present in the payload (see above).
 	if hasTimeLimit {
 		lobby.Settings.TimeLimit = p.TimeLimit
 	}
@@ -676,13 +630,10 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	targetSession := target.SessionID
 	targetClient := hub.clients[targetSession]
 	if lobby.State == game.StateLobby {
-		// Pre-game: remove the player entirely.
 		delete(lobby.Players, p.PlayerID)
 	} else {
 		markLeft(lobby, target)
 	}
-	// Invalidate the session either way so the kicked player can't auto-reconnect
-	// back into this lobby.
 	hub.endSessionLocked(targetSession)
 	reviewing := lobby.State == game.StateReviewing
 	slog.Info("player kicked", "lobby", lobby.Code, "player", target.Name, "state", string(lobby.State))
@@ -692,7 +643,6 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 		targetClient.send("playerKicked", map[string]string{"playerId": p.PlayerID})
 	}
 	hub.broadcastLobbyState(lobby)
-	// While reviewing, the kicked player's answers must disappear there too.
 	if reviewing {
 		hub.broadcastReviewState(lobby)
 	}
