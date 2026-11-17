@@ -188,7 +188,7 @@ class WSClient {
 			if (!open) this.drop(event.type);
 			this.outbox.push(event);
 		} else if (!silent.has(event.type)) {
-			useToastStore.getState().addToast("Offline – Aktion nicht gesendet.");
+			useToastStore.getState().addToast("Offline - Aktion nicht gesendet.");
 		}
 		if (open) {
 			this.flush();

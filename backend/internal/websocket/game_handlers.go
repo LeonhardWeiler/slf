@@ -18,12 +18,12 @@ func handleStartGame(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel starten")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel starten.")
 		return
 	}
 	if !idle(lobby) {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits")
+		hub.sendError(c, CodeGameAlreadyRunning, "Spiel läuft bereits.")
 		return
 	}
 	if hub.draining {
@@ -33,7 +33,7 @@ func handleStartGame(hub *Hub, c *Client) {
 	}
 	if len(lobby.Categories) < 1 {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Mindestens 1 Kategorie nötig")
+		hub.sendError(c, CodeValidationError, "Mindestens 1 Kategorie nötig.")
 		return
 	}
 	// Guard with the same predicate beginCountdown uses, so the two can't
@@ -41,9 +41,9 @@ func handleStartGame(hub *Hub, c *Client) {
 	// commentator host) let the start succeed here and then fall back to Lobby
 	// there - the host clicked and nothing happened, with no explanation.
 	if !hasRoundParticipant(lobby) {
-		msg := "Mindestens ein verbundener Spieler nötig"
+		msg := "Mindestens ein verbundener Spieler nötig."
 		if !lobby.Settings.HostPlays {
-			msg = "Als Kommentator brauchst du mindestens einen verbundenen Mitspieler"
+			msg = "Als Kommentator brauchst du mindestens einen verbundenen Mitspieler."
 		}
 		hub.mu.Unlock()
 		hub.sendError(c, CodeValidationError, msg)
@@ -52,7 +52,7 @@ func handleStartGame(hub *Hub, c *Client) {
 	letters := game.AlphabetExcluding(lobby.Settings.ExcludedLetters)
 	if len(letters) < 1 {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv sein")
+		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv sein.")
 		return
 	}
 	from := lobby.State
@@ -615,12 +615,12 @@ func handleFinishReview(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost || lobby.State != game.StateReviewing {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt.")
 		return
 	}
 	if lobby.Game == nil || lobby.Game.Round == nil {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeInvalidState, "Keine aktive Runde")
+		hub.sendError(c, CodeInvalidState, "Keine aktive Runde.")
 		return
 	}
 	hub.mu.Unlock()
@@ -690,7 +690,7 @@ func handleStartNextRound(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost || lobby.State != game.StateRoundResult {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt.")
 		return
 	}
 	if hub.draining {
@@ -720,7 +720,7 @@ func handleEndGame(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel beenden")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf das Spiel beenden.")
 		return
 	}
 	if lobby.State == game.StateLobby || lobby.State == game.StateGameOver {
@@ -761,12 +761,12 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 	_, lobby, player, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !player.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeNotHost, "Nur der Host darf zur Lobby zurückkehren")
+		hub.sendError(c, CodeNotHost, "Nur der Host darf zur Lobby zurückkehren.")
 		return
 	}
 	if lobby.State != game.StateRoundResult && lobby.State != game.StateGameOver {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt.")
 		return
 	}
 	ev := endEvent(lobby, "ReturnedToLobby")

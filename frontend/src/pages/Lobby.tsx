@@ -378,7 +378,7 @@ export function Lobby() {
 										role="status"
 										className="mt-2 text-center text-xs text-destructive"
 									>
-										Kopieren nicht möglich – Code manuell markieren.
+										Kopieren nicht möglich - Code manuell markieren.
 									</p>
 								)}
 

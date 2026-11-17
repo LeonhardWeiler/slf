@@ -76,20 +76,20 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		PlayerName string `json:"playerName"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 	name := cleanName(p.PlayerName)
 	if n := utf8.RuneCountInString(name); n < 1 {
-		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein")
+		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein.")
 		return
 	} else if n > 20 {
-		hub.sendError(c, CodeNameTooLong, "Name darf höchstens 20 Zeichen lang sein")
+		hub.sendError(c, CodeNameTooLong, "Name darf höchstens 20 Zeichen lang sein.")
 		return
 	}
 
 	if c.seatThrottled() {
-		hub.sendError(c, CodeValidationError, "Zu viele neue Lobbys - bitte kurz warten")
+		hub.sendError(c, CodeValidationError, "Zu viele neue Lobbys - bitte kurz warten.")
 		return
 	}
 
@@ -110,7 +110,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	if len(hub.rooms) >= maxLobbies {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Server ausgelastet - bitte später erneut versuchen")
+		hub.sendError(c, CodeValidationError, "Server ausgelastet - bitte später erneut versuchen.")
 		return
 	}
 	// Pick a code not already in use, under the lock, so two lobbies can never
@@ -157,35 +157,35 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		LobbyCode  string `json:"lobbyCode"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 
 	name := cleanName(p.PlayerName)
 	if n := utf8.RuneCountInString(name); n < 1 {
-		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein")
+		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein.")
 		return
 	} else if n > 20 {
-		hub.sendError(c, CodeNameTooLong, "Name darf höchstens 20 Zeichen lang sein")
+		hub.sendError(c, CodeNameTooLong, "Name darf höchstens 20 Zeichen lang sein.")
 		return
 	}
 
 	// Throttle repeated failed joins (code guessing) with a growing backoff.
 	if wait := backoff(c.joinFails); wait > 0 && time.Since(c.lastJoinAt) < wait {
 		c.lastJoinAt = time.Now()
-		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche - bitte kurz warten")
+		hub.sendError(c, CodeValidationError, "Zu viele Beitritts-Versuche - bitte kurz warten.")
 		return
 	}
 	c.lastJoinAt = time.Now()
 	if c.seatThrottled() {
-		hub.sendError(c, CodeValidationError, "Zu viele Beitritte - bitte kurz warten")
+		hub.sendError(c, CodeValidationError, "Zu viele Beitritte - bitte kurz warten.")
 		return
 	}
 
 	code, ok := normalizeLobbyCode(p.LobbyCode)
 	if !ok {
 		c.joinFails++
-		hub.sendError(c, CodeInvalidLobbyCode, "Ungültiger Lobbycode")
+		hub.sendError(c, CodeInvalidLobbyCode, "Ungültiger Lobbycode.")
 		return
 	}
 
@@ -197,20 +197,20 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	if !found {
 		hub.mu.Unlock()
 		c.joinFails++
-		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht gefunden")
+		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht gefunden.")
 		return
 	}
 	// A valid, existing code means this client is not blindly guessing -> reset.
 	c.joinFails = 0
 	if lobbyFull(lobby) {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Lobby ist voll")
+		hub.sendError(c, CodeValidationError, "Lobby ist voll.")
 		return
 	}
 	for _, pl := range lobby.Players {
 		if !pl.Left && strings.EqualFold(pl.Name, name) {
 			hub.mu.Unlock()
-			hub.sendError(c, CodeNameNotUnique, "Name bereits vergeben")
+			hub.sendError(c, CodeNameNotUnique, "Name bereits vergeben.")
 			return
 		}
 	}
@@ -261,7 +261,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		LobbyCode string `json:"lobbyCode"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 
@@ -312,7 +312,7 @@ func handleCheckLobby(hub *Hub, c *Client, raw json.RawMessage) {
 
 func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	if sessionID == "" {
-		hub.sendError(c, CodeInvalidSession, "Keine Session-ID")
+		hub.sendError(c, CodeInvalidSession, "Keine Session-ID.")
 		return
 	}
 	hub.releaseSeat(c, sessionID)
@@ -321,19 +321,19 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	session, ok := hub.sessions[sessionID]
 	if !ok {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeSessionNotFound, "Session nicht gefunden")
+		hub.sendError(c, CodeSessionNotFound, "Session nicht gefunden.")
 		return
 	}
 	lobby, ok := hub.rooms[session.LobbyCode]
 	if !ok {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht mehr vorhanden")
+		hub.sendError(c, CodeLobbyNotFound, "Lobby nicht mehr vorhanden.")
 		return
 	}
 	player, ok := lobby.Players[session.PlayerID]
 	if !ok {
 		hub.mu.Unlock()
-		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden")
+		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden.")
 		return
 	}
 	// A player who left (or was kicked) mid-game lingers only for the standings
@@ -342,7 +342,7 @@ func handleReconnect(hub *Hub, c *Client, sessionID string) {
 	// that forgets to.
 	if player.Left {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeSessionNotFound, "Session nicht mehr gültig")
+		hub.sendError(c, CodeSessionNotFound, "Session nicht mehr gültig.")
 		return
 	}
 	player.Connected = true
@@ -437,17 +437,17 @@ func (h *Hub) requireHostInLobby(c *Client) *game.Lobby {
 	_, lobby, player, ok := h.lookupLocked(c.sessionID)
 	if !ok {
 		h.mu.Unlock()
-		h.sendError(c, CodeInvalidSession, "Sitzung ungültig")
+		h.sendError(c, CodeInvalidSession, "Sitzung ungültig.")
 		return nil
 	}
 	if !player.IsHost {
 		h.mu.Unlock()
-		h.sendError(c, CodeNotHost, "Nur der Host darf diese Aktion ausführen")
+		h.sendError(c, CodeNotHost, "Nur der Host darf diese Aktion ausführen.")
 		return nil
 	}
 	if lobby.State != game.StateLobby {
 		h.mu.Unlock()
-		h.sendError(c, CodeInvalidState, "Nicht im Lobby-Zustand erlaubt")
+		h.sendError(c, CodeInvalidState, "Nicht im Lobby-Zustand erlaubt.")
 		return nil
 	}
 	return lobby
@@ -458,12 +458,12 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		Name string `json:"name"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 	name := cleanName(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
-		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
+		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein.")
 		return
 	}
 
@@ -474,12 +474,12 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if categoryTaken(lobby, "", name) {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon")
+		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon.")
 		return
 	}
 	if len(lobby.Categories) >= maxCategoriesPerLobby {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Maximale Anzahl Kategorien erreicht")
+		hub.sendError(c, CodeValidationError, "Maximale Anzahl Kategorien erreicht.")
 		return
 	}
 	lobby.Categories = append(lobby.Categories, &game.Category{
@@ -497,12 +497,12 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		Name       string `json:"name"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 	name := cleanName(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
-		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
+		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein.")
 		return
 	}
 
@@ -513,7 +513,7 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if categoryTaken(lobby, p.CategoryID, name) {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon")
+		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon.")
 		return
 	}
 	found := false
@@ -527,7 +527,7 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Unlock()
 
 	if !found {
-		hub.sendError(c, CodeCategoryNotFound, "Kategorie nicht gefunden")
+		hub.sendError(c, CodeCategoryNotFound, "Kategorie nicht gefunden.")
 		return
 	}
 	hub.broadcastLobbyState(lobby)
@@ -547,7 +547,7 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		CategoryID string `json:"categoryId"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 
@@ -571,7 +571,7 @@ func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Unlock()
 
 	if !removed {
-		hub.sendError(c, CodeCategoryNotFound, "Kategorie nicht gefunden")
+		hub.sendError(c, CodeCategoryNotFound, "Kategorie nicht gefunden.")
 		return
 	}
 	hub.broadcastLobbyState(lobby)
@@ -585,7 +585,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 	// and must be distinguishable from an omitted timeLimit.
 	var present map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &present); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 	var p struct {
@@ -595,13 +595,13 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		LastLetterMode  *bool    `json:"lastLetterMode"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 
 	_, hasTimeLimit := present["timeLimit"]
 	if hasTimeLimit && p.TimeLimit != nil && (*p.TimeLimit < 5 || *p.TimeLimit > 3600) {
-		hub.sendError(c, CodeValidationError, "Zeitlimit muss zwischen 5 und 3600 Sekunden liegen")
+		hub.sendError(c, CodeValidationError, "Zeitlimit muss zwischen 5 und 3600 Sekunden liegen.")
 		return
 	}
 
@@ -619,7 +619,7 @@ func handleUpdateSettings(hub *Hub, c *Client, raw json.RawMessage) {
 		excluded = append(excluded, u)
 	}
 	if hasExcluded && len(excluded) >= 26 {
-		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv bleiben")
+		hub.sendError(c, CodeValidationError, "Mindestens ein Buchstabe muss aktiv bleiben.")
 		return
 	}
 
@@ -651,7 +651,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 		PlayerID string `json:"playerId"`
 	}
 	if err := json.Unmarshal(raw, &p); err != nil {
-		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
+		hub.sendError(c, CodeValidationError, "Ungültige Anfrage.")
 		return
 	}
 
@@ -659,18 +659,18 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 	_, lobby, host, ok := hub.lookupLocked(c.sessionID)
 	if !ok || !host.IsHost {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeNotHost, "Aktion nicht erlaubt")
+		hub.sendError(c, CodeNotHost, "Aktion nicht erlaubt.")
 		return
 	}
 	if p.PlayerID == host.ID {
 		hub.mu.Unlock()
-		hub.sendError(c, CodeValidationError, "Du kannst dich nicht selbst kicken")
+		hub.sendError(c, CodeValidationError, "Du kannst dich nicht selbst kicken.")
 		return
 	}
 	target, ok := lobby.Players[p.PlayerID]
 	if !ok {
 		hub.mu.Unlock()
-		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden")
+		hub.sendError(c, CodePlayerNotFound, "Spieler nicht gefunden.")
 		return
 	}
 	targetSession := target.SessionID

@@ -41,7 +41,7 @@ it("binds the session, pauses for another tab and drops room actions offline", (
 	const second = sockets[1];
 	ws.send({ type: "startNextRound", payload: {} });
 	expect(useToastStore.getState().toasts.at(-1)?.message).toBe(
-		"Offline – Aktion nicht gesendet.",
+		"Offline - Aktion nicht gesendet.",
 	);
 	sent.length = 0;
 	second.readyState = FakeSocket.OPEN;
