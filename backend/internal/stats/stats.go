@@ -33,7 +33,7 @@ type Event struct {
 // maxSize caps the event file; Add drops events beyond it.
 const maxSize = 50 << 20
 
-// Log is nil when stats are off; Add is then a no-op.
+// Log is nil when stats are off; Add is then a no-op, as for a nil event.
 type Log struct {
 	mu   sync.Mutex
 	path string
@@ -54,8 +54,8 @@ func Open(path string) (*Log, error) {
 	return &Log{path: path, f: f, size: st.Size()}, nil
 }
 
-func (l *Log) Add(e Event) {
-	if l == nil {
+func (l *Log) Add(e *Event) {
+	if l == nil || e == nil {
 		return
 	}
 	e.T = time.Now().UTC()

@@ -368,7 +368,7 @@ func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.
 func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	slog.Info("lobby closed", "lobby", lobby.Code, "reason", reason)
 	h.mu.Lock()
-	h.recordEndLocked(lobby, reason)
+	ev := endEvent(lobby, reason)
 	// Stop a pending host-grace timer so it cannot fire against a closed lobby.
 	if t, ok := h.hostGrace[lobby.Code]; ok {
 		t.Stop()
@@ -386,6 +386,7 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 	}
 	h.rooms.Delete(lobby.Code)
 	h.mu.Unlock()
+	h.Stats.Add(ev)
 }
 
 func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {

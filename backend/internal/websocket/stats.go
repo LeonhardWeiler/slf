@@ -31,13 +31,13 @@ func gameEvent(ev string, lobby *game.Lobby) stats.Event {
 	return e
 }
 
-// recordEndLocked logs the end of a game that is not over yet. Caller must
-// hold hub.mu.
-func (hub *Hub) recordEndLocked(lobby *game.Lobby, reason string) {
+// endEvent is the end event of a game that is not over yet, else nil. Caller
+// holds hub.mu and passes it to Stats.Add after unlocking.
+func endEvent(lobby *game.Lobby, reason string) *stats.Event {
 	if lobby.Game == nil || lobby.State == game.StateGameOver {
-		return
+		return nil
 	}
 	e := gameEvent("end", lobby)
 	e.Reason = reason
-	hub.Stats.Add(e)
+	return &e
 }
