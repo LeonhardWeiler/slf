@@ -114,7 +114,7 @@ type Round struct {
 	// round ended by timeout or a host "end round". Surfaced in review so everyone
 	// sees who stopped the round.
 	BuzzedBy string `json:"-"`
-	// EndReason is how the round ended: "timeout", "host" or "buzz".
+	// EndReason is how the round ended: "timeout", "host", "buzz" or "finished" (sprint done).
 	EndReason string `json:"-"`
 	// Ready holds the voters done with the category under review.
 	Ready map[string]bool `json:"-"`
@@ -179,8 +179,8 @@ type LobbyStatePayload struct {
 	// host is disconnected; nil when the host is present. Lets late/reconnecting
 	// clients render the shared countdown too.
 	HostGraceSeconds *int `json:"hostGraceSeconds"`
-	// Solo is true while a single player is in the lobby: every round is a
-	// sprint, scored without review.
+	// Solo is true in a solo game (or, before a game, while a single player is
+	// in the lobby): every round is a sprint, scored without review.
 	Solo bool `json:"solo"`
 }
 
@@ -238,7 +238,7 @@ type ReviewStatePayload struct {
 	// BuzzedBy is the playerID who buzzed to end the round; empty on timeout or a
 	// host-ended round.
 	BuzzedBy string `json:"buzzedBy"`
-	// EndReason is how the round ended: "timeout", "host" or "buzz".
+	// EndReason is how the round ended: "timeout", "host", "buzz" or "finished" (sprint done).
 	EndReason string `json:"endReason"`
 	// Ready lists the voters done with this category; Voters all who may vote.
 	Ready  []string `json:"ready"`

@@ -115,7 +115,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 		Pos:       map[string]int{},
 		StartedAt: time.Now(),
 	}
-	if soloPlayer(lobby) != nil {
+	if soloGame(lobby) {
 		round.Letters = sprintLetters(g.RemainingLetters, len(lobby.Categories), lobby.Settings.TimeLimit)
 		round.Letter = round.Letters[0]
 	}
@@ -230,7 +230,7 @@ func handleInputSync(hub *Hub, c *Client, raw json.RawMessage) {
 }
 
 // handleSprintWord takes the player's word for sprint prompt pos; an empty
-// value skips the prompt. Prompts only move forward.
+// value skips the prompt. Only the current prompt is taken.
 func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
 	var p struct {
 		RoundID string `json:"roundId"`
@@ -247,7 +247,7 @@ func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	r, n := lobby.Game.Round, len(lobby.Categories)
-	if r.Letters == nil || p.Pos < r.Pos[player.ID] || p.Pos >= len(r.Letters)*n {
+	if r.Letters == nil || p.Pos != r.Pos[player.ID] || p.Pos >= len(r.Letters)*n {
 		return
 	}
 	letter := r.Letters[p.Pos/n]
@@ -259,7 +259,7 @@ func handleSprintWord(hub *Hub, c *Client, raw json.RawMessage) {
 		storeAnswer(r, player.ID, sprintKey(p.Pos/n, lobby.Categories[p.Pos%n].ID), p.Value)
 	}
 	if r.Pos[player.ID] == len(r.Letters)*n {
-		go hub.endRound(lobby, r.ID, "timeout", "")
+		go hub.endRound(lobby, r.ID, "finished", "")
 	}
 }
 
@@ -289,7 +289,7 @@ func handleBuzz(hub *Hub, c *Client, raw json.RawMessage) {
 	// not just the client's Zod gate - each answer must satisfy the formal rules
 	// for the round letter: 2-30 chars, starting with the letter (SRS 9.13.15).
 	// A solo player only ends their own round, so they may stop at any time.
-	if soloPlayer(lobby) == nil {
+	if !soloGame(lobby) {
 		answers := round.Answers[session.PlayerID]
 		for _, cat := range lobby.Categories {
 			ans := answers[cat.ID]
@@ -375,7 +375,7 @@ func (hub *Hub) finishPlaying(lobby *game.Lobby, roundID string) {
 			}
 		}
 	}
-	solo, empty := soloPlayer(lobby) != nil, !hasActiveSubmission(lobby)
+	solo, empty := soloGame(lobby), !hasActiveSubmission(lobby)
 	if solo || empty {
 		result := hub.scoreAndFinishRound(lobby)
 		result.Empty = empty

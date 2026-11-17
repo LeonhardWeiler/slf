@@ -81,10 +81,11 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   for a player marked `Left` is refused.
   A newer socket for the same session closes the old one with code 4000; that
   tab does not auto-reconnect, only on focus/visibility (`ws.replaced`).
-- **Solo** (`soloPlayer` in `game_util.go`: exactly 1 non-left player who is no
-  spectator): buzz skips the fill and rule checks, and `finishPlaying` scores
-  the round without review and goes straight to `nextRound`.
-  A joiner ends solo on the spot.
+- **Solo** (`soloGame` in `game_util.go`): `startGame` fixes `Game.Mode` to
+  "solo" when `soloPlayer` finds exactly 1 non-left player who is no spectator,
+  and the mode never changes during the game. In solo, buzz skips the fill and
+  rule checks, and `finishPlaying` scores the round without review and goes
+  straight to `nextRound`. A classic game left with 1 player stays classic.
 - **Deploy**: `SIGHUP` drains (no new games or rounds until no round with a
   connected player is in Countdown/Playing/Reviewing, at most 5 min), then
   `Hub.Shutdown` refuses new sockets/messages and closes all sockets, then
