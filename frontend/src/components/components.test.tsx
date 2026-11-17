@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { isModalOpen, Modal } from "@/components/Modal";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import type { Player } from "@/types/events";
@@ -34,6 +35,38 @@ describe("Modal", () => {
 		rerender(<button type="button">trigger</button>);
 		expect(isModalOpen()).toBe(false);
 		expect(document.activeElement?.textContent).toBe("trigger");
+	});
+});
+
+describe("useConfirm", () => {
+	function Harness({ destructive }: { destructive: boolean }) {
+		const { confirm, dialog } = useConfirm();
+		return (
+			<>
+				<button
+					type="button"
+					onClick={() =>
+						confirm({ title: "?", confirmLabel: "Ja", destructive })
+					}
+				>
+					open
+				</button>
+				{dialog}
+			</>
+		);
+	}
+
+	it("focuses cancel for destructive and confirm otherwise", async () => {
+		for (const [destructive, focused] of [
+			[true, "Abbrechen"],
+			[false, "Ja"],
+		] as const) {
+			const { unmount } = render(<Harness destructive={destructive} />);
+			fireEvent.click(screen.getByText("open"));
+			await screen.findByRole("alertdialog");
+			expect(document.activeElement?.textContent).toBe(focused);
+			unmount();
+		}
 	});
 });
 

@@ -7,7 +7,7 @@ interface ConfirmOptions {
 	description?: string;
 	confirmLabel?: string;
 	cancelLabel?: string;
-	// Renders the confirm button in the destructive (red) style.
+	// Renders the confirm button in the destructive (red) style and focuses cancel.
 	destructive?: boolean;
 }
 
@@ -53,14 +53,14 @@ function ConfirmDialogView({
 	onConfirm,
 	onCancel,
 }: ConfirmOptions & { onConfirm: () => void; onCancel: () => void }) {
-	const confirmRef = useRef<HTMLButtonElement>(null);
+	const focusRef = useRef<HTMLButtonElement>(null);
 	return (
 		<Modal
 			role="alertdialog"
 			labelledBy="confirm-title"
 			describedBy={description ? "confirm-desc" : undefined}
 			onClose={onCancel}
-			initialFocus={confirmRef}
+			initialFocus={focusRef}
 		>
 			<h2 id="confirm-title" className="text-lg font-semibold">
 				{title}
@@ -73,11 +73,16 @@ function ConfirmDialogView({
 			{/* Both buttons share the full width 50/50; cancel carries the same
           outline border as the confirm button so the pair reads as one bar. */}
 			<div className="mt-5 flex gap-2">
-				<Button variant="outline" className="flex-1" onClick={onCancel}>
+				<Button
+					ref={destructive ? focusRef : undefined}
+					variant="outline"
+					className="flex-1"
+					onClick={onCancel}
+				>
 					{cancelLabel}
 				</Button>
 				<Button
-					ref={confirmRef}
+					ref={destructive ? undefined : focusRef}
 					variant={destructive ? "destructive" : "default"}
 					className="flex-1"
 					onClick={onConfirm}
