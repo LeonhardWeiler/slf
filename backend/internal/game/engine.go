@@ -47,10 +47,12 @@ func Normalize(value string) string {
 	return strings.ToUpper(string(r[0])) + strings.ToLower(string(r[1:]))
 }
 
+var umlautBase = strings.NewReplacer("Ä", "A", "Ö", "O", "Ü", "U")
+
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
 // given letter: at most 30 chars with at least 2 letters, and starting with the
 // letter - or, when lastLetter is set, ending with it, ignoring non-letters at
-// either edge (SRS 5.5 + last-letter spice).
+// either edge; Ä/Ö/Ü count as A/O/U (SRS 5.5 + last-letter spice).
 func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
 	letters := 0
@@ -62,7 +64,7 @@ func IsRuleValid(letter, value string, lastLetter bool) bool {
 	if letters < 2 || utf8.RuneCountInString(n) > 30 {
 		return false
 	}
-	w := []rune(strings.ToUpper(strings.TrimFunc(n, func(r rune) bool { return !unicode.IsLetter(r) })))
+	w := []rune(umlautBase.Replace(strings.ToUpper(strings.TrimFunc(n, func(r rune) bool { return !unicode.IsLetter(r) }))))
 	upperLetter := strings.ToUpper(letter)
 	if lastLetter {
 		return string(w[len(w)-1]) == upperLetter

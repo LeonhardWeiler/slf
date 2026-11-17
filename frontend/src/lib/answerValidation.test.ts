@@ -107,6 +107,11 @@ describe("ruleIssue", () => {
 		expect(invalid("(Berlin)", "B")).toBe(false);
 		expect(invalid("Baden-Baden", "B")).toBe(false);
 		expect(invalid("Berlin 2", "N", true)).toBe(false);
+		expect(invalid("Österreich", "O")).toBe(false);
+		expect(invalid("ärmelkanal", "A")).toBe(false);
+		expect(invalid("Überlingen", "U")).toBe(false);
+		expect(invalid("Kakadü", "U", true)).toBe(false);
+		expect(invalid("Ägypten", "O")).toBe(true);
 	});
 });
 
