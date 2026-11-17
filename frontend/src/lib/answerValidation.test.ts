@@ -77,9 +77,9 @@ describe("ruleIssue", () => {
 	});
 
 	// rule-1: the length bound counts code points, like the engine's
-	// len([]rune(n)) - not UTF-16 units, which would double every astral char.
+	// utf8.RuneCountInString - not UTF-16 units, which would double every astral char.
 	it("measures length in code points, not UTF-16 units", () => {
-		const surrogate = "\u{1F388}"; // 1 code point, 2 UTF-16 units
+		const surrogate = "\u{1D41A}"; // a letter, 1 code point, 2 UTF-16 units
 		expect(invalid(`A${surrogate.repeat(15)}`, "A")).toBe(false); // 16
 		expect(invalid(`A${surrogate.repeat(29)}`, "A")).toBe(false); // 30
 		expect(invalid(`A${surrogate.repeat(30)}`, "A")).toBe(true); // 31
@@ -93,8 +93,20 @@ describe("ruleIssue", () => {
 
 	// The last-letter check must look at the last *code point*.
 	it("matches the last code point in last-letter mode", () => {
-		expect(invalid(`Ab${"\u{1F388}"}`, "B", true)).toBe(true);
+		expect(invalid(`Ab${"\u{1D41A}"}`, "B", true)).toBe(true);
 		expect(invalid("Abb", "B", true)).toBe(false);
+	});
+
+	// Same cases as TestIsRuleValidLettersOnly.
+	it("needs 2 letters and ignores non-letters at the edges", () => {
+		expect(invalid("A1", "A")).toBe(true);
+		expect(invalid("A.", "A")).toBe(true);
+		expect(invalid("12", "A")).toBe(true);
+		expect(invalid("Wien.", "N", true)).toBe(false);
+		expect(invalid("Wien!?", "N", true)).toBe(false);
+		expect(invalid("(Berlin)", "B")).toBe(false);
+		expect(invalid("Baden-Baden", "B")).toBe(false);
+		expect(invalid("Berlin 2", "N", true)).toBe(false);
 	});
 });
 

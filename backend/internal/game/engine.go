@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Alphabet without umlauts (SRS 5.4).
@@ -47,24 +48,26 @@ func Normalize(value string) string {
 }
 
 // IsRuleValid reports whether a raw value conforms to the formal rules for the
-// given letter: non-empty, 2-30 chars, and starting with the letter - or, when
-// lastLetter is set, ending with it (SRS 5.5 + last-letter spice). A single
-// character is too short to be a valid word and is rejected.
+// given letter: at most 30 chars with at least 2 letters, and starting with the
+// letter - or, when lastLetter is set, ending with it, ignoring non-letters at
+// either edge (SRS 5.5 + last-letter spice).
 func IsRuleValid(letter, value string, lastLetter bool) bool {
 	n := Normalize(value)
-	if n == "" {
+	letters := 0
+	for _, r := range n {
+		if unicode.IsLetter(r) {
+			letters++
+		}
+	}
+	if letters < 2 || utf8.RuneCountInString(n) > 30 {
 		return false
 	}
-	runes := []rune(n)
-	if rc := len(runes); rc < 2 || rc > 30 {
-		return false
-	}
+	w := []rune(strings.ToUpper(strings.TrimFunc(n, func(r rune) bool { return !unicode.IsLetter(r) })))
 	upperLetter := strings.ToUpper(letter)
 	if lastLetter {
-		last := strings.ToUpper(string(runes[len(runes)-1]))
-		return last == upperLetter
+		return string(w[len(w)-1]) == upperLetter
 	}
-	return strings.HasPrefix(strings.ToUpper(n), upperLetter)
+	return strings.HasPrefix(string(w), upperLetter)
 }
 
 // letterValues are the German Scrabble tile values; any other letter is 1.
