@@ -164,8 +164,10 @@ type LobbyPlayer struct {
 	// Pending marks a mid-game joiner who is waiting to play from the next round;
 	// the client renders them a spectator view and hides them from the standings.
 	Pending bool `json:"pending"`
-	Score   int  `json:"score"`
-	Combo   int  `json:"combo"`
+	// Plays is playsThisRound: the player's answers count in the current round.
+	Plays bool `json:"plays"`
+	Score int  `json:"score"`
+	Combo int  `json:"combo"`
 }
 
 type LobbyStatePayload struct {

@@ -25,6 +25,7 @@ const playerSchema = z.object({
 	left: z.boolean(),
 	// Lenient default: tolerate a message from an older server without the field.
 	pending: z._default(z.optional(z.boolean()), false),
+	plays: z.boolean(),
 	score: z.number(),
 	combo: z._default(z.optional(z.number()), 0),
 });
