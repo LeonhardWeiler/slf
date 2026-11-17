@@ -14,7 +14,7 @@ import {
 	screen,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { markForcedLeave } from "@/lib/forcedLeave";
+import { consumeForcedLeave, markForcedLeave } from "@/lib/forcedLeave";
 import { ThemeProvider } from "@/lib/theme";
 import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
@@ -23,9 +23,11 @@ import type { LobbyStatePayload, Player } from "@/types/events";
 const Navigate = () => null;
 const send = spyOn(ws, "send").mockImplementation(() => {});
 afterAll(() => send.mockRestore());
+let path = "/join/abc123";
+const navigate = mock((_to: string, _replace?: boolean) => {});
 mock.module("@/lib/nav", () => ({
-	navigate: () => {},
-	usePath: () => "/join/abc123",
+	navigate,
+	usePath: () => path,
 	joinCode: () => "abc123",
 	Navigate,
 }));
@@ -35,7 +37,7 @@ const { RoundResultScreen } = await import("@/pages/game/RoundResultScreen");
 const { ReviewScreen } = await import("@/pages/game/ReviewScreen");
 const { GameOverScreen } = await import("@/pages/game/GameOverScreen");
 const { Lobby } = await import("@/pages/Lobby");
-const { renderScreen } = await import("@/pages/Room");
+const { Room, renderScreen } = await import("@/pages/Room");
 const { Home } = await import("@/pages/Home");
 
 const render = (ui: ReactNode) => rtlRender(ui, { wrapper: ThemeProvider });
@@ -91,6 +93,48 @@ describe("Room", () => {
 	});
 });
 
+describe("Room back navigation", () => {
+	beforeEach(() => {
+		navigate.mockClear();
+		path = "/join/123456";
+	});
+
+	function goBack(rerender: (ui: ReactNode) => void) {
+		path = "/";
+		rerender(<Room />);
+	}
+
+	it("moves a room opened on another path to its join path", () => {
+		setup("guest", "Lobby");
+		path = "/";
+		render(<Room />);
+		expect(navigate).toHaveBeenCalledWith("/join/123456", true);
+		expect(screen.queryByText("Lobby verlassen?")).toBeNull();
+	});
+
+	it("stays in the room when the leave is cancelled", async () => {
+		setup("guest", "Lobby");
+		const { rerender } = render(<Room />);
+		goBack(rerender);
+		fireEvent.click(screen.getByText("Abbrechen"));
+		await act(async () => {});
+		expect(navigate).toHaveBeenCalledWith("/join/123456");
+		expect(send).not.toHaveBeenCalledWith({ type: "leaveLobby", payload: {} });
+		expect(useRoomStore.getState().lobby).not.toBeNull();
+	});
+
+	it("leaves the game when confirmed", async () => {
+		setup("guest", "Playing");
+		const { rerender } = render(<Room />);
+		goBack(rerender);
+		expect(screen.getByText("Spiel verlassen?")).toBeTruthy();
+		fireEvent.click(screen.getByText("Verlassen"));
+		await act(async () => {});
+		expect(send).toHaveBeenCalledWith({ type: "leaveLobby", payload: {} });
+		expect(useRoomStore.getState().lobby).toBeNull();
+		expect(consumeForcedLeave()).toBe(true);
+	});
+});
 describe("RoundResultScreen", () => {
 	beforeEach(() => {
 		useRoomStore.getState().receive("roundResult", {

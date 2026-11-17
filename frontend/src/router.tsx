@@ -149,12 +149,13 @@ export function Router() {
 function Routes() {
 	const path = usePath();
 	const inLobby = useRoomStore((s) => s.lobby != null);
+	if (inLobby)
+		return (
+			<Suspense fallback={null}>
+				<Room />
+			</Suspense>
+		);
 	if (path === "/") return <Home key="index" />;
 	if (joinCode(path) === null) return <Navigate to="/" />;
-	if (!inLobby) return <Home key="join" />;
-	return (
-		<Suspense fallback={null}>
-			<Room />
-		</Suspense>
-	);
+	return <Home key="join" />;
 }
