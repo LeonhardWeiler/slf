@@ -204,7 +204,8 @@ export function GameScreen() {
 		: lobby && game
 			? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
 			: { valid: false };
-	const sprint = !isSpectator && !!game?.letters?.length;
+	const sprintRound = !!game?.letters?.length;
+	const sprint = !isSpectator && sprintRound;
 	const canBuzz =
 		!isSpectator &&
 		!sprint &&
@@ -347,7 +348,9 @@ export function GameScreen() {
 				/>
 				{isPending && (
 					<p className="text-center text-sm text-muted-foreground">
-						Du spielst ab der nächsten Runde mit.
+						{sprintRound
+							? "Ein Sprint läuft. Du spielst im nächsten Spiel mit."
+							: "Du spielst ab der nächsten Runde mit."}
 					</p>
 				)}
 
@@ -370,7 +373,7 @@ export function GameScreen() {
 							</Button>
 						)}
 					</>
-				) : isSpectator ? (
+				) : sprintRound ? null : isSpectator ? (
 					<Card>
 						<CardContent className="pt-6">
 							<CommentatorBoard

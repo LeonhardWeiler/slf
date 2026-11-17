@@ -1311,3 +1311,43 @@ func TestSoloSprint(t *testing.T) {
 		t.Fatalf("expected score %d, got %+v", want, res.Ranking)
 	}
 }
+
+func TestJoinRunningSprint(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	code := host.createLobby("Alice")
+	host.send("updateSettings", map[string]any{"timeLimit": nil})
+	host.readLobby()
+	host.send("startGame", map[string]any{})
+	var gs struct {
+		State   string `json:"state"`
+		RoundID string `json:"roundId"`
+	}
+	for gs.State != "Playing" {
+		json.Unmarshal(host.waitFor("gameState"), &gs)
+	}
+
+	guest := dial(t, srv)
+	guest.send("joinLobby", map[string]any{"playerName": "Bob", "lobbyCode": code})
+	var ls lobbyStateDTO
+	json.Unmarshal(guest.waitFor("lobbyState"), &ls)
+	if !ls.Solo {
+		t.Fatal("a joiner must not end a running solo game")
+	}
+	var seen struct {
+		Letters []string `json:"letters"`
+	}
+	json.Unmarshal(guest.waitFor("gameState"), &seen)
+	if len(seen.Letters) == 0 {
+		t.Fatal("the joiner should see the sprint")
+	}
+
+	host.send("buzz", map[string]any{"roundId": gs.RoundID})
+	var res struct {
+		IsGameOver bool `json:"isGameOver"`
+	}
+	json.Unmarshal(host.waitFor("roundResult"), &res)
+	if !res.IsGameOver {
+		t.Fatal("the sprinter's stop should end the solo game")
+	}
+}
