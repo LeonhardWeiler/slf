@@ -34,7 +34,8 @@ export function normalize(value: string): string {
 
 // Zod schema for a single answer given the current letter. Mirrors
 // engine.IsRuleValid: at most 30 chars with 2 letters, starts with the round
-// letter - or, in last-letter mode, ends with it, ignoring non-letter edges.
+// letter - or, in last-letter mode, ends with it, ignoring non-letter edges;
+// Ä/Ö/Ü count as A/O/U.
 // The schema depends only on the round letter and the mode, both constant for a
 // whole round - but the render path asks for it roughly 2n+1 times per render
 // (per category for the done tick and the invalid border, plus validateAnswers)
@@ -62,11 +63,16 @@ function buildAnswerSchema(letter: string, lastLetter: boolean) {
 		// The letter check comes first so a wrong letter is the reported issue.
 		z.refine(
 			(n) => {
-				const runes = [...n.replace(/^\P{L}+|\P{L}+$/gu, "")];
-				if (runes.length === 0) return false;
+				const w = [
+					...upperRunes(n.replace(/^\P{L}+|\P{L}+$/gu, "")).replace(
+						/[ÄÖÜ]/g,
+						(c) => ({ Ä: "A", Ö: "O", Ü: "U" })[c] ?? c,
+					),
+				];
+				if (w.length === 0) return false;
 				return lastLetter
-					? mapCase(runes[runes.length - 1], true) === upper
-					: upperRunes(runes.join("")).startsWith(upper);
+					? w[w.length - 1] === upper
+					: w.join("").startsWith(upper);
 			},
 			{
 				message: lastLetter

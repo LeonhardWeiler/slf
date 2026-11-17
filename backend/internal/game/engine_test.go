@@ -79,6 +79,11 @@ func TestIsRuleValidLettersOnly(t *testing.T) {
 		{"B", "(Berlin)", false, true},
 		{"B", "Baden-Baden", false, true},
 		{"N", "Berlin 2", true, true},
+		{"O", "Österreich", false, true},
+		{"A", "ärmelkanal", false, true},
+		{"U", "Überlingen", false, true},
+		{"U", "Kakadü", true, true},
+		{"O", "Ägypten", false, false},
 	}
 	for _, c := range cases {
 		if got := IsRuleValid(c.letter, c.value, c.last); got != c.want {
