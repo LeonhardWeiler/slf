@@ -20,13 +20,14 @@ import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
 import type { LobbyStatePayload, Player } from "@/types/events";
 
+const Navigate = () => null;
 const send = spyOn(ws, "send").mockImplementation(() => {});
 afterAll(() => send.mockRestore());
 mock.module("@/lib/nav", () => ({
 	navigate: () => {},
 	usePath: () => "/join/abc123",
 	joinCode: () => "abc123",
-	Navigate: () => null,
+	Navigate,
 }));
 
 const { GameScreen } = await import("@/pages/game/GameScreen");
