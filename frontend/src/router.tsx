@@ -55,7 +55,7 @@ export function Router() {
 	}, []);
 
 	useEffect(() => {
-		ws.onStatusChange((connected) => {
+		const offStatus = ws.onStatusChange((connected) => {
 			if (connected && getSessionId()) pendingReconnect.current = true;
 		});
 
@@ -159,6 +159,8 @@ export function Router() {
 		ws.on("buzzRejected", (payload) => {
 			useRoomStore.getState().setBuzzRejected(payload.reason);
 		});
+
+		return offStatus;
 	}, [setSession, setHostGrace, reset]);
 
 	return (
