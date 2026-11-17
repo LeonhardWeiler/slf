@@ -433,7 +433,7 @@ func (h *Hub) broadcastLobbyState(lobby *game.Lobby) {
 		Settings:         lobby.Settings,
 		State:            lobby.State,
 		HostGraceSeconds: graceSecondsLeft(lobby),
-		Solo:             soloPlayer(lobby) != nil,
+		Solo:             soloGame(lobby),
 	}
 	lobby.Version++
 	full, _ := json.Marshal(OutboundMessage{Type: "lobbyState", Payload: payload, StateVersion: lobby.Version})

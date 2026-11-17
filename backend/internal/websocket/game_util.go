@@ -177,7 +177,7 @@ func canPlayNextRound(lobby *game.Lobby, p *game.Player) bool {
 
 // soloPlayer returns the only player of a lobby that has exactly one member
 // who has not left and who plays, or nil. A pending joiner or a second member
-// ends solo, so the game is normal again as soon as someone else joins.
+// ends solo.
 func soloPlayer(lobby *game.Lobby) *game.Player {
 	var solo *game.Player
 	for _, p := range lobby.Players {
@@ -511,4 +511,13 @@ func lobbyFull(lobby *game.Lobby) bool {
 		}
 	}
 	return active >= maxPlayersPerLobby || len(lobby.Players) >= 2*maxPlayersPerLobby
+}
+
+// soloGame reports whether solo rules apply (sprint, free buzz, no review).
+// The mode is fixed at game start; before that it previews the lobby.
+func soloGame(lobby *game.Lobby) bool {
+	if lobby.Game != nil {
+		return lobby.Game.Mode == "solo"
+	}
+	return soloPlayer(lobby) != nil
 }

@@ -863,8 +863,10 @@ func TestLeaveMidGameInvalidatesSessionAndScoring(t *testing.T) {
 	}
 	host.send("buzz", map[string]any{"roundId": gs.RoundID})
 
-	// Alice is now alone, so the round is scored without review; with letter A
-	// used up the game ends and the final ranking carries the totals.
+	// The game stays classic although Alice is now alone, so the round goes to
+	// review; finishing it scores the round.
+	host.waitFor("reviewState")
+	host.send("finishReview", map[string]any{})
 	var rr struct {
 		Ranking []struct {
 			PlayerID string `json:"playerId"`
@@ -1275,6 +1277,7 @@ func TestSoloSprint(t *testing.T) {
 	word(2, a+"fluss")
 	word(2, a+"again")
 	word(3, a+"wrong")
+	word(5, b+"skip")
 	word(3, b+"x")
 	host.send("ping", map[string]any{})
 	host.waitFor("pong")
