@@ -270,6 +270,7 @@ func (c *Client) enqueue(typ string, b []byte) {
 	}
 	c.qmu.Unlock()
 	if full {
+		c.hub.drops.Add(1)
 		_ = c.conn.CloseNow()
 		return
 	}

@@ -103,7 +103,8 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   `sprintWords`, one entry per prompt, "" for a skipped one.
 - **Stats** (`internal/stats`): game start and end append anonymous events to
   `$STATE_DIRECTORY/events.jsonl` (capped at 50 MB); `STATS_ADDR` serves the
-  dashboard on a separate listener (production: tailnet only).
+  dashboard with live counters (lobbies, sockets, drops) on a separate
+  listener (production: tailnet only).
 - Joining is possible in **any** lobby state; whoever joins mid-game is
   `Pending` (spectator, not in scoring/ranking/review) and is activated at the
   next round start (`beginCountdown`).

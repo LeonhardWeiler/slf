@@ -47,6 +47,8 @@ type Hub struct {
 	draining bool
 	// closed refuses new sockets and messages once Shutdown began.
 	closed atomic.Bool
+	// drops counts clients closed for a full send queue.
+	drops atomic.Int64
 }
 
 func NewHub() *Hub {
@@ -99,6 +101,16 @@ func (h *Hub) Health(d time.Duration) (live, draining bool) {
 		return true, draining
 	case <-time.After(d):
 		return false, false
+	}
+}
+
+func (h *Hub) Counters() map[string]int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return map[string]int{
+		"Lobbys":  len(h.rooms),
+		"Sockets": len(h.clients) + len(h.pending),
+		"Drops":   int(h.drops.Load()),
 	}
 }
 

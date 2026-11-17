@@ -1394,3 +1394,24 @@ func TestStaleReconnectLogsNoError(t *testing.T) {
 		t.Fatalf("stale reconnect logged as ERROR:\n%s", logs.String())
 	}
 }
+
+// A client closed for a full send queue counts as a drop.
+func TestCounters(t *testing.T) {
+	srv, hub := newServerHub(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	if got := hub.Counters(); got["Lobbys"] != 1 || got["Sockets"] != 1 || got["Drops"] != 0 {
+		t.Fatalf("counters = %v", got)
+	}
+
+	hub.mu.Lock()
+	c := hub.clients[host.sessionID]
+	hub.mu.Unlock()
+	c.qmu.Lock()
+	c.queue = make([]outMsg, sendQueueSize)
+	c.qmu.Unlock()
+	c.enqueue("error", nil)
+	if got := hub.Counters()["Drops"]; got != 1 {
+		t.Fatalf("drops = %d", got)
+	}
+}

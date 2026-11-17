@@ -39,6 +39,8 @@ type Log struct {
 	path string
 	f    *os.File
 	size int64
+	// Live returns current counters shown above the history; nil hides them.
+	Live func() map[string]int
 }
 
 func Open(path string) (*Log, error) {
@@ -103,11 +105,11 @@ type mode struct {
 }
 
 type page struct {
-	Since              string
-	Modes              []mode
-	Days, Limits, Ends []row
-	LastLetter, Comm   int
-	Ended              int
+	Since                    string
+	Modes                    []mode
+	Live, Days, Limits, Ends []row
+	LastLetter, Comm         int
+	Ended                    int
 }
 
 func rows(m map[string]int) []row {
@@ -202,6 +204,7 @@ td,th{padding:6px 8px;border-bottom:1px solid #eee;text-align:left}
 th{color:#888;font-weight:500}td.n{text-align:right;font-variant-numeric:tabular-nums}
 </style>
 <h1>Stadt Land Fluss</h1>
+{{with .Live}}<table>{{range .}}<tr><td>{{.Key}}<td class=n>{{.N}}{{end}}</table>{{end}}
 <p>Seit {{.Since}}. {{.Ended}} Spiele beendet, davon {{.LastLetter}} mit letztem Buchstaben, {{.Comm}} mit Kommentator.</p>
 <h2>Modi</h2>
 <table><tr><th>Modus<th>gestartet<th>beendet<th>durchgespielt<th>Ø Minuten<th>Ø Runden<th>Ø Spieler
@@ -216,7 +219,11 @@ th{color:#888;font-weight:500}td.n{text-align:right;font-variant-numeric:tabular
 
 func (l *Log) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tpl.Execute(w, build(l.read())); err != nil {
+	p := build(l.read())
+	if l.Live != nil {
+		p.Live = rows(l.Live())
+	}
+	if err := tpl.Execute(w, p); err != nil {
 		log.Printf("stats: %v", err)
 	}
 }

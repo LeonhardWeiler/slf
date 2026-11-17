@@ -42,3 +42,16 @@ func TestAddStopsAtMaxSize(t *testing.T) {
 		t.Fatalf("size = %d", l.size)
 	}
 }
+
+func TestDashboardLive(t *testing.T) {
+	l, err := Open(filepath.Join(t.TempDir(), "events.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.Live = func() map[string]int { return map[string]int{"Sockets": 7} }
+	rec := httptest.NewRecorder()
+	l.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	if !strings.Contains(rec.Body.String(), "<td>Sockets<td class=n>7") {
+		t.Fatal(rec.Body.String())
+	}
+}
