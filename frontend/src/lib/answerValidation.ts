@@ -33,8 +33,8 @@ export function normalize(value: string): string {
 }
 
 // Zod schema for a single answer given the current letter. Mirrors
-// engine.IsRuleValid: non-empty, 2-30 chars, starts with the round letter - or,
-// in last-letter mode, ends with it. A single character is too short.
+// engine.IsRuleValid: at most 30 chars with 2 letters, starts with the round
+// letter - or, in last-letter mode, ends with it, ignoring non-letter edges.
 // The schema depends only on the round letter and the mode, both constant for a
 // whole round - but the render path asks for it roughly 2n+1 times per render
 // (per category for the done tick and the invalid border, plus validateAnswers)
@@ -53,7 +53,7 @@ function answerSchema(letter: string, lastLetter: boolean) {
 	return schema;
 }
 
-export const LENGTH_ISSUE = "2-30 Zeichen";
+export const LENGTH_ISSUE = "2-30 Buchstaben";
 
 function buildAnswerSchema(letter: string, lastLetter: boolean) {
 	const upper = upperRunes(letter);
@@ -62,11 +62,11 @@ function buildAnswerSchema(letter: string, lastLetter: boolean) {
 		// The letter check comes first so a wrong letter is the reported issue.
 		z.refine(
 			(n) => {
-				const runes = [...n];
+				const runes = [...n.replace(/^\P{L}+|\P{L}+$/gu, "")];
 				if (runes.length === 0) return false;
 				return lastLetter
 					? mapCase(runes[runes.length - 1], true) === upper
-					: upperRunes(n).startsWith(upper);
+					: upperRunes(runes.join("")).startsWith(upper);
 			},
 			{
 				message: lastLetter
@@ -74,13 +74,12 @@ function buildAnswerSchema(letter: string, lastLetter: boolean) {
 					: `beginnt nicht mit ${upper}`,
 			},
 		),
-		// Counted in code points, like the engine's len([]rune(n)) - `.length`
+		// Counted in code points, like the engine's utf8.RuneCountInString - `.length`
 		// would count UTF-16 units and reject answers the server accepts.
 		z.refine(
-			(n) => {
-				const count = [...n].length;
-				return count >= 2 && count <= 30;
-			},
+			(n) =>
+				[...n].filter((c) => /\p{L}/u.test(c)).length >= 2 &&
+				[...n].length <= 30,
 			{ message: LENGTH_ISSUE },
 		),
 	);

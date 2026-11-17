@@ -474,7 +474,7 @@ describe("GameScreen field hint", () => {
 		fireEvent.change(field, { target: { value: "B" } });
 		expect(field.getAttribute("aria-invalid")).toBeNull();
 		fireEvent.blur(field);
-		expect(screen.getByText("2-30 Zeichen")).toBeDefined();
+		expect(screen.getByText("2-30 Buchstaben")).toBeDefined();
 		fireEvent.change(field, { target: { value: "Xanten" } });
 		expect(field.getAttribute("aria-invalid")).toBe("true");
 		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();

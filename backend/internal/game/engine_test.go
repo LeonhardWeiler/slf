@@ -66,6 +66,27 @@ func TestIsRuleValidMinLength(t *testing.T) {
 	}
 }
 
+func TestIsRuleValidLettersOnly(t *testing.T) {
+	cases := []struct {
+		letter, value string
+		last, want    bool
+	}{
+		{"A", "A1", false, false},
+		{"A", "A.", false, false},
+		{"A", "12", false, false},
+		{"N", "Wien.", true, true},
+		{"N", "Wien!?", true, true},
+		{"B", "(Berlin)", false, true},
+		{"B", "Baden-Baden", false, true},
+		{"N", "Berlin 2", true, true},
+	}
+	for _, c := range cases {
+		if got := IsRuleValid(c.letter, c.value, c.last); got != c.want {
+			t.Errorf("IsRuleValid(%q, %q, %v) = %v, want %v", c.letter, c.value, c.last, got, c.want)
+		}
+	}
+}
+
 func mkAnswers(m map[string]string, validAll bool) map[string]*Answer {
 	out := map[string]*Answer{}
 	for pid, v := range m {
