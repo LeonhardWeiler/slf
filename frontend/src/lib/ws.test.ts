@@ -48,3 +48,24 @@ it("binds the session, pauses for another tab and drops room actions offline", (
 	second.onopen();
 	expect(sent.map((d) => JSON.parse(d).type)).toEqual(["reconnect"]);
 });
+
+it("keeps only the newest queued Home action and drops it on request", () => {
+	const open = sockets.at(-1) as FakeSocket;
+	open.readyState = 3;
+	open.onclose({ code: 1000 });
+	ws.send({ type: "createLobby", payload: { playerName: "a" } });
+	ws.send({ type: "createLobby", payload: { playerName: "b" } });
+	ws.send({
+		type: "joinLobby",
+		payload: { playerName: "c", lobbyCode: "abc123" },
+	});
+	ws.drop("joinLobby");
+	sent.length = 0;
+	const next = sockets.at(-1) as FakeSocket;
+	next.readyState = FakeSocket.OPEN;
+	next.onopen();
+	expect(sent.map((d) => JSON.parse(d))).toMatchObject([
+		{ type: "reconnect" },
+		{ type: "createLobby", payload: { playerName: "b" } },
+	]);
+});
