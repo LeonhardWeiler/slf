@@ -88,12 +88,10 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	if wait := backoff(c.seats); wait > 0 && time.Since(c.lastSeatAt) < wait {
-		c.lastSeatAt = time.Now()
+	if c.seatThrottled() {
 		hub.sendError(c, CodeValidationError, "Zu viele neue Lobbys - bitte kurz warten")
 		return
 	}
-	c.lastSeatAt = time.Now()
 
 	playerID := generateID()
 	sessionID := generateID()
@@ -141,8 +139,8 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.rooms.Create(lobby)
 	hub.sessions[sessionID] = &game.Session{ID: sessionID, PlayerID: playerID, LobbyCode: lobbyCode}
 	hub.bindLocked(c, sessionID)
-	c.seats++
 	hub.mu.Unlock()
+	c.tookSeat()
 
 	slog.Info("lobby created", "lobby", lobbyCode, "host", name)
 
@@ -179,7 +177,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	c.lastJoinAt = time.Now()
-	if wait := backoff(c.seats); wait > 0 && time.Since(c.lastSeatAt) < wait {
+	if c.seatThrottled() {
 		hub.sendError(c, CodeValidationError, "Zu viele Beitritte - bitte kurz warten")
 		return
 	}
@@ -236,8 +234,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.sessions[sessionID] = &game.Session{ID: sessionID, PlayerID: playerID, LobbyCode: code}
 	hub.bindLocked(c, sessionID)
 	hub.mu.Unlock()
-	c.seats++
-	c.lastSeatAt = time.Now()
+	c.tookSeat()
 
 	slog.Info("player joined", "lobby", code, "player", name, "pending", pending)
 
