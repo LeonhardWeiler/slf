@@ -52,7 +52,7 @@ describe("parseServerEvent", () => {
 				type: "error",
 				payload: {
 					code: "LOBBY_NOT_FOUND",
-					message: "Lobby nicht gefunden",
+					message: "Lobby nicht gefunden.",
 					severity: "warn",
 				},
 			}),
