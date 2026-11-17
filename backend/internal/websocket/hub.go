@@ -177,14 +177,6 @@ func (h *Hub) addPending(c *Client) bool {
 	return true
 }
 
-func (h *Hub) registerSession(c *Client, session *game.Session) {
-	h.releaseSeat(c, session.ID)
-	h.mu.Lock()
-	h.sessions[session.ID] = session
-	h.bindLocked(c, session.ID)
-	h.mu.Unlock()
-}
-
 // releaseSeat frees the seat a socket holds before it binds to another
 // session, exactly as if that connection had dropped.
 func (h *Hub) releaseSeat(c *Client, sessionID string) {
