@@ -336,3 +336,23 @@ func TestJoinNeverBindsToClosedLobby(t *testing.T) {
 		h.mu.Unlock()
 	}
 }
+
+func TestRejectedSeatDoesNotExtendWait(t *testing.T) {
+	h := NewHub()
+	h.rooms.Create(&game.Lobby{Code: "abc123", Players: map[string]*game.Player{}})
+	for _, msg := range []struct{ typ, raw string }{
+		{"create", `{"playerName":"p"}`},
+		{"join", `{"playerName":"p","lobbyCode":"abc123"}`},
+	} {
+		last := time.Now().Add(-backoffStep / 2)
+		c := &Client{seats: backoffFree, lastSeatAt: last}
+		if msg.typ == "create" {
+			handleCreateLobby(h, c, []byte(msg.raw))
+		} else {
+			handleJoinLobby(h, c, []byte(msg.raw))
+		}
+		if c.seats != backoffFree || !c.lastSeatAt.Equal(last) {
+			t.Fatalf("%s: rejected seat changed state: seats %d, lastSeatAt moved %v", msg.typ, c.seats, c.lastSeatAt.Sub(last))
+		}
+	}
+}

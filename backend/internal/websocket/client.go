@@ -161,6 +161,18 @@ func backoff(n int) time.Duration {
 	return min(time.Duration(n-backoffFree+1)*backoffStep, backoffMax)
 }
 
+// seatThrottled reports whether c must wait before taking another seat. A
+// rejected attempt does not extend the wait.
+func (c *Client) seatThrottled() bool {
+	wait := backoff(c.seats)
+	return wait > 0 && time.Since(c.lastSeatAt) < wait
+}
+
+func (c *Client) tookSeat() {
+	c.seats++
+	c.lastSeatAt = time.Now()
+}
+
 // allow consumes one token from the client's rate-limit bucket, refilling it
 // based on elapsed time. Returns false when the bucket is empty (message should
 // be dropped). Must only be called from the read loop.
