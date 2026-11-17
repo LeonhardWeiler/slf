@@ -69,7 +69,7 @@
 
             # Frontend
             bun
-            nodejs_22
+            nodejs
 
             # Git
             git
