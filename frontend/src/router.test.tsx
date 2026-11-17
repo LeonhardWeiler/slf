@@ -3,13 +3,14 @@ import { render } from "@testing-library/react";
 import { ThemeProvider } from "@/lib/theme";
 import { ws } from "@/lib/ws";
 
+const Navigate = () => null;
 const send = spyOn(ws, "send").mockImplementation(() => {});
 afterAll(() => send.mockRestore());
 mock.module("@/lib/nav", () => ({
 	navigate: () => {},
 	usePath: () => "/",
 	joinCode: () => null,
-	Navigate: () => null,
+	Navigate,
 }));
 
 const { Router } = await import("@/router");

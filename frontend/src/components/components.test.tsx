@@ -38,24 +38,22 @@ describe("Modal", () => {
 	});
 });
 
-describe("useConfirm", () => {
-	function Harness({ destructive }: { destructive: boolean }) {
-		const { confirm, dialog } = useConfirm();
-		return (
-			<>
-				<button
-					type="button"
-					onClick={() =>
-						confirm({ title: "?", confirmLabel: "Ja", destructive })
-					}
-				>
-					open
-				</button>
-				{dialog}
-			</>
-		);
-	}
+function Harness({ destructive }: { destructive: boolean }) {
+	const { confirm, dialog } = useConfirm();
+	return (
+		<>
+			<button
+				type="button"
+				onClick={() => confirm({ title: "?", confirmLabel: "Ja", destructive })}
+			>
+				open
+			</button>
+			{dialog}
+		</>
+	);
+}
 
+describe("useConfirm", () => {
 	it("focuses cancel for destructive and confirm otherwise", async () => {
 		for (const [destructive, focused] of [
 			[true, "Abbrechen"],
