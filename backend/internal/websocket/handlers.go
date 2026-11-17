@@ -94,7 +94,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 
 	playerID := generateID()
-	sessionID := generateID()
+	sessionID := generateSessionID()
 
 	player := &game.Player{
 		ID:        playerID,
@@ -190,7 +190,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 
 	playerID := generateID()
-	sessionID := generateID()
+	sessionID := generateSessionID()
 	hub.releaseSeat(c, sessionID)
 	hub.mu.Lock()
 	lobby, found := hub.rooms.Get(code)

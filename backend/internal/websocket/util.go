@@ -17,22 +17,23 @@ const idAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 // codes.
 func randomString(n int) string {
 	const limit = 256 - (256 % len(idAlphabet)) // largest multiple of len <= 256
-	out := make([]byte, n)
-	buf := make([]byte, 1)
-	for i := 0; i < n; {
-		if _, err := crand.Read(buf); err != nil {
-			panic(err) // crypto/rand should never fail
+	out := make([]byte, 0, n)
+	buf := make([]byte, n+n/4)
+	for len(out) < n {
+		crand.Read(buf)
+		for _, b := range buf {
+			if int(b) < limit && len(out) < n {
+				out = append(out, idAlphabet[int(b)%len(idAlphabet)])
+			}
 		}
-		if int(buf[0]) >= limit {
-			continue // reject to avoid modulo bias
-		}
-		out[i] = idAlphabet[int(buf[0])%len(idAlphabet)]
-		i++
 	}
 	return string(out)
 }
 
 func generateID() string { return randomString(12) }
+
+// generateSessionID returns a 25-char id (~129 bit).
+func generateSessionID() string { return randomString(25) }
 
 // generateLobbyCode returns a 6-char [a-z0-9] join code (~2.2e9 combinations, far
 // harder to enumerate than a plain 6-digit space). Collisions are handled by
