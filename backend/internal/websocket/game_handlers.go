@@ -90,6 +90,7 @@ func (hub *Hub) beginCountdown(lobby *game.Lobby, from game.GameState) {
 	// to the Lobby state so the lobby stays usable and players who (re)join later
 	// can start fresh.
 	if !hasRoundParticipant(lobby) {
+		hub.recordEndLocked(lobby, "Empty")
 		lobby.Game = nil
 		setLobbyState(lobby, game.StateLobby)
 		hub.mu.Unlock()
@@ -766,6 +767,7 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 		hub.sendError(c, CodeInvalidState, "Aktion nicht erlaubt")
 		return
 	}
+	hub.recordEndLocked(lobby, "ReturnedToLobby")
 	setLobbyState(lobby, game.StateLobby)
 	lobby.Game = nil
 	hub.resetForNewGame(lobby)
@@ -776,13 +778,11 @@ func handleReturnToLobby(hub *Hub, c *Client) {
 
 func (hub *Hub) endGame(lobby *game.Lobby, reason string) {
 	hub.mu.Lock()
+	hub.recordEndLocked(lobby, reason)
 	setLobbyState(lobby, game.StateGameOver)
 	result := buildRoundResult(lobby, "", nil, true, reason)
 	if lobby.Game != nil {
 		lobby.Game.LastResult = &result
-		e := gameEvent("end", lobby)
-		e.Reason = reason
-		hub.Stats.Add(e)
 	}
 	hub.mu.Unlock()
 

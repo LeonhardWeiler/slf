@@ -17,6 +17,9 @@ func gameEvent(ev string, lobby *game.Lobby) stats.Event {
 		LastLetter:  lobby.Settings.LastLetterMode,
 		Commentator: !lobby.Settings.HostPlays,
 	}
+	if lobby.State == game.StatePlaying || lobby.State == game.StateReviewing {
+		e.Rounds--
+	}
 	if lobby.Settings.TimeLimit != nil {
 		e.Limit = *lobby.Settings.TimeLimit
 	}
@@ -26,4 +29,15 @@ func gameEvent(ev string, lobby *game.Lobby) stats.Event {
 		}
 	}
 	return e
+}
+
+// recordEndLocked logs the end of a game that is not over yet. Caller must
+// hold hub.mu.
+func (hub *Hub) recordEndLocked(lobby *game.Lobby, reason string) {
+	if lobby.Game == nil || lobby.State == game.StateGameOver {
+		return
+	}
+	e := gameEvent("end", lobby)
+	e.Reason = reason
+	hub.Stats.Add(e)
 }
