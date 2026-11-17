@@ -185,6 +185,7 @@ class WSClient {
 	send(event: ClientEvent) {
 		const open = this.ws?.readyState === WebSocket.OPEN;
 		if (open || queued.has(event.type)) {
+			if (!open) this.drop(event.type);
 			this.outbox.push(event);
 		} else if (!silent.has(event.type)) {
 			useToastStore.getState().addToast("Offline – Aktion nicht gesendet.");
@@ -194,6 +195,10 @@ class WSClient {
 		} else if (!this.replaced) {
 			void this.connect();
 		}
+	}
+
+	drop(type: ClientEvent["type"]) {
+		this.outbox = this.outbox.filter((e) => e.type !== type);
 	}
 
 	private flush() {

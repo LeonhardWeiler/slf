@@ -209,6 +209,8 @@ export function Home() {
 		// on "Verbinde…" forever - surface an error so the user can retry.
 		if (timeoutRef.current) clearTimeout(timeoutRef.current);
 		timeoutRef.current = setTimeout(() => {
+			ws.drop("createLobby");
+			ws.drop("joinLobby");
 			addToast("Keine Verbindung zum Server. Bitte erneut versuchen.");
 			setLoading(false);
 		}, 15000);
@@ -270,6 +272,7 @@ export function Home() {
 		if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
 		checkTimeoutRef.current = setTimeout(() => {
 			pendingCode.current = null;
+			ws.drop("checkLobby");
 			setChecking(false);
 			setJoinError("Keine Verbindung zum Server. Bitte erneut versuchen.");
 		}, 15000);
