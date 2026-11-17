@@ -40,7 +40,7 @@ type Hub struct {
 	pending  map[*Client]struct{}
 	clients  map[string]*Client       // sessionId -> client
 	sessions map[string]*game.Session // sessionId -> session
-	rooms    *RoomManager
+	rooms    map[string]*game.Lobby
 	// hostGrace holds the running grace timer per lobby code while its host is
 	// disconnected; cancelled on host reconnect, fired -> lobby closed.
 	hostGrace map[string]*time.Timer
@@ -61,7 +61,7 @@ func NewHub() *Hub {
 		pending:           make(map[*Client]struct{}),
 		clients:           make(map[string]*Client),
 		sessions:          make(map[string]*game.Session),
-		rooms:             NewRoomManager(),
+		rooms:             make(map[string]*game.Lobby),
 		hostGrace:         make(map[string]*time.Timer),
 		hostGraceDuration: hostGraceSeconds * time.Second,
 		pingInterval:      pingInterval,
@@ -132,7 +132,7 @@ func (h *Hub) reapAbandoned() {
 	now := time.Now()
 	var toReap []*game.Lobby
 	h.mu.Lock()
-	for _, lobby := range h.rooms.All() {
+	for _, lobby := range h.rooms {
 		connected := 0
 		for _, p := range lobby.Players {
 			if _, ok := h.clients[p.SessionID]; ok {
@@ -161,7 +161,7 @@ func (h *Hub) reapAbandoned() {
 func (h *Hub) uniqueLobbyCode() string {
 	for {
 		code := generateLobbyCode()
-		if _, exists := h.rooms.Get(code); !exists {
+		if _, exists := h.rooms[code]; !exists {
 			return code
 		}
 	}
@@ -226,7 +226,7 @@ func (h *Hub) onDisconnect(c *Client) {
 		if cur, ok := h.clients[c.sessionID]; ok && cur == c {
 			delete(h.clients, c.sessionID)
 			if s, ok := h.sessions[c.sessionID]; ok {
-				if r, ok := h.rooms.Get(s.LobbyCode); ok {
+				if r, ok := h.rooms[s.LobbyCode]; ok {
 					lobby = r
 					if p, ok := r.Players[s.PlayerID]; ok {
 						p.Connected = false
@@ -303,7 +303,7 @@ func (h *Hub) cancelHostGrace(code string) bool {
 	if ok {
 		t.Stop()
 		delete(h.hostGrace, code)
-		if lobby, found := h.rooms.Get(code); found {
+		if lobby, found := h.rooms[code]; found {
 			lobby.HostGraceUntil = time.Time{}
 		}
 	}
@@ -315,7 +315,7 @@ func (h *Hub) cancelHostGrace(code string) bool {
 func (h *Hub) onHostGraceExpired(code string) {
 	h.mu.Lock()
 	delete(h.hostGrace, code)
-	lobby, ok := h.rooms.Get(code)
+	lobby, ok := h.rooms[code]
 	if !ok {
 		h.mu.Unlock()
 		return
@@ -337,7 +337,7 @@ func (h *Hub) playerForLocked(c *Client) *game.Player {
 	if !ok {
 		return nil
 	}
-	lobby, ok := h.rooms.Get(s.LobbyCode)
+	lobby, ok := h.rooms[s.LobbyCode]
 	if !ok {
 		return nil
 	}
@@ -351,7 +351,7 @@ func (h *Hub) lookupLocked(sessionID string) (*game.Session, *game.Lobby, *game.
 	if !ok {
 		return nil, nil, nil, false
 	}
-	lobby, ok := h.rooms.Get(s.LobbyCode)
+	lobby, ok := h.rooms[s.LobbyCode]
 	if !ok {
 		return nil, nil, nil, false
 	}
@@ -384,7 +384,7 @@ func (h *Hub) closeLobby(lobby *game.Lobby, reason string) {
 		}
 		h.endSessionLocked(p.SessionID)
 	}
-	h.rooms.Delete(lobby.Code)
+	delete(h.rooms, lobby.Code)
 	h.mu.Unlock()
 	h.Stats.Add(ev)
 }

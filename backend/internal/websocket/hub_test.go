@@ -38,11 +38,11 @@ func TestReapAbandoned(t *testing.T) {
 		Code:    "123456",
 		Players: map[string]*game.Player{"p1": {ID: "p1", SessionID: "s1"}},
 	}
-	h.rooms.Create(lobby)
+	h.rooms[lobby.Code] = lobby
 
 	// First pass only marks EmptySince, does not reap.
 	h.reapAbandoned()
-	if _, ok := h.rooms.Get("123456"); !ok {
+	if _, ok := h.rooms["123456"]; !ok {
 		t.Fatal("lobby reaped too early")
 	}
 	if lobby.EmptySince.IsZero() {
@@ -52,7 +52,7 @@ func TestReapAbandoned(t *testing.T) {
 	// Backdate past the TTL -> reaped on the next pass.
 	lobby.EmptySince = time.Now().Add(-lobbyTTL - time.Minute)
 	h.reapAbandoned()
-	if _, ok := h.rooms.Get("123456"); ok {
+	if _, ok := h.rooms["123456"]; ok {
 		t.Fatal("abandoned lobby should have been reaped")
 	}
 
@@ -62,10 +62,10 @@ func TestReapAbandoned(t *testing.T) {
 		Players:    map[string]*game.Player{"p2": {ID: "p2", SessionID: "s2"}},
 		EmptySince: time.Now().Add(-lobbyTTL - time.Minute),
 	}
-	h.rooms.Create(lobby2)
+	h.rooms[lobby2.Code] = lobby2
 	h.clients["s2"] = &Client{}
 	h.reapAbandoned()
-	if _, ok := h.rooms.Get("654321"); !ok {
+	if _, ok := h.rooms["654321"]; !ok {
 		t.Fatal("a lobby with a connected client must not be reaped")
 	}
 	if !lobby2.EmptySince.IsZero() {
@@ -130,7 +130,7 @@ func TestBeginCountdownRechecksState(t *testing.T) {
 		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}, "q": {ID: "q", Connected: true}},
 		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
 	}
-	h.rooms.Create(lobby)
+	h.rooms[lobby.Code] = lobby
 
 	h.beginCountdown(lobby, game.StateLobby)
 	first := lobby.Game.Round
@@ -197,7 +197,7 @@ func TestCountdownShowsLetterAndPlayingMovesIt(t *testing.T) {
 		Players:  map[string]*game.Player{"p": {ID: "p", Connected: true}, "q": {ID: "q", Connected: true}},
 		Game:     &game.Game{RemainingLetters: []string{"A", "B"}},
 	}
-	h.rooms.Create(lobby)
+	h.rooms[lobby.Code] = lobby
 
 	h.beginCountdown(lobby, game.StateLobby)
 	p := buildGameState(lobby)
@@ -242,7 +242,7 @@ func TestLoadKeepsBrokenSnapshot(t *testing.T) {
 
 	os.WriteFile(path, []byte(`[null,{"code":""},{"code":"123456","players":{"p":null}}]`), 0o600)
 	h := NewHub()
-	if err := h.Load(path); err != nil || len(h.rooms.All()) != 0 {
+	if err := h.Load(path); err != nil || len(h.rooms) != 0 {
 		t.Fatalf("invalid entries must be skipped: err=%v", err)
 	}
 }
@@ -311,7 +311,7 @@ func TestJoinNeverBindsToClosedLobby(t *testing.T) {
 	h := NewHub()
 	for i := range 2000 {
 		lobby := &game.Lobby{Code: "abc123", Players: map[string]*game.Player{}}
-		h.rooms.Create(lobby)
+		h.rooms[lobby.Code] = lobby
 		var wg sync.WaitGroup
 		wg.Go(func() { handleJoinLobby(h, &Client{}, []byte(`{"playerName":"p","lobbyCode":"abc123"}`)) })
 		wg.Go(func() {
@@ -328,7 +328,7 @@ func TestJoinNeverBindsToClosedLobby(t *testing.T) {
 		wg.Wait()
 		h.mu.Lock()
 		for id, s := range h.sessions {
-			if _, ok := h.rooms.Get(s.LobbyCode); !ok {
+			if _, ok := h.rooms[s.LobbyCode]; !ok {
 				h.mu.Unlock()
 				t.Fatalf("run %d: session %s bound to closed lobby %s", i, id, s.LobbyCode)
 			}
@@ -339,7 +339,7 @@ func TestJoinNeverBindsToClosedLobby(t *testing.T) {
 
 func TestRejectedSeatDoesNotExtendWait(t *testing.T) {
 	h := NewHub()
-	h.rooms.Create(&game.Lobby{Code: "abc123", Players: map[string]*game.Player{}})
+	h.rooms["abc123"] = &game.Lobby{Code: "abc123", Players: map[string]*game.Player{}}
 	for _, msg := range []struct{ typ, raw string }{
 		{"create", `{"playerName":"p"}`},
 		{"join", `{"playerName":"p","lobbyCode":"abc123"}`},

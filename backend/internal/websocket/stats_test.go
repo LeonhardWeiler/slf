@@ -27,7 +27,7 @@ func TestGameEndsCounted(t *testing.T) {
 	lobby := func(code string, state game.GameState) *game.Lobby {
 		lb := &game.Lobby{Code: code, State: state, Players: map[string]*game.Player{},
 			Game: &game.Game{UsedLetters: []string{"A", "B"}}}
-		hub.rooms.Create(lb)
+		hub.rooms[lb.Code] = lb
 		return lb
 	}
 	hub.closeLobby(lobby("aaaaaa", game.StatePlaying), "hostLeft")
@@ -80,14 +80,14 @@ func TestStatsWriteOutsideLock(t *testing.T) {
 	hub.Stats = l
 	lb := &game.Lobby{Code: "aaaaaa", State: game.StatePlaying, Players: map[string]*game.Player{},
 		Game: &game.Game{UsedLetters: []string{"A"}}}
-	hub.rooms.Create(lb)
+	hub.rooms[lb.Code] = lb
 	done := make(chan struct{})
 	go func() { hub.closeLobby(lb, "hostLeft"); close(done) }()
 
 	deadline := time.Now().Add(2 * time.Second)
 	for {
 		if hub.mu.TryLock() {
-			_, open := hub.rooms.Get("aaaaaa")
+			_, open := hub.rooms["aaaaaa"]
 			hub.mu.Unlock()
 			if !open {
 				break

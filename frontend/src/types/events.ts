@@ -71,9 +71,6 @@ type ErrorCode =
 	| "GAME_ALREADY_RUNNING"
 	| "NOT_HOST"
 	| "CATEGORY_NOT_FOUND"
-	| "CATEGORY_MINIMUM"
-	| "INVALID_ANSWER_LENGTH"
-	| "INVALID_FIRST_LETTER"
 	| "VALIDATION_ERROR";
 
 type ErrorSeverity = "info" | "warning" | "critical";

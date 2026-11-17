@@ -1070,7 +1070,7 @@ func TestRebindingSocketFreesOldSeat(t *testing.T) {
 	if len(hub.clients) != 2 {
 		t.Fatalf("%d bound clients, want 2", len(hub.clients))
 	}
-	lobby, _ := hub.rooms.Get(code)
+	lobby, _ := hub.rooms[code]
 	for _, p := range lobby.Players {
 		if p.IsHost && p.Connected {
 			t.Fatal("old host seat still connected")

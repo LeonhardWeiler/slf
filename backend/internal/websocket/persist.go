@@ -38,7 +38,7 @@ func (h *Hub) Drain(ctx context.Context) {
 	for {
 		h.mu.Lock()
 		busy := false
-		for _, lobby := range h.rooms.All() {
+		for _, lobby := range h.rooms {
 			busy = busy || !restorable(lobby) && slices.ContainsFunc(slices.Collect(maps.Values(lobby.Players)), func(p *game.Player) bool { return p.Connected })
 		}
 		h.mu.Unlock()
@@ -57,7 +57,7 @@ func (h *Hub) Drain(ctx context.Context) {
 func (h *Hub) Save(path string) error {
 	h.mu.Lock()
 	var saved []savedLobby
-	for _, lobby := range h.rooms.All() {
+	for _, lobby := range h.rooms {
 		if !restorable(lobby) {
 			continue
 		}
@@ -127,7 +127,7 @@ func (h *Hub) Load(path string) error {
 				h.sessions[p.SessionID] = &game.Session{ID: p.SessionID, PlayerID: p.ID, LobbyCode: lobby.Code}
 			}
 		}
-		h.rooms.Create(lobby)
+		h.rooms[lobby.Code] = lobby
 	}
 	h.mu.Unlock()
 	for _, s := range saved {
