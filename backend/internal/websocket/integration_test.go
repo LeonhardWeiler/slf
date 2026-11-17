@@ -1207,17 +1207,19 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	if rs := read(); valid(rs, alice) {
 		t.Fatal("a tie must reject the answer")
 	}
-	host.send("setAnswerValidity", map[string]any{"answerId": alice, "valid": true})
-	if rs := read(); !valid(rs, alice) {
+	bob.send("leaveLobby", map[string]any{})
+	if rs := read(); len(rs.Voters) != 2 || !valid(rs, alice) {
+		t.Fatalf("a departed voter's vote must not count, got %+v", rs)
+	}
+	host.send("setAnswerValidity", map[string]any{"answerId": alice, "valid": false})
+	if rs := read(); valid(rs, alice) {
 		t.Fatal("the host override must win")
 	}
 
-	for _, c := range []*testConn{host, bob} {
-		c.send("reviewReady", map[string]any{})
-		read()
-	}
+	host.send("reviewReady", map[string]any{})
+	read()
 	carol.send("reviewReady", map[string]any{})
-	if rs := read(); rs.CategoryIndex != 0 || len(rs.Ready) != 3 {
+	if rs := read(); rs.CategoryIndex != 0 || len(rs.Ready) != 2 {
 		t.Fatalf("the last tick must show before moving on, got %+v", rs)
 	}
 	if rs := read(); rs.CategoryIndex != 1 || len(rs.Ready) != 0 {
@@ -1227,10 +1229,8 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 	if len(cats) < 3 {
 		t.Fatalf("need 3 categories, got %d", len(cats))
 	}
-	for _, c := range []*testConn{host, bob} {
-		c.send("reviewReady", map[string]any{})
-		read()
-	}
+	host.send("reviewReady", map[string]any{})
+	read()
 	time.Sleep(2 * reviewHold)
 	carol.conn.Close(websocket.StatusNormalClosure, "")
 	for {
