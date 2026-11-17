@@ -407,13 +407,7 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 		// Pre-game: remove the player entirely.
 		delete(lobby.Players, player.ID)
 	} else {
-		// Mid-game: keep the player in the standings but mark them as left and
-		// drop their current-round answers (0 points this round, total kept).
-		player.Left = true
-		player.Connected = false
-		if lobby.Game != nil && lobby.Game.Round != nil {
-			delete(lobby.Game.Round.Answers, player.ID)
-		}
+		markLeft(lobby, player)
 	}
 	// Leaving is a final exit, so the id must not stay usable. Without this a
 	// client that kept the id could reconnect as a departed player and inject
@@ -426,6 +420,24 @@ func handleLeaveLobby(hub *Hub, c *Client) {
 	// While reviewing, the left player's answers must disappear there too.
 	if reviewing {
 		hub.broadcastReviewState(lobby)
+	}
+}
+
+// markLeft keeps a departing player in the standings (0 points this round,
+// total kept) but takes them out of the current round: their answers and their
+// votes on other answers go.
+func markLeft(lobby *game.Lobby, p *game.Player) {
+	p.Left = true
+	p.Connected = false
+	if lobby.Game == nil || lobby.Game.Round == nil {
+		return
+	}
+	r := lobby.Game.Round
+	delete(r.Answers, p.ID)
+	for _, answers := range r.Answers {
+		for _, a := range answers {
+			delete(a.Votes, p.ID)
+		}
 	}
 }
 
@@ -660,14 +672,7 @@ func handleKickPlayer(hub *Hub, c *Client, raw json.RawMessage) {
 		// Pre-game: remove the player entirely.
 		delete(lobby.Players, p.PlayerID)
 	} else {
-		// Mid-game: keep the player in the standings but mark them as left (so
-		// they still appear as "(verlassen)"), and drop their current-round
-		// answers - mirroring a self-initiated leave.
-		target.Left = true
-		target.Connected = false
-		if lobby.Game != nil && lobby.Game.Round != nil {
-			delete(lobby.Game.Round.Answers, p.PlayerID)
-		}
+		markLeft(lobby, target)
 	}
 	// Invalidate the session either way so the kicked player can't auto-reconnect
 	// back into this lobby.
