@@ -18,10 +18,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      build: ${{ steps.build.outputs.build }}
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
-      - run: nix build
+      - id: build
+        run: nix build && echo "build=$(basename "$(readlink result)")" >> "$GITHUB_OUTPUT"
       - run: nix develop -c sh -c 'cd backend && go test -race ./... && govulncheck ./...'
       - run: nix develop -c sh -c 'cd frontend && bun install --frozen-lockfile && bun audit'
 
@@ -29,6 +32,10 @@ jobs:
     needs: check
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - run: curl -fsS -o /dev/null -F token=${{ secrets.GITLAB_TRIGGER_TOKEN }} -F ref=main -F "variables[SLF_REVISION]=${{ github.sha }}" https://gitlab.com/api/v4/projects/87242023/trigger/pipeline
+      - run: |
+          until curl -fsS -D - -o /dev/null https://slf.coprime.tech/healthz | grep -ix "x-build: $BUILD"$'\r' >/dev/null; do sleep 10; done
+        env:
+          BUILD: ${{ needs.check.outputs.build }}

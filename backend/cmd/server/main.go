@@ -57,7 +57,10 @@ func main() {
 		websocket.ServeWS(hub, w, r)
 	})
 
+	exe, _ := os.Executable()
+	build := filepath.Base(filepath.Dir(filepath.Dir(exe)))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("X-Build", build)
 		live, draining := hub.Health(2 * time.Second)
 		switch {
 		case !live:
