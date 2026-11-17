@@ -729,6 +729,15 @@ describe("Home join code", () => {
 		render(<Home />);
 		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
 	});
+
+	it("keeps the field focusable while the code is checked", () => {
+		useRoomStore.setState({ lobby: null });
+		render(<Home />);
+		expect(screen.getByText("Prüfe…")).toBeDefined();
+		const field = screen.getByLabelText("Lobbycode") as HTMLInputElement;
+		expect(field.disabled).toBe(false);
+		expect(field.readOnly).toBe(true);
+	});
 });
 it("announces the final seconds", () => {
 	setup("guest", "Playing");
