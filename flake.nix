@@ -66,6 +66,7 @@
             go_1_26
             gopls
             air
+            govulncheck
 
             # Frontend
             bun
