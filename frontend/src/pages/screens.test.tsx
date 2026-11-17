@@ -595,6 +595,39 @@ describe("GameScreen pending joiner", () => {
 			screen.getByText("Du spielst ab der nächsten Runde mit."),
 		).toBeDefined();
 	});
+
+	it("shows a joiner of a sprint no classic board", () => {
+		setup("guest", "Playing");
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
+			lobby: {
+				...lobby,
+				solo: true,
+				players: [
+					player("host", true),
+					{ ...player("guest", false), pending: true },
+				],
+			},
+		});
+		useRoomStore.getState().receive("gameState", {
+			roundId: "r1",
+			state: "Playing",
+			letter: "B",
+			usedLetters: ["B"],
+			remainingLetters: [],
+			endsAt: null,
+			serverNow: Date.now(),
+			countdownRemaining: null,
+			categoryCount: 2,
+			letters: ["B", "K"],
+		});
+		render(<GameScreen />);
+		expect(
+			screen.getByText("Ein Sprint läuft. Du spielst im nächsten Spiel mit."),
+		).toBeDefined();
+		expect(screen.queryByText("Stadt")).toBeNull();
+		expect(screen.queryByRole("button", { name: /STOPP/ })).toBeNull();
+	});
 });
 
 describe("review merge", () => {
