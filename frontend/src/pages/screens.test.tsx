@@ -755,7 +755,7 @@ describe("host grace banner", () => {
 		render(<Lobby />);
 		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
 		expect(banner.closest(".fixed")).toBeNull();
-		useRoomStore.setState({ hostGrace: null });
+		act(() => useRoomStore.setState({ hostGrace: null }));
 	});
 });
 
