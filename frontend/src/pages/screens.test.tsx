@@ -746,3 +746,39 @@ it("announces the final seconds", () => {
 	render(<GameScreen />);
 	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
 });
+
+describe("GameOverScreen stats", () => {
+	const gameOver = (me: string) => {
+		setup(me, "GameOver");
+		const lobby = useRoomStore.getState().lobby!;
+		useRoomStore.setState({
+			lobby: {
+				...lobby,
+				players: lobby.players.map((p) => ({ ...p, score: 10 })),
+			},
+		});
+		useRoomStore.getState().receive("roundResult", {
+			letter: "A",
+			scores: [],
+			ranking: [{ playerId: "host", rank: 1, score: 10 }],
+			usedLetters: ["A"],
+			remainingLetters: [],
+			isGameOver: true,
+		});
+	};
+
+	it("leaves a spectator's records untouched", () => {
+		gameOver("guest");
+		render(<GameOverScreen />);
+		expect(localStorage.getItem("slf:stats")).toBeNull();
+	});
+
+	it("records a ranked player once, even on a remount", () => {
+		gameOver("host");
+		render(<GameOverScreen />).unmount();
+		const saved = localStorage.getItem("slf:stats");
+		expect(JSON.parse(saved ?? "{}").best["multi-classic"]).toBe(10);
+		render(<GameOverScreen />);
+		expect(localStorage.getItem("slf:stats")).toBe(saved);
+	});
+});
