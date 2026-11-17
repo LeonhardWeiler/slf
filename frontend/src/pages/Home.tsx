@@ -472,7 +472,7 @@ export function Home() {
 										// Without the description link the field announces only
 										// "invalid" - never *why*, which is the part that helps.
 										aria-describedby={joinError ? "code-error" : undefined}
-										disabled={checking}
+										readOnly={checking}
 										placeholder="6-stelliger Code"
 										autoCapitalize="characters"
 										autoCorrect="off"
