@@ -195,3 +195,18 @@ func TestAnswerCounts(t *testing.T) {
 		}
 	}
 }
+
+func TestComputeRankingSameNameIsStable(t *testing.T) {
+	players := map[string]*Player{}
+	for _, id := range []string{"e", "b", "d", "a", "c"} {
+		players[id] = &Player{ID: id, Name: "Bob", Score: 10}
+	}
+	for range 20 {
+		r := ComputeRanking(players)
+		for i, want := range []string{"a", "b", "c", "d", "e"} {
+			if r[i].PlayerID != want {
+				t.Fatalf("got %v, want ids in order", r)
+			}
+		}
+	}
+}

@@ -1351,3 +1351,31 @@ func TestJoinRunningSprint(t *testing.T) {
 		t.Fatal("the sprinter's stop should end the solo game")
 	}
 }
+
+func TestDuplicateCategoryRejected(t *testing.T) {
+	srv := newServer(t)
+	host := dial(t, srv)
+	host.createLobby("Alice")
+	host.send("addCategory", map[string]any{"name": " stadt\u200b"})
+	host.waitFor("error")
+	land := host.lastLobby.Categories[1].ID
+	host.send("editCategory", map[string]any{"categoryId": land, "name": "FLUSS"})
+	host.waitFor("error")
+	host.send("editCategory", map[string]any{"categoryId": land, "name": "LAND"})
+	if got := host.readLobby().Categories[1].Name; got != "LAND" {
+		t.Fatalf("renaming a category to its own name in another case: got %q", got)
+	}
+}
+
+func TestInvisibleNameRejected(t *testing.T) {
+	srv := newServer(t)
+	c := dial(t, srv)
+	c.send("createLobby", map[string]any{"playerName": "\u200b\u202e"})
+	var e struct {
+		Code string `json:"code"`
+	}
+	json.Unmarshal(c.waitFor("error"), &e)
+	if e.Code != string(CodeNameTooShort) {
+		t.Fatalf("got %q, want %s", e.Code, CodeNameTooShort)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"strings"
+	"unicode"
 )
 
 // idAlphabet is the 36-char set used for ids and lobby codes.
@@ -62,4 +63,15 @@ func hashSession(id string) string {
 	}
 	sum := sha256.Sum256([]byte(id))
 	return hex.EncodeToString(sum[:4]) // 8 hex chars, enough to correlate logs
+}
+
+// cleanName drops control, format (zero-width, bidi) and private-use runes and
+// trims what is left.
+func cleanName(s string) string {
+	return strings.TrimSpace(strings.Map(func(r rune) rune {
+		if unicode.In(r, unicode.Cc, unicode.Cf, unicode.Co) {
+			return -1
+		}
+		return r
+	}, s))
 }

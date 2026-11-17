@@ -79,7 +79,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
 		return
 	}
-	name := strings.TrimSpace(p.PlayerName)
+	name := cleanName(p.PlayerName)
 	if n := utf8.RuneCountInString(name); n < 1 {
 		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein")
 		return
@@ -161,7 +161,7 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
-	name := strings.TrimSpace(p.PlayerName)
+	name := cleanName(p.PlayerName)
 	if n := utf8.RuneCountInString(name); n < 1 {
 		hub.sendError(c, CodeNameTooShort, "Name muss mindestens 1 Zeichen lang sein")
 		return
@@ -461,7 +461,7 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
 		return
 	}
-	name := strings.TrimSpace(p.Name)
+	name := cleanName(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
 		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
 		return
@@ -470,6 +470,11 @@ func handleAddCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	lobby := hub.requireHostInLobby(c)
 	if lobby == nil {
+		return
+	}
+	if categoryTaken(lobby, "", name) {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon")
 		return
 	}
 	if len(lobby.Categories) >= maxCategoriesPerLobby {
@@ -495,7 +500,7 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		hub.sendError(c, CodeValidationError, "Ungültige Anfrage")
 		return
 	}
-	name := strings.TrimSpace(p.Name)
+	name := cleanName(p.Name)
 	if utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 30 {
 		hub.sendError(c, CodeValidationError, "Kategorie muss 1-30 Zeichen lang sein")
 		return
@@ -504,6 +509,11 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 	hub.mu.Lock()
 	lobby := hub.requireHostInLobby(c)
 	if lobby == nil {
+		return
+	}
+	if categoryTaken(lobby, p.CategoryID, name) {
+		hub.mu.Unlock()
+		hub.sendError(c, CodeValidationError, "Kategorie gibt es schon")
 		return
 	}
 	found := false
@@ -521,6 +531,15 @@ func handleEditCategory(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 	hub.broadcastLobbyState(lobby)
+}
+
+func categoryTaken(lobby *game.Lobby, exceptID, name string) bool {
+	for _, cat := range lobby.Categories {
+		if cat.ID != exceptID && strings.EqualFold(cat.Name, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func handleDeleteCategory(hub *Hub, c *Client, raw json.RawMessage) {
