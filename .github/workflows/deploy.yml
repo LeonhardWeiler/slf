@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       - run: nix build
-      - run: nix develop -c sh -c 'cd backend && go test -race ./... && go run golang.org/x/vuln/cmd/govulncheck@latest ./...'
+      - run: nix develop -c sh -c 'cd backend && go test -race ./... && govulncheck ./...'
       - run: nix develop -c sh -c 'cd frontend && bun install --frozen-lockfile && bun audit'
 
   deploy:
