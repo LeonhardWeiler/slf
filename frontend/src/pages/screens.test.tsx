@@ -14,6 +14,7 @@ import {
 	screen,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { markForcedLeave } from "@/lib/forcedLeave";
 import { ThemeProvider } from "@/lib/theme";
 import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
@@ -770,6 +771,21 @@ describe("Home join code", () => {
 		const field = screen.getByLabelText("Lobbycode") as HTMLInputElement;
 		expect(field.disabled).toBe(false);
 		expect(field.readOnly).toBe(true);
+	});
+
+	it("shows the offline notice on the start step", async () => {
+		useRoomStore.setState({ lobby: null });
+		markForcedLeave();
+		render(<Home />);
+		expect(screen.getByText("Lobby erstellen")).toBeDefined();
+		const status = ws as unknown as { notifyStatus(c: boolean): void };
+		act(() => status.notifyStatus(false));
+		expect(
+			await screen.findByText("Keine Verbindung zum Server…", undefined, {
+				timeout: 2000,
+			}),
+		).toBeDefined();
+		act(() => status.notifyStatus(true));
 	});
 });
 it("announces the final seconds", () => {
