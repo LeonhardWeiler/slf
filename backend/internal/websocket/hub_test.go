@@ -371,3 +371,10 @@ func TestCleanName(t *testing.T) {
 		}
 	}
 }
+
+func TestSessionIDHas128Bits(t *testing.T) {
+	id := generateSessionID()
+	if len(id) != 25 || strings.Trim(id, idAlphabet) != "" {
+		t.Fatalf("session id %q", id)
+	}
+}
