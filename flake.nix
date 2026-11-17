@@ -44,7 +44,7 @@
               installPhase = "cp -r dist $out";
             };
           in
-          pkgs.buildGoModule {
+          pkgs.buildGo126Module {
             pname = "slf";
             version = (builtins.fromJSON (builtins.readFile ./frontend/package.json)).version;
             src = ./backend;
@@ -63,7 +63,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             # Go
-            go
+            go_1_26
             gopls
             air
 
