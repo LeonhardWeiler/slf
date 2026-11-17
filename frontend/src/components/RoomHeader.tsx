@@ -1,38 +1,38 @@
-import type { ReactNode } from "react";
-import { DoorOpen } from "lucide-react";
+import { useState } from "react";
 import { navigate } from "@/lib/nav";
+import { Check, Copy } from "lucide-react";
 import { copyToClipboard } from "@/lib/clipboard";
-import { floatText } from "@/lib/feel";
-import { sound } from "@/lib/sound";
 import { ws } from "@/lib/ws";
 import { markForcedLeave } from "@/lib/forcedLeave";
 import { useRoomStore, useIsHost } from "@/store/room";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { HostGraceBanner } from "@/components/HostGraceBanner";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { CodeTiles, IconBtn } from "@/components/kit";
-import { TopBar } from "@/components/Shell";
+import { Button } from "@/components/ui/button";
 
-export function RoomHeader({
-	children,
-	noCode,
-}: {
-	children?: ReactNode;
-	noCode?: boolean;
-}) {
+export function RoomHeader({ title }: { title: string }) {
 	const reset = useRoomStore((s) => s.reset);
-	const code = useRoomStore((s) => s.lobby?.lobbyCode ?? "").toUpperCase();
+	const lobby = useRoomStore((s) => s.lobby);
 	const setSelfLeaving = useRoomStore((s) => s.setSelfLeaving);
 	const isHost = useIsHost();
-	const playing = useRoomStore(
-		(s) => !!s.lobby && !["Lobby", "GameOver"].includes(s.lobby.state),
-	);
 	const { confirm, dialog } = useConfirm();
+	const [copied, setCopied] = useState(false);
+	const [copyFailed, setCopyFailed] = useState(false);
 
-	async function copyCode(el: HTMLElement) {
+	// Uppercase everywhere (display, copy, URL); the server is case-insensitive.
+	const code = (lobby?.lobbyCode ?? "").toUpperCase();
+
+	async function copyCode() {
+		if (!code) return;
 		const ok = await copyToClipboard(code);
-		floatText(el, ok ? "✓" : "✗", ok ? "good" : "bad");
-		if (ok) sound.pop();
+		if (ok) {
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} else {
+			setCopyFailed(true);
+			setTimeout(() => setCopyFailed(false), 3000);
+		}
 	}
 
 	async function handleLeave() {
@@ -40,23 +40,22 @@ export function RoomHeader({
 			isHost
 				? {
 						title: "Lobby schließen?",
-						description: "Das Spiel endet für alle.",
-						confirmLabel: "Schließen",
+						description: "Als Host beendest du das laufende Spiel für alle.",
+						confirmLabel: "Lobby schließen",
 						destructive: true,
 					}
 				: {
 						title: "Spiel verlassen?",
+						description:
+							"Du verlässt das Spiel und kehrst zur Startseite zurück.",
 						confirmLabel: "Verlassen",
 						destructive: true,
 					},
 		);
 		if (!confirmed) return;
+		// Suppress the "lobby closed" toast the host would otherwise get from the
+		// server's own lobbyClosed echo.
 		setSelfLeaving(true);
-		if (playing)
-			ws.send({
-				type: "track",
-				payload: { ev: "leave", value: document.documentElement.dataset.world },
-			});
 		ws.send({ type: "leaveLobby", payload: {} });
 		markForcedLeave();
 		reset();
@@ -64,33 +63,44 @@ export function RoomHeader({
 	}
 
 	return (
-		<TopBar
-			start={
-				<>
-					<IconBtn
-						tip={isHost ? "Lobby schließen" : "Verlassen"}
-						onClick={handleLeave}
-					>
-						<DoorOpen />
-					</IconBtn>
+		<>
+			<div className="flex items-center justify-between gap-2">
+				<div className="min-w-0">
+					<h1 className="text-2xl font-bold">{title}</h1>
+					{code && (
+						// The lobby code always sits below the title (never beside it,
+						// regardless of width) and stays copyable on every in-game screen so
+						// latecomers can still be invited.
+						<button
+							type="button"
+							onClick={copyCode}
+							title="Lobbycode kopieren"
+							className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground active:text-foreground transition-colors"
+						>
+							<span className="font-mono font-medium uppercase tracking-wider">
+								{code.replace(/(.{3})(.{3})/, "$1 $2")}
+							</span>
+							{copied ? (
+								<Check className="h-3 w-3 text-green-600" />
+							) : (
+								<Copy className="h-3 w-3" />
+							)}
+							{copyFailed && (
+								<span className="text-[10px]">(manuell markieren)</span>
+							)}
+						</button>
+					)}
+				</div>
+				<div className="flex items-center gap-2 shrink-0">
 					<ConnectionBadge />
-				</>
-			}
-		>
-			{code && !noCode && (
-				<button
-					type="button"
-					className="code-btn"
-					data-tip="Code kopieren"
-					aria-label={`Code ${code} kopieren`}
-					onClick={(e) => copyCode(e.currentTarget)}
-				>
-					<CodeTiles code={code} small />
-				</button>
-			)}
-			{children}
+					<ThemeToggle />
+					<Button variant="ghost" size="sm" onClick={handleLeave}>
+						Verlassen
+					</Button>
+				</div>
+			</div>
 			<HostGraceBanner />
 			{dialog}
-		</TopBar>
+		</>
 	);
 }

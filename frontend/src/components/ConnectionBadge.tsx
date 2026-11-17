@@ -12,8 +12,9 @@ export function ConnectionBadge() {
 	return (
 		<span role="status" className="contents">
 			{!connected && (
-				<span className="offline" data-tip="Verbindung getrennt…">
-					<WifiOff />
+				<span className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-800 dark:text-amber-300">
+					<WifiOff className="h-3.5 w-3.5 shrink-0" />
+					<span className="sr-only sm:not-sr-only">Verbindung getrennt…</span>
 				</span>
 			)}
 		</span>

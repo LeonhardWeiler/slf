@@ -1,25 +1,13 @@
-import { useEffect, useState } from "react";
-import {
-	Crown,
-	Flame,
-	RotateCcw,
-	Sparkles,
-	Star,
-	Trophy,
-	Zap,
-} from "lucide-react";
+import { useState } from "react";
+import { Flame, Sparkles, Trophy, Zap } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { celebrate, haptic, mood } from "@/lib/feel";
-import { fx } from "@/lib/fx";
-import { sound } from "@/lib/sound";
 import { stats } from "@/lib/stats";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { PlayerStatus } from "@/components/PlayerStatus";
 import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
-import { Av, Btn, Mascot } from "@/components/kit";
-
-const ORDER = [1, 0, 2];
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function GameOverScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -27,62 +15,19 @@ export function GameOverScreen() {
 	const result = useRoomStore((s) => s.result);
 	const best = useRoomStore((s) => s.best);
 	const isHost = useIsHost();
-	const [up, setUp] = useState(0);
-	const [end, setEnd] = useState<{
-		best: number;
-		fresh: boolean;
-		streak: number;
-		grew: boolean;
-	} | null>(null);
-	const solo = !!lobby?.solo;
-	const mode = solo ? "solo-sprint" : "multi-classic";
 	const score = lobby?.players.find((p) => p.id === myPlayerId)?.score ?? 0;
-	const won = result?.ranking[0]?.playerId === myPlayerId && score > 0;
 	const played = !!result?.ranking.some((r) => r.playerId === myPlayerId);
-
-	// Solo counts the total up; multiplayer raises third, second, then first.
-	// Then the personal record and the day streak land.
-	useEffect(() => {
-		const at = (ms: number, f: () => void) => setTimeout(f, ms);
-		const ids = solo
-			? []
-			: [3, 2, 1].map((place, i) =>
-					at(1500 + i * 700, () => {
-						setUp(4 - place);
-						sound.stamp(place === 1 ? 20 : 10);
-						haptic(20);
-						if (place === 1) {
-							sound.fanfare();
-							fx.rain();
-							mood("cheer", 2000);
-						}
-					}),
-				);
-		ids.push(
-			at(solo ? 2700 : 3600, () => {
-				if (solo) {
-					sound.stamp(20);
-					mood("cheer", 1500);
-				} else if (won) celebrate(3, "SIEG!");
-				const best = stats.best(mode);
-				const before = stats.streak();
-				stats.record(mode, score);
-				const streak = stats.played();
-				const fresh = score > best;
-				const wait = won ? 1600 : 500;
-				setEnd({ best, fresh, streak, grew: streak > before });
-				if (fresh) {
-					setTimeout(() => {
-						celebrate(2, "Rekord!");
-						sound.fanfare();
-					}, wait);
-				}
-				if (streak > before)
-					setTimeout(() => sound.ignite(), wait + (fresh ? 900 : 0));
-			}),
-		);
-		return () => ids.forEach(clearTimeout);
-	}, [solo, mode, score, won]);
+	// The personal record and the day streak, counted once per game over.
+	const [end] = useState(() => {
+		const mode = lobby?.solo ? "solo-sprint" : "multi-classic";
+		const record = stats.best(mode);
+		if (played) stats.record(mode, score);
+		return {
+			record,
+			fresh: played && score > record,
+			streak: played ? stats.played() : stats.streak(),
+		};
+	});
 
 	if (!lobby) return null;
 
@@ -91,123 +36,111 @@ export function GameOverScreen() {
 	const ranking = result?.ranking ?? [];
 
 	return (
-		<>
-			<RoomHeader />
-			<section className={`screen over${solo ? " solo" : ""}`}>
-				<div className="spots" />
-				{played && (
-					<div className="center hero">
-						{solo && <Mascot size="big" base="happy" />}
-						<span className="solo-total">
-							<Star />
+		<div className="min-h-svh bg-background screen-pad">
+			<div className="mx-auto w-full max-w-xl space-y-4">
+				<RoomHeader title="Spiel beendet" />
+
+				{lobby.solo ? (
+					<Card>
+						<CardContent className="pt-6 text-center">
+							<p className="text-sm text-muted-foreground">Du hast</p>
 							<CountUp
 								value={score}
-								durationMs={solo ? 2600 : 2400}
-								rattle={solo}
+								className="block text-6xl font-black tabular-nums"
 							/>
+							<p className="text-sm text-muted-foreground">Punkte gemacht</p>
+						</CardContent>
+					</Card>
+				) : (
+					<Card>
+						<CardHeader className="pb-3">
+							<CardTitle className="text-base">Endstand</CardTitle>
+						</CardHeader>
+						<CardContent className="space-y-2">
+							{ranking.map((r, i) => (
+								<div
+									key={r.playerId}
+									// Final standings ease in top-to-bottom (backwards fill keeps
+									// them hidden through the stagger delay).
+									style={{
+										animationDelay: `${i * 70}ms`,
+										animationFillMode: "backwards",
+									}}
+									className={`animate-fade-in flex items-center justify-between py-2 px-3 ${
+										r.rank === 1 && r.score > 0
+											? "bg-amber-500/15 border border-amber-500/40"
+											: "bg-muted/50"
+									}`}
+								>
+									<div className="flex items-center gap-3">
+										<span className="text-sm font-bold text-muted-foreground w-5">
+											{r.rank}.
+										</span>
+										{r.rank === 1 && r.score > 0 && (
+											<Trophy className="h-4 w-4 text-amber-500" />
+										)}
+										<span className="text-sm font-medium">
+											{playerName(r.playerId)}
+											{r.playerId === myPlayerId && (
+												<span className="text-xs text-muted-foreground">
+													{" "}
+													(du)
+												</span>
+											)}
+											<PlayerStatus player={playerOf(r.playerId)} />
+										</span>
+									</div>
+									<CountUp
+										value={r.score}
+										className="text-sm font-bold tabular-nums"
+									/>
+								</div>
+							))}
+						</CardContent>
+					</Card>
+				)}
+
+				{played && (
+					<div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+						<span className="flex items-center gap-1">
+							<Trophy className="h-4 w-4" />
+							{end.fresh ? "Neuer Rekord!" : `Rekord ${end.record}`}
 						</span>
-						{!solo && best.points > 0 && (
-							<div className="end-stats">
-								<span className="badge word" data-tip="Dein bestes Wort">
-									<Sparkles />
-									{best.word}
-									<b>+{best.points}</b>
-								</span>
-								{best.combo >= 2 && (
-									<span className="badge streak" data-tip="Längste Serie">
-										<Zap />
-										{best.combo}
-									</span>
-								)}
-							</div>
+						{end.streak > 0 && (
+							<span className="flex items-center gap-1">
+								<Flame className="h-4 w-4" />
+								{end.streak} {end.streak === 1 ? "Tag" : "Tage"} in Folge
+							</span>
+						)}
+						{!lobby.solo && best.points > 0 && (
+							<span className="flex items-center gap-1">
+								<Sparkles className="h-4 w-4" />
+								{best.word} +{best.points}
+							</span>
+						)}
+						{!lobby.solo && best.combo >= 2 && (
+							<span className="flex items-center gap-1">
+								<Zap className="h-4 w-4" />
+								{best.combo} Runden Serie
+							</span>
 						)}
 					</div>
 				)}
-				{!solo && (
-					<>
-						<div className="podium-row">
-							{ORDER.map((i) => {
-								const r = ranking[i];
-								if (!r) return null;
-								return (
-									<div
-										key={r.playerId}
-										className={`step s${i + 1}${up >= 3 - i ? " up" : ""}${r.playerId === myPlayerId ? " me" : ""}`}
-									>
-										<div className="step-av">
-											{r.rank === 1 && r.score > 0 && (
-												<span className="crown">
-													<Crown />
-												</span>
-											)}
-											<Av
-												id={r.playerId}
-												name={playerName(r.playerId)}
-												size="big"
-											/>
-											<CountUp
-												value={up >= 3 - i ? r.score : 0}
-												durationMs={500}
-												className="step-pts"
-											/>
-										</div>
-										<div className="block">{r.rank}</div>
-									</div>
-								);
-							})}
-						</div>
-						{ranking.slice(3).map((r) => (
-							<div
-								key={r.playerId}
-								className={`fourth${r.playerId === myPlayerId ? " me" : ""}`}
-							>
-								<b>{r.rank}</b>
-								<Av
-									id={r.playerId}
-									name={playerName(r.playerId)}
-									size="sm"
-									tip={false}
-								/>
-								<span className="name">
-									<span className="rank-name">{playerName(r.playerId)}</span>
-									<PlayerStatus player={playerOf(r.playerId)} />
-								</span>
-								<b>{r.score}</b>
-							</div>
-						))}
-					</>
+
+				{isHost ? (
+					<Button
+						className="w-full"
+						size="lg"
+						onClick={() => ws.send({ type: "returnToLobby", payload: {} })}
+					>
+						Zurück zur Lobby
+					</Button>
+				) : (
+					<p className="text-center text-sm text-muted-foreground">
+						Warte auf den Host…
+					</p>
 				)}
-				{end && (
-					<div className="end-stats">
-						<span
-							className={`badge record${end.fresh ? " fresh" : ""}`}
-							data-tip="Rekord"
-						>
-							<Trophy />
-							{end.fresh ? "NEU!" : end.best}
-						</span>
-						<span
-							className={`badge streak${end.grew ? " grew" : ""}`}
-							data-tip="Tage in Folge"
-						>
-							<Flame />
-							{end.streak}
-						</span>
-					</div>
-				)}
-				<div className="end-actions">
-					{isHost && (
-						<Btn
-							kind="primary"
-							aria-label="Zurück zur Lobby"
-							data-tip="Zurück zur Lobby"
-							onClick={() => ws.send({ type: "returnToLobby", payload: {} })}
-						>
-							<RotateCcw />
-						</Btn>
-					)}
-				</div>
-			</section>
-		</>
+			</div>
+		</div>
 	);
 }

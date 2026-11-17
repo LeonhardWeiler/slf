@@ -1,5 +1,8 @@
 {
 	"$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+	"files": {
+		"includes": ["**", "!dist", "!index.html"]
+	},
 	"formatter": {
 		"enabled": true
 	},
@@ -11,18 +14,16 @@
 				"useExhaustiveDependencies": "warn"
 			},
 			"style": {
-				"noNonNullAssertion": "off",
-				"noDescendingSpecificity": "off"
-			},
-			"complexity": {
-				"noImportantStyles": "off"
+				"noNonNullAssertion": "off"
 			}
 		}
 	},
 	"assist": {
 		"enabled": false
 	},
-	"files": {
-		"includes": ["**", "!dist"]
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
 	}
 }

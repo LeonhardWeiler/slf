@@ -1,59 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Eye, Hand, Loader2, SkipForward, Square } from "lucide-react";
+import { Check, SkipForward } from "lucide-react";
 import { ws } from "@/lib/ws";
-import { isTypingTarget } from "@/lib/utils";
-import {
-	celebrate,
-	floatText,
-	haptic,
-	mood,
-	shiftPalette,
-	slam,
-	wave,
-} from "@/lib/feel";
-import { fx } from "@/lib/fx";
-import { sound } from "@/lib/sound";
+import { cn } from "@/lib/utils";
 import { storage } from "@/lib/storage";
 import { answersKey, clearDrafts } from "@/lib/session";
 import { useRoomStore, useIsHost } from "@/store/room";
-import type { GameStatePayload, LobbyStatePayload } from "@/types/events";
 import {
 	validateAnswers,
 	ruleIssue,
 	LENGTH_ISSUE,
-	lettersValue,
 	wordValue,
 	ALONE,
-	WORD_BONUS,
 } from "@/lib/answerValidation";
-import { CountUp } from "@/components/CountUp";
 import { RoomHeader } from "@/components/RoomHeader";
+import { RoundLetter } from "@/components/RoundLetter";
 import { CommentatorBoard } from "@/components/CommentatorBoard";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Av, Btn, IconBtn, Mascot, Tiles } from "@/components/kit";
-
-// typedValue is what an answer adds to the live score: its letters, plus the
-// word bonus once it passes the rules. The real score is set in review.
-function typedValue(value: string, letter: string, last: boolean) {
-	if (value.trim() === "") return 0;
-	return (
-		lettersValue(value) + (ruleIssue(value, letter, last) ? 0 : WORD_BONUS)
-	);
-}
-
-// floatGain pops the points a keystroke earned above the last typed tile.
-function floatGain(el: Element | null, gain: number) {
-	if (gain > 0)
-		requestAnimationFrame(() => {
-			const tiles = el?.querySelectorAll(".tile:not(.ghost)");
-			floatText(
-				tiles?.length ? tiles[tiles.length - 1] : el,
-				`+${gain}`,
-				gain >= WORD_BONUS ? "pts-float c3" : "pts-float",
-			);
-		});
-}
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import type { GameStatePayload, LobbyStatePayload } from "@/types/events";
 
 // Local ticking timer that counts down from `seconds`, restarting whenever
 // `resetKey` changes. The server stays authoritative for phase transitions.
@@ -97,6 +64,44 @@ function loadDraft(roundId: string): Record<string, string> {
 	}
 }
 
+function formatClock(total: number): string {
+	const m = Math.floor(total / 60);
+	const s = total % 60;
+	return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+// Clock for a timed round. It owns its ticking state so a tick re-renders only
+// the clock, not the answer form. Red pulsing border for the final 5 seconds.
+function RoundClock({ endsAt }: { endsAt: number }) {
+	const left = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+	const [secs, setSecs] = useState(left);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
+	useEffect(() => {
+		setSecs(left());
+		const id = setInterval(() => setSecs(left()), 250);
+		return () => clearInterval(id);
+	}, [endsAt]);
+	const danger = secs <= 5;
+	return (
+		<>
+			{danger && (
+				<div className="pointer-events-none fixed inset-0 z-50 ring-4 ring-inset ring-destructive animate-pulse" />
+			)}
+			<p
+				className={cn(
+					"text-3xl font-mono font-bold tabular-nums",
+					danger && "text-destructive",
+				)}
+			>
+				{formatClock(secs)}
+			</p>
+			<span className="sr-only" aria-live="assertive">
+				{danger ? `Noch ${secs} Sekunden` : ""}
+			</span>
+		</>
+	);
+}
+
 export function GameScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const myPlayerId = useRoomStore((s) => s.myPlayerId);
@@ -118,7 +123,7 @@ export function GameScreen() {
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
-	// Categories left since their last edit - a field only locks or shows a red
+	// Categories the player has blurred at least once - a field only shows a red
 	// "invalid" border after it was left, not while still being typed in.
 	const [touched, setTouched] = useState<Record<string, boolean>>({});
 	const loadedRound = useRef<string>("");
@@ -194,25 +199,23 @@ export function GameScreen() {
 	}, [endsAt]);
 
 	// Solo needs no gate: the lone player may end their own round at any time.
-	const full =
-		lobby && game
+	const validation = lobby?.solo
+		? { valid: true }
+		: lobby && game
 			? validateAnswers(lobby.categories, answers, game.letter, lastLetterMode)
 			: { valid: false };
-	const validation = lobby?.solo ? { valid: true } : full;
+	const sprint = !isSpectator && !!game?.letters?.length;
 	const canBuzz =
-		!isSpectator && lobby?.state === "Playing" && validation.valid && !buzzing;
+		!isSpectator &&
+		!sprint &&
+		lobby?.state === "Playing" &&
+		validation.valid &&
+		!buzzing;
 
 	function handleBuzz() {
 		flushAnswers(); // server must have the latest answers before the buzz check
 		buzz();
 		ws.send({ type: "buzz", payload: { roundId } });
-		const n = lobby?.categories.length ?? 0;
-		if (full.valid && n > 1) {
-			sound.clear();
-			shiftPalette();
-			slam(`${n}/${n}`, "clear");
-			mood("cheer", 1400);
-		}
 	}
 
 	async function handleEndRound() {
@@ -246,7 +249,6 @@ export function GameScreen() {
 			// after the round advances would hit an invalid state.
 			if (e.repeat) return;
 			if (!canBuzz) return;
-			if (isTypingTarget(e.target as Element)) return;
 			// Pause while a confirm dialog is up (e.g. "Runde beenden?") so its Enter
 			// doesn't also buzz (UX-1).
 			if (isModalOpen()) return;
@@ -257,346 +259,247 @@ export function GameScreen() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, [canBuzz]);
 
-	const valid = (id: string) =>
-		!!game &&
-		(answers[id] ?? "").trim() !== "" &&
-		!ruleIssue(answers[id] ?? "", game.letter, lastLetterMode);
-	const isLocked = (id: string) => touched[id] && valid(id);
-	const locked =
-		lobby && !isSpectator
-			? lobby.categories
-					.filter((c) => isLocked(c.id))
-					.map((c) => c.id)
-					.join(" ")
-			: "";
-	const prevLocked = useRef("");
-	const firstRound = game?.usedLetters.length === 1;
-	useEffect(() => {
-		const ids = locked.split(" ").filter(Boolean);
-		const fresh = ids.filter(
-			(id) => !prevLocked.current.split(" ").includes(id),
-		);
-		if (firstRound && !prevLocked.current && ids.length === 1)
-			celebrate(1, "Guter Start!");
-		if (fresh.length) {
-			const rare = Math.random() < 1 / 8;
-			sound.word(ids.length, rare);
-			haptic(15);
-			mood(rare ? "wow" : "happy", 700);
-			for (const id of fresh) {
-				const card = document.getElementById(`cat-${id}`)?.parentElement;
-				wave(card, rare);
-				fx.at(card?.querySelector(".tiles") ?? null, {
-					n: rare ? 26 : 10,
-					speed: rare ? 8 : 5,
-				});
-			}
-		}
-		sound.layer = ids.length;
-		prevLocked.current = locked;
-	}, [locked, firstRound]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: fires per countdown step
-	useEffect(() => {
-		if (countdown === null || lobby?.state !== "Countdown") return;
-		if (countdown > 0) sound.tick(3 - countdown);
-	}, [countdown]);
-
 	if (!lobby) return null;
 
-	function updateAnswer(categoryId: string, value: string, el: Element | null) {
-		const prev = answers[categoryId] ?? "";
-		const before = [...prev].length;
-		const len = [...value].length;
-		if (game) {
-			const last = lobby?.settings.lastLetterMode ?? false;
-			floatGain(
-				el,
-				typedValue(value, game.letter, last) -
-					typedValue(prev, game.letter, last),
-			);
-		}
-		if (len > before) {
-			sound.key(len - 1);
-			if (Math.random() < 0.25) mood("blink", 160);
-		}
+	function updateAnswer(categoryId: string, value: string) {
 		setAnswers((prev) => {
 			const next = { ...prev, [categoryId]: value };
 			storage.set(answersKey(roundId), JSON.stringify(next));
 			return next;
 		});
-		setTouched((t) => (t[categoryId] ? { ...t, [categoryId]: false } : t));
+		// Debounce the server sync: batch keystrokes into at most one answerUpdate
+		// per ~250ms instead of one message per keystroke.
 		pendingAnswers.current[categoryId] = value;
 		if (!flushTimer.current) {
 			flushTimer.current = setTimeout(flushAnswers, 250);
 		}
 	}
 
+	// ---- Countdown phase ----
+	// Phase is derived from the lobby state (single source of truth) so the
+	// countdown screen shows immediately - even before the first gameState
+	// arrives - instead of a blank frame or a flash of the Playing UI.
 	if (lobby.state === "Countdown") {
+		const display =
+			countdown === null ? "" : countdown > 0 ? String(countdown) : "Los!";
+		const isGo = countdown === 0;
+		const letter = game?.letter;
 		return (
-			<>
-				<RoomHeader />
-				<section className="screen center countdown">
-					<Mascot size="huge" letter={game?.letter ?? ""} base="wow" />
-					{!!countdown && (
-						<b key={countdown} className="count" aria-live="assertive">
-							{countdown}
-						</b>
+			<div className="min-h-svh bg-background flex flex-col items-center justify-center screen-pad gap-6 animate-fade-in">
+				{letter && <RoundLetter letter={letter} className="text-9xl" />}
+				<div
+					className={cn(
+						"flex items-center justify-center",
+						letter ? "h-16" : "h-48 w-48",
 					)}
-				</section>
-			</>
+				>
+					{/* Just the digits scale down and swap each tick - no progress ring. */}
+					<div
+						key={display}
+						aria-live="assertive"
+						aria-atomic="true"
+						className={cn(
+							"font-bold tabular-nums min-h-[1em]",
+							letter ? "text-4xl" : "text-8xl",
+							isGo
+								? "animate-countdown-go text-primary"
+								: "animate-countdown-pop",
+						)}
+					>
+						{display}
+					</div>
+				</div>
+			</div>
 		);
 	}
 
 	if (!game) return null;
 
-	if (game.letters?.length && !isSpectator)
-		return (
-			<>
-				<RoomHeader>
-					{isHost && !lobby.solo && (
-						<IconBtn tip="Runde beenden" onClick={handleEndRound}>
-							<Square />
-						</IconBtn>
-					)}
-				</RoomHeader>
-				<Sprint
-					key={game.roundId}
-					lobby={lobby}
-					game={game}
-					letters={game.letters}
-					onStop={lobby.solo ? handleBuzz : undefined}
-					buzzing={buzzing}
-				/>
-				{dialog}
-			</>
-		);
-
 	const categories = lobby.categories;
+	const placeholder = lastLetterMode ? `…${game.letter}` : `${game.letter}…`;
+
+	// ---- Playing phase ----
+
+	// Players actually participating this round (for the fill overview): not left,
+	// not a pending spectator, and - unless the host plays - not the host.
 	const playingPlayers = lobby.players.filter(
 		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
 	);
 
-	function onEnter(idx: number, card: HTMLElement) {
-		const cat = categories[idx];
-		const value = answers[cat.id] ?? "";
-		if (ruleIssue(value, game!.letter, lastLetterMode)) {
-			if (value.trim()) {
-				card.classList.remove("wrong");
-				void card.offsetWidth;
-				card.classList.add("wrong");
-				sound.crunch();
-				haptic([30, 40, 30]);
-				mood("sad", 800);
-			}
-			return;
-		}
-		setTouched((t) => ({ ...t, [cat.id]: true }));
-		const next = [
-			...categories.slice(idx + 1),
-			...categories.slice(0, idx),
-		].find((c) => !isLocked(c.id));
-		if (next) document.getElementById(`cat-${next.id}`)?.focus();
-		else if (canBuzz) handleBuzz();
-	}
-
 	return (
-		<>
-			<RoomHeader>
-				{isHost && !lobby.solo && !isSpectator && (
-					<IconBtn tip="Runde beenden" onClick={handleEndRound}>
-						<Square />
-					</IconBtn>
+		<div className="min-h-svh bg-background screen-pad">
+			<div
+				className={cn(
+					"mx-auto w-full space-y-4 animate-fade-in",
+					isSpectator ? "max-w-5xl" : "max-w-xl",
 				)}
-			</RoomHeader>
-			<section className="screen play">
-				<div className="hud">
-					<Mascot
-						size="letter"
-						letter={lastLetterMode ? `…${game.letter}` : game.letter}
-					/>
-					<div className="hud-mid">
-						{!isSpectator && (
-							<CountUp
-								value={categories.reduce(
-									(s, c) =>
-										s +
-										typedValue(
-											answers[c.id] ?? "",
-											game.letter,
-											lastLetterMode,
-										),
-									0,
-								)}
-								durationMs={1200}
-								rattle
-								className="live-score"
-							/>
-						)}
-						<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
-					</div>
-					<div className="friends">
-						{playingPlayers
-							.filter((p) => p.id !== myPlayerId)
-							.map((p) => (
-								<span
-									key={p.id}
-									className={`friend${p.connected ? "" : " off"}`}
-								>
-									<Av id={p.id} name={p.name} size="sm" />
-								</span>
-							))}
-					</div>
-				</div>
+			>
+				<RoomHeader
+					title={
+						isSpectator
+							? isPending
+								? "Gleich dabei"
+								: "Kommentator"
+							: sprint
+								? "Sprint"
+								: "Runde läuft"
+					}
+				/>
+				{isPending && (
+					<p className="text-center text-sm text-muted-foreground">
+						Du spielst ab der nächsten Runde mit.
+					</p>
+				)}
 
-				{isSpectator ? (
+				{sprint ? (
 					<>
-						{isPending && (
-							<p
-								className="hint"
-								data-tip="Du spielst ab der nächsten Runde mit"
-							>
-								<Eye />
-							</p>
-						)}
-						<CommentatorBoard
-							categories={categories}
-							players={playingPlayers}
-							commentator={commentator}
+						<Sprint
+							key={game.roundId}
+							lobby={lobby}
+							game={game}
+							letters={game.letters!}
 						/>
-						{isHost && !lobby.solo && (
-							<Btn
-								kind="stop"
-								className="armed"
-								aria-label="Runde beenden"
-								data-tip="Runde beenden"
-								onClick={handleEndRound}
+						{lobby.solo && (
+							<Button
+								className="w-full"
+								size="lg"
+								onClick={handleBuzz}
+								disabled={buzzing}
 							>
-								<Square />
-							</Btn>
+								{buzzing ? "Gesendet…" : "STOPP - Fertig!"}
+							</Button>
 						)}
 					</>
+				) : isSpectator ? (
+					<Card>
+						<CardContent className="pt-6">
+							<CommentatorBoard
+								categories={categories}
+								players={playingPlayers}
+								commentator={commentator}
+							/>
+						</CardContent>
+					</Card>
 				) : (
 					<>
-						<div className="cards">
+						<div className="flex items-center justify-between px-1">
+							<RoundLetter letter={game.letter} className="text-6xl" />
+							{game.endsAt !== null && <RoundClock endsAt={game.endsAt} />}
+						</div>
+						<div className="space-y-3">
 							{categories.map((cat, idx) => {
-								const value = answers[cat.id] ?? "";
-								const issue = ruleIssue(value, game.letter, lastLetterMode);
+								const issue = ruleIssue(
+									answers[cat.id] ?? "",
+									game.letter,
+									lastLetterMode,
+								);
+								// A wrong first letter shows at once, anything else after blur.
 								const showInvalid =
 									issue !== undefined &&
 									(touched[cat.id] ||
 										(!lastLetterMode && issue !== LENGTH_ISSUE));
+								const done = (answers[cat.id] ?? "").trim() !== "" && !issue;
 								return (
-									<label
-										key={cat.id}
-										className={`card${isLocked(cat.id) ? " locked" : valid(cat.id) ? " ok" : ""}`}
-										style={{ "--ci": idx } as React.CSSProperties}
-									>
-										<span className="cat">{cat.name}</span>
-										<Tiles
-											value={value}
-											letter={game.letter}
-											last={lastLetterMode}
-											live
-											ghost={
-												value
-													? undefined
-													: lastLetterMode
-														? `…${game.letter}`
-														: game.letter
-											}
-										/>
-										<input
-											id={`cat-${cat.id}`}
-											className="answer"
-											value={value}
-											onChange={(e) =>
-												updateAnswer(
-													cat.id,
-													e.target.value,
-													e.currentTarget.parentElement,
-												)
-											}
-											onBlur={() =>
-												setTouched((t) => ({ ...t, [cat.id]: true }))
-											}
-											onKeyDown={(e) => {
-												if (e.key !== "Enter" || e.repeat) return;
-												e.preventDefault();
-												onEnter(
-													idx,
-													e.currentTarget.parentElement as HTMLElement,
-												);
-											}}
-											maxLength={30}
-											autoComplete="off"
-											autoCapitalize="words"
-											spellCheck={false}
-											enterKeyHint={
-												idx === categories.length - 1 ? "done" : "next"
-											}
-											// biome-ignore lint/a11y/noAutofocus: the round starts typing in the first field
-											autoFocus={idx === 0}
-											aria-label={`${cat.name} mit ${game.letter}`}
-											aria-invalid={showInvalid || undefined}
-										/>
-										{showInvalid && <span className="issue">{issue}</span>}
-										<span className="lock">
-											<Check />
-										</span>
-									</label>
+									<div key={cat.id} className="space-y-1">
+										<label
+											htmlFor={`cat-${cat.id}`}
+											className="text-sm font-medium"
+										>
+											{cat.name}
+										</label>
+										<div className="relative">
+											<Input
+												id={`cat-${cat.id}`}
+												value={answers[cat.id] ?? ""}
+												onChange={(e) => updateAnswer(cat.id, e.target.value)}
+												onBlur={() =>
+													setTouched((t) => ({ ...t, [cat.id]: true }))
+												}
+												placeholder={placeholder}
+												maxLength={30}
+												autoComplete="off"
+												autoFocus={idx === 0}
+												aria-invalid={showInvalid || undefined}
+												className={cn(done && "pr-9")}
+											/>
+											{/* Check pops in once the field holds a valid answer. */}
+											{done && (
+												<Check className="animate-scale-in pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-green-600" />
+											)}
+										</div>
+										{showInvalid && (
+											<p className="text-xs text-destructive">{issue}</p>
+										)}
+									</div>
 								);
 							})}
 						</div>
 
 						{(buzzRejected === "incompleteAnswers" ||
 							buzzRejected === "invalidAnswers") && (
-							<p className="err">Erst alle Kategorien gültig ausfüllen.</p>
+							<p className="text-sm text-destructive text-center">
+								Du musst alle Kategorien gültig ausfüllen, bevor du buzzern
+								kannst.
+							</p>
 						)}
 
-						<Btn
-							kind="stop"
-							className={canBuzz ? "armed" : ""}
-							aria-disabled={!canBuzz}
-							data-tip={validation.valid ? "STOPP" : validation.reason}
-							onClick={() => canBuzz && handleBuzz()}
-						>
-							{buzzing ? <Loader2 className="spin" /> : <Hand />}
-							<span>STOPP</span>
-						</Btn>
+						<div className="space-y-2">
+							<Button
+								className="w-full"
+								size="lg"
+								onClick={handleBuzz}
+								disabled={!validation.valid || buzzing}
+							>
+								{buzzing ? "Gesendet…" : "STOPP - Fertig!"}
+							</Button>
+							{!validation.valid && (
+								<p className="text-center text-xs text-muted-foreground">
+									{validation.reason}
+								</p>
+							)}
+						</div>
 					</>
 				)}
-			</section>
+
+				{/* Host can end a stuck round early (hard letter, or a commentator host
+            who never buzzes) -> everyone moves to review. */}
+				{isHost && !lobby.solo && (
+					<div className="flex justify-center pt-1">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="text-muted-foreground"
+							onClick={handleEndRound}
+						>
+							Runde beenden
+						</Button>
+					</div>
+				)}
+			</div>
 			{dialog}
-		</>
+		</div>
 	);
 }
 
 // Sprint shows one prompt at a time: letter letters[pos / n] with category
 // pos % n. Enter takes the word, Enter on an empty field or Shift+Enter skips
-// the prompt.
-// words[i] is the word for prompt i, "" where it was skipped.
+// the prompt. words[i] is the word for prompt i, "" where it was skipped.
 function Sprint({
 	lobby,
 	game,
 	letters,
-	onStop,
-	buzzing,
 }: {
 	lobby: LobbyStatePayload;
 	game: GameStatePayload;
 	letters: string[];
-	onStop?: () => void;
-	buzzing: boolean;
 }) {
 	const cats = lobby.categories;
 	const n = cats.length;
 	const last = lobby.settings.lastLetterMode;
 	const [pos, setPos] = useState(game.sprintPos ?? 0);
 	const [words, setWords] = useState<string[]>(game.sprintWords ?? []);
-	const [streak, setStreak] = useState(0);
 	const [value, setValue] = useState("");
-	const card = useRef<HTMLLabelElement>(null);
+	const [issue, setIssue] = useState<string>();
 
 	useEffect(() => {
 		if (game.sprintPos === undefined) return;
@@ -605,7 +508,6 @@ function Sprint({
 	}, [game.sprintPos, game.sprintWords]);
 
 	const done = pos >= letters.length * n;
-	const count = words.filter(Boolean).length;
 	const letter = letters[(Math.min(pos, letters.length * n - 1) / n) | 0];
 	const cat = cats[pos % n];
 
@@ -614,239 +516,93 @@ function Sprint({
 			type: "sprintWord",
 			payload: { roundId: game.roundId, pos, value: word },
 		});
-		const next = pos + 1;
-		const run = word ? streak + 1 : 0;
-		setPos(next);
+		setPos(pos + 1);
 		setValue("");
+		setIssue(undefined);
 		setWords((w) => [...w, word]);
-		if (word) {
-			floatGain(card.current, ALONE * WORD_BONUS);
-			sound.word(run);
-			haptic(15);
-			mood("happy", 600);
-			fx.at(card.current, { n: 12, speed: 5 });
-		} else {
-			sound.whoosh();
-			mood("blink", 300);
-		}
-		if (next % n === 0) {
-			if (run >= n) {
-				sound.clear();
-				slam(`${n}/${n}`, "clear");
-				mood("cheer", 1400);
-			}
-			shiftPalette();
-			setStreak(0);
-		} else setStreak(run);
 	}
 
-	function onEnter() {
-		if (done) return;
+	function onEnter(skip: boolean) {
 		const word = value.trim();
-		if (!word) return advance("");
-		if (ruleIssue(word, letter, last)) {
-			const el = card.current;
-			el?.classList.remove("wrong");
-			void el?.offsetWidth;
-			el?.classList.add("wrong");
-			sound.crunch();
-			haptic([30, 40, 30]);
-			mood("sad", 800);
-			return;
-		}
-		advance(word);
+		if (skip || !word) return advance("");
+		const bad = ruleIssue(word, letter, last);
+		if (bad) setIssue(bad);
+		else advance(word);
 	}
+
+	const score = ALONE * words.reduce((s, w) => s + (w ? wordValue(w) : 0), 0);
 
 	return (
-		<section className="screen play sprint">
-			<div className="hud">
-				<Mascot
-					size="letter"
-					letter={last ? `…${letter}` : letter}
-					base={done ? "happy" : undefined}
-				/>
-				<div className="hud-mid">
-					<CountUp
-						value={
-							ALONE *
-							words.reduce(
-								(s, w) => s + (w ? wordValue(w) : 0),
-								lettersValue(value),
-							)
-						}
-						durationMs={1200}
-						rattle
-						className="live-score"
-					/>
-					<Fuse endsAt={game.endsAt} total={lobby.settings.timeLimit} />
-				</div>
-				<b key={count} className="sprint-count" data-tip="Wörter">
-					{count}
-				</b>
+		<div className="space-y-4">
+			<div className="flex items-center justify-between gap-4 px-1">
+				<RoundLetter letter={letter} className="text-6xl" />
+				<p className="text-3xl font-bold tabular-nums">{score}</p>
+				{game.endsAt !== null && <RoundClock endsAt={game.endsAt} />}
 			</div>
-
-			<div className="rounds" aria-hidden="true">
-				{cats.map((c, i) => (
-					<i
-						key={c.id}
-						className={
-							i < pos % n || done ? "done" : i === pos % n ? "now" : ""
-						}
-					/>
-				))}
-			</div>
-
 			{done ? (
-				<Mascot size="huge" base="cheer" />
+				<p className="text-center text-muted-foreground">
+					Alle Buchstaben gespielt.
+				</p>
 			) : (
-				<div className="sprint-row">
-					<label key={pos} ref={card} className="card sprint-card">
-						<span className="cat">{cat.name}</span>
-						<Tiles
-							value={value}
-							letter={letter}
-							last={last}
-							live
-							ghost={value ? undefined : last ? `…${letter}` : letter}
-						/>
-						<input
-							className="answer"
+				<div key={pos} className="space-y-1">
+					<label htmlFor="sprint" className="text-sm font-medium">
+						{cat.name}
+					</label>
+					<div className="flex items-center gap-2">
+						<Input
+							id="sprint"
 							value={value}
 							onChange={(e) => {
-								if ([...e.target.value].length > [...value].length)
-									sound.key([...e.target.value].length - 1);
-								floatGain(
-									card.current,
-									ALONE * (lettersValue(e.target.value) - lettersValue(value)),
-								);
 								setValue(e.target.value);
+								setIssue(undefined);
 							}}
 							onKeyDown={(e) => {
 								if (e.key !== "Enter" || e.repeat) return;
 								e.preventDefault();
-								if (e.shiftKey) advance("");
-								else onEnter();
+								onEnter(e.shiftKey);
 							}}
+							placeholder={last ? `…${letter}` : `${letter}…`}
 							maxLength={30}
 							autoComplete="off"
-							autoCapitalize="words"
-							spellCheck={false}
-							enterKeyHint="next"
-							// biome-ignore lint/a11y/noAutofocus: each prompt is typed right away
 							autoFocus
-							aria-label={`${cat.name} mit ${letter}`}
+							aria-invalid={issue !== undefined || undefined}
 						/>
-					</label>
-					<IconBtn
-						tip="Überspringen (Shift+Enter)"
-						className="skip"
-						onMouseDown={(e) => e.preventDefault()}
-						onClick={() => advance("")}
-					>
-						<SkipForward />
-					</IconBtn>
+						<Button
+							variant="outline"
+							size="icon"
+							aria-label="Überspringen"
+							title="Überspringen (Shift+Enter)"
+							onMouseDown={(e) => e.preventDefault()}
+							onClick={() => advance("")}
+							className="shrink-0"
+						>
+							<SkipForward className="h-4 w-4" />
+						</Button>
+					</div>
+					{issue && <p className="text-xs text-destructive">{issue}</p>}
 				</div>
 			)}
-
-			<ol className="sprint-done">
-				{words
-					.map(
-						(w, i) =>
-							w && (
-								// biome-ignore lint/suspicious/noArrayIndexKey: one row per prompt
-								<li key={i}>
-									<span className="cat">{cats[i % n].name}</span>
-									<Tiles
-										value={w}
-										letter={letters[(i / n) | 0]}
-										last={last}
-										max={24}
-									/>
-									<b className="pts p20">{ALONE * wordValue(w)}</b>
-								</li>
-							),
-					)
-					.reverse()}
-			</ol>
-
-			{onStop && (
-				<Btn
-					kind="stop"
-					className="armed"
-					data-tip="STOPP"
-					onClick={() => !buzzing && onStop()}
-				>
-					{buzzing ? <Loader2 className="spin" /> : <Hand />}
-					<span>STOPP</span>
-				</Btn>
+			{words.some(Boolean) && (
+				<ul className="divide-y rounded-md border">
+					{words
+						.map(
+							(w, i) =>
+								w && (
+									// biome-ignore lint/suspicious/noArrayIndexKey: one row per prompt
+									<li key={i} className="flex items-center gap-3 px-3 py-2">
+										<span className="w-24 shrink-0 truncate text-xs text-muted-foreground">
+											{cats[i % n].name}
+										</span>
+										<span className="flex-1 truncate font-medium">{w}</span>
+										<span className="tabular-nums text-sm">
+											{ALONE * wordValue(w)}
+										</span>
+									</li>
+								),
+						)
+						.reverse()}
+				</ul>
 			)}
-		</section>
-	);
-}
-
-// Fuse burns down to `endsAt`; it turns hot and ticks in the last seconds.
-function Fuse({
-	endsAt,
-	total,
-}: {
-	endsAt: number | null;
-	total: number | null;
-}) {
-	const left = () => (endsAt === null ? 1 : Math.max(0, endsAt - Date.now()));
-	const [ms, setMs] = useState(left);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: left() reads endsAt
-	useEffect(() => {
-		if (endsAt === null) return;
-		let last = -1;
-		const id = setInterval(() => {
-			const m = left();
-			setMs(m);
-			const s = Math.ceil(m / 1000);
-			if (s !== last && s <= 5 && last > 0) {
-				if (s === 0) {
-					sound.boom();
-					haptic(60);
-				} else {
-					if (s > 3) sound.tick(5 - s);
-					else sound.beep(s);
-					haptic(12);
-				}
-			}
-			last = s;
-		}, 100);
-		return () => {
-			clearInterval(id);
-			document.body.classList.remove("urgent");
-		};
-	}, [endsAt]);
-	const secs = Math.ceil(ms / 1000);
-	const hot = endsAt !== null && secs <= 10;
-	useEffect(() => {
-		document.body.classList.toggle("urgent", hot);
-		if (hot) mood("worried", 0);
-	}, [hot]);
-	if (endsAt === null)
-		return (
-			<div className="fuse endless">
-				<i />
-			</div>
-		);
-	return (
-		<div
-			className={`fuse${hot ? " hot" : ""}`}
-			style={
-				{
-					"--f": total ? Math.min(1, ms / (total * 1000)) : 1,
-				} as React.CSSProperties
-			}
-			role="timer"
-			aria-label={`${secs} Sekunden`}
-		>
-			<i />
-			<b />
-			<span className="sr-only" aria-live="assertive">
-				{secs <= 5 ? secs : ""}
-			</span>
 		</div>
 	);
 }

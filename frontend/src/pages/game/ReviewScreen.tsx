@@ -1,400 +1,383 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { ws } from "@/lib/ws";
 import {
+	X,
 	Check,
 	ChevronLeft,
 	ChevronRight,
-	Clock,
-	Crown,
-	Flag,
 	Link2,
 	Link2Off,
+	Bell,
 	ThumbsDown,
-	X,
 } from "lucide-react";
-import { ws } from "@/lib/ws";
-import { bounce, haptic, slam } from "@/lib/feel";
-import { sound } from "@/lib/sound";
-import { handlesEnter, isTypingTarget } from "@/lib/utils";
-import { BUZZ_BONUS, normalize, wordValue } from "@/lib/answerValidation";
+import { cn, handlesEnter, isTypingTarget, pressProps } from "@/lib/utils";
 import { useRoomStore, useIsHost } from "@/store/room";
+import { normalize, ruleIssue } from "@/lib/answerValidation";
 import type { ReviewAnswer } from "@/types/events";
-import { CountUp } from "@/components/CountUp";
 import { RoomHeader } from "@/components/RoomHeader";
-import { Av, Btn, IconBtn, Mascot, playerColor, Tiles } from "@/components/kit";
-
-// ptsClass colours an answer by its multiplier (shared, unique, only one).
-function ptsClass(a: ReviewAnswer) {
-	if (a.pointsPreview <= 0) return "p0";
-	const m = a.pointsPreview / wordValue(a.value);
-	return m >= 4 ? "p20" : m >= 2 ? "p10" : "p5";
-}
+import { RoundLetter } from "@/components/RoundLetter";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function ReviewScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
 	const review = useRoomStore((s) => s.review);
-	const me = useRoomStore((s) => s.myPlayerId);
-	const isHost = useIsHost();
+	const me = useRoomStore((s) => s.myPlayerId) ?? "";
+
+	// The answer picked as the merge target ("group anchor"). While set, the
+	// host merges by clicking another answer's row directly (no second button).
 	const [mergeAnchor, setMergeAnchor] = useState<string | null>(null);
-	const [shown, setShown] = useState(0);
 
-	const idx = review?.categoryIndex ?? 0;
-	const count = review?.answers.length ?? 0;
-	const isFirst = idx <= 0;
-	const isLast = review ? idx >= review.categoryCount - 1 : false;
-
-	const buzzedRound = review?.buzzedBy === me ? review?.roundId : undefined;
-	useEffect(() => {
-		if (buzzedRound) slam(`+${BUZZ_BONUS}`, "win");
-	}, [buzzedRound]);
-
-	// Deal the answer cards one by one whenever a category opens.
-	const opened = useRef(false);
-	// biome-ignore lint/correctness/useExhaustiveDependencies: categoryIndex is the trigger
-	useEffect(() => {
-		setMergeAnchor(null);
-		setShown(0);
-		if (opened.current) sound.advance();
-		else sound.whoosh();
-		opened.current = true;
-		let k = 0;
-		const id = setInterval(() => {
-			k++;
-			setShown(k);
-			sound.flip();
-			if (k >= count) clearInterval(id);
-		}, 140);
-		return () => clearInterval(id);
-	}, [idx]);
-
-	useEffect(() => {
-		if (!isHost) return;
-		function onKey(e: KeyboardEvent) {
-			if (
-				e.defaultPrevented ||
-				isTypingTarget(document.activeElement) ||
-				e.repeat
-			)
-				return;
-			if (e.key === "ArrowLeft" && !isFirst)
-				ws.send({ type: "previousCategory", payload: {} });
-			else if (e.key === "ArrowRight" && !isLast)
-				ws.send({ type: "nextCategory", payload: {} });
-			else if (e.key === "Escape" && mergeAnchor !== null) setMergeAnchor(null);
-		}
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [isHost, isFirst, isLast, mergeAnchor]);
-
+	const isHost = useIsHost();
+	const isFirst = (review?.categoryIndex ?? 0) <= 0;
+	const isLast = review
+		? review.categoryIndex >= review.categoryCount - 1
+		: false;
 	const voters = review?.voters ?? [];
 	const ready = new Set(review?.ready ?? []);
-	const iVote = voters.includes(me ?? "");
-	const imReady = ready.has(me ?? "");
+	const iVote = voters.includes(me);
+	const imReady = ready.has(me);
 
-	function toggleReady() {
-		ws.send({ type: "reviewReady", payload: {} });
-		sound.ready(!imReady);
-		haptic(imReady ? 8 : 15);
-	}
-
-	// Enter marks yourself done, so a keyboard player never needs the mouse.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: toggleReady reads imReady
+	// biome-ignore lint/correctness/useExhaustiveDependencies: categoryIndex is the intended trigger
 	useEffect(() => {
-		if (!iVote) return;
+		setMergeAnchor(null);
+	}, [review?.categoryIndex]);
+
+	// Arrows page through categories for the host. Enter marks a voter done;
+	// a host who does not vote advances with it instead. Escape cancels a merge.
+	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
-			if (e.key !== "Enter" || e.repeat || handlesEnter(document.activeElement))
-				return;
-			toggleReady();
+			if (e.defaultPrevented || isTypingTarget(document.activeElement)) return;
+			if (e.repeat) return;
+			if (isHost && e.key === "ArrowLeft" && !isFirst) {
+				ws.send({ type: "previousCategory", payload: {} });
+			} else if (isHost && e.key === "ArrowRight" && !isLast) {
+				ws.send({ type: "nextCategory", payload: {} });
+			} else if (e.key === "Escape" && mergeAnchor !== null) {
+				setMergeAnchor(null);
+			} else if (e.key === "Enter" && !handlesEnter(document.activeElement)) {
+				if (iVote) ws.send({ type: "reviewReady", payload: {} });
+				else if (isHost)
+					ws.send({
+						type: isLast ? "finishReview" : "nextCategory",
+						payload: {},
+					});
+			}
 		}
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
-	}, [iVote, imReady]);
+	}, [isHost, isFirst, isLast, mergeAnchor, iVote]);
 
 	if (!lobby || !review) return null;
 
 	const playerName = (id: string) =>
 		lobby.players.find((p) => p.id === id)?.name ?? "?";
-	const category =
-		lobby.categories.find((c) => c.id === review.categoryId)?.name ?? "";
-	const last = lobby.settings.lastLetterMode;
+	const categoryName =
+		lobby.categories.find((c) => c.id === review.categoryId)?.name ??
+		"Kategorie";
+	const endText =
+		review.endReason === "timeout" ? (
+			"Zeit abgelaufen"
+		) : review.endReason === "host" ? (
+			"Host hat die Runde beendet"
+		) : review.buzzedBy ? (
+			<>
+				<b>{playerName(review.buzzedBy)}</b> hat gestoppt
+			</>
+		) : null;
+
+	// The host rules an answer in or out; a voter doubts someone else's answer.
+	function strike(a: ReviewAnswer) {
+		if (isHost)
+			ws.send({
+				type: "setAnswerValidity",
+				payload: { answerId: a.answerId, valid: !a.valid },
+			});
+		else
+			ws.send({
+				type: "voteAnswer",
+				payload: {
+					answerId: a.answerId,
+					vote: a.votes?.[me] === false ? 0 : -1,
+				},
+			});
+	}
+	function unmerge(answerId: string) {
+		ws.send({ type: "unmergeAnswers", payload: { answerId } });
+	}
+	function mergeInto(sourceAnswerId: string) {
+		if (mergeAnchor === null || mergeAnchor === sourceAnswerId) return;
+		ws.send({
+			type: "mergeAnswers",
+			payload: { targetAnswerId: mergeAnchor, sourceAnswerId },
+		});
+		setMergeAnchor(null);
+	}
+
 	const canMerge =
 		new Set(
 			review.answers
 				.filter((a) => a.valid && a.mergedInto === "")
 				.map((a) => normalize(a.value)),
 		).size >= 2;
-
-	// strike lets the host rule an answer out (or back in) and a voter doubt it.
-	function strike(a: ReviewAnswer, el: Element) {
-		let out: boolean;
-		if (isHost) {
-			out = a.valid;
-			ws.send({
-				type: "setAnswerValidity",
-				payload: { answerId: a.answerId, valid: !a.valid },
-			});
-		} else {
-			out = a.votes?.[me ?? ""] !== false;
-			ws.send({
-				type: "voteAnswer",
-				payload: { answerId: a.answerId, vote: out ? -1 : 0 },
-			});
-		}
-		bounce(el, 1.04);
-		if (out) sound.crunch();
-		else sound.pop();
-		haptic(out ? [20, 30, 20] : 10);
-	}
-
-	function pick(a: ReviewAnswer) {
-		if (
-			mergeAnchor === null ||
-			mergeAnchor === a.answerId ||
-			a.mergedInto !== ""
-		)
-			return;
-		ws.send({
-			type: "mergeAnswers",
-			payload: { targetAnswerId: mergeAnchor, sourceAnswerId: a.answerId },
-		});
-		setMergeAnchor(null);
-		sound.combo(2);
-	}
+	const mergeMode = mergeAnchor !== null;
+	const nobody = review.answers.every((a) => a.value === "");
 
 	return (
-		<>
-			<RoomHeader />
-			<section className="screen review">
-				<div className="hud">
-					<Mascot size="letter" letter={review.letter} />
-					<div className="hud-mid">
-						<h2 className="cat-title">{category}</h2>
-						<div className="rounds">
-							{Array.from({ length: review.categoryCount }, (_, i) => (
-								<i
-									// biome-ignore lint/suspicious/noArrayIndexKey: one dot per slot
-									key={i}
-									className={i < idx ? "done" : i === idx ? "now" : ""}
-								/>
-							))}
-						</div>
-					</div>
-					{idx === 0 && (
-						<span
-							className="ends"
-							data-tip={
-								review.endReason === "timeout"
-									? "Zeit abgelaufen"
-									: review.endReason === "host"
-										? "Host hat beendet"
-										: "Gestoppt"
-							}
-						>
-							{review.endReason === "timeout" ? (
-								<Clock />
-							) : review.endReason === "host" ? (
-								<Crown />
-							) : review.buzzedBy ? (
-								<Av
-									id={review.buzzedBy}
-									name={playerName(review.buzzedBy)}
-									size="sm"
-								/>
-							) : null}
-						</span>
-					)}
-				</div>
+		<div className="min-h-svh bg-background screen-pad">
+			<div className="mx-auto w-full max-w-xl space-y-4">
+				<RoomHeader title="Bewertung" />
 
-				<div className={`answers${mergeAnchor ? " merging" : ""}`}>
-					{review.answers.map((a, i) => {
-						const merged = a.mergedInto !== "";
-						const votes = Object.values(a.votes ?? {});
-						const down = votes.filter((v) => !v).length;
-						const doubted = down > 0 && !a.ruled;
-						const canStrike =
-							a.value !== "" &&
-							(isHost || (iVote && a.playerId !== me && !a.ruled));
-						const out = isHost ? !a.valid : a.votes?.[me ?? ""] === false;
-						return (
-							// biome-ignore lint/a11y/useSemanticElements: the card holds its own buttons, so it cannot be a <button>
-							<div
-								key={a.answerId}
-								className={`ans${i < shown ? " dealt open" : ""}${a.valid ? "" : " cracked"}${doubted ? " doubt" : ""}${merged ? " linked" : ""}${mergeAnchor === a.answerId ? " twin" : ""}`}
-								style={
-									{ "--pc": playerColor(a.playerId) } as React.CSSProperties
-								}
-								role="button"
-								tabIndex={canStrike ? 0 : -1}
-								aria-disabled={!canStrike}
-								aria-pressed={out}
-								aria-label={
-									canStrike
-										? isHost
-											? a.valid
-												? "Als ungültig festlegen"
-												: "Als gültig festlegen"
-											: "Gilt nicht"
-										: undefined
-								}
-								data-tip={
-									canStrike && !mergeAnchor && out
-										? "Antippen: gilt wieder"
-										: undefined
-								}
-								onClick={(e) => {
-									if (mergeAnchor) pick(a);
-									else if (canStrike) strike(a, e.currentTarget);
-								}}
-								onKeyDown={(e) => {
-									if (
-										(e.key === "Enter" || e.key === " ") &&
-										e.target === e.currentTarget
-									) {
-										e.preventDefault();
-										e.currentTarget.click();
-									}
-								}}
-							>
-								<div className="ans-card">
-									<div className="ans-back">
-										<Av id={a.playerId} name={playerName(a.playerId)} />
-									</div>
-									<div className="ans-front">
-										<Av
-											id={a.playerId}
-											name={playerName(a.playerId)}
-											size="sm"
-										/>
-										<div className="ans-word">
-											{a.value ? (
-												<Tiles
-													value={a.value}
-													letter={review.letter}
-													last={last}
-													max={26}
-												/>
-											) : (
-												<span className="empty">–</span>
-											)}
-										</div>
-										<CountUp
-											value={a.pointsPreview}
-											className={`pts ${ptsClass(a)}`}
-										/>
-										{down > 0 && (
-											<span className="tally" data-tip={`${down} dagegen`}>
-												<ThumbsDown />
-												{down}
-											</span>
-										)}
-										{isHost && merged && (
-											<button
-												type="button"
-												className="link-btn"
-												aria-label="Trennen"
-												data-tip={`Trennen von ${playerName(a.mergedInto)}`}
-												onClick={(e) => {
-													e.stopPropagation();
-													ws.send({
-														type: "unmergeAnswers",
-														payload: { answerId: a.answerId },
-													});
-												}}
-											>
-												<Link2Off />
-											</button>
-										)}
-										{isHost &&
-											!merged &&
-											a.valid &&
-											canMerge &&
-											!mergeAnchor && (
-												<button
-													type="button"
-													className="link-btn"
-													aria-label="Zusammenführen"
-													data-tip="Gleiche Antwort verbinden"
-													onClick={(e) => {
-														e.stopPropagation();
-														setMergeAnchor(a.answerId);
-													}}
-												>
-													<Link2 />
-												</button>
-											)}
-									</div>
-								</div>
-							</div>
-						);
-					})}
-					{review.answers.every((a) => a.value === "") && (
-						<div className="nobody">
-							<Mascot base="sad" />
-							<b>Niemand hatte etwas</b>
-						</div>
-					)}
-				</div>
-
-				{mergeAnchor && (
-					<IconBtn
-						tip="Verbinden abbrechen"
-						onClick={() => setMergeAnchor(null)}
-					>
-						<X />
-					</IconBtn>
+				{endText && (
+					<p className="flex items-center justify-center gap-1.5 text-sm font-medium text-amber-800 dark:text-amber-300">
+						<Bell className="h-4 w-4 shrink-0" />
+						<span>{endText}</span>
+					</p>
 				)}
 
-				<div className="ready-row">
-					{voters.map((id) => (
-						<Av
-							key={id}
-							id={id}
-							name={playerName(id)}
-							size="sm"
-							className={ready.has(id) ? "on" : ""}
-						/>
-					))}
-				</div>
+				<Card>
+					<CardContent className="pt-6 flex items-center justify-between">
+						<div className="flex items-center gap-3">
+							<RoundLetter letter={review.letter} className="text-4xl" />
+							<div>
+								<p className="text-xs text-muted-foreground uppercase tracking-widest">
+									Kategorie {review.categoryIndex + 1}/{review.categoryCount}
+								</p>
+								<p className="text-lg font-semibold">{categoryName}</p>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardContent className="pt-6 space-y-2">
+						{nobody && (
+							<p className="text-sm text-muted-foreground">
+								Niemand hatte etwas in dieser Kategorie.
+							</p>
+						)}
+						{!nobody &&
+							review.answers.map((a) => {
+								const merged = a.mergedInto !== "";
+								const isAnchor = mergeAnchor === a.answerId;
+								const clickable = mergeMode && !isAnchor && !merged;
+								const toggles =
+									!mergeMode &&
+									a.value !== "" &&
+									(isHost || (iVote && a.playerId !== me && !a.ruled));
+								const down = Object.values(a.votes ?? {}).filter(
+									(v) => !v,
+								).length;
+								const mine = a.votes?.[me] === false;
+								const reason = !a.valid
+									? ruleIssue(
+											a.value,
+											review.letter,
+											lobby.settings.lastLetterMode,
+										)
+									: undefined;
+								return (
+									<div
+										key={a.answerId}
+										className={cn(
+											"px-3 py-2.5 transition-colors",
+											isAnchor
+												? "bg-primary/10 ring-2 ring-primary"
+												: a.valid
+													? "bg-green-500/10"
+													: "bg-muted/50",
+											clickable &&
+												"ring-1 ring-primary/40 hover:ring-2 hover:ring-primary active:ring-2 active:ring-primary",
+										)}
+									>
+										{/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: the role is set dynamically to switch */}
+										<div
+											role={
+												clickable ? "button" : toggles ? "switch" : undefined
+											}
+											aria-checked={
+												toggles ? (isHost ? a.valid : !mine) : undefined
+											}
+											{...(clickable
+												? pressProps(() => mergeInto(a.answerId))
+												: toggles
+													? pressProps(() => strike(a))
+													: {})}
+											className={cn((clickable || toggles) && "cursor-pointer")}
+										>
+											<div className="flex items-center justify-between gap-3">
+												<div className="min-w-0">
+													<span className="text-xs text-muted-foreground">
+														{playerName(a.playerId)}
+													</span>
+													<p
+														className={cn(
+															"text-lg font-medium truncate",
+															a.valid
+																? "text-foreground"
+																: "line-through text-muted-foreground",
+														)}
+													>
+														{a.value || "-"}
+													</p>
+													{merged && (
+														<p className="text-xs text-muted-foreground">
+															↳ zusammengeführt mit {playerName(a.mergedInto)}
+														</p>
+													)}
+													{reason && (
+														<p className="text-xs text-muted-foreground">
+															{reason}
+														</p>
+													)}
+												</div>
+												<div className="flex items-center gap-3 shrink-0">
+													{down > 0 && (
+														<span
+															className={cn(
+																"flex items-center gap-1 text-sm tabular-nums",
+																mine
+																	? "text-destructive"
+																	: "text-muted-foreground",
+															)}
+															title={`${down} dagegen`}
+														>
+															<ThumbsDown className="h-4 w-4" />
+															{down}
+														</span>
+													)}
+													<span
+														className={cn(
+															"text-lg font-bold tabular-nums w-12 text-right",
+															a.valid ? "" : "text-muted-foreground",
+														)}
+													>
+														{a.pointsPreview}
+													</span>
+												</div>
+											</div>
+										</div>
+
+										{isHost &&
+											(merged ||
+												(!mergeMode && canMerge && a.valid) ||
+												isAnchor) && (
+												<div className="mt-1.5 flex flex-wrap items-center gap-2">
+													{merged ? (
+														<Button
+															variant="ghost"
+															size="xs"
+															onClick={() => unmerge(a.answerId)}
+														>
+															<Link2Off className="h-3.5 w-3.5 mr-1" />
+															Trennen
+														</Button>
+													) : isAnchor ? (
+														<>
+															<Button
+																variant="outline"
+																size="xs"
+																onClick={() => setMergeAnchor(null)}
+															>
+																<X className="h-3.5 w-3.5 mr-1" />
+																Abbrechen
+															</Button>
+															<span className="text-xs text-muted-foreground">
+																Antwort antippen, die gleich „{a.value}“ ist
+															</span>
+														</>
+													) : (
+														<Button
+															variant="ghost"
+															size="xs"
+															onClick={() => setMergeAnchor(a.answerId)}
+														>
+															<Link2 className="h-3.5 w-3.5 mr-1" />
+															Zusammenführen
+														</Button>
+													)}
+												</div>
+											)}
+									</div>
+								);
+							})}
+					</CardContent>
+				</Card>
 
 				{iVote && (
-					<Btn
-						kind="next"
-						className={imReady ? "done" : ""}
-						aria-pressed={imReady}
-						aria-label="Fertig"
-						data-tip={imReady ? "Doch nicht fertig" : "Fertig"}
-						onClick={toggleReady}
-					>
-						<Check />
-					</Btn>
+					<p className="text-center text-xs text-muted-foreground">
+						Antwort antippen, wenn sie nicht gilt.
+					</p>
 				)}
 
-				{isHost && (
-					<div className="host-tools">
-						<IconBtn
-							tip="Vorherige Kategorie"
-							disabled={isFirst}
-							onClick={() => ws.send({ type: "previousCategory", payload: {} })}
-						>
-							<ChevronLeft />
-						</IconBtn>
-						{isLast ? (
-							<IconBtn
-								tip="Bewertung abschließen"
-								onClick={() => ws.send({ type: "finishReview", payload: {} })}
+				{voters.length > 0 && (
+					<div className="flex flex-wrap justify-center gap-2">
+						{voters.map((id) => (
+							<span
+								key={id}
+								className={cn(
+									"flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs",
+									ready.has(id)
+										? "border-green-600 text-green-700 dark:text-green-400"
+										: "text-muted-foreground",
+								)}
 							>
-								<Flag />
-							</IconBtn>
-						) : (
-							<IconBtn
-								tip="Nächste Kategorie"
-								onClick={() => ws.send({ type: "nextCategory", payload: {} })}
-							>
-								<ChevronRight />
-							</IconBtn>
-						)}
+								{ready.has(id) && <Check className="h-3 w-3" />}
+								{playerName(id)}
+							</span>
+						))}
 					</div>
 				)}
-			</section>
-		</>
+
+				{iVote && (
+					<Button
+						className="w-full"
+						variant={imReady ? "outline" : "default"}
+						aria-pressed={imReady}
+						onClick={() => ws.send({ type: "reviewReady", payload: {} })}
+					>
+						<Check className="h-4 w-4" />
+						{imReady ? "Doch nicht fertig" : "Fertig"}
+					</Button>
+				)}
+
+				{isHost ? (
+					<div className="flex items-center gap-2">
+						<Button
+							variant="outline"
+							onClick={() => ws.send({ type: "previousCategory", payload: {} })}
+							disabled={isFirst}
+						>
+							<ChevronLeft className="h-4 w-4" />
+							Zurück
+						</Button>
+						{isLast ? (
+							<Button
+								variant={iVote ? "outline" : "default"}
+								className="flex-1"
+								onClick={() => ws.send({ type: "finishReview", payload: {} })}
+							>
+								Bewertung abschließen
+							</Button>
+						) : (
+							<Button
+								variant={iVote ? "outline" : "default"}
+								className="flex-1"
+								onClick={() => ws.send({ type: "nextCategory", payload: {} })}
+							>
+								Weiter
+								<ChevronRight className="h-4 w-4" />
+							</Button>
+						)}
+					</div>
+				) : (
+					!iVote && (
+						<p className="text-center text-sm text-muted-foreground">
+							Warte auf den Host…
+						</p>
+					)
+				)}
+			</div>
+		</div>
 	);
 }
