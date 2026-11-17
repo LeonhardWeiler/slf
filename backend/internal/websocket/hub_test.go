@@ -356,3 +356,18 @@ func TestRejectedSeatDoesNotExtendWait(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanName(t *testing.T) {
+	for in, want := range map[string]string{
+		" Bob ":               "Bob",
+		"\u200b\u200b":        "",
+		"\u202eboB":           "boB",
+		"B\u0000o\u200db":     "Bob",
+		" \u2066 Anna \ue000": "Anna",
+		"Zoë":                 "Zoë",
+	} {
+		if got := cleanName(in); got != want {
+			t.Errorf("cleanName(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

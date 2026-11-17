@@ -186,7 +186,7 @@ func ComputeRanking(players map[string]*Player) []RankEntry {
 		if a.score != b.score {
 			return cmp.Compare(b.score, a.score) // higher score first
 		}
-		return cmp.Compare(strings.ToLower(a.name), strings.ToLower(b.name))
+		return cmp.Or(cmp.Compare(strings.ToLower(a.name), strings.ToLower(b.name)), cmp.Compare(a.id, b.id))
 	})
 
 	ranking := make([]RankEntry, 0, len(list))
