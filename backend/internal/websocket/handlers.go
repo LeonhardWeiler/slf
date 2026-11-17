@@ -108,6 +108,7 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		JoinedAt:  time.Now(),
 	}
 
+	hub.releaseSeat(c, sessionID)
 	hub.mu.Lock()
 	if hub.rooms.Count() >= maxLobbies {
 		hub.mu.Unlock()
@@ -138,15 +139,10 @@ func handleCreateLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		CreatedAt: time.Now(),
 	}
 	hub.rooms.Create(lobby)
+	hub.sessions[sessionID] = &game.Session{ID: sessionID, PlayerID: playerID, LobbyCode: lobbyCode}
+	hub.bindLocked(c, sessionID)
 	c.seats++
 	hub.mu.Unlock()
-
-	session := &game.Session{
-		ID:        sessionID,
-		PlayerID:  playerID,
-		LobbyCode: lobbyCode,
-	}
-	hub.registerSession(c, session)
 
 	slog.Info("lobby created", "lobby", lobbyCode, "host", name)
 
@@ -195,6 +191,9 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		return
 	}
 
+	playerID := generateID()
+	sessionID := generateID()
+	hub.releaseSeat(c, sessionID)
 	hub.mu.Lock()
 	lobby, found := hub.rooms.Get(code)
 	if !found {
@@ -223,9 +222,6 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 	// Lobby state do they join as a full participant right away.
 	pending := lobby.State != game.StateLobby
 
-	playerID := generateID()
-	sessionID := generateID()
-
 	player := &game.Player{
 		ID:        playerID,
 		SessionID: sessionID,
@@ -237,14 +233,9 @@ func handleJoinLobby(hub *Hub, c *Client, raw json.RawMessage) {
 		JoinedAt:  time.Now(),
 	}
 	lobby.Players[playerID] = player
+	hub.sessions[sessionID] = &game.Session{ID: sessionID, PlayerID: playerID, LobbyCode: code}
+	hub.bindLocked(c, sessionID)
 	hub.mu.Unlock()
-
-	session := &game.Session{
-		ID:        sessionID,
-		PlayerID:  playerID,
-		LobbyCode: code,
-	}
-	hub.registerSession(c, session)
 	c.seats++
 	c.lastSeatAt = time.Now()
 

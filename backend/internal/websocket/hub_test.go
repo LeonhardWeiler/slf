@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -303,5 +304,35 @@ func TestScoreAddsBuzzBonusAndCombo(t *testing.T) {
 		if b.Buzz != 0 || b.Combo != 0 || lobby.Players["b"].Combo != 0 {
 			t.Fatalf("round %d: unfilled player got a bonus: %+v", round+1, b)
 		}
+	}
+}
+
+func TestJoinNeverBindsToClosedLobby(t *testing.T) {
+	h := NewHub()
+	for i := range 2000 {
+		lobby := &game.Lobby{Code: "abc123", Players: map[string]*game.Player{}}
+		h.rooms.Create(lobby)
+		var wg sync.WaitGroup
+		wg.Go(func() { handleJoinLobby(h, &Client{}, []byte(`{"playerName":"p","lobbyCode":"abc123"}`)) })
+		wg.Go(func() {
+			for {
+				h.mu.Lock()
+				joined := len(lobby.Players) > 0
+				h.mu.Unlock()
+				if joined {
+					h.closeLobby(lobby, "test")
+					return
+				}
+			}
+		})
+		wg.Wait()
+		h.mu.Lock()
+		for id, s := range h.sessions {
+			if _, ok := h.rooms.Get(s.LobbyCode); !ok {
+				h.mu.Unlock()
+				t.Fatalf("run %d: session %s bound to closed lobby %s", i, id, s.LobbyCode)
+			}
+		}
+		h.mu.Unlock()
 	}
 }
