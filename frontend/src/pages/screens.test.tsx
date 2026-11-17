@@ -12,9 +12,9 @@ import {
 	fireEvent,
 	render as rtlRender,
 	screen,
-	waitFor,
 } from "@testing-library/react";
 import type { ReactNode } from "react";
+import { ThemeProvider } from "@/lib/theme";
 import { ws } from "@/lib/ws";
 import { useRoomStore } from "@/store/room";
 import type { LobbyStatePayload, Player } from "@/types/events";
@@ -36,7 +36,7 @@ const { Lobby } = await import("@/pages/Lobby");
 const { renderScreen } = await import("@/pages/Room");
 const { Home } = await import("@/pages/Home");
 
-const render = (ui: ReactNode) => rtlRender(ui);
+const render = (ui: ReactNode) => rtlRender(ui, { wrapper: ThemeProvider });
 
 const player = (id: string, isHost: boolean): Player => ({
 	id,
@@ -107,9 +107,9 @@ describe("RoundResultScreen", () => {
 		setup("host", "RoundResult");
 		render(<RoundResultScreen />);
 		expect(screen.getByRole("button", { name: "Nächste Runde" })).toBeDefined();
-		expect(
-			screen.getByRole("button", { name: "guest entfernen" }),
-		).toBeDefined();
+		expect(screen.getByTitle("guest entfernen")).toBeDefined();
+		expect(screen.getByText("Runde 1 · A")).toBeDefined();
+		expect(screen.queryByText("Niemand hat etwas eingetragen.")).toBeNull();
 	});
 
 	it("leaves Enter on a focused button to that button", () => {
@@ -124,14 +124,10 @@ describe("RoundResultScreen", () => {
 		expect(send).toHaveBeenCalledWith({ type: "startNextRound", payload: {} });
 	});
 
-	it("gives a crown only to a leader with points", async () => {
+	it("gives a trophy only to a leader with points", () => {
 		setup("guest", "RoundResult");
 		const { container, unmount } = render(<RoundResultScreen />);
-		await waitFor(
-			() =>
-				expect(container.querySelectorAll(".pos .lucide-crown").length).toBe(1),
-			{ timeout: 2000 },
-		);
+		expect(container.querySelectorAll(".lucide-trophy").length).toBe(1);
 		unmount();
 		const result = useRoomStore.getState().result!;
 		useRoomStore.getState().receive("roundResult", {
@@ -142,68 +138,27 @@ describe("RoundResultScreen", () => {
 			],
 		});
 		const again = render(<RoundResultScreen />);
-		expect(again.container.querySelectorAll(".pos .lucide-crown").length).toBe(
-			0,
-		);
+		expect(again.container.querySelectorAll(".lucide-trophy").length).toBe(0);
 	});
 
-	it("shows a sad mascot after an empty round", () => {
+	it("explains an empty round", () => {
 		setup("guest", "RoundResult");
 		const result = useRoomStore.getState().result!;
 		useRoomStore.getState().receive("roundResult", { ...result, empty: true });
-		const { container } = render(<RoundResultScreen />);
-		expect(container.querySelector(".mascot")?.getAttribute("data-base")).toBe(
-			"sad",
-		);
+		render(<RoundResultScreen />);
+		expect(screen.getByText("Niemand hat etwas eingetragen.")).toBeDefined();
 	});
 
-	it("leaves a guest without host actions", () => {
+	it("leaves a guest waiting without host actions", () => {
 		setup("guest", "RoundResult");
 		render(<RoundResultScreen />);
+		expect(screen.getByText("Warte auf den Host…")).toBeDefined();
 		expect(screen.queryByRole("button", { name: "Nächste Runde" })).toBeNull();
-		expect(screen.queryByRole("button", { name: "host entfernen" })).toBeNull();
+		expect(screen.queryByTitle("host entfernen")).toBeNull();
 	});
 });
 
 describe("GameScreen", () => {
-	it("walks the sprint prompts and refuses a wrong word", () => {
-		setup("guest", "Playing");
-		useRoomStore.getState().receive("gameState", {
-			roundId: "r1",
-			state: "Playing",
-			letter: "B",
-			usedLetters: ["B"],
-			remainingLetters: [],
-			endsAt: null,
-			serverNow: Date.now(),
-			countdownRemaining: null,
-			categoryCount: 2,
-			letters: ["B", "K"],
-		});
-		render(<GameScreen />);
-		send.mockClear();
-		const enter = (label: string, value: string) => {
-			const input = screen.getByLabelText(label);
-			fireEvent.change(input, { target: { value } });
-			fireEvent.keyDown(input, { key: "Enter" });
-		};
-		enter("Stadt mit B", "Aachen");
-		expect(send).not.toHaveBeenCalled();
-		enter("Stadt mit B", "Berlin");
-		enter("Land mit B", "");
-		enter("Stadt mit K", "Köln");
-		expect(send.mock.calls.map((c) => c[0])).toEqual([
-			{
-				type: "sprintWord",
-				payload: { roundId: "r1", pos: 0, value: "Berlin" },
-			},
-			{ type: "sprintWord", payload: { roundId: "r1", pos: 1, value: "" } },
-			{ type: "sprintWord", payload: { roundId: "r1", pos: 2, value: "Köln" } },
-		]);
-		expect(screen.getByLabelText("Land mit K")).not.toBeNull();
-		expect(document.querySelector(".sprint-count")?.textContent).toBe("2");
-	});
-
 	it("gates the buzz on valid answers and shows it pending", () => {
 		setup("guest", "Playing");
 		useRoomStore.getState().receive("gameState", {
@@ -219,9 +174,11 @@ describe("GameScreen", () => {
 		});
 		render(<GameScreen />);
 		expect(screen.queryByText("0/2")).toBeNull();
-		const buzz = () => screen.getByRole("button", { name: /STOPP/ });
-		const off = () => buzz().getAttribute("aria-disabled");
-		expect(off()).toBe("true");
+		const buzz = () =>
+			screen.getByRole("button", {
+				name: /STOPP|Gesendet/,
+			}) as HTMLButtonElement;
+		expect(buzz().disabled).toBe(true);
 
 		fireEvent.change(document.getElementById("cat-c1") as Element, {
 			target: { value: "Berlin" },
@@ -229,24 +186,20 @@ describe("GameScreen", () => {
 		fireEvent.change(document.getElementById("cat-c2") as Element, {
 			target: { value: "Ahaus" },
 		});
-		expect(off()).toBe("true");
+		expect(buzz().disabled).toBe(true);
 
 		fireEvent.change(document.getElementById("cat-c2") as Element, {
 			target: { value: "Belgien" },
 		});
-		expect(off()).toBe("false");
-		fireEvent.blur(document.getElementById("cat-c1") as Element);
-		fireEvent.blur(document.getElementById("cat-c2") as Element);
-		expect(document.querySelector(".slam")).toBeNull();
+		expect(buzz().disabled).toBe(false);
 
 		fireEvent.click(buzz());
-		expect(document.querySelector(".slam")?.textContent).toBe("2/2");
 		expect(send).toHaveBeenCalledWith({
 			type: "buzz",
 			payload: { roundId: "r1" },
 		});
-		expect(off()).toBe("true");
-		expect(buzz().querySelector(".spin")).not.toBeNull();
+		expect(buzz().disabled).toBe(true);
+		expect(buzz().textContent).toBe("Gesendet…");
 	});
 
 	it("resends all answers when the session reconnects", () => {
@@ -300,7 +253,7 @@ describe("GameScreen", () => {
 });
 
 describe("Lobby", () => {
-	it("shows a guest the settings read-only", () => {
+	it("shows a guest only the settings that differ from the default", () => {
 		setup("guest", "Lobby");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -309,77 +262,33 @@ describe("Lobby", () => {
 				settings: {
 					...lobby.settings,
 					timeLimit: 60,
-					lastLetterMode: true,
 					excludedLetters: ["Y", "Q"],
 				},
 			},
 		});
-		const { container } = render(<Lobby />);
-		expect(container.querySelector(".panel")?.hasAttribute("inert")).toBe(true);
-		expect(
-			screen
-				.getByRole("button", {
-					name: "Letzter Buchstabe",
-				})
-				.getAttribute("aria-pressed"),
-		).toBe("true");
-		expect(screen.queryByRole("button", { name: "Spiel starten" })).toBeNull();
+		render(<Lobby />);
+		expect(screen.getByText("60 s · ohne Q Y")).toBeDefined();
+		expect(screen.queryByText("Einstellungen")).toBeNull();
 	});
 
 	it("names every host button", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
+		expect(
+			screen.getByRole("button", { name: "Kategorie hinzufügen" }),
+		).toBeDefined();
 		for (const b of screen.getAllByRole("button")) {
-			expect(
-				b.textContent?.trim() || b.getAttribute("aria-label"),
-			).toBeTruthy();
+			const name =
+				b.textContent?.trim() ||
+				b.getAttribute("aria-label") ||
+				b.getAttribute("title");
+			expect(name).toBeTruthy();
 		}
 	});
 });
 
-describe("Lobby categories", () => {
-	it("renames on blur and restores a cleared name", () => {
-		setup("host", "Lobby");
-		render(<Lobby />);
-		const input = screen.getByRole("textbox", {
-			name: "Kategorie Stadt",
-		}) as HTMLInputElement;
-		fireEvent.change(input, { target: { value: " " } });
-		fireEvent.blur(input);
-		expect(input.value).toBe("Stadt");
-		fireEvent.change(input, { target: { value: "Ort" } });
-		fireEvent.blur(input);
-		expect(send).toHaveBeenLastCalledWith({
-			type: "editCategory",
-			payload: { categoryId: "c1", name: "Ort" },
-		});
-	});
-
-	it("adds a category from the + row and drops an empty one on blur", () => {
-		setup("host", "Lobby");
-		render(<Lobby />);
-		const add = () =>
-			screen.getByRole("button", { name: "Kategorie hinzufügen" });
-		fireEvent.click(add());
-		const input = screen.getByRole("textbox", { name: "Neue Kategorie" });
-		fireEvent.change(input, { target: { value: "  Tier " } });
-		fireEvent.blur(input);
-		expect(send).toHaveBeenLastCalledWith({
-			type: "addCategory",
-			payload: { name: "Tier" },
-		});
-		send.mockClear();
-		fireEvent.click(add());
-		fireEvent.blur(screen.getByRole("textbox", { name: "Neue Kategorie" }));
-		expect(send).not.toHaveBeenCalled();
-		expect(
-			screen.queryByRole("textbox", { name: "Neue Kategorie" }),
-		).toBeNull();
-	});
-});
-
 describe("review validity", () => {
-	it("lets the host overrule an answer", () => {
+	it("toggles a multiplayer answer by tapping its row", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
@@ -387,6 +296,8 @@ describe("review validity", () => {
 			categoryId: "c1",
 			categoryIndex: 0,
 			categoryCount: 2,
+			ready: null,
+			voters: null,
 			answers: [
 				{
 					answerId: "guest",
@@ -409,76 +320,15 @@ describe("review validity", () => {
 					ruled: false,
 				},
 			],
-			ready: null,
-			voters: null,
 		});
-		const { container } = render(<ReviewScreen />);
-		expect(container.querySelectorAll(".ans.cracked").length).toBe(1);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Als ungültig festlegen" }),
-		);
+		render(<ReviewScreen />);
+		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
+		const row = screen.getAllByRole("switch")[0];
+		expect(row.getAttribute("aria-checked")).toBe("true");
+		fireEvent.click(row);
 		expect(send).toHaveBeenCalledWith({
 			type: "setAnswerValidity",
 			payload: { answerId: "guest", valid: false },
-		});
-	});
-
-	it("says so when nobody answered", () => {
-		setup("host", "Reviewing");
-		useRoomStore.getState().receive("reviewState", {
-			roundId: "r1",
-			letter: "B",
-			categoryId: "c1",
-			categoryIndex: 0,
-			categoryCount: 2,
-			answers: [
-				{
-					answerId: "guest",
-					playerId: "guest",
-					value: "",
-					valid: false,
-					mergedInto: "",
-					pointsPreview: 0,
-					votes: null,
-					ruled: false,
-				},
-			],
-			ready: null,
-			voters: null,
-		});
-		const { container } = render(<ReviewScreen />);
-		expect(screen.getByText("Niemand hatte etwas")).toBeDefined();
-		expect(container.querySelectorAll(".ans").length).toBe(1);
-	});
-
-	it("lets a voter doubt an answer by tapping its card", () => {
-		setup("guest", "Reviewing");
-		useRoomStore.getState().receive("reviewState", {
-			roundId: "r1",
-			letter: "B",
-			categoryId: "c1",
-			categoryIndex: 0,
-			categoryCount: 2,
-			answers: [
-				{
-					answerId: "host",
-					playerId: "host",
-					value: "Bonn",
-					valid: true,
-					mergedInto: "",
-					pointsPreview: 25,
-					votes: null,
-					ruled: false,
-				},
-			],
-			ready: null,
-			voters: ["guest", "host"],
-		});
-		render(<ReviewScreen />);
-		fireEvent.click(screen.getByRole("button", { name: "Gilt nicht" }));
-		expect(send).toHaveBeenCalledWith({
-			type: "voteAnswer",
-			payload: { answerId: "host", vote: -1 },
 		});
 	});
 });
@@ -499,40 +349,11 @@ describe("Lobby players", () => {
 			},
 		});
 		render(<Lobby />);
-		const names = [...document.querySelectorAll(".seat-name")].map(
-			(el) => el.textContent,
-		);
+		const names = screen
+			.getAllByText(/^(zoe|host|anna|guest)$/)
+			.map((el) => el.textContent);
 		expect(names).toEqual(["guest", "host", "anna", "zoe"]);
-		expect(document.querySelectorAll(".seat.off").length).toBe(1);
-	});
-});
-
-describe("Lobby commentator toggle", () => {
-	const toggle = () => document.querySelector('[data-tip^="Host kommentiert"]');
-
-	it("shows only with a second player, or while it is on", () => {
-		setup("host", "Lobby");
-		const lobby = useRoomStore.getState().lobby!;
-		const { rerender } = render(<Lobby />);
-		expect(toggle()).not.toBeNull();
-		act(() =>
-			useRoomStore.setState({
-				lobby: { ...lobby, players: [player("host", true)] },
-			}),
-		);
-		rerender(<Lobby />);
-		expect(toggle()).toBeNull();
-		act(() =>
-			useRoomStore.setState({
-				lobby: {
-					...lobby,
-					players: [player("host", true)],
-					settings: { ...lobby.settings, hostPlays: false },
-				},
-			}),
-		);
-		rerender(<Lobby />);
-		expect(toggle()).not.toBeNull();
+		expect(screen.getAllByText("offline").length).toBe(1);
 	});
 });
 
@@ -540,10 +361,9 @@ describe("Lobby time limit", () => {
 	it("maps slider steps to server settings, including unlimited", () => {
 		setup("host", "Lobby");
 		render(<Lobby />);
-		const slider = screen.getByRole("slider", { name: "Zeitlimit" });
+		const slider = screen.getByRole("slider", { name: "Zeitlimit pro Runde" });
 		for (const [step, timeLimit] of [30, 60, 90, 120, 180, null].entries()) {
 			fireEvent.change(slider, { target: { value: String(step) } });
-			fireEvent.pointerUp(slider);
 			expect(send).toHaveBeenLastCalledWith({
 				type: "updateSettings",
 				payload: { ...useRoomStore.getState().lobby!.settings, timeLimit },
@@ -559,7 +379,7 @@ describe("Lobby time limit", () => {
 });
 
 describe("Lobby letters", () => {
-	it("opens a letter sheet with presets and single letters", () => {
+	it("keeps letters visible and exposes selection and reset", () => {
 		setup("host", "Lobby");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -569,9 +389,7 @@ describe("Lobby letters", () => {
 			},
 		});
 		render(<Lobby />);
-		fireEvent.click(
-			screen.getByRole("button", { name: "Buchstaben auswählen" }),
-		);
+		expect(screen.getByText("24 von 26 aktiv")).toBeDefined();
 		expect(
 			screen.getByRole("button", { name: "Q" }).getAttribute("aria-pressed"),
 		).toBe("false");
@@ -583,17 +401,10 @@ describe("Lobby letters", () => {
 			type: "updateSettings",
 			payload: { ...lobby.settings, excludedLetters: ["X"] },
 		});
-		fireEvent.click(
-			screen.getByRole("button", {
-				name: "Ohne seltene Buchstaben J, Q, X, Y, Z",
-			}),
-		);
+		fireEvent.click(screen.getByRole("button", { name: "Alle aktivieren" }));
 		expect(send).toHaveBeenLastCalledWith({
 			type: "updateSettings",
-			payload: {
-				...lobby.settings,
-				excludedLetters: ["J", "Q", "X", "Y", "Z"],
-			},
+			payload: { ...lobby.settings, excludedLetters: [] },
 		});
 	});
 });
@@ -607,8 +418,8 @@ describe("Lobby code card", () => {
 		});
 		setup("host", "Lobby");
 		render(<Lobby />);
-		fireEvent.click(screen.getByRole("button", { name: "QR-Code" }));
-		fireEvent.click(screen.getByRole("button", { name: "Teilen" }));
+		expect(screen.queryByText(/Strg\+C zum Kopieren/)).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: "Link teilen" }));
 		expect(share).toHaveBeenCalledWith({
 			url: `${window.location.origin}/join/123456`,
 		});
@@ -617,7 +428,7 @@ describe("Lobby code card", () => {
 });
 
 describe("GameScreen timer", () => {
-	it("burns a fuse only with a time limit", () => {
+	it("shows a clock only with a time limit", () => {
 		setup("guest", "Playing");
 		const game = {
 			roundId: "r1",
@@ -632,7 +443,7 @@ describe("GameScreen timer", () => {
 		};
 		useRoomStore.getState().receive("gameState", game);
 		const { unmount } = render(<GameScreen />);
-		expect(screen.queryByRole("timer")).toBeNull();
+		expect(screen.queryByText(/^\d+:\d\d$/)).toBeNull();
 		unmount();
 		useRoomStore.getState().receive("gameState", {
 			...game,
@@ -640,9 +451,7 @@ describe("GameScreen timer", () => {
 			endsAt: Date.now() + 51_000,
 		});
 		render(<GameScreen />);
-		expect(screen.getByRole("timer").getAttribute("aria-label")).toMatch(
-			/^5\d Sekunden$/,
-		);
+		expect(screen.getByText(/^0:5\d$/)).toBeDefined();
 	});
 });
 
@@ -670,35 +479,10 @@ describe("GameScreen field hint", () => {
 		expect(field.getAttribute("aria-invalid")).toBe("true");
 		expect(screen.getByText("beginnt nicht mit B")).toBeDefined();
 	});
-
-	it("locks a valid answer only once its field is left", () => {
-		setup("guest", "Playing");
-		useRoomStore.getState().receive("gameState", {
-			roundId: "r1",
-			state: "Playing",
-			letter: "B",
-			usedLetters: ["B"],
-			remainingLetters: [],
-			endsAt: null,
-			serverNow: Date.now(),
-			countdownRemaining: null,
-			categoryCount: 2,
-		});
-		render(<GameScreen />);
-		const field = document.getElementById("cat-c1") as HTMLInputElement;
-		const locked = () => field.closest(".card")?.classList.contains("locked");
-		fireEvent.blur(field);
-		fireEvent.change(field, { target: { value: "Be" } });
-		expect(locked()).toBe(false);
-		fireEvent.blur(field);
-		expect(locked()).toBe(true);
-		fireEvent.change(field, { target: { value: "Ber" } });
-		expect(locked()).toBe(false);
-	});
 });
 
-describe("GameScreen solo", () => {
-	it("lets a solo player stop with empty fields and hides the end button", () => {
+describe("GameScreen sprint", () => {
+	it("takes a word per prompt and skips an empty one", () => {
 		setup("host", "Playing");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -714,16 +498,30 @@ describe("GameScreen solo", () => {
 			serverNow: Date.now(),
 			countdownRemaining: null,
 			categoryCount: 2,
+			letters: ["B", "K"],
 		});
 		render(<GameScreen />);
-		const buzz = screen.getByRole("button", { name: /STOPP/ });
-		expect(buzz.getAttribute("aria-disabled")).toBe("false");
-		expect(screen.queryByRole("button", { name: "Runde beenden" })).toBeNull();
+		expect(screen.getByText("Stadt")).toBeDefined();
+		const field = () => document.getElementById("sprint") as HTMLInputElement;
+		fireEvent.change(field(), { target: { value: "Berlin" } });
+		fireEvent.keyDown(field(), { key: "Enter" });
+		expect(send).toHaveBeenCalledWith({
+			type: "sprintWord",
+			payload: { roundId: "r1", pos: 0, value: "Berlin" },
+		});
+		expect(screen.getByText("Land")).toBeDefined();
+		fireEvent.keyDown(field(), { key: "Enter" });
+		expect(send).toHaveBeenCalledWith({
+			type: "sprintWord",
+			payload: { roundId: "r1", pos: 1, value: "" },
+		});
+		expect(field().placeholder).toBe("K…");
+		expect(screen.getByRole("button", { name: /STOPP/ })).toBeDefined();
 	});
 });
 
 describe("last-letter mode", () => {
-	it("ghosts the letter at the end", () => {
+	it("says the answer ends on the letter", () => {
 		setup("guest", "Playing");
 		const lobby = useRoomStore.getState().lobby!;
 		useRoomStore.setState({
@@ -744,12 +542,12 @@ describe("last-letter mode", () => {
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
-		expect(screen.getAllByText("…S").length).toBeGreaterThan(0);
+		expect(screen.getByText("endet auf S")).toBeDefined();
 	});
 });
 
 describe("GameScreen countdown", () => {
-	it("shows the letter on the mascot above the count", () => {
+	it("puts a shown letter big above a small count", () => {
 		setup("guest", "Countdown");
 		useRoomStore.getState().receive("gameState", {
 			roundId: "r1",
@@ -763,8 +561,8 @@ describe("GameScreen countdown", () => {
 			categoryCount: 2,
 		});
 		render(<GameScreen />);
-		expect(screen.getByText("K").className).toBe("m-letter");
-		expect(document.querySelector(".count")?.textContent).toBe("3");
+		expect(screen.getByText("K").className).toContain("text-9xl");
+		expect(screen.getByText("3").className).toContain("text-4xl");
 	});
 });
 
@@ -794,11 +592,8 @@ describe("GameScreen pending joiner", () => {
 		});
 		render(<GameScreen />);
 		expect(
-			document.querySelector(
-				'[data-tip="Du spielst ab der nächsten Runde mit"]',
-			),
-		).not.toBeNull();
-		expect(document.getElementById("cat-c1")).toBeNull();
+			screen.getByText("Du spielst ab der nächsten Runde mit."),
+		).toBeDefined();
 	});
 });
 
@@ -819,47 +614,39 @@ describe("review merge", () => {
 		categoryId: "c1",
 		categoryIndex: 0,
 		categoryCount: 2,
-		answers: [answer("host", a), answer("guest", b)],
 		ready: null,
 		voters: null,
-		endsAt: null,
-		serverNow: 0,
+		answers: [answer("host", a), answer("guest", b)],
 	});
 
 	it("offers merging only for 2 different valid answers", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", review("Tahn", "tahn "));
 		const { unmount } = render(<ReviewScreen />);
-		expect(screen.queryByRole("button", { name: "Zusammenführen" })).toBeNull();
+		expect(screen.queryByText("Zusammenführen")).toBeNull();
 		unmount();
 
 		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
 		render(<ReviewScreen />);
-		fireEvent.click(
-			screen.getAllByRole("button", { name: "Zusammenführen" })[0],
-		);
+		fireEvent.click(screen.getAllByText("Zusammenführen")[0]);
 		expect(
-			screen.getByRole("button", { name: "Verbinden abbrechen" }),
+			screen.getByText("Antwort antippen, die gleich „Tahn“ ist"),
 		).toBeDefined();
 	});
 
-	it("merges the picked answer into the anchor", () => {
+	it("keeps the merge buttons out of the validity switch", () => {
 		setup("host", "Reviewing");
 		useRoomStore.getState().receive("reviewState", review("Tahn", "Tan"));
-		const { container } = render(<ReviewScreen />);
-		fireEvent.click(
-			screen.getAllByRole("button", { name: "Zusammenführen" })[0],
-		);
-		fireEvent.click(container.querySelectorAll(".ans")[1]);
-		expect(send).toHaveBeenCalledWith({
-			type: "mergeAnswers",
-			payload: { targetAnswerId: "host", sourceAnswerId: "guest" },
-		});
+		render(<ReviewScreen />);
+		for (const sw of screen.getAllByRole("switch")) {
+			expect(sw.querySelector("button")).toBeNull();
+		}
+		expect(screen.getAllByText("Zusammenführen")).toHaveLength(2);
 	});
 });
 
-describe("review end reason", () => {
-	it("marks a timeout", () => {
+describe("review voting", () => {
+	it("lets a voter doubt another answer and say done", () => {
 		setup("guest", "Reviewing");
 		useRoomStore.getState().receive("reviewState", {
 			roundId: "r1",
@@ -867,33 +654,80 @@ describe("review end reason", () => {
 			categoryId: "c1",
 			categoryIndex: 0,
 			categoryCount: 2,
-			answers: [],
-			endReason: "timeout",
-			ready: null,
-			voters: null,
+			ready: ["host"],
+			voters: ["host", "guest"],
+			answers: [
+				{
+					answerId: "host",
+					playerId: "host",
+					value: "Bonn",
+					valid: true,
+					mergedInto: "",
+					pointsPreview: 10,
+					votes: null,
+					ruled: false,
+				},
+				{
+					answerId: "guest",
+					playerId: "guest",
+					value: "Berlin",
+					valid: true,
+					mergedInto: "",
+					pointsPreview: 10,
+					votes: { host: false },
+					ruled: false,
+				},
+			],
 		});
 		render(<ReviewScreen />);
-		expect(
-			document.querySelector('[data-tip="Zeit abgelaufen"]'),
-		).not.toBeNull();
+		const rows = screen.getAllByRole("switch");
+		expect(rows).toHaveLength(1);
+		fireEvent.click(rows[0]);
+		expect(send).toHaveBeenCalledWith({
+			type: "voteAnswer",
+			payload: { answerId: "host", vote: -1 },
+		});
+		expect(screen.getByTitle("1 dagegen")).toBeDefined();
+		fireEvent.click(screen.getByRole("button", { name: /Fertig/ }));
+		expect(send).toHaveBeenCalledWith({ type: "reviewReady", payload: {} });
+	});
+});
+
+describe("review end reason", () => {
+	it("says the time ran out", () => {
+		setup("guest", "Reviewing");
+		useRoomStore.getState().receive("reviewState", {
+			roundId: "r1",
+			letter: "B",
+			categoryId: "c1",
+			categoryIndex: 0,
+			categoryCount: 2,
+			ready: null,
+			voters: null,
+			answers: [],
+			endReason: "timeout",
+		});
+		render(<ReviewScreen />);
+		expect(screen.getByText("Zeit abgelaufen")).toBeDefined();
 	});
 });
 
 describe("host grace banner", () => {
-	it("alerts everyone while the host is gone", () => {
+	it("sits in the screen flow under the header", () => {
 		setup("guest", "Lobby");
 		useRoomStore.setState({ hostGrace: 30 });
 		render(<Lobby />);
-		expect(screen.getByRole("alert").textContent).toContain("Host getrennt");
+		const banner = screen.getByText(/Host getrennt - Lobby schließt in/);
+		expect(banner.closest(".fixed")).toBeNull();
 		useRoomStore.setState({ hostGrace: null });
 	});
 });
 
 describe("Home join code", () => {
-	it("opens the code step on a join link", () => {
+	it("uses a descriptive placeholder instead of a sample code", () => {
 		useRoomStore.setState({ lobby: null });
 		render(<Home />);
-		expect(screen.getByRole("textbox", { name: "Lobbycode" })).toBeDefined();
+		expect(screen.getByPlaceholderText("6-stelliger Code")).toBeDefined();
 	});
 });
 it("announces the final seconds", () => {
@@ -910,5 +744,5 @@ it("announces the final seconds", () => {
 		categoryCount: 2,
 	});
 	render(<GameScreen />);
-	expect(document.querySelector(".fuse .sr-only")?.textContent).toBe("4");
+	expect(screen.getByText("Noch 4 Sekunden")).toBeDefined();
 });

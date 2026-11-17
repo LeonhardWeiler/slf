@@ -23,7 +23,7 @@
               installPhase = "mkdir $out && cp -r node_modules $out";
               dontFixup = true;
               outputHashMode = "recursive";
-              outputHash = "sha256-XM979OH3xR5GC/o7fx4PL+oFDNRecVlz53Tci5MRpEc=";
+              outputHash = "sha256-DwnMFyboPstcQl1lyOeav8KNjpYykZ+0wnjJou4pGiA=";
             };
             frontend = pkgs.stdenvNoCC.mkDerivation {
               name = "slf-frontend";
@@ -44,7 +44,7 @@
               installPhase = "cp -r dist $out";
             };
           in
-          pkgs.buildGoModule {
+          pkgs.buildGo126Module {
             pname = "slf";
             version = (builtins.fromJSON (builtins.readFile ./frontend/package.json)).version;
             src = ./backend;
@@ -63,7 +63,7 @@
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
             # Go
-            go
+            go_1_26
             gopls
             air
 

@@ -1,8 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { ArrowRight, Crown, Flag, Flame, X } from "lucide-react";
-import { animate, bounce, celebrate, fly, haptic, mood } from "@/lib/feel";
-import { sound } from "@/lib/sound";
-import { stats } from "@/lib/stats";
+import { useEffect } from "react";
+import { Flame, Trophy } from "lucide-react";
 import { ws } from "@/lib/ws";
 import { useRoomStore, useIsHost } from "@/store/room";
 import { handlesEnter } from "@/lib/utils";
@@ -11,35 +8,8 @@ import { RoomHeader } from "@/components/RoomHeader";
 import { CountUp } from "@/components/CountUp";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { isModalOpen } from "@/components/Modal";
-import { Av, Btn, IconBtn, Mascot, playerColor } from "@/components/kit";
-import type { ScoreEntry } from "@/types/events";
-
-// stepsOf lists the gains a row counts up: every answer, then the bonuses.
-function stepsOf(s: ScoreEntry) {
-	return (
-		[
-			...s.points.map((p) => [p, `+${p}`]),
-			[s.buzz, `+${s.buzz} Erster!`],
-			[s.combo, `+${s.combo} Combo`],
-		] as [number, string][]
-	).filter(([p]) => p > 0);
-}
-
-// streaks counts each player's consecutive round wins within one game.
-const streaks = new Map<string, number>();
-let counted: unknown;
-
-function countStreaks(scores: ScoreEntry[], first: boolean) {
-	if (first) streaks.clear();
-	const lead = Math.max(...scores.map((s) => s.roundPoints));
-	for (const s of scores)
-		streaks.set(
-			s.playerId,
-			lead > 0 && s.roundPoints === lead
-				? (streaks.get(s.playerId) ?? 0) + 1
-				: 0,
-		);
-}
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function RoundResultScreen() {
 	const lobby = useRoomStore((s) => s.lobby);
@@ -47,99 +17,6 @@ export function RoundResultScreen() {
 	const result = useRoomStore((s) => s.result);
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
-	const [step, setStep] = useState(0);
-	const [sorted, setSorted] = useState(false);
-	const rows = useRef(new Map<string, HTMLLIElement>());
-	const tops = useRef(new Map<string, number>());
-
-	// The board opens in the old order, every scoring answer lands as a coin,
-	// then the rows fly to their new places.
-	useEffect(() => {
-		if (!result) return;
-		setStep(0);
-		setSorted(false);
-		const n = Math.max(0, ...result.scores.map((s) => stepsOf(s).length));
-		const ids = [
-			...Array.from({ length: n }, (_, i) =>
-				setTimeout(() => setStep(i + 1), 700 + i * 420),
-			),
-			setTimeout(
-				() => {
-					const me = result.scores.find((s) => s.playerId === myPlayerId);
-					const gain = me?.roundPoints ?? 0;
-					const lead = Math.max(...result.scores.map((s) => s.roundPoints));
-					const best = stats.best("round-classic");
-					stats.record("round-classic", gain);
-					stats.played();
-					const before = result.ranking.map(
-						(r) =>
-							r.score -
-							(result.scores.find((s) => s.playerId === r.playerId)
-								?.roundPoints ?? 0),
-					);
-					const mine = result.ranking.find((r) => r.playerId === myPlayerId);
-					const comeback =
-						before.length > 2 &&
-						mine?.rank === 1 &&
-						mine.score - gain === Math.min(...before) &&
-						Math.min(...before) < Math.max(...before);
-					const level =
-						comeback || (best > 0 && gain > best)
-							? 3
-							: me?.combo || (result.scores.length > 1 && gain === lead)
-								? 2
-								: me?.buzz
-									? 1
-									: 0;
-					if (gain <= 0) sound.thud();
-					else if (level === 3) {
-						celebrate(3, comeback ? "Comeback!" : "Rekord!");
-						sound.fanfare();
-					} else if (level) celebrate(level);
-					else mood("cheer", 1200);
-					for (const [id, el] of rows.current)
-						tops.current.set(id, el.getBoundingClientRect().top);
-					setSorted(true);
-				},
-				700 + n * 420 + 300,
-			),
-		];
-		return () => ids.forEach(clearTimeout);
-	}, [result, myPlayerId]);
-
-	useEffect(() => {
-		if (!step || !result) return;
-		for (const s of result.scores) {
-			const st = stepsOf(s)[step - 1];
-			const row = rows.current.get(s.playerId);
-			if (!st || !row) continue;
-			const total = row.querySelector(".total");
-			fly(row.querySelector(".gain"), total, st[1], () => {
-				bounce(total, 1.25, 220);
-				if (s.playerId === myPlayerId) {
-					sound.coin(step - 1);
-					haptic(8);
-				}
-			});
-		}
-	}, [step, result, myPlayerId]);
-
-	useLayoutEffect(() => {
-		if (!sorted || !result) return;
-		for (const [id, el] of rows.current) {
-			const dy = (tops.current.get(id) ?? 0) - el.getBoundingClientRect().top;
-			if (!dy) continue;
-			animate(el, [{ translate: `0 ${dy}px` }, { translate: "0 0" }], {
-				duration: 700,
-			});
-			if (dy > 0 && result.ranking[0]?.playerId === id)
-				setTimeout(() => sound.crown(), 450);
-			if (id === myPlayerId && dy > 0) {
-				sound.whoosh();
-				haptic([15, 30, 40]);
-			}
-		}
-	}, [sorted, result, myPlayerId]);
 
 	// Host can remove a player from the between-rounds standings (the points
 	// table). The server keeps them in the ranking marked "(verlassen)" (todo-4).
@@ -191,151 +68,151 @@ export function RoundResultScreen() {
 	}, [isHost]);
 
 	if (!lobby || !result) return null;
-	if (counted !== result) {
-		counted = result;
-		countStreaks(result.scores, result.usedLetters.length <= 1);
-	}
 
 	const playerOf = (id: string) => lobby.players.find((p) => p.id === id);
 	const playerName = (id: string) => playerOf(id)?.name ?? "?";
 	const scoreOf = (id: string) => result.scores.find((s) => s.playerId === id);
 	const roundPointsOf = (id: string) => scoreOf(id)?.roundPoints ?? 0;
-	const shown = (id: string, total: number) =>
-		sorted
-			? total
-			: total -
-				roundPointsOf(id) +
-				(scoreOf(id) ? stepsOf(scoreOf(id) as ScoreEntry) : [])
-					.slice(0, step - 1)
-					.reduce((a, [p]) => a + p, 0);
-	const order = sorted
-		? result.ranking
-		: result.ranking.toSorted(
-				(a, b) =>
-					b.score -
-					roundPointsOf(b.playerId) -
-					(a.score - roundPointsOf(a.playerId)),
-			);
+
 	const lettersLeft = result.remainingLetters.length;
-	const top = Math.max(1, ...result.ranking.map((r) => r.score));
 
 	return (
-		<>
-			<RoomHeader>
-				{isHost && (
-					<IconBtn tip="Spiel beenden" onClick={handleEndGame}>
-						<Flag />
-					</IconBtn>
+		<div className="min-h-svh bg-background screen-pad">
+			<div className="mx-auto w-full max-w-xl space-y-4">
+				<RoomHeader title="Rundenergebnis" />
+
+				<p className="text-center text-lg font-semibold">
+					Runde {result.usedLetters.length} · {result.letter}
+				</p>
+				{result.empty && (
+					<p className="text-center text-sm text-muted-foreground">
+						Niemand hat etwas eingetragen.
+					</p>
 				)}
-			</RoomHeader>
-			<section className="screen result">
-				<div className="hud">
-					<Mascot
-						size="letter"
-						letter={result.letter}
-						base={result.empty ? "sad" : "happy"}
-					/>
-					<div className="hud-mid">
-						<div className="rounds big">
-							{result.usedLetters.map((l) => (
-								<i key={l} className="done" />
-							))}
-							{result.remainingLetters.slice(0, 3).map((l) => (
-								<i key={l} />
-							))}
-						</div>
-					</div>
-				</div>
-				<ol className="ranking">
-					{order.map((r, i) => {
-						const gain = roundPointsOf(r.playerId);
-						const now = shown(r.playerId, r.score);
-						const p = playerOf(r.playerId);
-						return (
-							<li
-								key={r.playerId}
-								ref={(el) => {
-									if (el) rows.current.set(r.playerId, el);
-									else rows.current.delete(r.playerId);
-								}}
-								className={`rank${r.playerId === myPlayerId ? " me" : ""}${now > r.score - gain ? " gaining" : ""}`}
-								style={
-									{
-										"--pc": playerColor(r.playerId),
-										"--w": now / top,
+
+				<Card>
+					<CardHeader className="pb-3">
+						<CardTitle className="text-base">Zwischenstand</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-2">
+						{result.ranking.map((r, i) => {
+							const roundPoints = roundPointsOf(r.playerId);
+							const sc = scoreOf(r.playerId);
+							const p = playerOf(r.playerId);
+							const bonus = [
+								sc?.buzz && `${sc.buzz} Erster`,
+								sc?.combo && `${sc.combo} Combo`,
+							]
+								.filter(Boolean)
+								.join(", ");
+							return (
+								<div
+									key={r.playerId}
+									// Rows ease in one after another (backwards fill holds them
+									// hidden through the stagger delay so they don't flash first).
+									style={{
 										animationDelay: `${i * 70}ms`,
-									} as React.CSSProperties
-								}
-							>
-								<span className="pos">
-									{!sorted ? (
-										i + 1
-									) : r.rank === 1 && r.score > 0 ? (
-										<Crown />
-									) : (
-										r.rank
-									)}
-								</span>
-								<Av id={r.playerId} name={playerName(r.playerId)} tip={false} />
-								<span className="name">
-									<span className="rank-name">{playerName(r.playerId)}</span>
-									<PlayerStatus player={p} />
-									{p && p.combo >= 2 && (
-										<span
-											className="combo"
-											data-tip={`${p.combo} Runden alles ausgefüllt: +${Math.min(50, 10 * (p.combo - 1))} %`}
-										>
-											<Flame />
-											{p.combo}
+										animationFillMode: "backwards",
+									}}
+									className={`animate-fade-in flex items-center justify-between py-2 px-3 ${
+										r.rank === 1 && r.score > 0
+											? "bg-amber-500/15 border border-amber-500/40"
+											: "bg-muted/50"
+									}`}
+								>
+									<div className="flex items-center gap-3">
+										<span className="text-sm font-bold text-muted-foreground w-5">
+											{r.rank}.
 										</span>
-									)}
-								</span>
-								<span className="gain">+{gain}</span>
-								<CountUp
-									value={now}
-									durationMs={400}
-									flicker
-									className="total"
-								/>
-								{sorted && (streaks.get(r.playerId) ?? 0) > 0 && (
-									<i
-										className="streak"
-										data-n={Math.min(3, streaks.get(r.playerId) ?? 0)}
-										data-tip={`${streaks.get(r.playerId)} Runden in Folge vorne`}
-									/>
-								)}
-								{isHost && r.playerId !== myPlayerId && !p?.left && (
-									<button
-										type="button"
-										className="kick"
-										aria-label={`${playerName(r.playerId)} entfernen`}
-										data-tip="Entfernen"
-										onClick={() =>
-											handleKick(r.playerId, playerName(r.playerId))
-										}
-									>
-										<X />
-									</button>
-								)}
-								<span className="bar">
-									<i />
-								</span>
-							</li>
-						);
-					})}
-				</ol>
-				{isHost && (
-					<Btn
-						kind="next"
-						aria-label={lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
-						data-tip={lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
-						onClick={() => ws.send({ type: "startNextRound", payload: {} })}
-					>
-						{lettersLeft > 0 ? <ArrowRight /> : <Flag />}
-					</Btn>
+										{r.rank === 1 && r.score > 0 && (
+											<Trophy className="h-4 w-4 text-amber-500 shrink-0" />
+										)}
+										<span className="text-sm font-medium">
+											{/* Only the host may remove a player, so only the host gets
+											    the clickable name. Rendering it for everyone offered a
+											    destructive action the server rejects with NOT_HOST. */}
+											{isHost &&
+											r.playerId !== myPlayerId &&
+											!playerOf(r.playerId)?.left ? (
+												<button
+													type="button"
+													// The name itself is the trigger, so name it: without this
+													// the accessible name is just the player and nothing says
+													// what activating it does.
+													title={`${playerName(r.playerId)} entfernen`}
+													className="font-medium hover:line-through cursor-pointer bg-transparent border-0 p-0 inline"
+													onClick={() =>
+														handleKick(r.playerId, playerName(r.playerId))
+													}
+												>
+													{playerName(r.playerId)}
+												</button>
+											) : (
+												<span>{playerName(r.playerId)}</span>
+											)}
+											{r.playerId === myPlayerId && (
+												<span className="text-xs text-muted-foreground">
+													{" "}
+													(du)
+												</span>
+											)}
+
+											<PlayerStatus player={p} />
+											{p && p.combo >= 2 && (
+												<span
+													className="ml-1.5 inline-flex items-center gap-0.5 text-xs text-orange-500"
+													title={`${p.combo} Runden in Folge alles ausgefüllt`}
+												>
+													<Flame className="h-3.5 w-3.5" />
+													{p.combo}
+												</span>
+											)}
+										</span>
+									</div>
+									<div className="flex items-center gap-3">
+										{/* Round gain only shown in success green when >0; a zero gain
+                      is shown neutrally as "±0", not as green "+0". */}
+										<span
+											title={bonus ? `inkl. ${bonus}` : undefined}
+											className={`text-xs font-medium ${
+												roundPoints === 0
+													? "text-muted-foreground"
+													: "text-green-600"
+											}`}
+										>
+											{roundPoints === 0 ? "±0" : `+${roundPoints}`}
+										</span>
+										<CountUp
+											value={r.score}
+											className="text-sm font-bold tabular-nums w-10 text-right"
+										/>
+									</div>
+								</div>
+							);
+						})}
+					</CardContent>
+				</Card>
+
+				{isHost ? (
+					// Nebeneinander ab sm; auf schmalen Screens gestapelt.
+					<div className="flex flex-col-reverse gap-2 sm:grid sm:grid-cols-2">
+						<Button variant="outline" size="lg" onClick={handleEndGame}>
+							Spiel beenden
+						</Button>
+						<Button
+							size="lg"
+							onClick={() => ws.send({ type: "startNextRound", payload: {} })}
+						>
+							{lettersLeft > 0 ? "Nächste Runde" : "Spiel abschließen"}
+						</Button>
+					</div>
+				) : (
+					<p className="text-center text-sm text-muted-foreground">
+						Warte auf den Host…
+					</p>
 				)}
-			</section>
+			</div>
 			{dialog}
-		</>
+		</div>
 	);
 }

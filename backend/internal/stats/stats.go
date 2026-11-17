@@ -28,8 +28,6 @@ type Event struct {
 	Cats        int       `json:"cats,omitempty"`
 	LastLetter  bool      `json:"lastLetter,omitempty"`
 	Commentator bool      `json:"commentator,omitempty"`
-	Value       string    `json:"value,omitempty"`
-	Scene       string    `json:"scene,omitempty"`
 }
 
 // maxSize caps the event file; Add drops events beyond it.
@@ -94,9 +92,8 @@ func (l *Log) read() iter.Seq[Event] {
 }
 
 type row struct {
-	Key   string
-	N     int
-	Extra string
+	Key string
+	N   int
 }
 
 type mode struct {
@@ -109,19 +106,14 @@ type page struct {
 	Since              string
 	Modes              []mode
 	Days, Limits, Ends []row
-	Worlds, Music      []row
 	LastLetter, Comm   int
 	Ended              int
 }
 
-func rows(m map[string]int, extra func(string) string) []row {
+func rows(m map[string]int) []row {
 	var out []row
 	for k, n := range m {
-		r := row{Key: k, N: n}
-		if extra != nil {
-			r.Extra = extra(k)
-		}
-		out = append(out, r)
+		out = append(out, row{Key: k, N: n})
 	}
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].N != out[j].N {
@@ -150,7 +142,6 @@ func build(evs iter.Seq[Event]) page {
 		return modes[m]
 	}
 	days, limits, ends := map[string]int{}, map[string]int{}, map[string]int{}
-	worlds, worldEnds, music := map[string]int{}, map[string]int{}, map[string]int{}
 	for e := range evs {
 		if p.Since == "" {
 			p.Since = e.T.Format("2006-01-02")
@@ -181,13 +172,6 @@ func build(evs iter.Seq[Event]) page {
 			if e.Commentator {
 				p.Comm++
 			}
-		case "world":
-			worlds[e.Value]++
-		case "leave":
-			worldEnds[e.Value]++
-			worlds[e.Value] += 0
-		case "musicOff", "mute":
-			music[e.Ev+" in "+e.Scene]++
 		}
 	}
 	for _, k := range []string{"solo", "classic"} {
@@ -198,17 +182,13 @@ func build(evs iter.Seq[Event]) page {
 			Players: avg(a.players, a.ended),
 		})
 	}
-	p.Days = rows(days, nil)
+	p.Days = rows(days)
 	sort.Slice(p.Days, func(i, j int) bool { return p.Days[i].Key > p.Days[j].Key })
 	if len(p.Days) > 30 {
 		p.Days = p.Days[:30]
 	}
-	p.Limits = rows(limits, nil)
-	p.Ends = rows(ends, nil)
-	p.Worlds = rows(worlds, func(w string) string {
-		return fmt.Sprintf("%d verlassen", worldEnds[w])
-	})
-	p.Music = rows(music, nil)
+	p.Limits = rows(limits)
+	p.Ends = rows(ends)
 	return p
 }
 
@@ -226,10 +206,6 @@ th{color:#888;font-weight:500}td.n{text-align:right;font-variant-numeric:tabular
 <h2>Modi</h2>
 <table><tr><th>Modus<th>gestartet<th>beendet<th>durchgespielt<th>Ø Minuten<th>Ø Runden<th>Ø Spieler
 {{range .Modes}}<tr><td>{{.Mode}}<td class=n>{{.Started}}<td class=n>{{.Ended}}<td class=n>{{.Finished}}<td class=n>{{.Minutes}}<td class=n>{{.Rounds}}<td class=n>{{.Players}}{{end}}</table>
-<h2>Welten</h2><p>Runden pro Welt und wie oft jemand in dieser Welt das Spiel verlassen hat.</p>
-<table>{{range .Worlds}}<tr><td>{{.Key}}<td class=n>{{.N}}<td>{{.Extra}}{{end}}</table>
-<h2>Musik</h2><p>Wie oft Musik oder Ton in einer Szene ausgeschaltet wurde.</p>
-<table>{{range .Music}}<tr><td>{{.Key}}<td class=n>{{.N}}{{end}}</table>
 <h2>Zeitlimit</h2>
 <table>{{range .Limits}}<tr><td>{{.Key}}<td class=n>{{.N}}{{end}}</table>
 <h2>Spielende</h2>

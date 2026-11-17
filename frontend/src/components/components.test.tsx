@@ -52,7 +52,7 @@ describe("PlayerStatus", () => {
 
 	it("marks a final leave", () => {
 		render(<PlayerStatus player={player({ left: true, connected: false })} />);
-		expect(screen.getByRole("img", { name: "verlassen" })).toBeDefined();
+		expect(screen.getByText("(verlassen)")).toBeDefined();
 	});
 
 	it("marks a dropped connection as reversible", () => {
@@ -60,7 +60,7 @@ describe("PlayerStatus", () => {
 		expect(
 			screen.getByRole("img", { name: "Verbindung getrennt" }),
 		).toBeDefined();
-		expect(screen.queryByRole("img", { name: "verlassen" })).toBeNull();
+		expect(screen.queryByText("(verlassen)")).toBeNull();
 	});
 
 	it("shows nothing for a connected player", () => {

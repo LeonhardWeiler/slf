@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { Modal } from "@/components/Modal";
-import { Btn } from "@/components/kit";
+import { Button } from "@/components/ui/button";
 
 interface ConfirmOptions {
 	title: string;
@@ -62,19 +62,28 @@ function ConfirmDialogView({
 			onClose={onCancel}
 			initialFocus={confirmRef}
 		>
-			<h2 id="confirm-title">{title}</h2>
-			{description && <p id="confirm-desc">{description}</p>}
-			<div className="row">
-				<Btn kind="ghost" onClick={onCancel}>
+			<h2 id="confirm-title" className="text-lg font-semibold">
+				{title}
+			</h2>
+			{description && (
+				<p id="confirm-desc" className="mt-1.5 text-sm text-muted-foreground">
+					{description}
+				</p>
+			)}
+			{/* Both buttons share the full width 50/50; cancel carries the same
+          outline border as the confirm button so the pair reads as one bar. */}
+			<div className="mt-5 flex gap-2">
+				<Button variant="outline" className="flex-1" onClick={onCancel}>
 					{cancelLabel}
-				</Btn>
-				<Btn
+				</Button>
+				<Button
 					ref={confirmRef}
-					kind={destructive ? "danger" : "primary"}
+					variant={destructive ? "destructive" : "default"}
+					className="flex-1"
 					onClick={onConfirm}
 				>
 					{confirmLabel}
-				</Btn>
+				</Button>
 			</div>
 		</Modal>
 	);

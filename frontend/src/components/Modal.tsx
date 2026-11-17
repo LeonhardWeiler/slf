@@ -1,6 +1,4 @@
 import { type ReactNode, type RefObject, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
-import { sound } from "@/lib/sound";
 
 // Count of currently-open modals. Global keyboard shortcuts on the game screens
 // (Enter to start the next round / buzz, Ctrl/Cmd+C to copy the code) query
@@ -18,6 +16,8 @@ interface ModalProps {
 	onClose: () => void;
 	// Receives focus on open; defaults to the first focusable element.
 	initialFocus?: RefObject<HTMLElement | null>;
+	backdropClassName?: string;
+	className?: string;
 	children: ReactNode;
 }
 
@@ -30,6 +30,8 @@ export function Modal({
 	describedBy,
 	onClose,
 	initialFocus,
+	backdropClassName = "animate-fade-in",
+	className = "",
 	children,
 }: ModalProps) {
 	const dialogRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,6 @@ export function Modal({
 			) ?? [];
 		(initialFocus?.current ?? focusables()[0])?.focus();
 		openModals++;
-		sound.hush(true);
 		const prevOverflow = document.body.style.overflow;
 		document.body.style.overflow = "hidden";
 		function onKey(e: KeyboardEvent) {
@@ -76,7 +77,6 @@ export function Modal({
 			window.removeEventListener("keydown", onKey);
 			document.body.style.overflow = prevOverflow;
 			openModals--;
-			sound.hush(openModals > 0);
 			// A dialog that removed its own trigger (kicking the player whose row
 			// opened it) leaves a detached node; focusing that would be worse
 			// than doing nothing.
@@ -84,11 +84,11 @@ export function Modal({
 		};
 	}, []);
 
-	return createPortal(
+	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: mouse-only backdrop-to-close; keyboard is covered by the Escape handler
 		// biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click is optional mouse sugar - Escape closes via the window listener above
 		<div
-			className="modal-back"
+			className={`fixed inset-0 z-[60] m-0 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm ${backdropClassName}`}
 			onClick={(e) => {
 				if (e.target === e.currentTarget) onCloseRef.current();
 			}}
@@ -100,11 +100,10 @@ export function Modal({
 				aria-modal="true"
 				aria-labelledby={labelledBy}
 				aria-describedby={describedBy}
-				className="modal"
+				className={`w-full max-w-sm max-h-[calc(100svh-2rem)] overflow-y-auto rounded-lg border border-border bg-card p-5 shadow-xl ${className}`}
 			>
 				{children}
 			</div>
-		</div>,
-		document.body,
+		</div>
 	);
 }
