@@ -6,17 +6,10 @@ Stadt Land Fluss, real-time multiplayer in the browser. Go WebSocket backend
 ## Stack
 
 - **Backend:** Go, WebSocket (`coder/websocket`), in-memory state (no persistence layer).
-- **Frontend:** React 19, Vite, TypeScript (`strict`), plain CSS (`src/index.css`),
-  lucide-react icons, Zustand, routing via the History API (`src/lib/nav.ts`,
-  `src/router.tsx`), Zod. UI primitives live in `src/components/kit.tsx`
-  (Btn, IconBtn, Toggle, Slider, Mascot, Tiles, Av); `Shell` adds the global
-  tap sound/haptic, tooltips (`data-tip`, hover and long-press) and the music
-  scene per lobby state. `lib/feel.ts` owns the world (material in CSS
-  `[data-world]`, palette, particles and energy via `lib/fx.ts`, timbre via
-  `lib/sound.ts`), the mascot `mood` and `celebrate(level)`; the world
-  changes on a level-3 celebration or the first one after 3 min. Every world
-  needs an entry in `PALETTES` (background L* 45-80, `feel.test.ts`), `SHAPES`
-  and `RX`. Light only, no dark mode.
+- **Frontend:** React 19, Vite, TypeScript (`strict`), Tailwind CSS 4, UI building
+  blocks in the shadcn style on top of **Base UI** (`@base-ui-components/react` + CVA + `cn`)
+  in `src/components/ui`, lucide-react icons, Zustand, routing via the History API
+  (`src/lib/nav.ts`, `src/router.tsx`), Zod. Light and dark theme (`lib/theme.tsx`).
 - Lint + format: Biome. Frontend tests: `bun test`. Backend tests: `go test`.
 
 ## Commands
@@ -107,9 +100,7 @@ RoundResult -> GameOver -> Lobby`. Two shortcuts: an **empty round** (no active,
   `Round.Slots` (fixed in `finishPlaying`; classic = one slot per category, key
   = categoryId), so a sprint reuses scoring unchanged. A rejoin replays
   `sprintWords`, one entry per prompt, "" for a skipped one.
-- **Stats** (`internal/stats`): game start/end and the client `track` message
-  (`world`, `leave`, `mute`, `musicOff`, whitelisted in `handleTrack`, only
-  from a lobby member, once per kind and round) append anonymous events to
+- **Stats** (`internal/stats`): game start and end append anonymous events to
   `$STATE_DIRECTORY/events.jsonl` (capped at 50 MB); `STATS_ADDR` serves the
   dashboard on a separate listener (production: tailnet only).
 - Joining is possible in **any** lobby state; whoever joins mid-game is
