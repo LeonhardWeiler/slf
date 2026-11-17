@@ -19,6 +19,7 @@ const player = (id: string, name: string, score = 0): Player => ({
 	connected: true,
 	left: false,
 	pending: false,
+	plays: true,
 	score,
 	combo: 0,
 });

@@ -312,13 +312,8 @@ export function Lobby() {
 		updateSettings({ excludedLetters: [...excluded] });
 	}
 
-	// Who would actually play a round right now: connected, not left, and - with a
-	// commentator host (hostPlays=false) - not the host. Mirrors the server's
-	// hasRoundParticipant. Counting merely-present players let the button stay
-	// enabled while the server had nobody to start a round for, so the click did
-	// nothing at all.
 	const playingCount = activePlayers.filter(
-		(p) => p.connected && (!p.isHost || lobby.settings.hostPlays),
+		(p) => p.plays && p.connected,
 	).length;
 	const canStart = isHost && playingCount >= 1 && lobby.categories.length >= 1;
 	const s = lobby.settings;

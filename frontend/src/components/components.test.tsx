@@ -78,6 +78,7 @@ describe("PlayerStatus", () => {
 		connected: true,
 		left: false,
 		pending: false,
+		plays: true,
 		score: 0,
 		combo: 0,
 		...p,
@@ -111,6 +112,7 @@ describe("CommentatorBoard", () => {
 			connected: true,
 			left: false,
 			pending: false,
+			plays: true,
 			score: 0,
 			combo: 0,
 		};

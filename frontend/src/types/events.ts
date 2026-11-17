@@ -15,6 +15,8 @@ export interface Player {
 	// True for a player who joined mid-game and is waiting to play from the next
 	// round: shown a spectator view, hidden from the standings until then.
 	pending: boolean;
+	// The server's playsThisRound: the player's answers count this round.
+	plays: boolean;
 	score: number;
 	// Rounds in a row with every slot validly filled.
 	combo: number;

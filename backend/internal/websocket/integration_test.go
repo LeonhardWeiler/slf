@@ -297,27 +297,24 @@ func TestJoinMidGameIsPending(t *testing.T) {
 
 	var ls struct {
 		Players []struct {
-			ID      string `json:"id"`
 			Name    string `json:"name"`
 			Pending bool   `json:"pending"`
+			Plays   bool   `json:"plays"`
 		} `json:"players"`
 	}
 	json.Unmarshal(guest.waitFor("lobbyState"), &ls)
-	var bob *struct {
-		ID      string `json:"id"`
-		Name    string `json:"name"`
-		Pending bool   `json:"pending"`
-	}
-	for i := range ls.Players {
-		if ls.Players[i].Name == "Bob" {
-			bob = &ls.Players[i]
+	seen := map[string]bool{}
+	for _, p := range ls.Players {
+		seen[p.Name] = true
+		if p.Name == "Bob" && (!p.Pending || p.Plays) {
+			t.Fatalf("Bob: pending %v plays %v, want a pending spectator", p.Pending, p.Plays)
+		}
+		if p.Name == "Alice" && !p.Plays {
+			t.Fatal("expected the playing host to have plays set")
 		}
 	}
-	if bob == nil {
-		t.Fatal("expected Bob in the lobby after a mid-game join")
-	}
-	if !bob.Pending {
-		t.Fatal("expected a mid-game joiner to be pending")
+	if !seen["Bob"] || !seen["Alice"] {
+		t.Fatalf("expected Alice and Bob in the lobby, got %v", seen)
 	}
 
 	// A mid-game joiner also gets the current phase replayed (gameState) so their

@@ -113,13 +113,11 @@ export function GameScreen() {
 	const isHost = useIsHost();
 	const { confirm, dialog } = useConfirm();
 
-	// True for a mid-game joiner still waiting to play from the next round.
-	const isPending =
-		lobby?.players.find((p) => p.id === myPlayerId)?.pending ?? false;
+	const me = lobby?.players.find((p) => p.id === myPlayerId);
+	const isPending = me?.pending ?? false;
 	// A commentator host and a pending joiner both watch instead of playing: they
 	// fill nothing and instead see the per-player fill overview.
-	const isSpectator =
-		(isHost && lobby?.settings.hostPlays === false) || isPending;
+	const isSpectator = me?.plays === false;
 	const lastLetterMode = lobby?.settings.lastLetterMode ?? false;
 
 	const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -321,11 +319,7 @@ export function GameScreen() {
 
 	// ---- Playing phase ----
 
-	// Players actually participating this round (for the fill overview): not left,
-	// not a pending spectator, and - unless the host plays - not the host.
-	const playingPlayers = lobby.players.filter(
-		(p) => !p.left && !p.pending && (!p.isHost || lobby.settings.hostPlays),
-	);
+	const playingPlayers = lobby.players.filter((p) => p.plays);
 
 	return (
 		<div className="min-h-svh bg-background screen-pad">

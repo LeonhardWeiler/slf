@@ -46,6 +46,7 @@ const player = (id: string, isHost: boolean): Player => ({
 	connected: true,
 	left: false,
 	pending: false,
+	plays: true,
 	score: 0,
 	combo: 0,
 });
@@ -576,7 +577,7 @@ describe("GameScreen pending joiner", () => {
 				...lobby,
 				players: [
 					player("host", true),
-					{ ...player("guest", false), pending: true },
+					{ ...player("guest", false), pending: true, plays: false },
 				],
 			},
 		});
@@ -606,7 +607,7 @@ describe("GameScreen pending joiner", () => {
 				solo: true,
 				players: [
 					player("host", true),
-					{ ...player("guest", false), pending: true },
+					{ ...player("guest", false), pending: true, plays: false },
 				],
 			},
 		});
