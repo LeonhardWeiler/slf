@@ -1200,20 +1200,16 @@ func TestPlayersVoteAndAdvanceReview(t *testing.T) {
 
 	host.send("voteAnswer", map[string]any{"answerId": alice, "vote": -1})
 	bob.send("voteAnswer", map[string]any{"answerId": alice, "vote": -1})
-	if rs := read(); valid(rs, alice) {
-		t.Fatal("a down vote must reject the answer")
-	}
-	carol.send("voteAnswer", map[string]any{"answerId": alice, "vote": 1})
-	if rs := read(); valid(rs, alice) {
-		t.Fatal("a tie must reject the answer")
+	if rs := read(); !valid(rs, alice) {
+		t.Fatal("down votes must not reject the answer")
 	}
 	bob.send("leaveLobby", map[string]any{})
-	if rs := read(); len(rs.Voters) != 2 || !valid(rs, alice) {
-		t.Fatalf("a departed voter's vote must not count, got %+v", rs)
+	if rs := read(); len(rs.Voters) != 2 {
+		t.Fatalf("a departed player must not vote, got %+v", rs)
 	}
 	host.send("setAnswerValidity", map[string]any{"answerId": alice, "valid": false})
 	if rs := read(); valid(rs, alice) {
-		t.Fatal("the host override must win")
+		t.Fatal("the host must reject the answer")
 	}
 
 	host.send("reviewReady", map[string]any{})

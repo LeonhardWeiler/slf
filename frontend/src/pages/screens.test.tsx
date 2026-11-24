@@ -354,7 +354,6 @@ describe("review validity", () => {
 					mergedInto: "",
 					pointsPreview: 25,
 					votes: null,
-					ruled: false,
 				},
 				{
 					answerId: "host",
@@ -364,7 +363,6 @@ describe("review validity", () => {
 					mergedInto: "",
 					pointsPreview: 0,
 					votes: null,
-					ruled: false,
 				},
 			],
 		});
@@ -686,7 +684,6 @@ describe("review merge", () => {
 		mergedInto: "",
 		pointsPreview: 10,
 		votes: null,
-		ruled: false,
 	});
 	const review = (a: string, b: string) => ({
 		roundId: "r1",
@@ -745,7 +742,6 @@ describe("review voting", () => {
 					mergedInto: "",
 					pointsPreview: 10,
 					votes: null,
-					ruled: false,
 				},
 				{
 					answerId: "guest",
@@ -755,7 +751,6 @@ describe("review voting", () => {
 					mergedInto: "",
 					pointsPreview: 10,
 					votes: { host: false },
-					ruled: false,
 				},
 			],
 		});

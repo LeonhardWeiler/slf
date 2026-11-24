@@ -216,7 +216,6 @@ describe("best of the game", () => {
 			mergedInto: "",
 			pointsPreview,
 			votes: null,
-			ruled: false,
 		});
 		const review = (roundId: string, answers: ReturnType<typeof ans>[]) => ({
 			roundId,

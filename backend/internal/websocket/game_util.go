@@ -320,11 +320,10 @@ func buildReviewState(lobby *game.Lobby) game.ReviewStatePayload {
 			AnswerID:      pid,
 			PlayerID:      pid,
 			Value:         a.Value,
-			Valid:         a.Counts(),
+			Valid:         a.Valid,
 			MergedInto:    a.MergedInto,
 			PointsPreview: a.Points,
 			Votes:         a.Votes,
-			Ruled:         a.Ruled,
 		})
 	}
 	slices.SortFunc(answers, func(a, b game.ReviewAnswer) int { return cmp.Compare(a.PlayerID, b.PlayerID) })

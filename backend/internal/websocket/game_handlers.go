@@ -484,7 +484,7 @@ func handleSetAnswerValidity(hub *Hub, c *Client, raw json.RawMessage) {
 	}
 	if lobby := hub.mutateReview(c, true, func(lobby *game.Lobby, _ *game.Player, catID string) bool {
 		if ans := answerFor(lobby.Game.Round, p.AnswerID, catID); ans != nil {
-			ans.Valid, ans.Ruled = p.Valid, true
+			ans.Valid = p.Valid
 			return true
 		}
 		return false
