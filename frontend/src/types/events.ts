@@ -102,7 +102,6 @@ export interface ReviewAnswer {
 	// voter playerId -> thumbs-up (true) or thumbs-down.
 	votes: Record<string, boolean> | null;
 	// The host overrode the verdict; votes no longer count.
-	ruled: boolean;
 }
 
 export interface ReviewStatePayload {

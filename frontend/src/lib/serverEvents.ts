@@ -73,7 +73,6 @@ const reviewAnswerSchema = z.object({
 	mergedInto: z.string(),
 	pointsPreview: z.number(),
 	votes: z._default(z.nullish(z.record(z.string(), z.boolean())), null),
-	ruled: z._default(z.optional(z.boolean()), false),
 });
 
 const reviewStatePayload = z.object({

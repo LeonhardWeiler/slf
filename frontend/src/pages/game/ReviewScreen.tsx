@@ -164,7 +164,7 @@ export function ReviewScreen() {
 								const toggles =
 									!mergeMode &&
 									a.value !== "" &&
-									(isHost || (iVote && a.playerId !== me && !a.ruled));
+									(isHost || (iVote && a.playerId !== me));
 								const down = Object.values(a.votes ?? {}).filter(
 									(v) => !v,
 								).length;
@@ -306,7 +306,9 @@ export function ReviewScreen() {
 
 				{iVote && (
 					<p className="text-center text-xs text-muted-foreground">
-						Antwort antippen, wenn sie nicht gilt.
+						{isHost
+							? "Antwort antippen, wenn sie nicht gilt."
+							: "Antwort antippen, wenn du zweifelst. Der Host entscheidet."}
 					</p>
 				)}
 

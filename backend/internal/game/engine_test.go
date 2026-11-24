@@ -182,25 +182,6 @@ func TestAlphabetExcluding(t *testing.T) {
 	}
 }
 
-func TestAnswerCounts(t *testing.T) {
-	for _, tc := range []struct {
-		a    Answer
-		want bool
-	}{
-		{Answer{Valid: true}, true},
-		{Answer{Valid: false, Votes: map[string]bool{"b": true}}, false},
-		{Answer{Valid: true, Votes: map[string]bool{"b": false}}, false},
-		{Answer{Valid: true, Votes: map[string]bool{"b": false, "c": true}}, false},
-		{Answer{Valid: true, Votes: map[string]bool{"b": false, "c": true, "d": true}}, true},
-		{Answer{Valid: true, Ruled: true, Votes: map[string]bool{"b": false}}, true},
-		{Answer{Valid: false, Ruled: true}, false},
-	} {
-		if got := tc.a.Counts(); got != tc.want {
-			t.Errorf("%+v: got %v, want %v", tc.a, got, tc.want)
-		}
-	}
-}
-
 func TestComputeRankingSameNameIsStable(t *testing.T) {
 	players := map[string]*Player{}
 	for _, id := range []string{"e", "b", "d", "a", "c"} {

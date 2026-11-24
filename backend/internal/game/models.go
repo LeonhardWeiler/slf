@@ -59,27 +59,8 @@ type Answer struct {
 	MergedInto string `json:"mergedInto"`
 	Points     int    `json:"points"`
 	// Votes maps a voter's playerID to a thumbs-up (true) or thumbs-down.
+	// They are only shown; validity is the host's call alone.
 	Votes map[string]bool `json:"-"`
-	// Ruled is set once the host overrode Valid; votes no longer matter then.
-	Ruled bool `json:"-"`
-}
-
-// Counts reports whether the answer is valid after voting: an unruled,
-// rule-valid answer stands until someone votes it down, then it needs more
-// up than down votes.
-func (a *Answer) Counts() bool {
-	if a.Ruled || !a.Valid {
-		return a.Valid
-	}
-	up, down := 0, 0
-	for _, v := range a.Votes {
-		if v {
-			up++
-		} else {
-			down++
-		}
-	}
-	return down == 0 || up > down
 }
 
 type Round struct {
@@ -195,7 +176,6 @@ type ReviewAnswer struct {
 	MergedInto    string          `json:"mergedInto"`
 	PointsPreview int             `json:"pointsPreview"`
 	Votes         map[string]bool `json:"votes"`
-	Ruled         bool            `json:"ruled"`
 }
 
 type ReviewStatePayload struct {
